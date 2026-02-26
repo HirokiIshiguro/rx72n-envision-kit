@@ -34,11 +34,6 @@ RX72N Envision Kit の全機能を試せるようにする。
 | Mirror (GitHub fork) | https://github.com/HirokiIshiguro/rx72n-envision-kit |
 | Upstream (GitHub) | https://github.com/renesas/rx72n-envision-kit |
 
-## Git Conventions / Git ルール
-
-- Commits by Claude Code must use: `--author="Claude Code <claude-code@noreply.anthropic.com>"`
-- Commits by the human owner use the default git config author
-
 ## Changelog / 変更履歴
 
 ### 2026-02-27: Wiki migration to docs/
