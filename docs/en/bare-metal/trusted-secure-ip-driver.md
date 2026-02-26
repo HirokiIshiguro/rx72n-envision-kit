@@ -8,8 +8,8 @@
             * [CC-RX](https://www.renesas.com/products/software-tools/tools/compiler-assembler/compiler-package-for-rx-family.html) V3.02 or later
 
 # Prerequisite
-* [Generate new project (bare metal)](../../bare-metal/generate-new-project.md) must be completed.
-    *  In this section, implement by adding the code of TSIP(Trusted Secure IP) to LED 0.1 second cycle blinking program which was generated in [Generate new project (bare metal)](../../bare-metal/generate-new-project.md) 
+* [Generate new project (bare metal)](../bare-metal/generate-new-project.md) must be completed.
+    *  In this section, implement by adding the code of TSIP(Trusted Secure IP) to LED 0.1 second cycle blinking program which was generated in [Generate new project (bare metal)](../bare-metal/generate-new-project.md) 
 
 # Trusted Secure IP features
 * High-speed cryptographic operation

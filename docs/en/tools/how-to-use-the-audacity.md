@@ -1,6 +1,6 @@
 # <a name="purpose"></a>Purpose
 * Give an outline of how to use the open software for voice editing, [Audacity](https://www.audacityteam.org/) for voice editing
-  * As Audacity is used for checking operation of [1+SSI+Audio playback and recording](../../bare-metal/ssi-audio.md)
+  * As Audacity is used for checking operation of [1+SSI+Audio playback and recording](../bare-metal/ssi-audio.md)
 
 # <a name="summary"></a>The Outline of Audacity
 ## What is Audacity
@@ -18,7 +18,7 @@
   * Omit how to install Audacity
 
 ## <a name="sound_creation"></a>How to create sound
-* Create the sound which is equivalent to the sine wave for testing which is used in [1+SSI+Audio playback and recording](../../bare-metal/ssi-audio.md)
+* Create the sound which is equivalent to the sine wave for testing which is used in [1+SSI+Audio playback and recording](../bare-metal/ssi-audio.md)
   * Sine wave of 3.0kHz on the left, 1.5kHz on the right
   * Sampling frequency is 48kHz
   * Quantifying bit number is 24bit

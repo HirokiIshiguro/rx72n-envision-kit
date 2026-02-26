@@ -14,7 +14,7 @@
 # Prerequisite
 * When you want to add debug or functions of the initial firmware of RX72N Envision Kit.
 * When you want to learn the system of the firmware update
-    * When the system of firmware update is not necessary and the evaluation of the function of single item RX72N is necessary, refer to [Generate new project (bare metal)](../../bare-metal/generate-new-project.md).
+    * When the system of firmware update is not necessary and the evaluation of the function of single item RX72N is necessary, refer to [Generate new project (bare metal)](../bare-metal/generate-new-project.md).
 
 # Download a set of source codes
 * Download the latest version of a code
@@ -104,7 +104,7 @@ erase install area (code flash): OK
 send "userprog.rsu" via UART.
 ```
 # Mechanism of firmware update
-* [Design memo](../../developer/design-memo.md)
+* [Design memo](../developer/design-memo.md)
 
 # Give a signature to MOT file of aws_demos
 * ${base_folder}/vendors/renesas/tools/mot_file_converter/Renesas Secure Flash Programmer/bin/Debug

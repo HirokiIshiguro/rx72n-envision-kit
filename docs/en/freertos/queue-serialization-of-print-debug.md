@@ -11,8 +11,8 @@
                     * Tera Term -> Setting -> Read setting -> Open TERATERM.INI with text editor -> Change setting -> Save -> Tera Term reboot
 
 # Prerequisite
-* [Generate new project (FreeRTOS(Kernel Only))](../../freertos/generate-new-project-kernel-only.md)  must be completed.
-    * In this section, implements by adding the code to communicate with PC to LED0.1 second cycle blinking program created with [Generate new project (FreeRTOS(Kernel Only))](../../freertos/generate-new-project-kernel-only.md) using UART mode of SCI(Serial Communication Interface)
+* [Generate new project (FreeRTOS(Kernel Only))](../freertos/generate-new-project-kernel-only.md)  must be completed.
+    * In this section, implements by adding the code to communicate with PC to LED0.1 second cycle blinking program created with [Generate new project (FreeRTOS(Kernel Only))](../freertos/generate-new-project-kernel-only.md) using UART mode of SCI(Serial Communication Interface)
 
 # Serialize means
 * Line up requirement in serial (continuously)

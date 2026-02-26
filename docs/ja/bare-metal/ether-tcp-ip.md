@@ -11,9 +11,9 @@
             * [Tera Term](https://osdn.net/projects/ttssh2/) 4.105以降
 
 # 前提条件
-* [新規プロジェクト作成方法(ベアメタル)](../../bare-metal/generate-new-project.md) を完了すること
-* [1+SCI](../../bare-metal/sci.md) を完了すること
-    * 本稿では、[新規プロジェクト作成方法(ベアメタル)](../../bare-metal/generate-new-project.md)で作成したLED0.1秒周期点滅プログラムと[1+SCI](../../bare-metal/sci.md)で作成したログ表示機構に、TCP/IPスタック([組み込み用TCP/IP M3S-T4-Tiny](https://www.renesas.com/products/software-tools/software-os-middleware-driver/protocol-stack/m3s-t4-tiny-for-rx.html))を追加する形で実装する
+* [新規プロジェクト作成方法(ベアメタル)](../bare-metal/generate-new-project.md) を完了すること
+* [1+SCI](../bare-metal/sci.md) を完了すること
+    * 本稿では、[新規プロジェクト作成方法(ベアメタル)](../bare-metal/generate-new-project.md)で作成したLED0.1秒周期点滅プログラムと[1+SCI](../bare-metal/sci.md)で作成したログ表示機構に、TCP/IPスタック([組み込み用TCP/IP M3S-T4-Tiny](https://www.renesas.com/products/software-tools/software-os-middleware-driver/protocol-stack/m3s-t4-tiny-for-rx.html))を追加する形で実装する
 
 # 組み込み用TCP/IP M3S-T4-Tiny の特性
 * OSレス環境で動作する軽量のTCP/IPプロトコルスタック

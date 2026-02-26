@@ -10,10 +10,10 @@
 
 # Prerequisite
 *  Installed firmware is version v1.0.4 or later.
-    * Method of writing = [Update firmware from SD card](../../quick-start/update-firmware-from-sd-card.md)
+    * Method of writing = [Update firmware from SD card](../quick-start/update-firmware-from-sd-card.md)
 * Operation of command response has been checked
     * Refer to serial terminal demo in the following page
-        * [Confirm factory image behavior](../../quick-start/confirm-factory-image-behavior.md)
+        * [Confirm factory image behavior](../quick-start/confirm-factory-image-behavior.md)
 
 # Method to execute benchmark
 * Set RX72N Envision Kit to operating state

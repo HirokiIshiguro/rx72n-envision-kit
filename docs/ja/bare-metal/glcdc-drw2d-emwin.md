@@ -18,8 +18,8 @@
           * CC-RX V3.02以降
 
 # <a name="prerequisites"></a>前提条件
- * [新規プロジェクト作成方法(ベアメタル)](../../bare-metal/generate-new-project.md)を完了すること
-   * 本稿では、[新規プロジェクト作成方法(ベアメタル)](../../bare-metal/generate-new-project.md)で作成したLED0.1秒周期点滅プログラムに対し、以下の内容を追加する形で実装する
+ * [新規プロジェクト作成方法(ベアメタル)](../bare-metal/generate-new-project.md)を完了すること
+   * 本稿では、[新規プロジェクト作成方法(ベアメタル)](../bare-metal/generate-new-project.md)で作成したLED0.1秒周期点滅プログラムに対し、以下の内容を追加する形で実装する
       1. QE for Displayを活用し、GLCDドライバ、DRW2Dドライバ、emWinを手軽に組み込み/設定
       2. AppWizardを使用してGUIを設置
       3. GUIを制御するコードを追加

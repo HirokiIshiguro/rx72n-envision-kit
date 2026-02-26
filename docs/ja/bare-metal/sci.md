@@ -12,8 +12,8 @@
                     * Tera Term -> 設定 -> 設定の読み込み -> TERATERM.INI を テキストエディタで開く -> 設定を変更 -> 保存 -> Tera Term再起動
 
 # 前提条件
-* [新規プロジェクト作成方法(ベアメタル)](../../bare-metal/generate-new-project.md) を完了すること
-    * 本稿では、[新規プロジェクト作成方法(ベアメタル)](../../bare-metal/generate-new-project.md)で作成したLED0.1秒周期点滅プログラムにSCI(Serial Communication Interface)のUARTモードを用いてPCと通信するためのコードを追加する形で実装する
+* [新規プロジェクト作成方法(ベアメタル)](../bare-metal/generate-new-project.md) を完了すること
+    * 本稿では、[新規プロジェクト作成方法(ベアメタル)](../bare-metal/generate-new-project.md)で作成したLED0.1秒周期点滅プログラムにSCI(Serial Communication Interface)のUARTモードを用いてPCと通信するためのコードを追加する形で実装する
 
 # 回路確認
 * <a href="../../images/033_board_usb_serial.png" target="_blank"><img src="../../images/033_board_usb_serial.png" width="480px" target="_blank"></a>
@@ -29,7 +29,7 @@
             * SW3-2がONになっていれば、ESP32とCN8が繋がっている
         * なお、RX72NとESP32はP30/RXD1、P26/TXD1、P31/CTS1#、P27_RTS#で接続されており、SSL証明書を書き込む経路とは別となっている
             * つまり、ESP32のファームウェアを更新したりSSL証明書を書き込むとき以外はSW3-2をOFFにすること
-        * ESP32の応用については[ESP32活用](../../features/esp32.md)のページを参照のこと
+        * ESP32の応用については[ESP32活用](../features/esp32.md)のページを参照のこと
 
 # スマートコンフィグレータによるSCI用ドライバソフトウェアの設定
 ## コンポーネント追加
@@ -85,7 +85,7 @@
 * printf()を実行中は割り込み処理を除く他のソフトウェアの実行がブロックされることに注意が必要
 * これを避けるためにはR_SCI_Send()とコールバック(sci_callback)を直接ハンドリングする方法、またはリアルタイムOSを使用する方法がある
 * 上記を理解することを前提としprintf()を使用することとする
-    * リアルタイムOSを用いた上手な実装: [queueの活用 printデバッグのシリアライズ](../../freertos/queue-serialization-of-print-debug.md)
+    * リアルタイムOSを用いた上手な実装: [queueの活用 printデバッグのシリアライズ](../freertos/queue-serialization-of-print-debug.md)
 
 ```rx72n_envision_kit.c
 #include <stdio.h>

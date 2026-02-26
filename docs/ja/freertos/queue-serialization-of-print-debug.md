@@ -11,8 +11,8 @@
                     * Tera Term -> 設定 -> 設定の読み込み -> TERATERM.INI を テキストエディタで開く -> 設定を変更 -> 保存 -> Tera Term再起動
 
 # 前提条件
-* [新規プロジェクト作成方法(FreeRTOS)](../../freertos/generate-new-project-kernel-only.md) を完了すること
-    * 本稿では、[新規プロジェクト作成方法(FreeRTOS)](../../freertos/generate-new-project-kernel-only.md)で作成したLED0.1秒周期点滅プログラムにSCI(Serial Communication Interface)のUARTモードを用いてPCと通信するためのコードを追加する形で実装する
+* [新規プロジェクト作成方法(FreeRTOS)](../freertos/generate-new-project-kernel-only.md) を完了すること
+    * 本稿では、[新規プロジェクト作成方法(FreeRTOS)](../freertos/generate-new-project-kernel-only.md)で作成したLED0.1秒周期点滅プログラムにSCI(Serial Communication Interface)のUARTモードを用いてPCと通信するためのコードを追加する形で実装する
 
 # シリアライズとは
 * シリアル(連続的)に要求を並べること

@@ -9,16 +9,16 @@
             * [CC-RX](https://www.renesas.com/products/software-tools/tools/compiler-assembler/compiler-package-for-rx-family.html) V3.02以降
 
 # 前提条件
-* [デバッグ方法](../../developer/how-to-debug.md) を完了すること
-* 単に従来通りのデバッグおよびRX72Nの単体機能の評価が必要な場合は[新規プロジェクト作成方法](../../developer/generate-new-project-overview.md)を参照のこと
+* [デバッグ方法](../developer/how-to-debug.md) を完了すること
+* 単に従来通りのデバッグおよびRX72Nの単体機能の評価が必要な場合は[新規プロジェクト作成方法](../developer/generate-new-project-overview.md)を参照のこと
 
 # RX72N Envision Kitのメモリマップおよびファームウェアの動作の理解する
-* [設計メモ](../../developer/design-memo.md)の以下を参考にRX72N Envision Kitのメモリマップおよびファームウェアの動作の理解する
+* [設計メモ](../developer/design-memo.md)の以下を参考にRX72N Envision Kitのメモリマップおよびファームウェアの動作の理解する
     * コードフラッシュ: RX72N Envision Kit 初期ファームウェアでのメモリマップ定義
     * 初期ファームウェアとアップデート後ファームウェアの動作の違い
 
 # ファームウェア結合とアップデータ生成
-* [デバッグ方法](../../developer/how-to-debug.md) はデバッグ時に有効であるが、量産時には有効ではない
+* [デバッグ方法](../developer/how-to-debug.md) はデバッグ時に有効であるが、量産時には有効ではない
 * なぜならば、以下2点の課題が存在するからである
     1. 量産時、ダウンロードに時間および手間がかかる
     1. 量産後運用時、アップデータ配信時のデータ量が増える（通信料金が増える）
@@ -51,8 +51,8 @@
 
 # 書き込み
 * MOTファイルを書き込む
-    * [初期ファームウェアに戻す方法](../../quick-start/revert-to-factory-image.md)参照
+    * [初期ファームウェアに戻す方法](../quick-start/revert-to-factory-image.md)参照
 * RSUファイル(Initial Firmで生成したデータ)を書き込み、デバッグを行う
-    * [デバッグ方法](../../developer/how-to-debug.md)参照
+    * [デバッグ方法](../developer/how-to-debug.md)参照
 
 

@@ -15,8 +15,8 @@
   * micro SD card (Any of SD, SDHI, or SDXC standard) × 1 
 
 # Prerequisite
- * [Generate new project (bare metal)](../../bare-metal/generate-new-project.md) must be completed.
-   * In this section, implements by adding the code to communicate with micro SD card via FAT file system, TFAT to LED0.1 second cycle blinking program which was created in [Generate new project (bare metal)](../../bare-metal/generate-new-project.md)
+ * [Generate new project (bare metal)](../bare-metal/generate-new-project.md) must be completed.
+   * In this section, implements by adding the code to communicate with micro SD card via FAT file system, TFAT to LED0.1 second cycle blinking program which was created in [Generate new project (bare metal)](../bare-metal/generate-new-project.md)
   * Use the latest [RX Driver Package](https://www.renesas.com/products/software-tools/software-os-middleware-driver/software-package/rx-driver-package.html)(FIT module)
   * Format the micro SD card with FAT32 in advance.
 * Please understand the condition of use for about SD card Simplified Spec.

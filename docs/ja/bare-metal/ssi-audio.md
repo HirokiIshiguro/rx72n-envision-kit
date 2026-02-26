@@ -31,8 +31,8 @@
     * データシート：[DS-000069-ICS-43434-v1.2.pdf](https://invensense.tdk.com/products/ics-43434/)
 
 # 前提条件
- * [新規プロジェクト作成方法(ベアメタル)](../../bare-metal/generate-new-project.md)を完了すること
-   * 本稿では、[新規プロジェクト作成方法(ベアメタル)](../../bare-metal/generate-new-project.md)で作成したLED0.1秒周期点滅プログラムに、D2 Audio及びMENSマイクを用いて音声を入出力するためのコードを追加する形で実装する
+ * [新規プロジェクト作成方法(ベアメタル)](../bare-metal/generate-new-project.md)を完了すること
+   * 本稿では、[新規プロジェクト作成方法(ベアメタル)](../bare-metal/generate-new-project.md)で作成したLED0.1秒周期点滅プログラムに、D2 Audio及びMENSマイクを用いて音声を入出力するためのコードを追加する形で実装する
   * 最新の[RX Driver Package](https://www.renesas.com/products/software-tools/software-os-middleware-driver/software-package/rx-driver-package.html)(FITモジュール)を使用すること
 
 # <a name="circuit_Audio"></a>回路確認
