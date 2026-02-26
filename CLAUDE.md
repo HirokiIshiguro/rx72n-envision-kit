@@ -15,7 +15,7 @@ This project was originally created at Renesas Electronics for the RX72N Envisio
 | Location | URL |
 |---|---|
 | Primary (GitLab) | https://shelty2.servegame.com/oss/import/github/renesas/rx72n-envision-kit |
-| Mirror (GitHub fork) | https://github.com/shelty/rx72n-envision-kit |
+| Mirror (GitHub fork) | https://github.com/HirokiIshiguro/rx72n-envision-kit |
 | Upstream (GitHub) | https://github.com/renesas/rx72n-envision-kit |
 
 ## Changelog / 変更履歴
