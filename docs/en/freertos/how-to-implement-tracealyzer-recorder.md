@@ -1,0 +1,3 @@
+# Under constructing...
+* Please use useful browser that has translate function (like Google Chrome) and translate the following link contents to your favorite language.
+  * https://github.com/renesas/rx72n-envision-kit/wiki/Tracealyzer-Recorder%E3%81%AE%E5%AE%9F%E8%A3%85%E6%96%B9%E6%B3%95
