@@ -1,12 +1,20 @@
 ## rx72n-envision-kit
 RX72N Envision Kit bootloader/demos based on Amazon FreeRTOS
 
+This repository is maintained by the original project owner ([@HirokiIshiguro](https://github.com/shelty)), who created this project at Renesas Electronics. After leaving Renesas, development continues here as a personal open-source effort. See [CLAUDE.md](CLAUDE.md) for development notes.
+
+本リポジトリは、ルネサスエレクトロニクス在籍時に本プロジェクトを立ち上げたオリジナルのプロジェクトオーナー ([@HirokiIshiguro](https://github.com/shelty)) が個人の OSS 活動として引き続きメンテナンスしています。開発メモは [CLAUDE.md](CLAUDE.md) を参照してください。
+
+- Upstream (GitHub): https://github.com/renesas/rx72n-envision-kit
+- Mirror (GitHub fork): https://github.com/shelty/rx72n-envision-kit
+
 ## RX72N Envision Kit product page (User's Manual, Schematics, How to buy, etc)
 * en/ja: https://www.renesas.com/envision2
 
-## rx72n-envision-kit wiki (Quick Start Guide, etc)
-* en: [rx72n-envision-kit wiki (home)](https://github.com/renesas/rx72n-envision-kit/wiki)
-* ja: [rx72n-envision-kit wiki (ホーム)](https://github.com/renesas/rx72n-envision-kit/wiki/%E3%83%9B%E3%83%BC%E3%83%A0)
+## Documentation / ドキュメント
+* [docs/](docs/README.md) - Migrated from [GitHub Wiki](https://github.com/renesas/rx72n-envision-kit/wiki)
+  * [English](docs/en/README.md)
+  * [日本語](docs/ja/README.md)
 
 ## Board Introduction @ YouTube / ボード紹介動画 @ YouTube
 * en:
