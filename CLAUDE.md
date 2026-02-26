@@ -7,8 +7,24 @@ This project was originally created at Renesas Electronics for the RX72N Envisio
 本プロジェクトは、ルネサスエレクトロニクスにて RX72N Envision Kit 評価ボード向けに立ち上げられました。オリジナルオーナー (石黒 裕紀 / @HirokiIshiguro) がルネサスを退職後、個人の OSS 活動として自前の GitLab サーバ上でメンテナンスを継続しています。
 
 - The upstream repository https://github.com/renesas/rx72n-envision-kit has not been actively maintained since 2024.
-- The goal is to complete features that were left unfinished due to budget constraints, primarily as a personal project.
 - This repository is mirrored to a GitHub fork for visibility to existing users who may be waiting for firmware updates.
+
+## Goals / 目標
+
+### Long-term goal / 最終目標
+
+Enable users to try all features of the RX72N Envision Kit.
+
+RX72N Envision Kit の全機能を試せるようにする。
+
+### Near-term objectives / 直近の目標
+
+| # | Objective | Status |
+|---|---|---|
+| 1 | Documentation cleanup: migrate Wiki to `docs/` | Done |
+| 2 | Set up Claude-assisted development environment | In progress |
+| 3 | Set up CI/CD pipeline | Planned |
+| 4 | Replace FreeRTOS with latest Renesas IoT reference implementation ([iot-reference-rx](https://github.com/renesas/iot-reference-rx)) | Planned |
 
 ## Repository Locations / リポジトリ
 
