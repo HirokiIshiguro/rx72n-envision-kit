@@ -62,15 +62,15 @@ Welcome to the rx72n-envision-kit wiki!
 
 | Firmware version | Download | Changes | tools version |
 | ------------- | ------------- | ------------- | ------------- |
-| v2.0.2 | <a href="https://raw.githubusercontent.com/renesas/rx72n-envision-kit/master/bin/updata/v202/userprog.rsu" download="userprog.rsu" >userprog.rsu</a> | (1)Enabled FPS performance. | e2 studio 2023-01<br>cc-rx v3.04 |
-| v2.0.1 | <a href="https://raw.githubusercontent.com/renesas/rx72n-envision-kit/master/bin/updata/v201/userprog.rsu" download="userprog.rsu" >userprog.rsu</a> | (1)Fixed Tracealyzer server IP address/portno registration issue | |
-| v2.0.0 | <a href="https://raw.githubusercontent.com/renesas/rx72n-envision-kit/master/bin/updata/v200/userprog.rsu" download="userprog.rsu" >userprog.rsu</a> | (1)Updated Amazon FreeRTOS to 202203.00<br>(2)Added Tracealyzer lib<br>(3)Exchange SNTP client lib to AWS one<br>(4)Update emWin lib supports AppWizard project<br>This verson cannot be used due to image verify would fail on firmware update sequence update sequence. | |
-| v1.0.6 | <a href="https://raw.githubusercontent.com/renesas/rx72n-envision-kit/master/bin/updata/v106/userprog.rsu" download="userprog.rsu" >userprog.rsu</a> | (1)Fixed bug on Dataflash handling | |
-| v1.0.5 | <a href="https://raw.githubusercontent.com/renesas/rx72n-envision-kit/master/bin/updata/v105/userprog.rsu" download="userprog.rsu" >userprog.rsu</a> | (1)Enabled Amazon FreeRTOS system log | |
-| v1.0.4 | <a href="https://raw.githubusercontent.com/renesas/rx72n-envision-kit/master/bin/updata/v104/userprog.rsu" download="userprog.rsu" >userprog.rsu</a> | (1)Added TCP/IP benchmark | |
-| v1.0.3 | <a href="https://raw.githubusercontent.com/renesas/rx72n-envision-kit/master/bin/updata/v103/userprog.rsu" download="userprog.rsu" >userprog.rsu</a> | (1)Added dataflash all erase command | |
-| v1.0.2 | <a href="https://raw.githubusercontent.com/renesas/rx72n-envision-kit/master/bin/updata/v102/userprog.rsu" download="userprog.rsu" >userprog.rsu</a> | (1)Added Amazon FreeRTOS OTA related demo<br>(2)Remove serial terminal display, and system log display | |
-| v1.0.1 | <a href="https://raw.githubusercontent.com/renesas/rx72n-envision-kit/master/bin/updata/v101/userprog.rsu" download="userprog.rsu" >userprog.rsu</a> | (1)Added CPU usage info<br>(2)Added updating time info from Internet | |
+| v2.0.2 | <a href="../../bin/updata/v202/userprog.rsu" download="userprog.rsu" >userprog.rsu</a> | (1)Enabled FPS performance. | e2 studio 2023-01<br>cc-rx v3.04 |
+| v2.0.1 | <a href="../../bin/updata/v201/userprog.rsu" download="userprog.rsu" >userprog.rsu</a> | (1)Fixed Tracealyzer server IP address/portno registration issue | |
+| v2.0.0 | <a href="../../bin/updata/v200/userprog.rsu" download="userprog.rsu" >userprog.rsu</a> | (1)Updated Amazon FreeRTOS to 202203.00<br>(2)Added Tracealyzer lib<br>(3)Exchange SNTP client lib to AWS one<br>(4)Update emWin lib supports AppWizard project<br>This verson cannot be used due to image verify would fail on firmware update sequence update sequence. | |
+| v1.0.6 | <a href="../../bin/updata/v106/userprog.rsu" download="userprog.rsu" >userprog.rsu</a> | (1)Fixed bug on Dataflash handling | |
+| v1.0.5 | <a href="../../bin/updata/v105/userprog.rsu" download="userprog.rsu" >userprog.rsu</a> | (1)Enabled Amazon FreeRTOS system log | |
+| v1.0.4 | <a href="../../bin/updata/v104/userprog.rsu" download="userprog.rsu" >userprog.rsu</a> | (1)Added TCP/IP benchmark | |
+| v1.0.3 | <a href="../../bin/updata/v103/userprog.rsu" download="userprog.rsu" >userprog.rsu</a> | (1)Added dataflash all erase command | |
+| v1.0.2 | <a href="../../bin/updata/v102/userprog.rsu" download="userprog.rsu" >userprog.rsu</a> | (1)Added Amazon FreeRTOS OTA related demo<br>(2)Remove serial terminal display, and system log display | |
+| v1.0.1 | <a href="../../bin/updata/v101/userprog.rsu" download="userprog.rsu" >userprog.rsu</a> | (1)Added CPU usage info<br>(2)Added updating time info from Internet | |
 
 * Please save as file with right click
 * Erase the sports games bank when updating, and will install only newer firmware
@@ -81,7 +81,7 @@ Welcome to the rx72n-envision-kit wiki!
 
 | Firmware version | Download |
 | ------------- | ------------- |
-| v0.9.3 | <a href="https://raw.githubusercontent.com/renesas/rx72n-envision-kit/master/bin/factory_image/v100_20200214/userprog.mot" download="userprog.mot" >userprog.mot</a> |
+| v0.9.3 | <a href="../../bin/factory_image/v100_20200214/userprog.mot" download="userprog.mot" >userprog.mot</a> |
 
 * Please save as file with right click
 
@@ -91,7 +91,7 @@ Welcome to the rx72n-envision-kit wiki!
 
 | Name of demo firmware | Download | document | demo movie |
 | ------------- | ------------- | ------------- | ------------- |
-| Voice recognition / speech and LCD solution using RX72N Envision kit | <a href="https://raw.githubusercontent.com/renesas/rx72n-envision-kit/master/bin/standalone_demo_firmware_image/voice_recognition_and_lcd/rx72n_voice_demo.mot" download="rx72n_voice_demo.mot" >rx72n_voice_demo.mot</a> | [link](https://www.renesas.com/document/scd/voice-recognition-speech-and-lcd-solution-using-rx72n-envision-kit-rev100-sample-code?language=ja&r=1169186) | N/A | 
+| Voice recognition / speech and LCD solution using RX72N Envision kit | <a href="../../bin/standalone_demo_firmware_image/voice_recognition_and_lcd/rx72n_voice_demo.mot" download="rx72n_voice_demo.mot" >rx72n_voice_demo.mot</a> | [link](https://www.renesas.com/document/scd/voice-recognition-speech-and-lcd-solution-using-rx72n-envision-kit-rev100-sample-code?language=ja&r=1169186) | N/A | 
 | Using Quick-Connect IoT to Send Sensor Information to Amazon Web Services from RX72N Envision Kit Running FreeRTOS | Please download right side link and build it and write generated mot file | [link](https://www.renesas.com/document/scd/rx72n-group-using-quick-connect-iot-send-sensor-information-amazon-web-services-rx72n-envision-kit?language=ja&r=1169186)  | now creating |
 
 * Please save as file with right click

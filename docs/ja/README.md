@@ -62,15 +62,15 @@ Welcome to the rx72n-envision-kit wiki!
 
 | ファームウェアバージョン | ダウンロード | 変更点 | ツールバージョン |
 | ------------- | ------------- | ------------- | ------------- |
-| v2.0.2 | <a href="https://raw.githubusercontent.com/renesas/rx72n-envision-kit/master/bin/updata/v202/userprog.rsu" download="userprog.rsu" >userprog.rsu</a> | (1)FPSパフォーマンス表示を復活 | e2 studio 2023-01<br>cc-rx v3.04 |
-| v2.0.1 | <a href="https://raw.githubusercontent.com/renesas/rx72n-envision-kit/master/bin/updata/v201/userprog.rsu" download="userprog.rsu" >userprog.rsu</a> | (1)TracealyzerサーバのIPアドレスとポート番号登録の問題を修正 | |
-| v2.0.0 | <a href="https://raw.githubusercontent.com/renesas/rx72n-envision-kit/master/bin/updata/v200/userprog.rsu" download="userprog.rsu" >userprog.rsu</a> | (1)Amazon FreeRTOSのバージョンを202203.00に更新<br>(2)Tracealyzerのライブラリ追加<br>(3)SNTPクライアントをAWS製に交換<br>(4)emWinのライブラリを更新しAppWizardプロジェクト対応にした<br>本バージョンはファームウェアアップデート時に署名検証が失敗する場合があるため使用できません| |
-| v1.0.6 | <a href="https://raw.githubusercontent.com/renesas/rx72n-envision-kit/master/bin/updata/v106/userprog.rsu" download="userprog.rsu" >userprog.rsu</a> | (1)データフラッシュ操作の不具合を修正| |
-| v1.0.5 | <a href="https://raw.githubusercontent.com/renesas/rx72n-envision-kit/master/bin/updata/v105/userprog.rsu" download="userprog.rsu" >userprog.rsu</a> | (1)Amazon FreeRTOS system log 有効化| |
-| v1.0.4 | <a href="https://raw.githubusercontent.com/renesas/rx72n-envision-kit/master/bin/updata/v104/userprog.rsu" download="userprog.rsu" >userprog.rsu</a> | (1)TCP/IPのベンチマーク機能を追加 | |
-| v1.0.3 | <a href="https://raw.githubusercontent.com/renesas/rx72n-envision-kit/master/bin/updata/v103/userprog.rsu" download="userprog.rsu" >userprog.rsu</a> | (1)データフラッシュの全消去コマンドを追加 | |
-| v1.0.2 | <a href="https://raw.githubusercontent.com/renesas/rx72n-envision-kit/master/bin/updata/v102/userprog.rsu" download="userprog.rsu" >userprog.rsu</a> | (1)Amazon FreeRTOS OTA デモ関連の機能<br>(2)シリアルターミナル表示とシステムログ表示を削除 | |
-| v1.0.1 | <a href="https://raw.githubusercontent.com/renesas/rx72n-envision-kit/master/bin/updata/v101/userprog.rsu" download="userprog.rsu" >userprog.rsu</a> | (1)CPU負荷率表示を追加<br>(2)インターネット経由時計更新機能を追加 | |
+| v2.0.2 | <a href="../../bin/updata/v202/userprog.rsu" download="userprog.rsu" >userprog.rsu</a> | (1)FPSパフォーマンス表示を復活 | e2 studio 2023-01<br>cc-rx v3.04 |
+| v2.0.1 | <a href="../../bin/updata/v201/userprog.rsu" download="userprog.rsu" >userprog.rsu</a> | (1)TracealyzerサーバのIPアドレスとポート番号登録の問題を修正 | |
+| v2.0.0 | <a href="../../bin/updata/v200/userprog.rsu" download="userprog.rsu" >userprog.rsu</a> | (1)Amazon FreeRTOSのバージョンを202203.00に更新<br>(2)Tracealyzerのライブラリ追加<br>(3)SNTPクライアントをAWS製に交換<br>(4)emWinのライブラリを更新しAppWizardプロジェクト対応にした<br>本バージョンはファームウェアアップデート時に署名検証が失敗する場合があるため使用できません| |
+| v1.0.6 | <a href="../../bin/updata/v106/userprog.rsu" download="userprog.rsu" >userprog.rsu</a> | (1)データフラッシュ操作の不具合を修正| |
+| v1.0.5 | <a href="../../bin/updata/v105/userprog.rsu" download="userprog.rsu" >userprog.rsu</a> | (1)Amazon FreeRTOS system log 有効化| |
+| v1.0.4 | <a href="../../bin/updata/v104/userprog.rsu" download="userprog.rsu" >userprog.rsu</a> | (1)TCP/IPのベンチマーク機能を追加 | |
+| v1.0.3 | <a href="../../bin/updata/v103/userprog.rsu" download="userprog.rsu" >userprog.rsu</a> | (1)データフラッシュの全消去コマンドを追加 | |
+| v1.0.2 | <a href="../../bin/updata/v102/userprog.rsu" download="userprog.rsu" >userprog.rsu</a> | (1)Amazon FreeRTOS OTA デモ関連の機能<br>(2)シリアルターミナル表示とシステムログ表示を削除 | |
+| v1.0.1 | <a href="../../bin/updata/v101/userprog.rsu" download="userprog.rsu" >userprog.rsu</a> | (1)CPU負荷率表示を追加<br>(2)インターネット経由時計更新機能を追加 | |
 
 * 右クリックでファイルを保存してください
 * アップデート時にスポーツゲーム側のバンクは消去され、アップデート用ファームウェアのみインストールされます
@@ -81,7 +81,7 @@ Welcome to the rx72n-envision-kit wiki!
 
 | ファームウェアバージョン | ダウンロード |
 | ------------- | ------------- |
-| v0.9.3 | <a href="https://raw.githubusercontent.com/renesas/rx72n-envision-kit/master/bin/factory_image/v100_20200214/userprog.mot" download="userprog.mot" >userprog.mot</a> |
+| v0.9.3 | <a href="../../bin/factory_image/v100_20200214/userprog.mot" download="userprog.mot" >userprog.mot</a> |
 
 * 右クリックでファイルを保存してください
 
@@ -91,7 +91,7 @@ Welcome to the rx72n-envision-kit wiki!
 
 | デモファームウェアの名称 | ダウンロード | 解説書リンク | デモ動画 |
 | ------------- | ------------- | ------------- | ------------- |
-| RX72N Envision kit を用いた 音声認識・発話および LCD 表示ソリューション | <a href="https://raw.githubusercontent.com/renesas/rx72n-envision-kit/master/bin/standalone_demo_firmware_image/voice_recognition_and_lcd/rx72n_voice_demo.mot" download="rx72n_voice_demo.mot" >rx72n_voice_demo.mot</a> | [link](https://www.renesas.com/document/scd/voice-recognition-speech-and-lcd-solution-using-rx72n-envision-kit-rev100-sample-code?language=ja&r=1169186) | N/A |
+| RX72N Envision kit を用いた 音声認識・発話および LCD 表示ソリューション | <a href="../../bin/standalone_demo_firmware_image/voice_recognition_and_lcd/rx72n_voice_demo.mot" download="rx72n_voice_demo.mot" >rx72n_voice_demo.mot</a> | [link](https://www.renesas.com/document/scd/voice-recognition-speech-and-lcd-solution-using-rx72n-envision-kit-rev100-sample-code?language=ja&r=1169186) | N/A |
 | Quick-Connect IoT を活用して FreeRTOS を搭載した RX72N Envision Kit からセンサ情報を Amazon Web Services に送信する方法 | 右記リンクからサンプルコードのプロジェクトをダウンロードしビルドし生成されるMOTファイルを書き込んでください | [link](https://www.renesas.com/document/scd/rx72n-group-using-quick-connect-iot-send-sensor-information-amazon-web-services-rx72n-envision-kit?language=ja&r=1169186)  | 作成中 |
 
 * 右クリックでファイルを保存してください
