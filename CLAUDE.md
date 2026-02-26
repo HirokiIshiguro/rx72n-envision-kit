@@ -71,6 +71,12 @@ docs/
 - Enables PR-based review workflow for documentation changes
 - Works with CI/CD pipelines (link checking, static site generation, etc.)
 
+移行理由:
+- GitHub → GitLab インポート時に Wiki は引き継がれない
+- `docs/` はコードと同一リポジトリでバージョン管理される
+- ドキュメント変更に対して MR ベースのレビューワークフローが使える
+- CI/CD パイプライン（リンクチェック、静的サイト生成等）と連携できる
+
 #### Migration details / 移行の詳細
 
 **Approach / 方針:**
@@ -158,8 +164,3 @@ Python スクリプト（約330行）で以下を自動処理:
 | !1 | Initial wiki migration (58 pages + 117 images) | ~180 files |
 | !2 | Fix GitHub account name, add project goals to CLAUDE.md | 2 files |
 | !3 | Fix broken relative links (33 files), CLAUDE.md status update | 33 files |
-
-## Git Conventions / Git ルール
-
-- Commits by Claude Code must use: `--author="Claude Code <claude-code@noreply.anthropic.com>"`
-- Commits by the human owner use the default git config author
