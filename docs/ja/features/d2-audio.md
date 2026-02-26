@@ -23,10 +23,10 @@
 
 # 前提条件
 * ファームウェアバージョンv1.0.4以降がインストールされていること
-    * 書き込み方法 = [SDカードを用いたファームアップデート方法](../../quick-start/update-firmware-from-sd-card.md)
+    * 書き込み方法 = [SDカードを用いたファームアップデート方法](../quick-start/update-firmware-from-sd-card.md)
 * コマンドレスポンスの動作確認ができていること
     * 以下ページの シリアルターミナルデモ 参照
-        * [初期ファームウェア動作確認方法](../../quick-start/confirm-factory-image-behavior.md)
+        * [初期ファームウェア動作確認方法](../quick-start/confirm-factory-image-behavior.md)
 
 # 工事中
 

@@ -21,7 +21,7 @@ RX72N Envision Kit の全機能を試せるようにする。
 
 | # | Objective | Status |
 |---|---|---|
-| 1 | Documentation cleanup: migrate Wiki to `docs/` | Done |
+| 1 | Documentation cleanup: migrate Wiki to `docs/` | In progress |
 | 2 | Set up Claude-assisted development environment | In progress |
 | 3 | Set up CI/CD pipeline | Planned |
 | 4 | Replace FreeRTOS with latest Renesas IoT reference implementation ([iot-reference-rx](https://github.com/renesas/iot-reference-rx)) | Planned |

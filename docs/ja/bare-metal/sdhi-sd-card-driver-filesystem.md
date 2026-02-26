@@ -15,8 +15,8 @@
   * micro SDカード(SD、SDHI、SDXC規格のいずれか) × 1 個
 
 # 前提条件
- * [新規プロジェクト作成方法(ベアメタル)](../../bare-metal/generate-new-project.md)を完了すること
-   * 本稿では、[新規プロジェクト作成方法(ベアメタル)](../../bare-metal/generate-new-project.md)で作成したLED0.1秒周期点滅プログラムにFATファイルシステムTFATを介してmicro SDカードと通信するためのコードを追加する形で実装する
+ * [新規プロジェクト作成方法(ベアメタル)](../bare-metal/generate-new-project.md)を完了すること
+   * 本稿では、[新規プロジェクト作成方法(ベアメタル)](../bare-metal/generate-new-project.md)で作成したLED0.1秒周期点滅プログラムにFATファイルシステムTFATを介してmicro SDカードと通信するためのコードを追加する形で実装する
   * 最新の[RX Driver Package](https://www.renesas.com/products/software-tools/software-os-middleware-driver/software-package/rx-driver-package.html)(FITモジュール)を使用すること
   * 事前にmicro SDカードをFAT32でフォーマットしておくこと
 * SDカードのSimplified Specについてその利用条件を把握しておくこと

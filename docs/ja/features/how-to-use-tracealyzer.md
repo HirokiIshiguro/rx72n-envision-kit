@@ -10,10 +10,10 @@
 
 # 前提条件
 * ファームウェアバージョンv2.0.1以降がインストールされていること
-    * 書き込み方法 = [SDカードを用いたファームアップデート方法](../../quick-start/update-firmware-from-sd-card.md)
+    * 書き込み方法 = [SDカードを用いたファームアップデート方法](../quick-start/update-firmware-from-sd-card.md)
 * コマンドレスポンスの動作確認ができていること
     * 以下ページの シリアルターミナルデモ 参照
-        * [初期ファームウェア動作確認方法](../../quick-start/confirm-factory-image-behavior.md)
+        * [初期ファームウェア動作確認方法](../quick-start/confirm-factory-image-behavior.md)
 
 # 動作解説
 * TracealyzerはリアルタイムOSの内部情報をRAMに蓄積し、UARTやEthernet等の通信路経由で外部に出力しそれをPC上のソフトウェアで受信することで、その内部情報の可視化を行う
@@ -39,4 +39,4 @@ https://github.com/renesas/rx72n-envision-kit/assets/37968119/26790de7-03f8-4235
 # 参考
 * 本ページではRX72N Envision Kitのファームウェアに実装済のTracealyzerのライブラリ[Tracealyzer Recorder](https://github.com/percepio/TraceRecorderSource)の実装方法の説明を省略し、使用方法のみ解説している
 * 実装方法については以下で解説を行っている
-  * [Tracealyzer Recorderの実装方法](../../freertos/how-to-implement-tracealyzer-recorder.md)
+  * [Tracealyzer Recorderの実装方法](../freertos/how-to-implement-tracealyzer-recorder.md)

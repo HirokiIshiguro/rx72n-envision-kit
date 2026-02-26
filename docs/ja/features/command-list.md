@@ -4,7 +4,7 @@
 
 # コマンド・レスポンス実行方法
 * 以下ページの シリアルターミナルデモ 参照
-    * [初期ファームウェア動作確認方法](../../quick-start/confirm-factory-image-behavior.md)
+    * [初期ファームウェア動作確認方法](../quick-start/confirm-factory-image-behavior.md)
 
 # コマンドリスト
 

@@ -9,16 +9,16 @@
             * [CC-RX](https://www.renesas.com/products/software-tools/tools/compiler-assembler/compiler-package-for-rx-family.html) V3.02 or later
 
 # Prerequisite
-* Complete [How to debug](../../developer/how-to-debug.md) 
-* If simply conventional debug and the evaluation of a separate function of RX72N are needed, refer to [Generate new project (bare metal)](../../bare-metal/generate-new-project.md).
+* Complete [How to debug](../developer/how-to-debug.md) 
+* If simply conventional debug and the evaluation of a separate function of RX72N are needed, refer to [Generate new project (bare metal)](../bare-metal/generate-new-project.md).
 
 # Understand the memory map and the operation of the firmware of RX72N Envision Kit
-* Understand the memory map and the operation of the firmware of RX72N Envision Kit by referring to the following  [Design memo](../../developer/design-memo.md)
+* Understand the memory map and the operation of the firmware of RX72N Envision Kit by referring to the following  [Design memo](../developer/design-memo.md)
     * Memory map definition with the initial firmware of RX72N Envision Kit
     * Operation difference between initial firmware and after updating.
 
 # Combine firmwares and create updater
-* [How to debug](../../developer/how-to-debug.md) is effective when debugging, but is not effective when mass producing.
+* [How to debug](../developer/how-to-debug.md) is effective when debugging, but is not effective when mass producing.
 * This is because the following two challenges exist.
     1. When mass producing, downloading takes time and effort.
     1. When operating after the mass production, data amount during updater distribution increases.(Communication fee increases)
@@ -51,6 +51,6 @@
 
 # Write
 * Write MOT file
-    * Refer to [Revert to factory image](../../quick-start/revert-to-factory-image.md)
+    * Refer to [Revert to factory image](../quick-start/revert-to-factory-image.md)
 * Write RSU file (the data created by Initial Firm) and debug.
-    * Refer to [How to debug](../../developer/how-to-debug.md)
+    * Refer to [How to debug](../developer/how-to-debug.md)

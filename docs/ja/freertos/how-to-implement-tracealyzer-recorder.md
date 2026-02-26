@@ -11,14 +11,14 @@
 * ![image](https://user-images.githubusercontent.com/37968119/204113795-2aa37adf-519e-458f-8ac3-9853ab41afb2.png)
 
 # 前提条件
-* [Tracealyzer使用方法](../../features/how-to-use-tracealyzer.md) を完了すること
-* [新規プロジェクト作成方法(FreeRTOS)](../../freertos/generate-new-project-kernel-only.md) を完了すること
-    * 本稿では、[新規プロジェクト作成方法(FreeRTOS)](../../freertos/generate-new-project-kernel-only.md)で作成したLED0.1秒周期点滅プログラムに[Tracealyzer Recorder](https://github.com/percepio/TraceRecorderSource)を実装し[Tracealyzer](https://percepio.com/tracealyzer/)によるFreeRTOS内部動作状態のモニタを実現する
+* [Tracealyzer使用方法](../features/how-to-use-tracealyzer.md) を完了すること
+* [新規プロジェクト作成方法(FreeRTOS)](../freertos/generate-new-project-kernel-only.md) を完了すること
+    * 本稿では、[新規プロジェクト作成方法(FreeRTOS)](../freertos/generate-new-project-kernel-only.md)で作成したLED0.1秒周期点滅プログラムに[Tracealyzer Recorder](https://github.com/percepio/TraceRecorderSource)を実装し[Tracealyzer](https://percepio.com/tracealyzer/)によるFreeRTOS内部動作状態のモニタを実現する
     * なお、本稿の内容はRX72N Envision Kitを題材に解説しているが、RXファミリ全般で応用可能であり、モニタデータを出力する機能の端子設定等のボード依存の設定を[スマートコンフィグレータで設定変更](https://github.com/renesas/rx72n-envision-kit/wiki/%E3%82%B9%E3%83%9E%E3%83%BC%E3%83%88%E3%83%BB%E3%82%B3%E3%83%B3%E3%83%95%E3%82%A3%E3%82%B0%E3%83%AC%E3%83%BC%E3%82%BF%E3%81%AE%E4%BD%BF%E7%94%A8%E6%96%B9%E6%B3%95)することで、任意のRXファミリのボードを題材とした解説としても利用可能である
     * 単にFreeRTOSやRXファミリの技術習得が目的の場合、RX72N Envision Kitより廉価に購入でき、かつ、マイコン機能を任意にボード外部に接続しやすい [RX-Family-Target-Board](https://www.renesas.com/products/microcontrollers-microprocessors/rx-32-bit-performance-efficiency-mcus/rx-family-target-board-target-board-rx-family) シリーズを推奨する
 
 # 前提知識
-* [Tracealyzer使用方法](../../features/how-to-use-tracealyzer.md)の[動作解説](https://github.com/renesas/rx72n-envision-kit/wiki/Tracealyzer%E4%BD%BF%E7%94%A8%E6%96%B9%E6%B3%95#%E5%8B%95%E4%BD%9C%E8%A7%A3%E8%AA%AC)で解説している内容を理解すること
+* [Tracealyzer使用方法](../features/how-to-use-tracealyzer.md)の[動作解説](https://github.com/renesas/rx72n-envision-kit/wiki/Tracealyzer%E4%BD%BF%E7%94%A8%E6%96%B9%E6%B3%95#%E5%8B%95%E4%BD%9C%E8%A7%A3%E8%AA%AC)で解説している内容を理解すること
 * Tracealyzer for FreeRTOSのTracealyzer Recorder部分の詳細な解説は以下ページが参考になる
   * https://percepio.com/docs/FreeRTOS/manual%20old/Recorder.html
 * いくつかのデータ取得方法があるが、本稿ではデバッグで最も強力なリアルタイムでFreeRTOS内部状態をモニタ出来る[Streaming mode](https://percepio.com/docs/FreeRTOS/manual%20old/Recorder.html#Trace_Recorder_Library_Streaming_Mode) を実装する
@@ -31,24 +31,24 @@
 * 本稿で利用するモニタ用の通信路はUART(900 Kbps設定)なので、上記のうちこの数値を超える例の場合はモニタデータを出力しきれない
   * この場合、Tracealyzer画面上では `missed event` が検出され、モニタデータが欠落した状態となり、モニタ結果の正確さが損なわれる
   * よって、`missed event` が検出された際には、通信速度に余裕がある通信路に変更することを推奨する
-    * ネットワークスタックと高速な通信路(例えばEthernet)を利用するシステムの場合(例: [新規プロジェクト作成方法(FreeRTOS(with IoT Libraries))](../../freertos/generate-new-project-with-iot-libraries.md)) はこの問題が解消される
-      * このケースの場合、ネットワークスタックと高速な通信路(例えばEthernet)を利用した[複雑なシステムのTracealyzer Recorder実装方法](../../freertos/how-to-implement-tracealyzer-recorder-complex.md) 参照
+    * ネットワークスタックと高速な通信路(例えばEthernet)を利用するシステムの場合(例: [新規プロジェクト作成方法(FreeRTOS(with IoT Libraries))](../freertos/generate-new-project-with-iot-libraries.md)) はこの問題が解消される
+      * このケースの場合、ネットワークスタックと高速な通信路(例えばEthernet)を利用した[複雑なシステムのTracealyzer Recorder実装方法](../freertos/how-to-implement-tracealyzer-recorder-complex.md) 参照
 * なお、RX72N Envision Kitに標準で搭載されるUSBシリアル変換チップはボーレート上限が 115200 bps であり、モニタデータの最小レートである20 KB/s (160 Kbps)を満たすことができないため、使えない
   * よって、高速な [USB-シリアル変換 PMODモジュール](https://store.digilentinc.com/pmod-usbuart-usb-to-uart-interface/) をボード上のPMODコネクタに増設して利用することとする
 
 # プロジェクトを新規作成する
-* [新規プロジェクト作成方法(FreeRTOS)](../../freertos/generate-new-project-kernel-only.md) を参考に e2 studio で新規プロジェクトを作成する
+* [新規プロジェクト作成方法(FreeRTOS)](../freertos/generate-new-project-kernel-only.md) を参考に e2 studio で新規プロジェクトを作成する
 * 利用するFreeRTOSのバージョンは 10.4.3-rx-1.0.6 とする
   * ![image](https://user-images.githubusercontent.com/37968119/204114662-97e96be9-4e84-4a8a-abbf-0b900390b67a.png)
-* [新規プロジェクト作成方法(FreeRTOS)](../../freertos/generate-new-project-kernel-only.md) の記事を作成した当時と比較し、ボードに依存する設定項目の多くが自動化されたため、[クロック設定](https://github.com/renesas/rx72n-envision-kit/wiki/%E3%82%B9%E3%83%9E%E3%83%BC%E3%83%88%E3%83%BB%E3%82%B3%E3%83%B3%E3%83%95%E3%82%A3%E3%82%B0%E3%83%AC%E3%83%BC%E3%82%BF%E3%81%AE%E4%BD%BF%E7%94%A8%E6%96%B9%E6%B3%95#%E3%82%AF%E3%83%AD%E3%83%83%E3%82%AF%E8%A8%AD%E5%AE%9A) は不要になった
+* [新規プロジェクト作成方法(FreeRTOS)](../freertos/generate-new-project-kernel-only.md) の記事を作成した当時と比較し、ボードに依存する設定項目の多くが自動化されたため、[クロック設定](https://github.com/renesas/rx72n-envision-kit/wiki/%E3%82%B9%E3%83%9E%E3%83%BC%E3%83%88%E3%83%BB%E3%82%B3%E3%83%B3%E3%83%95%E3%82%A3%E3%82%B0%E3%83%AC%E3%83%BC%E3%82%BF%E3%81%AE%E4%BD%BF%E7%94%A8%E6%96%B9%E6%B3%95#%E3%82%AF%E3%83%AD%E3%83%83%E3%82%AF%E8%A8%AD%E5%AE%9A) は不要になった
   * が、システム開発上、クロック設定値によりCPUクロック(ICLK)や周辺クロック(PCLK)が何MHzで動作しているのか、また、クロック源が何MHzでPLL(逓倍回路)の設定で何逓倍されていて、どのような分配器を経て各機能のクロックソースとなっているかなどを理解するためには、マイコンのハードウェアマニュアルを参照し、[クロック設定](https://github.com/renesas/rx72n-envision-kit/wiki/%E3%82%B9%E3%83%9E%E3%83%BC%E3%83%88%E3%83%BB%E3%82%B3%E3%83%B3%E3%83%95%E3%82%A3%E3%82%B0%E3%83%AC%E3%83%BC%E3%82%BF%E3%81%AE%E4%BD%BF%E7%94%A8%E6%96%B9%E6%B3%95#%E3%82%AF%E3%83%AD%E3%83%83%E3%82%AF%E8%A8%AD%E5%AE%9A)の項目及び出力コードを改めて確認することを推奨する
-* また、[新規プロジェクト作成方法(FreeRTOS)](../../freertos/generate-new-project-kernel-only.md) ではヒープサイズを 8KB で設定しているが、Tracealyzerの利用時は 128KB 以上を推奨する (32KBでもモニタ可能であることは確認済)
+* また、[新規プロジェクト作成方法(FreeRTOS)](../freertos/generate-new-project-kernel-only.md) ではヒープサイズを 8KB で設定しているが、Tracealyzerの利用時は 128KB 以上を推奨する (32KBでもモニタ可能であることは確認済)
   * モニタするFreeRTOSのリソース(タスクやセマフォなど)の量やシステムコールを呼び出す頻度に依存して必要になるバッファ量を柔軟に調整するため、多めのサイズ設定としている
   * 必要に応じてヒープサイズは調整すること
     * ![image](https://user-images.githubusercontent.com/37968119/204114762-34e53536-c108-419a-83e9-6ff5e60aeaa2.png)
 
 # デバッガ設定と動作確認
-* [新規プロジェクト作成方法(FreeRTOS)](../../freertos/generate-new-project-kernel-only.md)の[デバッガ設定](https://github.com/renesas/rx72n-envision-kit/wiki/%E6%96%B0%E8%A6%8F%E3%83%97%E3%83%AD%E3%82%B8%E3%82%A7%E3%82%AF%E3%83%88%E4%BD%9C%E6%88%90%E6%96%B9%E6%B3%95%28FreeRTOS%29#%E3%83%87%E3%83%90%E3%83%83%E3%82%AC%E8%A8%AD%E5%AE%9A)と[動作確認](https://github.com/renesas/rx72n-envision-kit/wiki/%E6%96%B0%E8%A6%8F%E3%83%97%E3%83%AD%E3%82%B8%E3%82%A7%E3%82%AF%E3%83%88%E4%BD%9C%E6%88%90%E6%96%B9%E6%B3%95%28FreeRTOS%29#%E5%8B%95%E4%BD%9C%E7%A2%BA%E8%AA%8D)の項目を実行
+* [新規プロジェクト作成方法(FreeRTOS)](../freertos/generate-new-project-kernel-only.md)の[デバッガ設定](https://github.com/renesas/rx72n-envision-kit/wiki/%E6%96%B0%E8%A6%8F%E3%83%97%E3%83%AD%E3%82%B8%E3%82%A7%E3%82%AF%E3%83%88%E4%BD%9C%E6%88%90%E6%96%B9%E6%B3%95%28FreeRTOS%29#%E3%83%87%E3%83%90%E3%83%83%E3%82%AC%E8%A8%AD%E5%AE%9A)と[動作確認](https://github.com/renesas/rx72n-envision-kit/wiki/%E6%96%B0%E8%A6%8F%E3%83%97%E3%83%AD%E3%82%B8%E3%82%A7%E3%82%AF%E3%83%88%E4%BD%9C%E6%88%90%E6%96%B9%E6%B3%95%28FreeRTOS%29#%E5%8B%95%E4%BD%9C%E7%A2%BA%E8%AA%8D)の項目を実行
   * なお、[デバッガ設定](https://github.com/renesas/rx72n-envision-kit/wiki/%E6%96%B0%E8%A6%8F%E3%83%97%E3%83%AD%E3%82%B8%E3%82%A7%E3%82%AF%E3%83%88%E4%BD%9C%E6%88%90%E6%96%B9%E6%B3%95%28FreeRTOS%29#%E3%83%87%E3%83%90%E3%83%83%E3%82%AC%E8%A8%AD%E5%AE%9A)の項目において、デバッガの設定項目の多く(メイン・クロック・ソース -> EXTAL に変更等)は、最新のe2 studio 2022-10 では自動化されており不要
 * 実機上の青色LEDが点滅することを確認する
 
@@ -417,6 +417,6 @@ void main_task(void *pvParameters)
 * これは実システムで利用できるSCIチャネルが1チャネル減ってしまうことを意味するため、物理1チャネルに論理複数チャネルを重畳できるEthernet等をTracealyzer通信に利用することを推奨する
   * また、UARTの特性上1Mbps程度が通信速度の限界であるため、10タスク程度のモニタで限界となる可能性が高い
   * 複雑なシステムをモニタする場合もEthernet等をTracealyzer通信に利用することを推奨する
-* EthernetをTracealyzer通信に用いる方法は [複雑なシステムのTracealyzer Recorder実装方法](../../freertos/how-to-implement-tracealyzer-recorder-complex.md) に記載するものとする <工事中>
+* EthernetをTracealyzer通信に用いる方法は [複雑なシステムのTracealyzer Recorder実装方法](../freertos/how-to-implement-tracealyzer-recorder-complex.md) に記載するものとする <工事中>
 * また、RAファミリの場合は、SeggerのJlinkのRTT機能を活用したTracealyzerモニタ方法が、以下アプリケーションノートにより解説されている(RXファミリでも適宜情報追加を行っていく)
   * https://www.renesas.com/document/apn/renesas-ra-family-tracealyzer-freertos-debugging-application-note

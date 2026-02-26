@@ -49,7 +49,7 @@
         * Go to next screen by touching
 * Firmware Update via SD Card demo
     * <a href="../../images/007_board_sd_firmware_update.jpg" target="_blank"><img src="../../images/007_board_sd_firmware_update.jpg" width="480px" target="_blank"></a>
-        * Please refer to [Update firmware from SD card](../../quick-start/update-firmware-from-sd-card.md) for more details
+        * Please refer to [Update firmware from SD card](../quick-start/update-firmware-from-sd-card.md) for more details
         * Push [next] button
 * Serial terminal demo (followings are options)
     * This demo display does not exist in later firmware version v2.0.0. But serial terminal alive in background.
@@ -103,7 +103,7 @@
         * AWS connection error will be occurred because AWS credential is not installed
             * User can confirm AWS connection demo after firmware version x.x.x (now developing)
             * Firmware can be updated by using micro SD card
-            * Please refer to how to update firmware via SD card [Update firmware from SD card](../../quick-start/update-firmware-from-sd-card.md)
+            * Please refer to how to update firmware via SD card [Update firmware from SD card](../quick-start/update-firmware-from-sd-card.md)
             * Please refer to details of AWS connection experiment [AWS with FreeRTOS demos](#)
         * Push [prev] button 2 times, return to [Firmware Update via SD Card]
 * How to swap bank on Benchmark demo on RX72N Envision Kit

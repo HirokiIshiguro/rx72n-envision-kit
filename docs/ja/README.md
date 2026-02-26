@@ -24,41 +24,41 @@ Welcome to the rx72n-envision-kit wiki!
     * https://github.com/renesas/amazon-freertos
 
 # クイックスタートガイド
-1. [初期ファームウェア動作確認方法](../quick-start/confirm-factory-image-behavior.md)
-1. [SDカードを用いたファームアップデート方法](../quick-start/update-firmware-from-sd-card.md)
-1. [初期ファームウェアに戻す方法](../quick-start/revert-to-factory-image.md)
+1. [初期ファームウェア動作確認方法](quick-start/confirm-factory-image-behavior.md)
+1. [SDカードを用いたファームアップデート方法](quick-start/update-firmware-from-sd-card.md)
+1. [初期ファームウェアに戻す方法](quick-start/revert-to-factory-image.md)
 # 追加情報
-1. [AWSとFreeRTOSを用いたOTAによるファームアップデート方法](../features/ota-via-aws-with-freertos.md)
-1. [ネットワークベンチマーク](../features/network-benchmark.md)
-1. [Tracealyzer使用方法](../features/how-to-use-tracealyzer.md)
-1. [D2オーディオ活用](../features/d2-audio.md)
-1. [MEMSマイク活用](../features/mems-mic.md)
-1. [ESP32活用](../features/esp32.md)
-1. [Trusted Secure IP(TSIP)によるSSLの加速](../features/ssl-acceleration-by-trusted-secure-ip-tsip.md)
-1. [コマンドリスト](../features/command-list.md)
+1. [AWSとFreeRTOSを用いたOTAによるファームアップデート方法](features/ota-via-aws-with-freertos.md)
+1. [ネットワークベンチマーク](features/network-benchmark.md)
+1. [Tracealyzer使用方法](features/how-to-use-tracealyzer.md)
+1. [D2オーディオ活用](features/d2-audio.md)
+1. [MEMSマイク活用](features/mems-mic.md)
+1. [ESP32活用](features/esp32.md)
+1. [Trusted Secure IP(TSIP)によるSSLの加速](features/ssl-acceleration-by-trusted-secure-ip-tsip.md)
+1. [コマンドリスト](features/command-list.md)
 # 開発者向け
 ### 初期ファームウェアベース
-1. [デバッグ方法](../developer/how-to-debug.md)
-1. [ファームウェアをカスタムする方法](../developer/custom-firmware.md)
-1. [設計メモ](../developer/design-memo.md) 
-1. [トラブルシューティング](../developer/trouble-shooting.md)
+1. [デバッグ方法](developer/how-to-debug.md)
+1. [ファームウェアをカスタムする方法](developer/custom-firmware.md)
+1. [設計メモ](developer/design-memo.md) 
+1. [トラブルシューティング](developer/trouble-shooting.md)
 ### 新規プロジェクトベース(ベアメタル)
-1. [新規プロジェクト作成方法(ベアメタル)](../bare-metal/generate-new-project.md)
-1. [1+SCI](../bare-metal/sci.md)
-1. [1+Trusted Secure IPドライバ](../bare-metal/trusted-secure-ip-driver.md)
-1. [1+QSPI+シリアルフラッシュドライバ(Macronix用)](../bare-metal/qspi-serial-flash-driver.md)
-1. [1+Ether+TCP/IP](../bare-metal/ether-tcp-ip.md)
-1. [1+Ether+TCP/IP+Webサーバ](../bare-metal/ether-tcp-ip-web-server.md)
-1. [1+SDHI+SDカードドライバ+ファイルシステム](../bare-metal/sdhi-sd-card-driver-filesystem.md)
-1. [1+GLCDC+DRW2D+emWin(Segger GUIミドルウェア)](../bare-metal/glcdc-drw2d-emwin.md)
+1. [新規プロジェクト作成方法(ベアメタル)](bare-metal/generate-new-project.md)
+1. [1+SCI](bare-metal/sci.md)
+1. [1+Trusted Secure IPドライバ](bare-metal/trusted-secure-ip-driver.md)
+1. [1+QSPI+シリアルフラッシュドライバ(Macronix用)](bare-metal/qspi-serial-flash-driver.md)
+1. [1+Ether+TCP/IP](bare-metal/ether-tcp-ip.md)
+1. [1+Ether+TCP/IP+Webサーバ](bare-metal/ether-tcp-ip-web-server.md)
+1. [1+SDHI+SDカードドライバ+ファイルシステム](bare-metal/sdhi-sd-card-driver-filesystem.md)
+1. [1+GLCDC+DRW2D+emWin(Segger GUIミドルウェア)](bare-metal/glcdc-drw2d-emwin.md)
 ### 新規プロジェクトベース(FreeRTOS(Kernel Only))
-1. [新規プロジェクト作成方法(FreeRTOS)](../freertos/generate-new-project-kernel-only.md)
-1. [queueの活用 printデバッグのシリアライズ](../freertos/queue-serialization-of-print-debug.md)
+1. [新規プロジェクト作成方法(FreeRTOS)](freertos/generate-new-project-kernel-only.md)
+1. [queueの活用 printデバッグのシリアライズ](freertos/queue-serialization-of-print-debug.md)
 ### 新規プロジェクトベース(FreeRTOS(with IoT Libraries))
-1. [新規プロジェクト作成方法(FreeRTOS(with IoT Libraries))](../freertos/generate-new-project-with-iot-libraries.md)
+1. [新規プロジェクト作成方法(FreeRTOS(with IoT Libraries))](freertos/generate-new-project-with-iot-libraries.md)
 
 # アップデート用ファームウェア一覧
-* 書き込み方法 = [SDカードを用いたファームアップデート方法](../quick-start/update-firmware-from-sd-card.md)
+* 書き込み方法 = [SDカードを用いたファームアップデート方法](quick-start/update-firmware-from-sd-card.md)
 
 | ファームウェアバージョン | ダウンロード | 変更点 | ツールバージョン |
 | ------------- | ------------- | ------------- | ------------- |
@@ -74,10 +74,10 @@ Welcome to the rx72n-envision-kit wiki!
 
 * 右クリックでファイルを保存してください
 * アップデート時にスポーツゲーム側のバンクは消去され、アップデート用ファームウェアのみインストールされます
-* スポーツゲーム込みの初期ファームウェアに戻す場合は [初期ファームウェアに戻す方法](../quick-start/revert-to-factory-image.md) を参照ください
+* スポーツゲーム込みの初期ファームウェアに戻す場合は [初期ファームウェアに戻す方法](quick-start/revert-to-factory-image.md) を参照ください
 
 # 初期ファームウェア
-* 書き込み方法 = [初期ファームウェアに戻す方法](../quick-start/revert-to-factory-image.md)
+* 書き込み方法 = [初期ファームウェアに戻す方法](quick-start/revert-to-factory-image.md)
 
 | ファームウェアバージョン | ダウンロード |
 | ------------- | ------------- |
@@ -86,7 +86,7 @@ Welcome to the rx72n-envision-kit wiki!
 * 右クリックでファイルを保存してください
 
 # スタンドアロンのデモファームウェア
-* 書き込み方法 = [初期ファームウェアに戻す方法](../quick-start/revert-to-factory-image.md)
+* 書き込み方法 = [初期ファームウェアに戻す方法](quick-start/revert-to-factory-image.md)
   * 「初期ファームウェア」については、「スタンドアロンのデモファームウェア」に読み替えてください。
 
 | デモファームウェアの名称 | ダウンロード | 解説書リンク | デモ動画 |

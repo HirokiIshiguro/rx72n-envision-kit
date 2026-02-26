@@ -10,10 +10,10 @@
 
 # Prerequisite
 *  Installed firmware is version v2.0.0 or later.
-    * Method of writing = [Update firmware from SD card](../../quick-start/update-firmware-from-sd-card.md)
+    * Method of writing = [Update firmware from SD card](../quick-start/update-firmware-from-sd-card.md)
 * Operation of command response has been checked
     * Refer to serial terminal demo in the following page
-        * [Confirm factory image behavior](../../quick-start/confirm-factory-image-behavior.md)
+        * [Confirm factory image behavior](../quick-start/confirm-factory-image-behavior.md)
 
 # Execution Behavior
 * Tracealyzer stores internal information of Realtime OS on RAM, output them by using UART, Ethernet, etc to outside of device and PC can receive them and PC can visualize this internal information.
@@ -38,5 +38,5 @@
 # Reference
 * This page introduce only how to use, and this page omit introducing how to implement Tracealyzer Library: [Tracealyzer Recorder](https://github.com/percepio/TraceRecorderSource) that is implemented in RX72N Envision Kit firmware.
 * For how to implementation, please refer to following page.
-  * [How to implement Tracealyzer Recorder](../../freertos/how-to-implement-tracealyzer-recorder.md)
+  * [How to implement Tracealyzer Recorder](../freertos/how-to-implement-tracealyzer-recorder.md)
 

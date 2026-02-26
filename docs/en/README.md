@@ -25,40 +25,40 @@ Welcome to the rx72n-envision-kit wiki!
     * https://github.com/renesas/amazon-freertos
 
 # Quick Start Guide
-1. [Confirm factory image behavior](../quick-start/confirm-factory-image-behavior.md)
-1. [Update firmware from SD card](../quick-start/update-firmware-from-sd-card.md)
-1. [Revert to factory image](../quick-start/revert-to-factory-image.md)
+1. [Confirm factory image behavior](quick-start/confirm-factory-image-behavior.md)
+1. [Update firmware from SD card](quick-start/update-firmware-from-sd-card.md)
+1. [Revert to factory image](quick-start/revert-to-factory-image.md)
 # Additional
-1. [OTA via AWS with FreeRTOS](../features/ota-via-aws-with-freertos.md)
-1. [Network Benchmark](../features/network-benchmark.md)
-1. [How to use Tracealyzer](../features/how-to-use-tracealyzer.md)
-1. [D2 audio](../features/d2-audio.md)
-1. [MEMS mic](../features/mems-mic.md)
-1. [ESP32](../features/esp32.md)
-1. [SSL acceleration by Trusted Secure IP(TSIP)](../features/ssl-acceleration-by-trusted-secure-ip-tsip.md)
-1. [Command list](../features/command-list.md)
+1. [OTA via AWS with FreeRTOS](features/ota-via-aws-with-freertos.md)
+1. [Network Benchmark](features/network-benchmark.md)
+1. [How to use Tracealyzer](features/how-to-use-tracealyzer.md)
+1. [D2 audio](features/d2-audio.md)
+1. [MEMS mic](features/mems-mic.md)
+1. [ESP32](features/esp32.md)
+1. [SSL acceleration by Trusted Secure IP(TSIP)](features/ssl-acceleration-by-trusted-secure-ip-tsip.md)
+1. [Command list](features/command-list.md)
 # For Developer
 ### initial firmware base
-1. [How to debug](../developer/how-to-debug.md)
-1. [Custom firmware](../developer/custom-firmware.md)
-1. [Trouble Shooting](../developer/trouble-shooting.md)
+1. [How to debug](developer/how-to-debug.md)
+1. [Custom firmware](developer/custom-firmware.md)
+1. [Trouble Shooting](developer/trouble-shooting.md)
 ### new project base (bare metal)
-1. [Generate new project (bare metal)](../bare-metal/generate-new-project.md)
-1. [SCI](../bare-metal/sci.md)
-1. [Trusted Secure IP Driver](../bare-metal/trusted-secure-ip-driver.md)
-1. [QSPI Serial flash driver (for Macronix)](../bare-metal/qspi-serial-flash-driver.md)
-1. [Ether TCP/IP](../bare-metal/ether-tcp-ip.md)
-1. [Ether TCP/IP Web Server](../bare-metal/ether-tcp-ip-web-server.md) *(stub)*
-1. [SDHI SD Card Driver + Filesystem](../bare-metal/sdhi-sd-card-driver-filesystem.md)
-1. [GLCDC + DRW2D + emWin (Segger GUI Middleware)](../bare-metal/glcdc-drw2d-emwin.md)
-1. [SSI Audio playback and recording](../bare-metal/ssi-audio.md) *(Japanese only)*
+1. [Generate new project (bare metal)](bare-metal/generate-new-project.md)
+1. [SCI](bare-metal/sci.md)
+1. [Trusted Secure IP Driver](bare-metal/trusted-secure-ip-driver.md)
+1. [QSPI Serial flash driver (for Macronix)](bare-metal/qspi-serial-flash-driver.md)
+1. [Ether TCP/IP](bare-metal/ether-tcp-ip.md)
+1. [Ether TCP/IP Web Server](bare-metal/ether-tcp-ip-web-server.md)
+1. [SDHI SD Card Driver Filesystem](bare-metal/sdhi-sd-card-driver-filesystem.md)
+1. [GLCDC DRW2D emWin (Segger GUI Middleware)](bare-metal/glcdc-drw2d-emwin.md)
+1. [SSI Audio playback and recording](bare-metal/ssi-audio.md)
 ### new project base (FreeRTOS(Kernel Only))
-1. [Generate new project (FreeRTOS(Kernel Only))](../freertos/generate-new-project-kernel-only.md)
-1. [Application of queue Serialization of print debug](../freertos/queue-serialization-of-print-debug.md)
+1. [Generate new project (FreeRTOS(Kernel Only))](freertos/generate-new-project-kernel-only.md)
+1. [Application of queue Serialization of print debug](freertos/queue-serialization-of-print-debug.md)
 ### new project base (FreeRTOS(with IoT Libaries))
-1. [Generate new project (FreeRTOS(with IoT Libaries))](../freertos/generate-new-project-with-iot-libraries.md)
+1. [Generate new project (FreeRTOS(with IoT Libaries))](freertos/generate-new-project-with-iot-libraries.md)
 # Table of firmware for update
-* How to write firmware = [Update firmware from SD card](../quick-start/update-firmware-from-sd-card.md)
+* How to write firmware = [Update firmware from SD card](quick-start/update-firmware-from-sd-card.md)
 
 | Firmware version | Download | Changes | tools version |
 | ------------- | ------------- | ------------- | ------------- |
@@ -74,10 +74,10 @@ Welcome to the rx72n-envision-kit wiki!
 
 * Please save as file with right click
 * Erase the sports games bank when updating, and will install only newer firmware
-* Please refer to [Revert to factory image](../quick-start/revert-to-factory-image.md) if you would like to revert to factory image
+* Please refer to [Revert to factory image](quick-start/revert-to-factory-image.md) if you would like to revert to factory image
 
 # Initial firmware
-* How to write firmware = [Revert to factory image](../quick-start/revert-to-factory-image.md)
+* How to write firmware = [Revert to factory image](quick-start/revert-to-factory-image.md)
 
 | Firmware version | Download |
 | ------------- | ------------- |
@@ -86,7 +86,7 @@ Welcome to the rx72n-envision-kit wiki!
 * Please save as file with right click
 
 # Standalone Demo Firmware
-* How to write firmware = [Revert to factory image](../quick-start/revert-to-factory-image.md)
+* How to write firmware = [Revert to factory image](quick-start/revert-to-factory-image.md)
   * Please exchange the word from "initial firmware" to "standalone demo firmware" when you read this link.
 
 | Name of demo firmware | Download | document | demo movie |

@@ -14,7 +14,7 @@
 # 前提条件
 * RX72N Envision Kitの初期ファームウェアのデバッグや機能追加を行いたい場合
 * ファームウェアアップデートの仕組みを学びたい場合
-    * ファームウェアアップデートの仕組みが不要な場合、およびRX72Nの単体機能の評価が必要な場合は[新規プロジェクト作成方法](../../developer/generate-new-project-overview.md)を参照のこと
+    * ファームウェアアップデートの仕組みが不要な場合、およびRX72Nの単体機能の評価が必要な場合は[新規プロジェクト作成方法](../developer/generate-new-project-overview.md)を参照のこと
 
 # ソースコード一式をダウンロードする
 * 最新版のコードをダウンロードする
@@ -104,7 +104,7 @@ erase install area (code flash): OK
 send "userprog.rsu" via UART.
 ```
 # ファームウェアアップデートのメカニズム
-* [設計メモ](../../developer/design-memo.md)
+* [設計メモ](../developer/design-memo.md)
 
 # aws_demosのMOTファイルに署名を付与する
 * ${base_folder}/vendors/renesas/tools/mot_file_converter/Renesas Secure Flash Programmer/bin/Debug

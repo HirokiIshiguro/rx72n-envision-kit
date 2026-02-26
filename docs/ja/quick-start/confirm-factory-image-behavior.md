@@ -50,7 +50,7 @@
         * 画面をタッチすると次画面に遷移
 * SDカード経由ファームウェアアップデートデモ
     * <a href="../../images/007_board_sd_firmware_update.jpg" target="_blank"><img src="../../images/007_board_sd_firmware_update.jpg" width="480px" target="_blank"></a>
-        * 詳細は [SDカードを用いたファームアップデート方法](../../quick-start/update-firmware-from-sd-card.md) 参照
+        * 詳細は [SDカードを用いたファームアップデート方法](../quick-start/update-firmware-from-sd-card.md) 参照
         * ここでは「next」ボタンを押す
 * シリアルターミナルデモ (以下オプション)
     * <a href="../../images/008_board_serial_terminal.jpg" target="_blank"><img src="../../images/008_board_serial_terminal.jpg" width="480px" target="_blank"></a>
@@ -103,7 +103,7 @@
         * AWS接続のためのアカウント情報がRX72N Envision Kitに記録されていないため、AWS接続不可でエラーになる
             * AWS接続実験を行うためには、ファームウェアバージョン x.x.x 以上にアップデートが必要 <開発中>
             * ファームウェアはマイクロSDカードを用いてアップデート可能
-            * マイクロSDカードを用いたファームウェアアップデートの方法詳細は[SDカードを用いたファームアップデート方法](../../quick-start/update-firmware-from-sd-card.md)のページを参照
+            * マイクロSDカードを用いたファームウェアアップデートの方法詳細は[SDカードを用いたファームアップデート方法](../quick-start/update-firmware-from-sd-card.md)のページを参照
             * AWS接続実験の詳細は[AWSとFreeRTOSを用いたデモ](#)のページを参照
         * 「prev」ボタンを2回押して「SDカード経由ファームウェアアップデートデモ」に戻る
 * RX72N Envision Kitのベンチマークデモにおけるバンク切り替え方法

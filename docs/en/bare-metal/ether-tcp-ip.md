@@ -11,9 +11,9 @@
             * [Tera Term](https://osdn.net/projects/ttssh2/) 4.105 or later
 
 # Prerequisite
-* [Generate new project (bare metal)](../../bare-metal/generate-new-project.md) must be completed.
-* [1+SCI_](../../bare-metal/sci.md) must be completed.
-    * In this section, implements by adding TCP/IP stack ([TCP/IP M3S-T4-Tiny for embedded](https://www.renesas.com/products/software-tools/software-os-middleware-driver/protocol-stack/m3s-t4-tiny-for-rx.html)) to LED 0.1 second cycle blinking program created in [Generate new project (bare metal)](../../bare-metal/generate-new-project.md) and log display mechanism created [1+SCI_](../../bare-metal/sci.md).
+* [Generate new project (bare metal)](../bare-metal/generate-new-project.md) must be completed.
+* [1+SCI_](../bare-metal/sci.md) must be completed.
+    * In this section, implements by adding TCP/IP stack ([TCP/IP M3S-T4-Tiny for embedded](https://www.renesas.com/products/software-tools/software-os-middleware-driver/protocol-stack/m3s-t4-tiny-for-rx.html)) to LED 0.1 second cycle blinking program created in [Generate new project (bare metal)](../bare-metal/generate-new-project.md) and log display mechanism created [1+SCI_](../bare-metal/sci.md).
 
 # Features of TCP/IP M3S-T4-Tiny for the embedded
 * Lightweight TCP/IP protocol stack which runs on the OS-less environment

@@ -9,8 +9,8 @@
             * [CC-RX](https://www.renesas.com/products/software-tools/tools/compiler-assembler/compiler-package-for-rx-family.html) V3.02 or later
 
 # Prerequisite
-* [Generate new project (bare metal)](../../bare-metal/generate-new-project.md) must be completed.
-    * In this section, implement by adding the code of how to access Macronix serial flash to LED 0.1 second cycle blinking program which was generated in [Generate new project (bare metal)](../../bare-metal/generate-new-project.md)
+* [Generate new project (bare metal)](../bare-metal/generate-new-project.md) must be completed.
+    * In this section, implement by adding the code of how to access Macronix serial flash to LED 0.1 second cycle blinking program which was generated in [Generate new project (bare metal)](../bare-metal/generate-new-project.md)
 
 # Check circuit
 * <a href="../../images/027_board_serial_flash.png" target="_blank"><img src="../../images/027_board_serial_flash.png" width="480px" target="_blank"></a>
