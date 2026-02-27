@@ -171,24 +171,7 @@ build:
       Write-Host ""
       Write-Host "All 3 .mot files generated successfully!"
 
-      # .mot ファイルを artifacts パス（CI_PROJECT_DIR 相対）に確実に配置
-      # e2studio は一部プロジェクトの出力をワークスペースに生成する場合がある
-      $artifactPaths = @{
-        "aws_demos"          = "$env:CI_PROJECT_DIR\$env:E2STUDIO_PROJECTS\aws_demos\HardwareDebug"
-        "boot_loader"        = "$env:CI_PROJECT_DIR\$env:E2STUDIO_PROJECTS\boot_loader\HardwareDebug"
-        "segger_emwin_demos" = "$env:CI_PROJECT_DIR\$env:E2STUDIO_PROJECTS\segger_emwin_demos\HardwareDebug"
-      }
-      @{aws_demos=$mot_aws; boot_loader=$mot_boot; segger_emwin_demos=$mot_emwin}.GetEnumerator() | ForEach-Object {
-        $target = $artifactPaths[$_.Key]
-        $src = $_.Value.FullName
-        if ($src -ne (Join-Path $target $_.Value.Name)) {
-          New-Item -ItemType Directory -Path $target -Force | Out-Null
-          Copy-Item $src $target
-          Write-Host "Copied $($_.Key) .mot to artifact path: $target"
-        }
-      }
-
-      Write-Host "Build artifacts:"
+      Write-Host "Build artifacts (via junction = CI_PROJECT_DIR):"
       Write-Host "  aws_demos:          $($mot_aws.FullName)"
       Write-Host "  boot_loader:        $($mot_boot.FullName)"
       Write-Host "  segger_emwin_demos: $($mot_emwin.FullName)"
@@ -208,7 +191,7 @@ flash_boot_loader:
   needs: [build]
   script:
     - |
-      $mot = "$env:CI_PROJECT_DIR\$env:E2STUDIO_PROJECTS\boot_loader\HardwareDebug\rx72n_boot.mot"
+      $mot = "$env:CI_PROJECT_DIR\$env:E2STUDIO_PROJECTS\boot_loader\HardwareDebug\rx72n_boot_loader.mot"
       if (-not (Test-Path $mot)) {
         Write-Host "ERROR: $mot not found"
         exit 1
@@ -217,7 +200,7 @@ flash_boot_loader:
       Write-Host "  Device: RX72x"
       Write-Host "  Tool:   E2 Lite ($env:E2LITE_SERIAL)"
       Write-Host "  I/F:    FINE"
-    - '& "$env:RFP_CLI" -device RX72x -tool "e2l:$env:E2LITE_SERIAL" -if fine -speed 500K -auth id FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF -auto "$env:CI_PROJECT_DIR\$env:E2STUDIO_PROJECTS\boot_loader\HardwareDebug\rx72n_boot.mot" -run -noquery'
+    - '& "$env:RFP_CLI" -device RX72x -tool "e2l:$env:E2LITE_SERIAL" -if fine -speed 500K -auth id FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF -auto "$env:CI_PROJECT_DIR\$env:E2STUDIO_PROJECTS\boot_loader\HardwareDebug\rx72n_boot_loader.mot" -run -noquery'
 
 test_boot_loader:
   stage: test
