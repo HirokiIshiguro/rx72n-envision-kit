@@ -1,7 +1,6 @@
 stages:
   - build
   - flash
-  - test
 
 variables:
   E2STUDIO: "C:\\Renesas\\e2_studio_2025_12\\eclipse\\e2studioc.exe"
@@ -184,12 +183,13 @@ build:
       - projects/renesas/rx72n_envision_kit/e2studio/segger_emwin_demos/HardwareDebug/*.mot
     expire_in: 1 week
 
-flash_boot_loader:
+flash_test_boot_loader:
   stage: flash
   tags:
     - run_ishiguro_machine
   needs: [build]
   script:
+    - pip install -q -r test_scripts/uart_test/requirements.txt
     - |
       $mot = "$env:CI_PROJECT_DIR\$env:E2STUDIO_PROJECTS\boot_loader\HardwareDebug\rx72n_boot_loader.mot"
       if (-not (Test-Path $mot)) {
@@ -200,13 +200,6 @@ flash_boot_loader:
       Write-Host "  Device: RX72x"
       Write-Host "  Tool:   E2 Lite ($env:E2LITE_SERIAL)"
       Write-Host "  I/F:    FINE"
-    - '& "$env:RFP_CLI" -device RX72x -tool "e2l:$env:E2LITE_SERIAL" -if fine -speed 500K -auth id FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF -auto "$env:CI_PROJECT_DIR\$env:E2STUDIO_PROJECTS\boot_loader\HardwareDebug\rx72n_boot_loader.mot" -run -noquery'
-
-test_boot_loader:
-  stage: test
-  tags:
-    - run_ishiguro_machine
-  needs: [flash_boot_loader]
-  script:
-    - pip install -q -r test_scripts/uart_test/requirements.txt
-    - python test_scripts/uart_test/test_boot_loader.py
+    # flash + UART テストを一体実行
+    # boot_loader は起動時に一度だけ UART 出力するため、flash 直後に読み取る必要がある
+    - python test_scripts/uart_test/test_boot_loader.py --flash-cmd "& '$env:RFP_CLI' -device RX72x -tool 'e2l:$env:E2LITE_SERIAL' -if fine -speed 500K -auth id FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF -auto '$env:CI_PROJECT_DIR\$env:E2STUDIO_PROJECTS\boot_loader\HardwareDebug\rx72n_boot_loader.mot' -run -noquery"
