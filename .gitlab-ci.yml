@@ -195,19 +195,19 @@ flash_boot_loader:
         Write-Host "ERROR: $mot not found"
         exit 1
       }
-      Write-Host "Flashing boot_loader: $mot"
+      Write-Host "Flashing + UART test: boot_loader"
+      Write-Host "  .mot:   $mot"
       Write-Host "  Device: RX72x"
       Write-Host "  Tool:   E2 Lite ($env:E2LITE_SERIAL)"
       Write-Host "  I/F:    FINE"
+      Write-Host "  UART:   $env:UART_PORT @ ${env:UART_BAUD_RATE}bps"
+    - pip install pyserial
     - |
-      & "$env:RFP_CLI" -device RX72x -tool "e2l:$env:E2LITE_SERIAL" -if fine -speed 500K -auth id FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF -auto "$env:CI_PROJECT_DIR\$env:E2STUDIO_PROJECTS\boot_loader\HardwareDebug\rx72n_boot_loader.mot" -run -noquery
+      $mot = "$env:CI_PROJECT_DIR\$env:E2STUDIO_PROJECTS\boot_loader\HardwareDebug\rx72n_boot_loader.mot"
+      $flashCmd = "& '${env:RFP_CLI}' -device RX72x -tool 'e2l:${env:E2LITE_SERIAL}' -if fine -speed 500K -auth id FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF -auto '$mot' -run -noquery"
+      Write-Host "Flash command: $flashCmd"
+      python "$env:CI_PROJECT_DIR\test_scripts\uart_test\test_boot_loader.py" --flash-cmd "$flashCmd" --diag
       if ($LASTEXITCODE -ne 0) {
-        Write-Host "ERROR: rfp-cli failed with exit code $LASTEXITCODE"
+        Write-Host "ERROR: UART test failed"
         exit 1
       }
-      Write-Host "Flash completed successfully"
-    # TODO: UART テストを追加予定
-    # boot_loader のデュアルバンク（BANKSEL）問題を解決後、
-    # test_scripts/uart_test/test_boot_loader.py で起動確認を行う
-    # 詳細: boot_loader は起動バンク設定に依存しており、
-    # rfp-cli の -run では動作するが通常リセットでは起動しない場合がある
