@@ -76,8 +76,16 @@ build:
       $imports = @("-import", "$env:CI_PROJECT_DIR\$env:E2STUDIO_PROJECTS\aws_demos", "-import", "$env:CI_PROJECT_DIR\$env:E2STUDIO_PROJECTS\boot_loader", "-import", "$env:CI_PROJECT_DIR\$env:E2STUDIO_PROJECTS\segger_emwin_demos")
 
       Write-Host "=== Pass 1: Import + cleanBuild all ==="
-      & "$env:E2STUDIO" @e2base @imports -cleanBuild all 2>&1 | Tee-Object -FilePath $logFile
-      Write-Host "e2studio exit code: $LASTEXITCODE"
+      Write-Host "(e2studio output redirected to e2studio_build.log to avoid 4MB job log limit)"
+      & "$env:E2STUDIO" @e2base @imports -cleanBuild all 2>&1 | Out-File -FilePath $logFile -Encoding utf8
+      $e2exit = $LASTEXITCODE
+      Write-Host "e2studio exit code: $e2exit"
+      # ビルドログからエラー行のみ抽出して表示
+      $errors = Select-String -Path $logFile -Pattern '(\berror\b|^E[0-9]{4}|^F[0-9]{4}|SubCommand\.tmp|\.mot)' -ErrorAction SilentlyContinue
+      if ($errors) {
+        Write-Host "--- Build log errors/key lines ($(($errors).Count) matches) ---"
+        $errors | Select-Object -First 30 | ForEach-Object { Write-Host "  $($_.LineNumber): $($_.Line)" }
+      }
 
       # .mot ファイルを検索（ワークスペース側 → ソースディレクトリ側の順にフォールバック）
       # boot_loader のワークスペース名は rx72n_boot（.cproject の buildPath による）
@@ -116,8 +124,15 @@ build:
         Write-Host "Created $created missing directories"
 
         Write-Host "=== Pass 2: Rebuild aws_demos ==="
-        & "$env:E2STUDIO" @e2base -build "aws_demos/HardwareDebug" 2>&1 | Tee-Object -FilePath $logFile -Append
+        & "$env:E2STUDIO" @e2base -build "aws_demos/HardwareDebug" 2>&1 | Out-File -FilePath "$logFile.pass2" -Encoding utf8
         Write-Host "e2studio exit code (retry): $LASTEXITCODE"
+        # Pass 2 ログを結合
+        Get-Content "$logFile.pass2" | Add-Content $logFile
+        $errors2 = Select-String -Path "$logFile.pass2" -Pattern '(\berror\b|^E[0-9]{4}|^F[0-9]{4}|SubCommand\.tmp|\.mot)' -ErrorAction SilentlyContinue
+        if ($errors2) {
+          Write-Host "--- Pass 2 errors/key lines ---"
+          $errors2 | Select-Object -First 20 | ForEach-Object { Write-Host "  $($_.LineNumber): $($_.Line)" }
+        }
 
         $mot_aws = Get-ChildItem "$env:WORKSPACE\aws_demos\HardwareDebug\*.mot" -ErrorAction SilentlyContinue
         if (-not $mot_aws) { $mot_aws = Get-ChildItem "$env:CI_PROJECT_DIR\$env:E2STUDIO_PROJECTS\aws_demos\HardwareDebug\*.mot" -ErrorAction SilentlyContinue }
