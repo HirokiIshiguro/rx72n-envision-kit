@@ -1,0 +1,176 @@
+stages:
+  - build
+
+variables:
+  E2STUDIO: "C:\\Renesas\\e2_studio_2025_12\\eclipse\\e2studioc.exe"
+  WORKSPACE: "C:\\workspace_rx72n"
+  E2STUDIO_PROJECTS: "projects\\renesas\\rx72n_envision_kit\\e2studio"
+  # Git サブモジュール初期化（coreSNTP 等の外部ライブラリ）
+  GIT_SUBMODULE_STRATEGY: recursive
+  # Windows 260文字パス長制限の回避
+  GIT_CONFIG_COUNT: "1"
+  GIT_CONFIG_KEY_0: "core.longpaths"
+  GIT_CONFIG_VALUE_0: "true"
+  # GIT_CLONE_PATH: $CI_BUILDS_DIR/rx72n
+  # ↑ Runner の config.toml で [runners.custom_build_dir] enabled = true が必要。
+  #   パス長が問題になった場合に有効化する。
+
+build:
+  stage: build
+  tags:
+    - run_ishiguro_machine
+  script:
+    # ワークスペースと HardwareDebug をクリア（stale Makefile とキャッシュの除去）
+    - if (Test-Path "$env:WORKSPACE") { Remove-Item -Recurse -Force "$env:WORKSPACE" }
+    - |
+      @("aws_demos", "boot_loader", "segger_emwin_demos") | ForEach-Object {
+        $hd = "$env:CI_PROJECT_DIR\$env:E2STUDIO_PROJECTS\$_\HardwareDebug"
+        if (Test-Path $hd) { Remove-Item -Recurse -Force $hd; Write-Host "Cleared: $hd" }
+      }
+    # Windows 260文字パス長制限ワークアラウンド:
+    # e2studio の CDT managed build は ${ProjDirPath}/../../../../../vendors/... パターンで
+    # インクルードパスを生成する。GitLab Runner のチェックアウトパスが長い場合（約80文字）、
+    # ${ProjDirPath}（約137文字）+ /../../../../../ + vendors/.../ + header.h が
+    # 260文字を超えて CC-RX が F0520005 (Cannot open source file) になる。
+    # 解決策: CI_PROJECT_DIR への短いジャンクションを作成し、そこからプロジェクトをインポート。
+    # これにより ${ProjDirPath} が約65文字に短縮される。
+    - |
+      $shortRoot = "C:\rx72n-src"
+      if (Test-Path $shortRoot) { cmd /c "rmdir `"$shortRoot`"" 2>$null }
+      New-Item -ItemType Junction -Path $shortRoot -Target "$env:CI_PROJECT_DIR" | Out-Null
+      Write-Host "Junction: $shortRoot -> $env:CI_PROJECT_DIR"
+      Write-Host "  CI_PROJECT_DIR length: $($env:CI_PROJECT_DIR.Length) chars"
+      Write-Host "  Short root length:     $($shortRoot.Length) chars"
+      Write-Host "  Saved:                 $($env:CI_PROJECT_DIR.Length - $shortRoot.Length) chars"
+    # aws_demos リンクファイル解決ワークアラウンド:
+    # aws_demos は AWS FreeRTOS のポーティング構造に従い、ソースファイルを
+    # vendors/ 配下にリンクファイル（.project の linkedResources）で参照している。
+    # e2studio ヘッドレスビルドでは一部のリンクリソースが解決されないため、
+    # ジャンクションを作成してリンクリソースを物理化する。
+    - |
+      $awsProj    = "$env:CI_PROJECT_DIR\$env:E2STUDIO_PROJECTS\aws_demos"
+      $vendorsAws = "$env:CI_PROJECT_DIR\vendors\renesas\boards\rx72n-envision-kit\aws_demos"
+
+      # 前回の CI ランの残骸があれば安全に除去（ジャンクションは rmdir で除去しないと
+      # ターゲットの中身まで消える）
+      @("$awsProj\src\smc_gen", "$awsProj\application_code", "$awsProj\config_files") | ForEach-Object {
+        if (Test-Path $_) { cmd /c "rmdir `"$_`"" 2>$null; Remove-Item $_ -Recurse -Force -ErrorAction SilentlyContinue }
+      }
+
+      # src/smc_gen: インクルードパスの解決のみ（r_config サブディレクトリのみジャンクション化）
+      # 注意: src/smc_gen 全体をジャンクションにすると、.project の
+      # application_code/smc_gen リンクリソース（同じ物理ディレクトリを参照）と二重コンパイルされ
+      # E0562300 (Duplicate symbol) になる。r_config のみ作成すればインクルードパスが解決する。
+      New-Item -ItemType Directory -Path "$awsProj\src\smc_gen" -Force | Out-Null
+      New-Item -ItemType Junction -Path "$awsProj\src\smc_gen\r_config" -Target "$vendorsAws\src\smc_gen\r_config" | Out-Null
+      Write-Host "Junction: src/smc_gen/r_config -> vendors/.../src/smc_gen/r_config (include path only)"
+
+      # application_code: renesas_code, aws_code, smc_gen, main.c（.project の linkedResources）
+      New-Item -ItemType Directory -Path "$awsProj\application_code" -Force | Out-Null
+      New-Item -ItemType Junction -Path "$awsProj\application_code\renesas_code" -Target "$vendorsAws\application_code\renesas_code" | Out-Null
+      New-Item -ItemType Junction -Path "$awsProj\application_code\aws_code" -Target "$vendorsAws\application_code\aws_code" | Out-Null
+      New-Item -ItemType Junction -Path "$awsProj\application_code\smc_gen" -Target "$vendorsAws\src\smc_gen" | Out-Null
+      Copy-Item "$vendorsAws\application_code\main.c" "$awsProj\application_code\main.c"
+      Write-Host "Junction: application_code/{renesas_code,aws_code,smc_gen} -> vendors/..."
+
+      # config_files: FreeRTOS/AWS 設定ヘッダ群
+      New-Item -ItemType Junction -Path "$awsProj\config_files" -Target "$vendorsAws\config_files" | Out-Null
+      Write-Host "Junction: config_files -> vendors/.../config_files"
+    # ビルド実行（インポート + cleanBuild）
+    # 短いジャンクションパスからインポートすることで ${ProjDirPath} を短縮
+    - |
+      $shortRoot = "C:\rx72n-src"
+      $shortProj = "$shortRoot\$env:E2STUDIO_PROJECTS"
+      $logFile = "$env:CI_PROJECT_DIR\e2studio_build.log"
+      $e2base = @("--launcher.suppressErrors", "-nosplash", "-application", "org.eclipse.cdt.managedbuilder.core.headlessbuild", "-data", "$env:WORKSPACE")
+      $imports = @("-import", "$shortProj\aws_demos", "-import", "$shortProj\boot_loader", "-import", "$shortProj\segger_emwin_demos")
+
+      Write-Host "=== Import + cleanBuild all ==="
+      Write-Host "Import paths (short junction):"
+      Write-Host "  aws_demos:          $shortProj\aws_demos"
+      Write-Host "  boot_loader:        $shortProj\boot_loader"
+      Write-Host "  segger_emwin_demos: $shortProj\segger_emwin_demos"
+      Write-Host "(e2studio output saved to e2studio_build.log artifact)"
+      # Tee-Object でファイルに保存しつつ Out-Null で job log への出力を抑制（4MB 制限回避）
+      & "$env:E2STUDIO" @e2base @imports -cleanBuild all 2>&1 | Tee-Object -FilePath $logFile | Out-Null
+      $e2exit = $LASTEXITCODE
+      Write-Host "e2studio exit code: $e2exit"
+      $logSize = (Get-Item $logFile -ErrorAction SilentlyContinue).Length
+      Write-Host "Build log size: $([Math]::Round($logSize / 1MB, 2)) MB"
+
+      # 診断: ビルドログの末尾30行
+      Write-Host "--- Build log tail ---"
+      Get-Content $logFile -Tail 30 | ForEach-Object { Write-Host "  $_" }
+
+      # make レシピエラーの前後コンテキストを表示（実際のコンパイラエラーを特定）
+      $recipeErrors = Select-String -Path $logFile -Pattern '\*\*\* \[' -Context 15,2 -ErrorAction SilentlyContinue
+      if ($recipeErrors) {
+        Write-Host "--- Compilation errors with context ($($recipeErrors.Count) targets failed) ---"
+        $recipeErrors | Select-Object -First 5 | ForEach-Object {
+          Write-Host ""
+          $_.Context.PreContext | ForEach-Object { Write-Host "  > $_".Substring(0, [Math]::Min($_.Length + 4, 250)) }
+          Write-Host "  >>> $($_.Line.Substring(0, [Math]::Min($_.Line.Length, 250)))"
+          $_.Context.PostContext | ForEach-Object { Write-Host "  > $_".Substring(0, [Math]::Min($_.Length + 4, 250)) }
+        }
+      }
+
+      # CC-RX コンパイラエラー検出（E0520=error, F0520=fatal, W0520=warning）
+      $ccrxErrors = Select-String -Path $logFile -Pattern '^[EFW]\d{4}' -ErrorAction SilentlyContinue
+      if ($ccrxErrors) {
+        Write-Host ""
+        Write-Host "--- CC-RX compiler errors/warnings ($($ccrxErrors.Count) lines) ---"
+        $ccrxErrors | Select-Object -First 30 | ForEach-Object { Write-Host "  $($_.LineNumber): $($_.Line.Substring(0, [Math]::Min($_.Line.Length, 250)))" }
+      }
+
+      # make の終了ステータス行
+      $makeStatus = Select-String -Path $logFile -Pattern '(terminated with exit code|Build might be incomplete|\*\*\* No rule)' -ErrorAction SilentlyContinue
+      if ($makeStatus) {
+        Write-Host ""
+        Write-Host "--- Make status lines ---"
+        $makeStatus | ForEach-Object { Write-Host "  $($_.LineNumber): $($_.Line.Substring(0, [Math]::Min($_.Line.Length, 250)))" }
+      }
+
+      # .mot ファイルを検索
+      # ビルド出力先はジャンクション経由のソースディレクトリ（ワークスペースには .metadata のみ）
+      $mot_aws   = Get-ChildItem "$shortProj\aws_demos\HardwareDebug\*.mot" -ErrorAction SilentlyContinue
+      if (-not $mot_aws) { $mot_aws = Get-ChildItem "$env:CI_PROJECT_DIR\$env:E2STUDIO_PROJECTS\aws_demos\HardwareDebug\*.mot" -ErrorAction SilentlyContinue }
+      $mot_boot  = Get-ChildItem "$env:WORKSPACE\rx72n_boot_loader\HardwareDebug\*.mot" -ErrorAction SilentlyContinue
+      if (-not $mot_boot) { $mot_boot = Get-ChildItem "$shortProj\boot_loader\HardwareDebug\*.mot" -ErrorAction SilentlyContinue }
+      if (-not $mot_boot) { $mot_boot = Get-ChildItem "$env:CI_PROJECT_DIR\$env:E2STUDIO_PROJECTS\boot_loader\HardwareDebug\*.mot" -ErrorAction SilentlyContinue }
+      $mot_emwin = Get-ChildItem "$env:WORKSPACE\segger_emwin_demos\HardwareDebug\*.mot" -ErrorAction SilentlyContinue
+      if (-not $mot_emwin) { $mot_emwin = Get-ChildItem "$shortProj\segger_emwin_demos\HardwareDebug\*.mot" -ErrorAction SilentlyContinue }
+      if (-not $mot_emwin) { $mot_emwin = Get-ChildItem "$env:CI_PROJECT_DIR\$env:E2STUDIO_PROJECTS\segger_emwin_demos\HardwareDebug\*.mot" -ErrorAction SilentlyContinue }
+
+      # 診断: 見つかった .mot ファイルの一覧
+      Write-Host ""
+      Write-Host "--- .mot search results ---"
+      Write-Host "  aws_demos:          $(if ($mot_aws) { $mot_aws.FullName } else { 'NOT FOUND' })"
+      Write-Host "  boot_loader:        $(if ($mot_boot) { $mot_boot.FullName } else { 'NOT FOUND' })"
+      Write-Host "  segger_emwin_demos: $(if ($mot_emwin) { $mot_emwin.FullName } else { 'NOT FOUND' })"
+
+      $missing = @()
+      if (-not $mot_aws)   { $missing += "aws_demos" }
+      if (-not $mot_boot)  { $missing += "boot_loader" }
+      if (-not $mot_emwin) { $missing += "segger_emwin_demos" }
+      if ($missing.Count -gt 0) {
+        Write-Host "ERROR: .mot file not found for: $($missing -join ', ')"
+        Write-Host "Full e2studio log saved as artifact: e2studio_build.log"
+        exit 1
+      }
+
+      Write-Host ""
+      Write-Host "All 3 .mot files generated successfully!"
+
+      # .mot ファイルの場所を表示（C:\rx72n-src ジャンクション経由 = CI_PROJECT_DIR と同一物理パス）
+      Write-Host "Build artifacts (via junction = CI_PROJECT_DIR):"
+      Write-Host "  aws_demos:          $($mot_aws.FullName)"
+      Write-Host "  boot_loader:        $($mot_boot.FullName)"
+      Write-Host "  segger_emwin_demos: $($mot_emwin.FullName)"
+  artifacts:
+    when: always
+    paths:
+      - e2studio_build.log
+      - projects/renesas/rx72n_envision_kit/e2studio/aws_demos/HardwareDebug/*.mot
+      - projects/renesas/rx72n_envision_kit/e2studio/boot_loader/HardwareDebug/*.mot
+      - projects/renesas/rx72n_envision_kit/e2studio/segger_emwin_demos/HardwareDebug/*.mot
+    expire_in: 1 week
