@@ -105,11 +105,13 @@ build:
       # aws_demos のビルド失敗時: 不足ディレクトリを補完してリトライ
       # e2studio の Makefile 生成器はリンクリソースの深いパスに対して mkdir ルールを
       # 生成しないことがあり、SubCommand.tmp の書き込みに失敗する。
-      # Pass 1 で生成された subdir.mk 内の .obj パスを解析し、対応するディレクトリを作成する。
+      # ビルド出力はワークスペースではなくソースディレクトリの HardwareDebug/ に生成される。
       if (-not $mot_aws) {
         Write-Host ""
         Write-Host "=== aws_demos .mot not found - fixing output directories and retrying ==="
-        $awsHD = "$env:WORKSPACE\aws_demos\HardwareDebug"
+        # ビルド出力はソースディレクトリに生成される（ワークスペースは .metadata のみ）
+        $awsHD = "$env:CI_PROJECT_DIR\$env:E2STUDIO_PROJECTS\aws_demos\HardwareDebug"
+        Write-Host "Scanning: $awsHD"
         $created = 0
         if (Test-Path $awsHD) {
           Get-ChildItem $awsHD -Recurse -Filter "subdir.mk" -ErrorAction SilentlyContinue | ForEach-Object {
@@ -125,8 +127,13 @@ build:
               }
             }
           }
+          Write-Host "Created $created missing directories"
+          # subdir.mk の総数も表示
+          $mkCount = (Get-ChildItem $awsHD -Recurse -Filter "subdir.mk" -ErrorAction SilentlyContinue).Count
+          Write-Host "Total subdir.mk files found: $mkCount"
+        } else {
+          Write-Host "WARNING: HardwareDebug directory not found at $awsHD"
         }
-        Write-Host "Created $created missing directories"
 
         Write-Host "=== Pass 2: Rebuild aws_demos ==="
         $logPass2 = "$logFile.pass2"
@@ -140,8 +147,7 @@ build:
           $errors2 | Select-Object -First 20 | ForEach-Object { Write-Host "  $($_.LineNumber): $($_.Line.Substring(0, [Math]::Min($_.Line.Length, 200)))" }
         }
 
-        $mot_aws = Get-ChildItem "$env:WORKSPACE\aws_demos\HardwareDebug\*.mot" -ErrorAction SilentlyContinue
-        if (-not $mot_aws) { $mot_aws = Get-ChildItem "$env:CI_PROJECT_DIR\$env:E2STUDIO_PROJECTS\aws_demos\HardwareDebug\*.mot" -ErrorAction SilentlyContinue }
+        $mot_aws = Get-ChildItem "$env:CI_PROJECT_DIR\$env:E2STUDIO_PROJECTS\aws_demos\HardwareDebug\*.mot" -ErrorAction SilentlyContinue
       }
 
       # 診断: 見つかった .mot ファイルの一覧
