@@ -66,12 +66,31 @@ build:
       Write-Host "e2studio exit code: $e2exit"
       $logSize = (Get-Item $logFile -ErrorAction SilentlyContinue).Length
       Write-Host "Build log size: $([Math]::Round($logSize / 1MB, 2)) MB"
+
+      # 診断: ワークスペースのプロジェクト一覧
+      Write-Host "--- Workspace projects ---"
+      Get-ChildItem "$env:WORKSPACE" -Directory -ErrorAction SilentlyContinue | ForEach-Object {
+        $hd = "$($_.FullName)\HardwareDebug"
+        $hdExists = Test-Path $hd
+        $motCount = if ($hdExists) { (Get-ChildItem "$hd\*.mot" -ErrorAction SilentlyContinue).Count } else { 0 }
+        $objCount = if ($hdExists) { (Get-ChildItem $hd -Recurse -Filter "*.obj" -ErrorAction SilentlyContinue).Count } else { 0 }
+        Write-Host "  $($_.Name): HardwareDebug=$hdExists, .mot=$motCount, .obj=$objCount"
+      }
+
+      # 診断: ビルドログの末尾30行
+      Write-Host "--- Build log tail ---"
+      Get-Content $logFile -Tail 30 | ForEach-Object { Write-Host "  $_" }
+
       # ビルドログからエラー・警告の要約を表示
       $errors = Select-String -Path $logFile -Pattern '((\berror\b.*:)|^E[0-9]{4}|^F[0-9]{4}|SubCommand\.tmp.*No such|\.mot)' -ErrorAction SilentlyContinue
       if ($errors) {
         Write-Host "--- Build log errors/key lines ($(($errors).Count) matches) ---"
         $errors | Select-Object -First 30 | ForEach-Object { Write-Host "  $($_.LineNumber): $($_.Line.Substring(0, [Math]::Min($_.Line.Length, 200)))" }
       }
+      # 診断: aws_demos 固有の行を検索
+      $awsLines = Select-String -Path $logFile -Pattern 'aws_demos' -ErrorAction SilentlyContinue
+      Write-Host "--- 'aws_demos' mentions in build log: $(if ($awsLines) { $awsLines.Count } else { 0 }) ---"
+      if ($awsLines) { $awsLines | Select-Object -First 10 | ForEach-Object { Write-Host "  $($_.LineNumber): $($_.Line.Substring(0, [Math]::Min($_.Line.Length, 200)))" } }
 
       # .mot ファイルを検索（ワークスペース側 → ソースディレクトリ側の順にフォールバック）
       # boot_loader のワークスペース名は rx72n_boot（.cproject の buildPath による）
