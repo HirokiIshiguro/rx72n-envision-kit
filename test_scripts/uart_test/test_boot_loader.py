@@ -3,7 +3,7 @@
 UART Boot Loader Flash + Test Script
 RX72N Envision Kit boot_loader の書き込み＋起動確認テスト
 
-boot_loader は起動時に一度だけ UART へ以下を出力する:
+boot_loader は起動時に一度だけ UART (SCI2, 115200bps) へ以下を出力する:
   -------------------------------------------------
   RX72N secure boot program
   -------------------------------------------------
@@ -13,6 +13,10 @@ boot_loader は起動時に一度だけ UART へ以下を出力する:
 2. rfp-cli で boot_loader を書き込み＋実行
 3. UART から "RX72N secure boot program" の受信を確認
 
+注意: boot_loader はデュアルバンク構成を使用しており、起動バンク（BANKSEL）が
+正しく設定されていないと UART 出力が得られない場合がある。
+BANKSEL 問題の解決後にこのスクリプトを CI で使用すること。
+
 環境変数:
   UART_PORT        : シリアルポート (デフォルト: COM6)
   UART_BAUD_RATE   : ボーレート     (デフォルト: 115200)
@@ -21,6 +25,7 @@ boot_loader は起動時に一度だけ UART へ以下を出力する:
 引数:
   --flash-cmd CMD  : flash コマンド（rfp-cli 呼び出し）
                      省略時は flash をスキップし UART 読み取りのみ
+  --diag           : 診断モード（全 COM ポートを同時監視）
 """
 
 import argparse
@@ -37,7 +42,6 @@ UART_PORT = os.environ.get("UART_PORT", "COM6")
 UART_BAUD_RATE = int(os.environ.get("UART_BAUD_RATE", "115200"))
 UART_TIMEOUT_SEC = int(os.environ.get("UART_TIMEOUT_SEC", "30"))
 EXPECTED_STRING = "RX72N secure boot program"
-POLL_INTERVAL = 1  # readline timeout per poll (seconds)
 
 
 def list_com_ports():
@@ -66,7 +70,7 @@ def run_flash(cmd):
 
 
 def read_port(port_name, baud, timeout, results, expected):
-    """1つのポートからノンブロッキングで読み取り"""
+    """ノンブロッキングで1ポートを読み取り"""
     try:
         with serial.Serial(port_name, baud, timeout=0) as ser:
             ser.reset_input_buffer()
@@ -90,7 +94,7 @@ def read_port(port_name, baud, timeout, results, expected):
                                 results[port_name]["found"] = True
                                 return
                 else:
-                    time.sleep(0.05)  # 50ms ポーリング
+                    time.sleep(0.05)
             # 残りバッファ
             if buf:
                 decoded = buf.decode("utf-8", errors="replace").strip()
@@ -105,15 +109,17 @@ def read_port(port_name, baud, timeout, results, expected):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--flash-cmd", help="Flash command (rfp-cli)")
+    parser.add_argument("--diag", action="store_true", help="Diagnostic mode: monitor all COM ports")
     args = parser.parse_args()
 
     print("=" * 60)
     print("[INFO] UART Boot Loader Flash + Test")
-    print(f"[INFO]   Primary port : {UART_PORT}")
+    print(f"[INFO]   Port         : {UART_PORT}")
     print(f"[INFO]   Baud         : {UART_BAUD_RATE}")
     print(f"[INFO]   Total timeout: {UART_TIMEOUT_SEC}s")
     print(f"[INFO]   Expect       : '{EXPECTED_STRING}'")
     print(f"[INFO]   Flash        : {'yes' if args.flash_cmd else 'skip'}")
+    print(f"[INFO]   Diag mode    : {'yes' if args.diag else 'no'}")
     print("=" * 60)
 
     # 診断: 利用可能なポート一覧
@@ -122,17 +128,16 @@ def main():
     if not ports:
         print("[DIAG]   (none)")
 
-    # 読み取り対象ポート: 指定ポート + もう1つの候補 (COM7 or COM6)
-    alt_port = "COM7" if UART_PORT == "COM6" else "COM6"
-    read_ports = [UART_PORT]
-    # 代替ポートが存在する場合のみ追加
+    # 読み取り対象ポート
     port_names = [p.device for p in ports]
-    if alt_port in port_names:
-        read_ports.append(alt_port)
-        print(f"[DIAG] Also monitoring {alt_port} for diagnostic purposes")
+    if args.diag:
+        read_ports = [p.device for p in ports if p.device != "COM1"]
+    else:
+        read_ports = [UART_PORT]
 
     flash_returncode = [0]
     flash_done = threading.Event()
+    start_time = time.time()
 
     def flash_worker():
         try:
@@ -144,7 +149,6 @@ def main():
     # 全ポートを先に開く
     results = {}
     read_threads = []
-    start_time = time.time()
 
     for port in read_ports:
         t = threading.Thread(
@@ -155,7 +159,7 @@ def main():
         t.start()
         print(f"[INFO] Listening on {port}...")
 
-    time.sleep(0.5)  # ポートオープン完了を待つ
+    time.sleep(0.5)
 
     # Flash 開始
     if args.flash_cmd:
@@ -190,7 +194,7 @@ def main():
         print(f"[ERROR] Flash command failed with exit code {flash_returncode[0]}")
         sys.exit(1)
 
-    # 判定: 指定ポートで見つかったか
+    # 判定
     primary = results.get(UART_PORT, {})
     if primary.get("found"):
         print("-" * 60)
@@ -198,17 +202,17 @@ def main():
         print("-" * 60)
         sys.exit(0)
 
-    # 代替ポートで見つかった場合はヒント表示
-    alt = results.get(alt_port, {})
-    if alt.get("found"):
-        print("-" * 60)
-        print(f"[FAIL] '{EXPECTED_STRING}' NOT found on {UART_PORT}")
-        print(f"[HINT] But found on {alt_port}! Consider changing UART_PORT.")
-        print("-" * 60)
-        sys.exit(1)
+    # 他のポートで見つかった場合はヒント表示
+    for port, info in results.items():
+        if port != UART_PORT and info.get("found"):
+            print("-" * 60)
+            print(f"[FAIL] '{EXPECTED_STRING}' NOT found on {UART_PORT}")
+            print(f"[HINT] But found on {port}! Consider changing UART_PORT.")
+            print("-" * 60)
+            sys.exit(1)
 
     print("-" * 60)
-    print(f"[FAIL] '{EXPECTED_STRING}' not found on any port within {UART_TIMEOUT_SEC}s")
+    print(f"[FAIL] '{EXPECTED_STRING}' not found within {UART_TIMEOUT_SEC}s")
     print("-" * 60)
     sys.exit(1)
 
