@@ -91,6 +91,11 @@ def main():
                 raw = ser.readline()
 
                 if not raw:
+                    # Flash がまだ実行中なら読み取りを続ける
+                    # （flash に ~15秒かかるため readline タイムアウトが先に来る）
+                    if args.flash_cmd and flash_thread.is_alive():
+                        print(f"[INFO] Line {line_num}: waiting for flash to complete...")
+                        continue
                     print(f"[WARN] Line {line_num}: no data received within {UART_TIMEOUT_SEC}s")
                     break
 
