@@ -5,6 +5,10 @@ variables:
   E2STUDIO: "C:\\Renesas\\e2_studio_2025_12\\eclipse\\e2studioc.exe"
   WORKSPACE: "C:\\workspace_rx72n"
   E2STUDIO_PROJECTS: "projects\\renesas\\rx72n_envision_kit\\e2studio"
+  # Windows 260文字パス長制限の回避
+  GIT_CONFIG_COUNT: "1"
+  GIT_CONFIG_KEY_0: "core.longpaths"
+  GIT_CONFIG_VALUE_0: "true"
   # GIT_CLONE_PATH: $CI_BUILDS_DIR/rx72n
   # ↑ Runner の config.toml で [runners.custom_build_dir] enabled = true が必要。
   #   パス長が問題になった場合に有効化する。
