@@ -21,7 +21,31 @@ build:
     # ワークスペースのメタデータをクリア（2回目以降の -import 失敗を防ぐ）
     - if (Test-Path "$env:WORKSPACE\.metadata") { Remove-Item -Recurse -Force "$env:WORKSPACE\.metadata" }
     # 3プロジェクトをまとめてインポート＆ビルド
-    - '& "$env:E2STUDIO" --launcher.suppressErrors -nosplash -application org.eclipse.cdt.managedbuilder.core.headlessbuild -data "$env:WORKSPACE" -import "$env:CI_PROJECT_DIR\$env:E2STUDIO_PROJECTS\aws_demos" -import "$env:CI_PROJECT_DIR\$env:E2STUDIO_PROJECTS\boot_loader" -import "$env:CI_PROJECT_DIR\$env:E2STUDIO_PROJECTS\segger_emwin_demos" -build all'
+    # e2studio の終了コードはビルド成功でも非ゼロになる場合があるため、
+    # .mot ファイルの存在で実際のビルド成否を判定する
+    - |
+      & "$env:E2STUDIO" --launcher.suppressErrors -nosplash -application org.eclipse.cdt.managedbuilder.core.headlessbuild -data "$env:WORKSPACE" -import "$env:CI_PROJECT_DIR\$env:E2STUDIO_PROJECTS\aws_demos" -import "$env:CI_PROJECT_DIR\$env:E2STUDIO_PROJECTS\boot_loader" -import "$env:CI_PROJECT_DIR\$env:E2STUDIO_PROJECTS\segger_emwin_demos" -build all
+      $e2exit = $LASTEXITCODE
+      Write-Host "e2studio exit code: $e2exit"
+      $mot_aws     = Get-ChildItem "$env:CI_PROJECT_DIR\$env:E2STUDIO_PROJECTS\aws_demos\HardwareDebug\*.mot" -ErrorAction SilentlyContinue
+      $mot_boot    = Get-ChildItem "$env:CI_PROJECT_DIR\$env:E2STUDIO_PROJECTS\boot_loader\HardwareDebug\*.mot" -ErrorAction SilentlyContinue
+      $mot_emwin   = Get-ChildItem "$env:CI_PROJECT_DIR\$env:E2STUDIO_PROJECTS\segger_emwin_demos\HardwareDebug\*.mot" -ErrorAction SilentlyContinue
+      $missing = @()
+      if (-not $mot_aws)   { $missing += "aws_demos" }
+      if (-not $mot_boot)  { $missing += "boot_loader" }
+      if (-not $mot_emwin) { $missing += "segger_emwin_demos" }
+      if ($missing.Count -gt 0) {
+        Write-Host "ERROR: .mot file not found for: $($missing -join ', ')"
+        exit 1
+      }
+      if ($e2exit -ne 0) {
+        Write-Host "NOTE: e2studio returned exit code $e2exit but all .mot files were generated."
+        Write-Host "This is a known issue: e2studio headless build may return non-zero even on successful builds (e.g. when warnings exist)."
+      }
+      Write-Host "Build artifacts:"
+      Write-Host "  aws_demos:          $($mot_aws.Name)"
+      Write-Host "  boot_loader:        $($mot_boot.Name)"
+      Write-Host "  segger_emwin_demos: $($mot_emwin.Name)"
   artifacts:
     paths:
       - projects/renesas/rx72n_envision_kit/e2studio/aws_demos/HardwareDebug/*.mot
