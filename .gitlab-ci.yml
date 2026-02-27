@@ -81,11 +81,11 @@ build:
       Write-Host "--- Build log tail ---"
       Get-Content $logFile -Tail 30 | ForEach-Object { Write-Host "  $_" }
 
-      # ビルドログからエラー・警告の要約を表示
-      $errors = Select-String -Path $logFile -Pattern '((\berror\b.*:)|^E[0-9]{4}|^F[0-9]{4}|SubCommand\.tmp.*No such|\.mot)' -ErrorAction SilentlyContinue
+      # ビルドログからエラー・警告の要約を表示（幅広いパターンで検索）
+      $errors = Select-String -Path $logFile -Pattern '(\*\*\*|Error \d|error:|No such|exit code|SubCommand\.tmp|\.mot|make\[)' -ErrorAction SilentlyContinue
       if ($errors) {
         Write-Host "--- Build log errors/key lines ($(($errors).Count) matches) ---"
-        $errors | Select-Object -First 30 | ForEach-Object { Write-Host "  $($_.LineNumber): $($_.Line.Substring(0, [Math]::Min($_.Line.Length, 200)))" }
+        $errors | Select-Object -First 50 | ForEach-Object { Write-Host "  $($_.LineNumber): $($_.Line.Substring(0, [Math]::Min($_.Line.Length, 200)))" }
       }
       # 診断: aws_demos 固有の行を検索
       $awsLines = Select-String -Path $logFile -Pattern 'aws_demos' -ErrorAction SilentlyContinue
