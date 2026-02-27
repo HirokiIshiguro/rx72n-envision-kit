@@ -59,12 +59,13 @@ build:
 
       Write-Host "=== Pass 1: Import + cleanBuild all ==="
       Write-Host "(e2studio output saved to e2studio_build.log artifact)"
-      # cmd /c でネイティブリダイレクト（PowerShell パイプラインを経由しない）
-      $e2args = ($e2base + $imports + @("-cleanBuild", "all")) -join " "
-      cmd /c "`"$env:E2STUDIO`" $e2args > `"$logFile`" 2>&1"
+      # Tee-Object でファイルに保存しつつ Out-Null で job log への出力を抑制
+      # （Tee-Object 経由は pipeline #127 で動作確認済み。Out-Null で 4MB 制限回避）
+      & "$env:E2STUDIO" @e2base @imports -cleanBuild all 2>&1 | Tee-Object -FilePath $logFile | Out-Null
       $e2exit = $LASTEXITCODE
       Write-Host "e2studio exit code: $e2exit"
-      Write-Host "Build log size: $((Get-Item $logFile -ErrorAction SilentlyContinue).Length / 1MB) MB"
+      $logSize = (Get-Item $logFile -ErrorAction SilentlyContinue).Length
+      Write-Host "Build log size: $([Math]::Round($logSize / 1MB, 2)) MB"
       # ビルドログからエラー・警告の要約を表示
       $errors = Select-String -Path $logFile -Pattern '((\berror\b.*:)|^E[0-9]{4}|^F[0-9]{4}|SubCommand\.tmp.*No such|\.mot)' -ErrorAction SilentlyContinue
       if ($errors) {
@@ -110,8 +111,7 @@ build:
 
         Write-Host "=== Pass 2: Rebuild aws_demos ==="
         $logPass2 = "$logFile.pass2"
-        $e2args2 = ($e2base + @("-build", "aws_demos/HardwareDebug")) -join " "
-        cmd /c "`"$env:E2STUDIO`" $e2args2 > `"$logPass2`" 2>&1"
+        & "$env:E2STUDIO" @e2base -build "aws_demos/HardwareDebug" 2>&1 | Tee-Object -FilePath $logPass2 | Out-Null
         Write-Host "e2studio exit code (retry): $LASTEXITCODE"
         # Pass 2 ログを結合
         Get-Content $logPass2 | Add-Content $logFile
