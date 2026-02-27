@@ -211,3 +211,58 @@ flash_boot_loader:
         Write-Host "ERROR: UART test failed"
         exit 1
       }
+
+download_aws_demos:
+  stage: flash
+  tags:
+    - run_ishiguro_machine
+  needs:
+    - job: build
+      artifacts: true
+    - job: flash_boot_loader
+  variables:
+    # .rsu 生成に使うシーケンス番号（OTA 更新ごとに増加させる）
+    RSU_SEQ_NO: "1"
+  script:
+    # Step 1: 依存パッケージのインストール
+    - pip install cryptography pyserial
+    # Step 2: aws_demos.mot → userprog.rsu 変換
+    - |
+      $mot = "$env:CI_PROJECT_DIR\$env:E2STUDIO_PROJECTS\aws_demos\HardwareDebug\aws_demos.mot"
+      if (-not (Test-Path $mot)) {
+        Write-Host "ERROR: aws_demos.mot not found: $mot"
+        exit 1
+      }
+      $rsu = "$env:CI_PROJECT_DIR\userprog.rsu"
+      $key = "$env:CI_PROJECT_DIR\sample_keys\secp256r1.privatekey"
+      Write-Host "=== Convert .mot to .rsu ==="
+      Write-Host "  MOT: $mot"
+      Write-Host "  Key: $key"
+      Write-Host "  RSU: $rsu"
+      Write-Host "  Seq: $env:RSU_SEQ_NO"
+      python "$env:CI_PROJECT_DIR\test_scripts\mot_to_rsu\mot_to_rsu.py" `
+        --mot "$mot" --key "$key" -o "$rsu" --seq-no $env:RSU_SEQ_NO
+      if ($LASTEXITCODE -ne 0) {
+        Write-Host "ERROR: mot_to_rsu conversion failed"
+        exit 1
+      }
+    # Step 3: UART で .rsu をブートローダに送信
+    # boot_loader は flash_boot_loader ジョブで書き込み・起動済み。
+    # rfp-cli -run でデバッガ経由で起動後、"send userprog.rsu via UART." を出力し
+    # UART 受信待ち状態になっている。
+    - |
+      $rsu = "$env:CI_PROJECT_DIR\userprog.rsu"
+      Write-Host "=== UART Download ==="
+      Write-Host "  RSU:  $rsu"
+      Write-Host "  Port: $env:UART_PORT @ ${env:UART_BAUD_RATE}bps"
+      python "$env:CI_PROJECT_DIR\test_scripts\uart_test\test_uart_download.py" `
+        --rsu "$rsu" --port "$env:UART_PORT" --baud $env:UART_BAUD_RATE `
+        --timeout 300 --diag
+      if ($LASTEXITCODE -ne 0) {
+        Write-Host "ERROR: UART download failed"
+        exit 1
+      }
+  artifacts:
+    paths:
+      - userprog.rsu
+    expire_in: 1 week
