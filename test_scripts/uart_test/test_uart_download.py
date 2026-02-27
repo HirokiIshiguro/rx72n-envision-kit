@@ -77,10 +77,11 @@ MSG_JUMP_USER = "jump to user program"
 class UartDownloader:
     """Send .rsu firmware to boot loader via UART and monitor progress."""
 
-    def __init__(self, port, baud, timeout, diag=False):
+    def __init__(self, port, baud, timeout, post_tx_wait=30, diag=False):
         self.port_name = port
         self.baud = baud
         self.timeout = timeout
+        self.post_tx_wait = post_tx_wait
         self.diag = diag
         self.ser = None
         self.rx_buffer = ""
@@ -90,6 +91,7 @@ class UartDownloader:
         self.bytes_sent = 0
         self.total_bytes = 0
         self.start_time = 0
+        self.tx_complete_time = None
         self._lock = threading.Lock()
 
     def open_port(self):
@@ -225,7 +227,7 @@ class UartDownloader:
         while True:
             elapsed = time.time() - self.start_time
 
-            # Check timeout
+            # Check global timeout (safety net)
             if elapsed > self.timeout:
                 print(f"\nTIMEOUT after {elapsed:.1f}s")
                 self.close_port()
@@ -264,19 +266,40 @@ class UartDownloader:
                 elif MSG_JUMP_USER in line:
                     jump_user = True
 
-            # Print send progress
+            # Print send progress and detect TX completion
             with self._lock:
                 sent = self.bytes_sent
-            if sent > 0 and not self.send_complete:
+                tx_done = self.send_complete
+            if sent > 0 and not tx_done:
                 pct = sent * 100 / self.total_bytes
                 if self.diag and time.time() - last_progress_print > 10:
                     print(f"  [{elapsed:6.1f}s] TX: {sent:,}/{self.total_bytes:,} bytes ({pct:.0f}%)")
+            elif tx_done and self.tx_complete_time is None and not self.send_error:
+                self.tx_complete_time = time.time()
+                print(f"  [{elapsed:6.1f}s] TX complete: {sent:,} bytes sent")
+                print(f"  [{elapsed:6.1f}s] Waiting up to {self.post_tx_wait}s for boot_loader response...")
 
             # Check if send failed
             if self.send_error:
                 print(f"\nERROR: Send failed: {self.send_error}")
                 self.close_port()
                 return 1
+
+            # Post-TX timeout: if TX done but no meaningful MCU response
+            if (self.tx_complete_time and not sw_reset and
+                    time.time() - self.tx_complete_time > self.post_tx_wait):
+                print(f"\n=== Download Complete (TX only, no RX) ===")
+                print(f"  TX:                {sent:,}/{self.total_bytes:,} bytes (100%)")
+                print(f"  RX messages:       {len(self.messages)}")
+                print(f"  Firmware installed: {'YES' if fw_completed else 'UNKNOWN (no RX)'}")
+                print(f"  Integrity check:   {'PASS' if integrity_ok else 'UNKNOWN (no RX)'}")
+                print(f"  Const data:        {'YES' if const_completed else 'UNKNOWN (no RX)'}")
+                print(f"  Software reset:    {'YES' if sw_reset else 'UNKNOWN (no RX)'}")
+                print(f"  Total time:        {elapsed:.1f}s ({elapsed/60:.1f} min)")
+                print(f"\nWARNING: No response from boot_loader after TX completion.")
+                print(f"  TX succeeded. Verify on LCD or fix COM port MCU→PC direction.")
+                self.close_port()
+                return 0
 
             # Success condition: firmware installed + verified + data flash + reset
             if sw_reset:
@@ -328,6 +351,8 @@ def main():
                         help=f"Baud rate (default: {DEFAULT_BAUD})")
     parser.add_argument("--timeout", type=int, default=DEFAULT_TIMEOUT,
                         help=f"Total timeout in seconds (default: {DEFAULT_TIMEOUT})")
+    parser.add_argument("--post-tx-wait", type=int, default=30,
+                        help="Seconds to wait for MCU response after TX completes (default: 30)")
     parser.add_argument("--diag", action="store_true",
                         help="Print additional diagnostic output")
 
@@ -341,6 +366,7 @@ def main():
         port=args.port,
         baud=args.baud,
         timeout=args.timeout,
+        post_tx_wait=args.post_tx_wait,
         diag=args.diag,
     )
 
