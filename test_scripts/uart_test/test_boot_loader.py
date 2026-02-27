@@ -3,7 +3,7 @@
 UART Boot Loader Flash + Test Script
 RX72N Envision Kit boot_loader の書き込み＋起動確認テスト
 
-boot_loader は起動時に一度だけ UART (SCI2, 115200bps) へ以下を出力する:
+boot_loader は起動時に一度だけ UART へ以下を出力する:
   -------------------------------------------------
   RX72N secure boot program
   -------------------------------------------------
@@ -31,12 +31,21 @@ import threading
 import time
 
 import serial
+import serial.tools.list_ports
 
 UART_PORT = os.environ.get("UART_PORT", "COM6")
 UART_BAUD_RATE = int(os.environ.get("UART_BAUD_RATE", "115200"))
 UART_TIMEOUT_SEC = int(os.environ.get("UART_TIMEOUT_SEC", "30"))
 EXPECTED_STRING = "RX72N secure boot program"
 POLL_INTERVAL = 1  # readline timeout per poll (seconds)
+
+
+def list_com_ports():
+    """利用可能な COM ポートを列挙"""
+    ports = serial.tools.list_ports.comports()
+    for p in sorted(ports, key=lambda x: x.device):
+        print(f"[DIAG]   {p.device}: {p.description} (VID:PID={p.vid}:{p.pid})")
+    return ports
 
 
 def run_flash(cmd):
@@ -56,6 +65,43 @@ def run_flash(cmd):
     return result.returncode
 
 
+def read_port(port_name, baud, timeout, results, expected):
+    """1つのポートからノンブロッキングで読み取り"""
+    try:
+        with serial.Serial(port_name, baud, timeout=0) as ser:
+            ser.reset_input_buffer()
+            results[port_name] = {"open": True, "lines": [], "raw_bytes": 0}
+            buf = b""
+            start = time.time()
+            while (time.time() - start) < timeout:
+                n = ser.in_waiting
+                if n > 0:
+                    chunk = ser.read(n)
+                    results[port_name]["raw_bytes"] += len(chunk)
+                    buf += chunk
+                    while b"\n" in buf:
+                        line_raw, buf = buf.split(b"\n", 1)
+                        decoded = line_raw.decode("utf-8", errors="replace").strip()
+                        if decoded:
+                            elapsed = time.time() - start
+                            results[port_name]["lines"].append(decoded)
+                            print(f"[RECV:{port_name}] '{decoded}' (t={elapsed:.1f}s)")
+                            if expected in decoded:
+                                results[port_name]["found"] = True
+                                return
+                else:
+                    time.sleep(0.05)  # 50ms ポーリング
+            # 残りバッファ
+            if buf:
+                decoded = buf.decode("utf-8", errors="replace").strip()
+                if decoded:
+                    results[port_name]["lines"].append(decoded)
+                    if expected in decoded:
+                        results[port_name]["found"] = True
+    except serial.SerialException as e:
+        results[port_name] = {"open": False, "error": str(e)}
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--flash-cmd", help="Flash command (rfp-cli)")
@@ -63,13 +109,27 @@ def main():
 
     print("=" * 60)
     print("[INFO] UART Boot Loader Flash + Test")
-    print(f"[INFO]   Port         : {UART_PORT}")
+    print(f"[INFO]   Primary port : {UART_PORT}")
     print(f"[INFO]   Baud         : {UART_BAUD_RATE}")
     print(f"[INFO]   Total timeout: {UART_TIMEOUT_SEC}s")
-    print(f"[INFO]   Poll interval: {POLL_INTERVAL}s")
     print(f"[INFO]   Expect       : '{EXPECTED_STRING}'")
     print(f"[INFO]   Flash        : {'yes' if args.flash_cmd else 'skip'}")
     print("=" * 60)
+
+    # 診断: 利用可能なポート一覧
+    print("[DIAG] Available COM ports:")
+    ports = list_com_ports()
+    if not ports:
+        print("[DIAG]   (none)")
+
+    # 読み取り対象ポート: 指定ポート + もう1つの候補 (COM7 or COM6)
+    alt_port = "COM7" if UART_PORT == "COM6" else "COM6"
+    read_ports = [UART_PORT]
+    # 代替ポートが存在する場合のみ追加
+    port_names = [p.device for p in ports]
+    if alt_port in port_names:
+        read_ports.append(alt_port)
+        print(f"[DIAG] Also monitoring {alt_port} for diagnostic purposes")
 
     flash_returncode = [0]
     flash_done = threading.Event()
@@ -79,85 +139,78 @@ def main():
             flash_returncode[0] = run_flash(args.flash_cmd)
         finally:
             flash_done.set()
+            print(f"[FLASH] Flash thread completed (t={time.time() - start_time:.1f}s)")
 
-    try:
-        # 短い polling interval で頻繁にチェック
-        with serial.Serial(UART_PORT, UART_BAUD_RATE, timeout=POLL_INTERVAL) as ser:
-            print(f"[INFO] Opened port: {UART_PORT}")
-            ser.reset_input_buffer()
+    # 全ポートを先に開く
+    results = {}
+    read_threads = []
+    start_time = time.time()
 
-            if args.flash_cmd:
-                flash_thread = threading.Thread(target=flash_worker)
-                flash_thread.start()
-                print("[INFO] Flash started in background, reading UART...")
-            else:
-                flash_done.set()
-                print("[INFO] No flash command, reading UART immediately...")
+    for port in read_ports:
+        t = threading.Thread(
+            target=read_port,
+            args=(port, UART_BAUD_RATE, UART_TIMEOUT_SEC, results, EXPECTED_STRING),
+        )
+        read_threads.append(t)
+        t.start()
+        print(f"[INFO] Listening on {port}...")
 
-            start_time = time.time()
-            line_count = 0
-            received_bytes = b""
+    time.sleep(0.5)  # ポートオープン完了を待つ
 
-            while (time.time() - start_time) < UART_TIMEOUT_SEC:
-                elapsed = time.time() - start_time
-                # バイト単位で読み取り（readline がタイムアウトで空を返す問題の回避）
-                chunk = ser.read(ser.in_waiting or 1)
+    # Flash 開始
+    if args.flash_cmd:
+        flash_thread = threading.Thread(target=flash_worker)
+        flash_thread.start()
+        print("[INFO] Flash started in background")
+    else:
+        flash_done.set()
 
-                if chunk:
-                    received_bytes += chunk
-                    # 改行で分割して処理
-                    while b"\n" in received_bytes:
-                        line_raw, received_bytes = received_bytes.split(b"\n", 1)
-                        decoded = line_raw.decode("utf-8", errors="replace").strip()
-                        if decoded:
-                            line_count += 1
-                            print(f"[RECV] {line_count}: '{decoded}' (t={elapsed:.1f}s)")
+    # 全読み取りスレッド完了を待つ
+    for t in read_threads:
+        t.join(timeout=UART_TIMEOUT_SEC + 10)
 
-                            if EXPECTED_STRING in decoded:
-                                print("-" * 60)
-                                print(f"[PASS] '{EXPECTED_STRING}' received at t={elapsed:.1f}s")
-                                print("-" * 60)
-                                if args.flash_cmd:
-                                    flash_thread.join(timeout=60)
-                                sys.exit(0)
-                else:
-                    # データなし — 状況を報告（5秒ごと）
-                    if int(elapsed) % 5 == 0 and int(elapsed) > 0:
-                        status = "flash running" if not flash_done.is_set() else "flash done, waiting for MCU"
-                        if int(elapsed * 10) % 50 == 0:
-                            print(f"[INFO] t={elapsed:.0f}s: {status}, in_waiting={ser.in_waiting}")
+    if args.flash_cmd:
+        flash_thread.join(timeout=60)
 
-            # 残りのバッファもチェック
-            if received_bytes:
-                decoded = received_bytes.decode("utf-8", errors="replace").strip()
-                if decoded:
-                    line_count += 1
-                    print(f"[RECV] {line_count}: '{decoded}' (final)")
-                    if EXPECTED_STRING in decoded:
-                        print("-" * 60)
-                        print(f"[PASS] '{EXPECTED_STRING}' received (final buffer)")
-                        print("-" * 60)
-                        if args.flash_cmd:
-                            flash_thread.join(timeout=60)
-                        sys.exit(0)
+    # 結果レポート
+    print()
+    print("=" * 60)
+    print("[RESULT] Port diagnostics:")
+    for port, info in sorted(results.items()):
+        if not info.get("open"):
+            print(f"  {port}: FAILED to open - {info.get('error', 'unknown')}")
+        else:
+            found = info.get("found", False)
+            print(f"  {port}: raw_bytes={info['raw_bytes']}, lines={len(info['lines'])}, found={found}")
+            for line in info["lines"]:
+                print(f"    > '{line}'")
+    print("=" * 60)
 
-            # タイムアウト
-            if args.flash_cmd:
-                flash_thread.join(timeout=60)
-                if flash_returncode[0] != 0:
-                    print(f"[ERROR] Flash command failed with exit code {flash_returncode[0]}")
-                    sys.exit(1)
-
-            print("-" * 60)
-            print(f"[FAIL] '{EXPECTED_STRING}' not found within {UART_TIMEOUT_SEC}s")
-            print(f"[FAIL] Total lines received: {line_count}")
-            print(f"[FAIL] Flash done: {flash_done.is_set()}")
-            print("-" * 60)
-            sys.exit(1)
-
-    except serial.SerialException as e:
-        print(f"[ERROR] Serial port error: {e}")
+    if args.flash_cmd and flash_returncode[0] != 0:
+        print(f"[ERROR] Flash command failed with exit code {flash_returncode[0]}")
         sys.exit(1)
+
+    # 判定: 指定ポートで見つかったか
+    primary = results.get(UART_PORT, {})
+    if primary.get("found"):
+        print("-" * 60)
+        print(f"[PASS] '{EXPECTED_STRING}' received on {UART_PORT}")
+        print("-" * 60)
+        sys.exit(0)
+
+    # 代替ポートで見つかった場合はヒント表示
+    alt = results.get(alt_port, {})
+    if alt.get("found"):
+        print("-" * 60)
+        print(f"[FAIL] '{EXPECTED_STRING}' NOT found on {UART_PORT}")
+        print(f"[HINT] But found on {alt_port}! Consider changing UART_PORT.")
+        print("-" * 60)
+        sys.exit(1)
+
+    print("-" * 60)
+    print(f"[FAIL] '{EXPECTED_STRING}' not found on any port within {UART_TIMEOUT_SEC}s")
+    print("-" * 60)
+    sys.exit(1)
 
 
 if __name__ == "__main__":
