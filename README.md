@@ -5,8 +5,9 @@ This repository is maintained by the original project owner ([@HirokiIshiguro](h
 
 本リポジトリは、ルネサスエレクトロニクス在籍時に本プロジェクトを立ち上げたオリジナルのプロジェクトオーナー ([@HirokiIshiguro](https://github.com/HirokiIshiguro)) が個人の OSS 活動として引き続きメンテナンスしています。開発メモは [CLAUDE.md](CLAUDE.md) を参照してください。
 
-- Upstream (GitHub): https://github.com/renesas/rx72n-envision-kit
-- Mirror (GitHub fork): https://github.com/HirokiIshiguro/rx72n-envision-kit
+- Upstream (GitHub @renesas): https://github.com/renesas/rx72n-envision-kit
+- Mirror-dst (GitHub fork @HirokiIshiguro): https://github.com/HirokiIshiguro/rx72n-envision-kit
+- Mirror-src: Workspace (GitLab @HirokiIshiguro self hosted): https://shelty2.servegame.com/oss/import/github/renesas/rx72n-envision-kit
 
 ## RX72N Envision Kit product page (User's Manual, Schematics, How to buy, etc)
 * en/ja: https://www.renesas.com/envision2
