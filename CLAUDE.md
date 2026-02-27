@@ -41,11 +41,13 @@ RX72N Envision Kit の全機能を試せるようにする。
 | Phase | Goal | Status |
 |-------|------|--------|
 | 1 | e2studio ヘッドレスビルド（3プロジェクト） | Done |
-| 2 | flash（rfp-cli）+ UART テスト自動化 | In progress (flash done, UART 実装準備中) |
+| 2 | flash（rfp-cli）+ UART テスト自動化 | In progress (flash + UART boot test done, UART download 検証中) |
 | 3 | FreeRTOS LTS 最新版適用（[iot-reference-rx](https://github.com/renesas/iot-reference-rx) 最新リリースタグ） | Planned |
 | 4 | AWS 接続を含む OTA テスト | Planned |
 | 5 | RX72N Envision Kit 複数台でのフリートプロビジョニング＋OTA 一斉実施の全自動テスト | Planned |
 | - | UART テストスクリプトの共通ライブラリ化（[mcu-test/uart](https://shelty2.servegame.com/oss/experiment/generic/scripts/python/mcu-test) へ切り出し、git submodule で各プロジェクトから参照） | Planned |
+| - | mot_to_rsu コンバータの共通部品化（git submodule で各プロジェクトから参照） | Planned |
+| - | UART ダウンロード高速化: COM7 (PMOD FTDI, 921600bps) への切替検討（要ファームウェア SCI ポート変更） | Planned |
 
 ### Build environment / ビルド環境
 
@@ -207,6 +209,25 @@ rfp-cli -device RX72x -tool "e2l:<serial>" -if fine -speed 500K \
 - `-run`: プログラム書き込み後に MCU を実行開始（BANKSEL を無視して書き込んだバンクから起動）
 
 ## Changelog / 変更履歴
+
+### 2026-02-28: CI/CD Phase 2 — UART test integration + mot→rsu converter + download step
+
+Extended flash stage with UART boot test, .mot→.rsu converter, and firmware download step. Python mot_to_rsu.py was created as CUI replacement for C# "Renesas Secure Flash Programmer" (which had a CUI bug: missing private key arg for sig-sha256-ecdsa Update mode, and requires VS to build).
+
+flash ステージに UART 起動テスト統合、.mot→.rsu Python コンバータ、ファームウェアダウンロードステップを追加。C# "Renesas Secure Flash Programmer" の CUI モードにバグ（Update モードで秘密鍵パスが未設定）があり、ビルドに VS が必要なため、Python で CUI を再実装。
+
+**Key changes / 主な変更:**
+- `flash_boot_loader` ジョブ: `test_boot_loader.py --flash-cmd --diag` で flash + UART 起動確認を一括実行
+- `test_scripts/mot_to_rsu/mot_to_rsu.py` — .mot→.rsu コンバータ（ECDSA P-256 署名対応）
+  - C# FormMain.cs をリバースエンジニアリングして .rsu フォーマットを完全再現
+  - 既存 `bin/updata/v202/userprog.rsu` の署名検証に成功（PASS）
+  - `--verify` モードで既存 .rsu ファイルの解析・検証が可能
+- `test_scripts/uart_test/test_uart_download.py` — UART バイナリダウンロード + 進捗モニタ
+- `download_aws_demos` ジョブ: aws_demos.mot → userprog.rsu 変換 → UART 送信 → boot_loader 経由で書き込み
+- Pipeline #161: flash_boot_loader PASS（COM6 で "RX72N secure boot program" 捕捉）
+- Pipeline #162: build PASS, flash_boot_loader FAIL（全ポート 0 bytes — VS インストーラ負荷が原因の可能性）
+
+**MR:** !9 (branch: `feature/cicd-flash-test`)
 
 ### 2026-02-27: CI/CD Phase 2 — flash boot_loader
 
