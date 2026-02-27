@@ -394,11 +394,17 @@ def build_rsu(code_flash_image, data_flash_image, mcu_spec, key_path, seq_no):
     # Data flash (const data, appended after code flash)
     # The boot loader reads this after code flash integrity check passes.
     # It transitions to BOOT_LOADER_STATE_INSTALL_DATA_FLASH_READ_WAIT
-    # and expects const_data_size bytes via UART.
-    const_data_size = const_data_bottom - const_data_top + 1
-    rsu += data_flash_image[:const_data_size]
+    # and calls const_data_block_read() which requires SCI buffer to be FULL.
+    # SCI buffer size = FLASH_CF_MEDIUM_BLOCK_SIZE = 32KB.
+    # User const data = 28KB (0x00100800-0x001077FF).
+    # Must pad to 32KB to fill SCI buffer and trigger buffer_full_flag.
+    FLASH_CF_MEDIUM_BLOCK_SIZE = 32768  # Must match boot_loader's SCI buffer size
+    const_data_size = const_data_bottom - const_data_top + 1  # 28KB
+    data_flash_block = bytearray(b'\xff' * FLASH_CF_MEDIUM_BLOCK_SIZE)  # 32KB, init 0xFF
+    data_flash_block[:const_data_size] = data_flash_image[:const_data_size]
+    rsu += data_flash_block
 
-    expected_size = RSU_HEADER_SIZE + RSU_DESCRIPTOR_SIZE + user_prog_size + const_data_size
+    expected_size = RSU_HEADER_SIZE + RSU_DESCRIPTOR_SIZE + user_prog_size + FLASH_CF_MEDIUM_BLOCK_SIZE
     assert len(rsu) == expected_size, \
         f"Total size mismatch: {len(rsu)} != {expected_size}"
 
