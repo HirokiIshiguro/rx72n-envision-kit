@@ -1,10 +1,20 @@
 stages:
   - build
+  - flash
+  - test
 
 variables:
   E2STUDIO: "C:\\Renesas\\e2_studio_2025_12\\eclipse\\e2studioc.exe"
   WORKSPACE: "C:\\workspace_rx72n"
   E2STUDIO_PROJECTS: "projects\\renesas\\rx72n_envision_kit\\e2studio"
+  # Renesas Flash Programmer CLI
+  RFP_CLI: "C:\\Program Files (x86)\\Renesas Electronics\\Programming Tools\\Renesas Flash Programmer V3.22\\rfp-cli.exe"
+  E2LITE_SERIAL: "OBE110008"
+  # UART テスト用（ボード上標準 USB シリアル変換チップ、ルネサス VID_045B）
+  # PMOD FTDI 拡張基板 (COM7) も利用可能だが、ファームウェアのデフォルト設定に合わせる
+  UART_PORT: "COM6"
+  UART_BAUD_RATE: "115200"
+  UART_TIMEOUT_SEC: "10"
   # Git サブモジュール初期化（coreSNTP 等の外部ライブラリ）
   GIT_SUBMODULE_STRATEGY: recursive
   # Windows 260文字パス長制限の回避
@@ -174,3 +184,30 @@ build:
       - projects/renesas/rx72n_envision_kit/e2studio/boot_loader/HardwareDebug/*.mot
       - projects/renesas/rx72n_envision_kit/e2studio/segger_emwin_demos/HardwareDebug/*.mot
     expire_in: 1 week
+
+flash_boot_loader:
+  stage: flash
+  tags:
+    - run_ishiguro_machine
+  needs: [build]
+  script:
+    - |
+      $mot = "$env:CI_PROJECT_DIR\$env:E2STUDIO_PROJECTS\boot_loader\HardwareDebug\rx72n_boot.mot"
+      if (-not (Test-Path $mot)) {
+        Write-Host "ERROR: $mot not found"
+        exit 1
+      }
+      Write-Host "Flashing boot_loader: $mot"
+      Write-Host "  Device: RX72x"
+      Write-Host "  Tool:   E2 Lite ($env:E2LITE_SERIAL)"
+      Write-Host "  I/F:    FINE"
+    - '& "$env:RFP_CLI" -device RX72x -tool "e2l:$env:E2LITE_SERIAL" -if fine -speed 500K -auth id FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF -auto "$env:CI_PROJECT_DIR\$env:E2STUDIO_PROJECTS\boot_loader\HardwareDebug\rx72n_boot.mot" -run -noquery'
+
+test_boot_loader:
+  stage: test
+  tags:
+    - run_ishiguro_machine
+  needs: [flash_boot_loader]
+  script:
+    - pip install -q -r test_scripts/uart_test/requirements.txt
+    - python test_scripts/uart_test/test_boot_loader.py
