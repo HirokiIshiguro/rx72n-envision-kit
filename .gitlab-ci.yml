@@ -23,19 +23,12 @@ build:
     # aws_demos リンクファイル解決ワークアラウンド:
     # aws_demos は AWS FreeRTOS のポーティング構造に従い、ソースファイルを
     # vendors/ 配下にリンクファイル（.project の linkedResources）で参照している。
-    # .cproject のインクルードパスは ${ProjDirPath}/../../../../../vendors/... という
-    # 長い相対パスを使うが、e2studio ヘッドレスビルドの Makefile 生成器がこれを
-    # 一部脱落させるため、ヘッダファイルが見つからずビルドが失敗する。
-    #
-    # 回避策（2段構え）:
-    # 1. プロジェクト内にジャンクションを作成し、リンクリソースを物理化
-    # 2. .cproject の長い相対パスを短いローカルパスに動的書き換え
-    # これにより .cproject をリポジトリ上で変更せずに CI でのみ修正できる。
+    # e2studio ヘッドレスビルドでは一部のリンクリソースが解決されないため、
+    # ジャンクションを作成してリンクリソースを物理化する。
     - |
       $awsProj    = "$env:CI_PROJECT_DIR\$env:E2STUDIO_PROJECTS\aws_demos"
       $vendorsAws = "$env:CI_PROJECT_DIR\vendors\renesas\boards\rx72n-envision-kit\aws_demos"
 
-      # --- Step 1: ジャンクション作成（リンクリソースの物理化）---
       # 前回の CI ランの残骸があれば安全に除去（ジャンクションは rmdir で除去しないと
       # ターゲットの中身まで消える）
       @("$awsProj\src\smc_gen", "$awsProj\application_code", "$awsProj\config_files") | ForEach-Object {
@@ -56,17 +49,6 @@ build:
       # config_files: FreeRTOS/AWS 設定ヘッダ群
       New-Item -ItemType Junction -Path "$awsProj\config_files" -Target "$vendorsAws\config_files" | Out-Null
       Write-Host "Junction: config_files -> vendors/.../config_files"
-
-      # --- Step 2: .cproject のインクルードパス短縮（CI 実行時のみ）---
-      # ${ProjDirPath}/../../../../../vendors/.../aws_demos/X → ${ProjDirPath}/X
-      # 例: .../aws_demos/src/smc_gen/r_bsp → ${ProjDirPath}/src/smc_gen/r_bsp
-      $cproject = Get-Content "$awsProj\.cproject" -Raw
-      $longPath = '${ProjDirPath}/../../../../../vendors/renesas/boards/rx72n-envision-kit/aws_demos/'
-      $shortPath = '${ProjDirPath}/'
-      $count = ([regex]::Matches($cproject, [regex]::Escape($longPath))).Count
-      $cproject = $cproject.Replace($longPath, $shortPath)
-      Set-Content "$awsProj\.cproject" $cproject -NoNewline
-      Write-Host "Rewrote .cproject: replaced $count occurrences of long vendor path with short local path"
     # ビルド実行（インポート + cleanBuild）
     # e2studio ヘッドレスビルドの Makefile 生成器は深いディレクトリの mkdir ルールを
     # 生成しないことがあるため、ビルド失敗時にディレクトリを補完してリトライする。
@@ -76,15 +58,19 @@ build:
       $imports = @("-import", "$env:CI_PROJECT_DIR\$env:E2STUDIO_PROJECTS\aws_demos", "-import", "$env:CI_PROJECT_DIR\$env:E2STUDIO_PROJECTS\boot_loader", "-import", "$env:CI_PROJECT_DIR\$env:E2STUDIO_PROJECTS\segger_emwin_demos")
 
       Write-Host "=== Pass 1: Import + cleanBuild all ==="
-      Write-Host "(e2studio output redirected to e2studio_build.log to avoid 4MB job log limit)"
-      & "$env:E2STUDIO" @e2base @imports -cleanBuild all 2>&1 | Out-File -FilePath $logFile -Encoding utf8
-      $e2exit = $LASTEXITCODE
+      Write-Host "(e2studio output saved to e2studio_build.log artifact)"
+      # Start-Process で e2studio を実行（PowerShell パイプライン経由せずネイティブリダイレクト）
+      $e2args = ($e2base + $imports + @("-cleanBuild", "all")) -join " "
+      $proc = Start-Process -FilePath "$env:E2STUDIO" -ArgumentList $e2args -RedirectStandardOutput $logFile -RedirectStandardError "$logFile.err" -Wait -PassThru -NoNewWindow
+      $e2exit = $proc.ExitCode
+      # stderr があればログに結合
+      if (Test-Path "$logFile.err") { Get-Content "$logFile.err" | Add-Content $logFile }
       Write-Host "e2studio exit code: $e2exit"
-      # ビルドログからエラー行のみ抽出して表示
-      $errors = Select-String -Path $logFile -Pattern '(\berror\b|^E[0-9]{4}|^F[0-9]{4}|SubCommand\.tmp|\.mot)' -ErrorAction SilentlyContinue
+      # ビルドログからエラー・警告の要約を表示
+      $errors = Select-String -Path $logFile -Pattern '((\berror\b.*:)|^E[0-9]{4}|^F[0-9]{4}|SubCommand\.tmp.*No such|\.mot)' -ErrorAction SilentlyContinue
       if ($errors) {
         Write-Host "--- Build log errors/key lines ($(($errors).Count) matches) ---"
-        $errors | Select-Object -First 30 | ForEach-Object { Write-Host "  $($_.LineNumber): $($_.Line)" }
+        $errors | Select-Object -First 30 | ForEach-Object { Write-Host "  $($_.LineNumber): $($_.Line.Substring(0, [Math]::Min($_.Line.Length, 200)))" }
       }
 
       # .mot ファイルを検索（ワークスペース側 → ソースディレクトリ側の順にフォールバック）
@@ -124,14 +110,17 @@ build:
         Write-Host "Created $created missing directories"
 
         Write-Host "=== Pass 2: Rebuild aws_demos ==="
-        & "$env:E2STUDIO" @e2base -build "aws_demos/HardwareDebug" 2>&1 | Out-File -FilePath "$logFile.pass2" -Encoding utf8
-        Write-Host "e2studio exit code (retry): $LASTEXITCODE"
+        $logPass2 = "$logFile.pass2"
+        $e2args2 = ($e2base + @("-build", "aws_demos/HardwareDebug")) -join " "
+        $proc2 = Start-Process -FilePath "$env:E2STUDIO" -ArgumentList $e2args2 -RedirectStandardOutput $logPass2 -RedirectStandardError "$logPass2.err" -Wait -PassThru -NoNewWindow
+        Write-Host "e2studio exit code (retry): $($proc2.ExitCode)"
         # Pass 2 ログを結合
-        Get-Content "$logFile.pass2" | Add-Content $logFile
-        $errors2 = Select-String -Path "$logFile.pass2" -Pattern '(\berror\b|^E[0-9]{4}|^F[0-9]{4}|SubCommand\.tmp|\.mot)' -ErrorAction SilentlyContinue
+        if (Test-Path "$logPass2.err") { Get-Content "$logPass2.err" | Add-Content $logPass2 }
+        Get-Content $logPass2 | Add-Content $logFile
+        $errors2 = Select-String -Path $logPass2 -Pattern '((\berror\b.*:)|^E[0-9]{4}|^F[0-9]{4}|SubCommand\.tmp.*No such|\.mot)' -ErrorAction SilentlyContinue
         if ($errors2) {
           Write-Host "--- Pass 2 errors/key lines ---"
-          $errors2 | Select-Object -First 20 | ForEach-Object { Write-Host "  $($_.LineNumber): $($_.Line)" }
+          $errors2 | Select-Object -First 20 | ForEach-Object { Write-Host "  $($_.LineNumber): $($_.Line.Substring(0, [Math]::Min($_.Line.Length, 200)))" }
         }
 
         $mot_aws = Get-ChildItem "$env:WORKSPACE\aws_demos\HardwareDebug\*.mot" -ErrorAction SilentlyContinue
