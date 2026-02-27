@@ -13,7 +13,7 @@ variables:
   # PMOD FTDI 拡張基板 (COM7) も利用可能だが、ファームウェアのデフォルト設定に合わせる
   UART_PORT: "COM6"
   UART_BAUD_RATE: "115200"
-  UART_TIMEOUT_SEC: "10"
+  UART_TIMEOUT_SEC: "30"
   # Git サブモジュール初期化（coreSNTP 等の外部ライブラリ）
   GIT_SUBMODULE_STRATEGY: recursive
   # Windows 260文字パス長制限の回避
