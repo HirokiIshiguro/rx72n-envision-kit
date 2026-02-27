@@ -161,23 +161,8 @@ build:
       Write-Host ""
       Write-Host "All 3 .mot files generated successfully!"
 
-      # .mot ファイルをソースディレクトリにコピー（artifacts 収集用）
-      $projDir = "$env:CI_PROJECT_DIR\$env:E2STUDIO_PROJECTS"
-      @("aws_demos", "boot_loader", "segger_emwin_demos") | ForEach-Object {
-        $destDir = "$projDir\$_\HardwareDebug"
-        if (-not (Test-Path $destDir)) { New-Item -ItemType Directory -Path $destDir -Force | Out-Null }
-      }
-      if ($mot_aws.DirectoryName -ne "$projDir\aws_demos\HardwareDebug") {
-        Copy-Item $mot_aws.FullName "$projDir\aws_demos\HardwareDebug\" -Force
-      }
-      if ($mot_boot.DirectoryName -ne "$projDir\boot_loader\HardwareDebug") {
-        Copy-Item $mot_boot.FullName "$projDir\boot_loader\HardwareDebug\" -Force
-      }
-      if ($mot_emwin.DirectoryName -ne "$projDir\segger_emwin_demos\HardwareDebug") {
-        Copy-Item $mot_emwin.FullName "$projDir\segger_emwin_demos\HardwareDebug\" -Force
-      }
-
-      Write-Host "Build artifacts:"
+      # .mot ファイルの場所を表示（C:\rx72n-src ジャンクション経由 = CI_PROJECT_DIR と同一物理パス）
+      Write-Host "Build artifacts (via junction = CI_PROJECT_DIR):"
       Write-Host "  aws_demos:          $($mot_aws.FullName)"
       Write-Host "  boot_loader:        $($mot_boot.FullName)"
       Write-Host "  segger_emwin_demos: $($mot_emwin.FullName)"
