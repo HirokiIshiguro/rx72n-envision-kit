@@ -84,11 +84,23 @@ def run_flash(cmd):
     return result.returncode
 
 
-def read_port(port_name, baud, timeout, results, expected):
-    """ノンブロッキングで1ポートを読み取り"""
+def read_port(port_name, baud, timeout, results, expected, flush=False):
+    """ノンブロッキングで1ポートを読み取り
+
+    Args:
+        flush: True の場合、開始時にバッファをクリアする。
+               False の場合、既にバッファにあるデータも読み取る。
+               flash 後の読み取りでは False にして、boot_loader の出力を
+               USB シリアルドライバのバッファから取得する。
+    """
     try:
         with serial.Serial(port_name, baud, timeout=0) as ser:
-            ser.reset_input_buffer()
+            if flush:
+                ser.reset_input_buffer()
+            # 開始時点でバッファにあるバイト数を記録（診断用）
+            initial_waiting = ser.in_waiting
+            if initial_waiting > 0:
+                print(f"[DIAG:{port_name}] {initial_waiting} bytes already in buffer")
             results[port_name] = {"open": True, "lines": [], "raw_bytes": 0}
             buf = b""
             start = time.time()
