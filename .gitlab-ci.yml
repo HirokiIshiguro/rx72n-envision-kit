@@ -27,9 +27,37 @@ build:
       & "$env:E2STUDIO" --launcher.suppressErrors -nosplash -application org.eclipse.cdt.managedbuilder.core.headlessbuild -data "$env:WORKSPACE" -import "$env:CI_PROJECT_DIR\$env:E2STUDIO_PROJECTS\aws_demos" -import "$env:CI_PROJECT_DIR\$env:E2STUDIO_PROJECTS\boot_loader" -import "$env:CI_PROJECT_DIR\$env:E2STUDIO_PROJECTS\segger_emwin_demos" -cleanBuild all
       $e2exit = $LASTEXITCODE
       Write-Host "e2studio exit code: $e2exit"
-      $mot_aws     = Get-ChildItem "$env:CI_PROJECT_DIR\$env:E2STUDIO_PROJECTS\aws_demos\HardwareDebug\*.mot" -ErrorAction SilentlyContinue
-      $mot_boot    = Get-ChildItem "$env:CI_PROJECT_DIR\$env:E2STUDIO_PROJECTS\boot_loader\HardwareDebug\*.mot" -ErrorAction SilentlyContinue
-      $mot_emwin   = Get-ChildItem "$env:CI_PROJECT_DIR\$env:E2STUDIO_PROJECTS\segger_emwin_demos\HardwareDebug\*.mot" -ErrorAction SilentlyContinue
+
+      # 診断: ワークスペースとソースディレクトリの両方を確認
+      Write-Host "--- Diagnostic: searching for .mot files ---"
+      Write-Host "WORKSPACE: $env:WORKSPACE"
+      Write-Host "CI_PROJECT_DIR: $env:CI_PROJECT_DIR"
+      $allMots = Get-ChildItem "$env:WORKSPACE\*.mot" -Recurse -ErrorAction SilentlyContinue
+      if ($allMots) {
+        Write-Host "Found .mot files in WORKSPACE:"
+        $allMots | ForEach-Object { Write-Host "  $($_.FullName)" }
+      } else {
+        Write-Host "No .mot files found in WORKSPACE"
+      }
+      $srcMots = Get-ChildItem "$env:CI_PROJECT_DIR\$env:E2STUDIO_PROJECTS\*.mot" -Recurse -ErrorAction SilentlyContinue
+      if ($srcMots) {
+        Write-Host "Found .mot files in source dir:"
+        $srcMots | ForEach-Object { Write-Host "  $($_.FullName)" }
+      } else {
+        Write-Host "No .mot files found in source dir"
+      }
+      Write-Host "--- End diagnostic ---"
+
+      # .mot ファイルを検索（ワークスペース側 → ソースディレクトリ側の順にフォールバック）
+      # boot_loader のワークスペース名は rx72n_boot（.cproject の buildPath による）
+      $mot_aws   = Get-ChildItem "$env:WORKSPACE\aws_demos\HardwareDebug\*.mot" -ErrorAction SilentlyContinue
+      if (-not $mot_aws) { $mot_aws = Get-ChildItem "$env:CI_PROJECT_DIR\$env:E2STUDIO_PROJECTS\aws_demos\HardwareDebug\*.mot" -ErrorAction SilentlyContinue }
+      $mot_boot  = Get-ChildItem "$env:WORKSPACE\rx72n_boot\HardwareDebug\*.mot" -ErrorAction SilentlyContinue
+      if (-not $mot_boot) { $mot_boot = Get-ChildItem "$env:WORKSPACE\rx72n_boot_loader\HardwareDebug\*.mot" -ErrorAction SilentlyContinue }
+      if (-not $mot_boot) { $mot_boot = Get-ChildItem "$env:CI_PROJECT_DIR\$env:E2STUDIO_PROJECTS\boot_loader\HardwareDebug\*.mot" -ErrorAction SilentlyContinue }
+      $mot_emwin = Get-ChildItem "$env:WORKSPACE\segger_emwin_demos\HardwareDebug\*.mot" -ErrorAction SilentlyContinue
+      if (-not $mot_emwin) { $mot_emwin = Get-ChildItem "$env:CI_PROJECT_DIR\$env:E2STUDIO_PROJECTS\segger_emwin_demos\HardwareDebug\*.mot" -ErrorAction SilentlyContinue }
+
       $missing = @()
       if (-not $mot_aws)   { $missing += "aws_demos" }
       if (-not $mot_boot)  { $missing += "boot_loader" }
@@ -38,14 +66,32 @@ build:
         Write-Host "ERROR: .mot file not found for: $($missing -join ', ')"
         exit 1
       }
+
       if ($e2exit -ne 0) {
         Write-Host "NOTE: e2studio returned exit code $e2exit but all .mot files were generated."
         Write-Host "This is a known issue: e2studio headless build may return non-zero even on successful builds (e.g. when warnings exist)."
       }
+
+      # .mot ファイルをソースディレクトリにコピー（artifacts 収集用）
+      $projDir = "$env:CI_PROJECT_DIR\$env:E2STUDIO_PROJECTS"
+      @("aws_demos", "boot_loader", "segger_emwin_demos") | ForEach-Object {
+        $destDir = "$projDir\$_\HardwareDebug"
+        if (-not (Test-Path $destDir)) { New-Item -ItemType Directory -Path $destDir -Force | Out-Null }
+      }
+      if ($mot_aws.DirectoryName -ne "$projDir\aws_demos\HardwareDebug") {
+        Copy-Item $mot_aws.FullName "$projDir\aws_demos\HardwareDebug\" -Force
+      }
+      if ($mot_boot.DirectoryName -ne "$projDir\boot_loader\HardwareDebug") {
+        Copy-Item $mot_boot.FullName "$projDir\boot_loader\HardwareDebug\" -Force
+      }
+      if ($mot_emwin.DirectoryName -ne "$projDir\segger_emwin_demos\HardwareDebug") {
+        Copy-Item $mot_emwin.FullName "$projDir\segger_emwin_demos\HardwareDebug\" -Force
+      }
+
       Write-Host "Build artifacts:"
-      Write-Host "  aws_demos:          $($mot_aws.Name)"
-      Write-Host "  boot_loader:        $($mot_boot.Name)"
-      Write-Host "  segger_emwin_demos: $($mot_emwin.Name)"
+      Write-Host "  aws_demos:          $($mot_aws.FullName)"
+      Write-Host "  boot_loader:        $($mot_boot.FullName)"
+      Write-Host "  segger_emwin_demos: $($mot_emwin.FullName)"
   artifacts:
     paths:
       - projects/renesas/rx72n_envision_kit/e2studio/aws_demos/HardwareDebug/*.mot
