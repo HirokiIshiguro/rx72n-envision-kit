@@ -45,6 +45,7 @@ RX72N Envision Kit の全機能を試せるようにする。
 | 3 | FreeRTOS LTS 最新版適用（[iot-reference-rx](https://github.com/renesas/iot-reference-rx) 最新リリースタグ） | Planned |
 | 4 | AWS 接続を含む OTA テスト | Planned |
 | 5 | RX72N Envision Kit 複数台でのフリートプロビジョニング＋OTA 一斉実施の全自動テスト | Planned |
+| - | UART テストスクリプトの共通ライブラリ化（[mcu-test/uart](https://shelty2.servegame.com/oss/experiment/generic/scripts/python/mcu-test) へ切り出し、git submodule で各プロジェクトから参照） | Planned |
 
 ### Build environment / ビルド環境
 
