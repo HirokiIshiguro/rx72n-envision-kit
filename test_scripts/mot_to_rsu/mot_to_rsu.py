@@ -307,12 +307,16 @@ def build_rsu(code_flash_image, data_flash_image, mcu_spec, key_path, seq_no):
         0x214-0x2FF  Reserved             zero         (236 bytes)
         --- Application Binary ---
         0x300-...    Code flash image     binary       (N bytes)
+        --- Data Flash (const data) ---
+        ...          Data flash image     binary       (M bytes)
 
-    For Update mode, data flash is NOT appended (only Initial mode).
+    Data flash (const data) is appended after code flash.
+    The boot loader reads code flash first, performs integrity check,
+    then reads data flash from UART (BOOT_LOADER_STATE_INSTALL_DATA_FLASH_READ_WAIT).
 
     Args:
         code_flash_image: bytearray of code flash data
-        data_flash_image: bytearray of data flash data (unused for Update)
+        data_flash_image: bytearray of data flash data (user const data area)
         mcu_spec: MCU address map dictionary
         key_path: Path to EC private key PEM file
         seq_no: Sequence number (1-4294967295)
@@ -387,9 +391,14 @@ def build_rsu(code_flash_image, data_flash_image, mcu_spec, key_path, seq_no):
     # Application binary (code flash, user_prog_size bytes)
     rsu += code_flash_image[:user_prog_size]
 
-    # Note: Update mode does NOT append data flash (only Initial mode does)
+    # Data flash (const data, appended after code flash)
+    # The boot loader reads this after code flash integrity check passes.
+    # It transitions to BOOT_LOADER_STATE_INSTALL_DATA_FLASH_READ_WAIT
+    # and expects const_data_size bytes via UART.
+    const_data_size = const_data_bottom - const_data_top + 1
+    rsu += data_flash_image[:const_data_size]
 
-    expected_size = RSU_HEADER_SIZE + RSU_DESCRIPTOR_SIZE + user_prog_size
+    expected_size = RSU_HEADER_SIZE + RSU_DESCRIPTOR_SIZE + user_prog_size + const_data_size
     assert len(rsu) == expected_size, \
         f"Total size mismatch: {len(rsu)} != {expected_size}"
 
@@ -470,12 +479,12 @@ def verify_rsu(rsu_path, key_path, mcu_spec, diag=False):
 
     if diag:
         user_prog_size = end_addr - start_addr + 1
+        const_data_size = df_end - df_start + 1 if df_flag else 0
         print(f"\n--- Diagnostics ---")
-        print(f"  Expected user prog size: {user_prog_size:,} bytes")
-        print(f"  Actual payload size:     {payload_size:,} bytes")
-        if payload_size > user_prog_size:
-            extra = payload_size - user_prog_size
-            print(f"  Extra data (data flash?): {extra:,} bytes")
+        print(f"  Expected user prog size:  {user_prog_size:,} bytes")
+        print(f"  Expected data flash size: {const_data_size:,} bytes")
+        print(f"  Expected total payload:   {user_prog_size + const_data_size:,} bytes")
+        print(f"  Actual payload size:      {payload_size:,} bytes")
         print(f"  Signature hex: {signature.hex()}")
 
     # Verify signature
