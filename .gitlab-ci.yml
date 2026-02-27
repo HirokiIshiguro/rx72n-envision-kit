@@ -20,6 +20,21 @@ build:
   script:
     # ワークスペースを毎回クリア（キャッシュによるビルドスキップを防ぐ）
     - if (Test-Path "$env:WORKSPACE") { Remove-Item -Recurse -Force "$env:WORKSPACE" }
+    # Windows 260文字パス長制限ワークアラウンド:
+    # e2studio の CDT managed build は ${ProjDirPath}/../../../../../vendors/... パターンで
+    # インクルードパスを生成する。GitLab Runner のチェックアウトパスが長い場合（約80文字）、
+    # ${ProjDirPath}（約137文字）+ /../../../../../ + vendors/.../ + header.h が
+    # 260文字を超えて CC-RX が F0520005 (Cannot open source file) になる。
+    # 解決策: CI_PROJECT_DIR への短いジャンクションを作成し、そこからプロジェクトをインポート。
+    # これにより ${ProjDirPath} が約65文字に短縮される。
+    - |
+      $shortRoot = "C:\rx72n-src"
+      if (Test-Path $shortRoot) { cmd /c "rmdir `"$shortRoot`"" 2>$null }
+      New-Item -ItemType Junction -Path $shortRoot -Target "$env:CI_PROJECT_DIR" | Out-Null
+      Write-Host "Junction: $shortRoot -> $env:CI_PROJECT_DIR"
+      Write-Host "  CI_PROJECT_DIR length: $($env:CI_PROJECT_DIR.Length) chars"
+      Write-Host "  Short root length:     $($shortRoot.Length) chars"
+      Write-Host "  Saved:                 $($env:CI_PROJECT_DIR.Length - $shortRoot.Length) chars"
     # aws_demos リンクファイル解決ワークアラウンド:
     # aws_demos は AWS FreeRTOS のポーティング構造に従い、ソースファイルを
     # vendors/ 配下にリンクファイル（.project の linkedResources）で参照している。
@@ -50,32 +65,26 @@ build:
       New-Item -ItemType Junction -Path "$awsProj\config_files" -Target "$vendorsAws\config_files" | Out-Null
       Write-Host "Junction: config_files -> vendors/.../config_files"
     # ビルド実行（インポート + cleanBuild）
-    # e2studio ヘッドレスビルドの Makefile 生成器は深いディレクトリの mkdir ルールを
-    # 生成しないことがあるため、ビルド失敗時にディレクトリを補完してリトライする。
+    # 短いジャンクションパスからインポートすることで ${ProjDirPath} を短縮
     - |
+      $shortRoot = "C:\rx72n-src"
+      $shortProj = "$shortRoot\$env:E2STUDIO_PROJECTS"
       $logFile = "$env:CI_PROJECT_DIR\e2studio_build.log"
       $e2base = @("--launcher.suppressErrors", "-nosplash", "-application", "org.eclipse.cdt.managedbuilder.core.headlessbuild", "-data", "$env:WORKSPACE")
-      $imports = @("-import", "$env:CI_PROJECT_DIR\$env:E2STUDIO_PROJECTS\aws_demos", "-import", "$env:CI_PROJECT_DIR\$env:E2STUDIO_PROJECTS\boot_loader", "-import", "$env:CI_PROJECT_DIR\$env:E2STUDIO_PROJECTS\segger_emwin_demos")
+      $imports = @("-import", "$shortProj\aws_demos", "-import", "$shortProj\boot_loader", "-import", "$shortProj\segger_emwin_demos")
 
-      Write-Host "=== Pass 1: Import + cleanBuild all ==="
+      Write-Host "=== Import + cleanBuild all ==="
+      Write-Host "Import paths (short junction):"
+      Write-Host "  aws_demos:          $shortProj\aws_demos"
+      Write-Host "  boot_loader:        $shortProj\boot_loader"
+      Write-Host "  segger_emwin_demos: $shortProj\segger_emwin_demos"
       Write-Host "(e2studio output saved to e2studio_build.log artifact)"
-      # Tee-Object でファイルに保存しつつ Out-Null で job log への出力を抑制
-      # （Tee-Object 経由は pipeline #127 で動作確認済み。Out-Null で 4MB 制限回避）
+      # Tee-Object でファイルに保存しつつ Out-Null で job log への出力を抑制（4MB 制限回避）
       & "$env:E2STUDIO" @e2base @imports -cleanBuild all 2>&1 | Tee-Object -FilePath $logFile | Out-Null
       $e2exit = $LASTEXITCODE
       Write-Host "e2studio exit code: $e2exit"
       $logSize = (Get-Item $logFile -ErrorAction SilentlyContinue).Length
       Write-Host "Build log size: $([Math]::Round($logSize / 1MB, 2)) MB"
-
-      # 診断: ワークスペースのプロジェクト一覧
-      Write-Host "--- Workspace projects ---"
-      Get-ChildItem "$env:WORKSPACE" -Directory -ErrorAction SilentlyContinue | ForEach-Object {
-        $hd = "$($_.FullName)\HardwareDebug"
-        $hdExists = Test-Path $hd
-        $motCount = if ($hdExists) { (Get-ChildItem "$hd\*.mot" -ErrorAction SilentlyContinue).Count } else { 0 }
-        $objCount = if ($hdExists) { (Get-ChildItem $hd -Recurse -Filter "*.obj" -ErrorAction SilentlyContinue).Count } else { 0 }
-        Write-Host "  $($_.Name): HardwareDebug=$hdExists, .mot=$motCount, .obj=$objCount"
-      }
 
       # 診断: ビルドログの末尾30行
       Write-Host "--- Build log tail ---"
@@ -109,145 +118,16 @@ build:
         $makeStatus | ForEach-Object { Write-Host "  $($_.LineNumber): $($_.Line.Substring(0, [Math]::Min($_.Line.Length, 250)))" }
       }
 
-      # .mot ファイルを検索（ワークスペース側 → ソースディレクトリ側の順にフォールバック）
-      # boot_loader のワークスペース名は rx72n_boot（.cproject の buildPath による）
-      $mot_aws   = Get-ChildItem "$env:WORKSPACE\aws_demos\HardwareDebug\*.mot" -ErrorAction SilentlyContinue
+      # .mot ファイルを検索
+      # ビルド出力先はジャンクション経由のソースディレクトリ（ワークスペースには .metadata のみ）
+      $mot_aws   = Get-ChildItem "$shortProj\aws_demos\HardwareDebug\*.mot" -ErrorAction SilentlyContinue
       if (-not $mot_aws) { $mot_aws = Get-ChildItem "$env:CI_PROJECT_DIR\$env:E2STUDIO_PROJECTS\aws_demos\HardwareDebug\*.mot" -ErrorAction SilentlyContinue }
-      $mot_boot  = Get-ChildItem "$env:WORKSPACE\rx72n_boot\HardwareDebug\*.mot" -ErrorAction SilentlyContinue
-      if (-not $mot_boot) { $mot_boot = Get-ChildItem "$env:WORKSPACE\rx72n_boot_loader\HardwareDebug\*.mot" -ErrorAction SilentlyContinue }
+      $mot_boot  = Get-ChildItem "$env:WORKSPACE\rx72n_boot_loader\HardwareDebug\*.mot" -ErrorAction SilentlyContinue
+      if (-not $mot_boot) { $mot_boot = Get-ChildItem "$shortProj\boot_loader\HardwareDebug\*.mot" -ErrorAction SilentlyContinue }
       if (-not $mot_boot) { $mot_boot = Get-ChildItem "$env:CI_PROJECT_DIR\$env:E2STUDIO_PROJECTS\boot_loader\HardwareDebug\*.mot" -ErrorAction SilentlyContinue }
       $mot_emwin = Get-ChildItem "$env:WORKSPACE\segger_emwin_demos\HardwareDebug\*.mot" -ErrorAction SilentlyContinue
+      if (-not $mot_emwin) { $mot_emwin = Get-ChildItem "$shortProj\segger_emwin_demos\HardwareDebug\*.mot" -ErrorAction SilentlyContinue }
       if (-not $mot_emwin) { $mot_emwin = Get-ChildItem "$env:CI_PROJECT_DIR\$env:E2STUDIO_PROJECTS\segger_emwin_demos\HardwareDebug\*.mot" -ErrorAction SilentlyContinue }
-
-      # aws_demos のビルド失敗時: SubCommand.tmp の内容とインクルードパスを診断
-      if (-not $mot_aws) {
-        Write-Host ""
-        Write-Host "=== aws_demos .mot not found - diagnosing compiler options ==="
-        $awsHD = "$env:CI_PROJECT_DIR\$env:E2STUDIO_PROJECTS\aws_demos\HardwareDebug"
-
-        # 失敗した2ファイルの SubCommand.tmp を表示
-        @("libraries\3rdparty\tracealyzer_recorder\streamports\AFR_WIFI_LOCAL\trcStreamingPort",
-          "src\smc_gen\r_flash_spi\src\dev_port\using_iodefine\r_flash_spi_dev_port") | ForEach-Object {
-          $subCmd = Get-ChildItem "$awsHD\$_*SubCommand.tmp" -ErrorAction SilentlyContinue | Select-Object -First 1
-          if ($subCmd) {
-            Write-Host ""
-            Write-Host "--- SubCommand.tmp: $($subCmd.Name) ---"
-            # インクルードパスのみ抽出
-            $content = Get-Content $subCmd.FullName -Raw
-            Write-Host "  File size: $($subCmd.Length) bytes"
-            $includeLines = $content -split "`n" | Where-Object { $_ -match '-include=' -or $_ -match '-I ' }
-            if ($includeLines) {
-              Write-Host "  Include paths ($($includeLines.Count)):"
-              $includeLines | ForEach-Object { Write-Host "    $_" }
-            } else {
-              # -include= が見つからない場合はファイル全体の先頭を表示
-              Write-Host "  Content (first 2000 chars):"
-              Write-Host "  $($content.Substring(0, [Math]::Min($content.Length, 2000)))"
-            }
-          } else {
-            Write-Host "--- SubCommand.tmp NOT FOUND for: $_ ---"
-            # ディレクトリの中身を表示
-            $dir = Split-Path "$awsHD\$_" -Parent
-            if (Test-Path $dir) {
-              Write-Host "  Directory contents:"
-              Get-ChildItem $dir -ErrorAction SilentlyContinue | ForEach-Object { Write-Host "    $($_.Name) ($($_.Length) bytes)" }
-            }
-          }
-        }
-
-        # 失敗対象のヘッダファイルの存在確認
-        Write-Host ""
-        Write-Host "--- Header file existence check ---"
-        $vendorsAws = "$env:CI_PROJECT_DIR\vendors\renesas\boards\rx72n-envision-kit\aws_demos"
-        $awsProj = "$env:CI_PROJECT_DIR\$env:E2STUDIO_PROJECTS\aws_demos"
-        @("$vendorsAws\application_code\renesas_code\rx72n_envision_kit_system.h",
-          "$awsProj\application_code\renesas_code\rx72n_envision_kit_system.h",
-          "$vendorsAws\src\smc_gen\r_flash_spi\src\r_flash_spi_private.h",
-          "$awsProj\src\smc_gen\r_flash_spi\src\r_flash_spi_private.h") | ForEach-Object {
-          Write-Host "  $(if (Test-Path $_) { 'EXISTS' } else { 'MISSING' }): $_"
-        }
-
-        # SubCommand.tmp のパス長診断
-        Write-Host ""
-        Write-Host "--- Include path length analysis ---"
-        $allSubCmds = Get-ChildItem $awsHD -Recurse -Filter "*SubCommand.tmp" -ErrorAction SilentlyContinue
-        Write-Host "  Total SubCommand.tmp files: $($allSubCmds.Count)"
-        $maxPathLen = 0
-        $longPaths = @()
-        $allSubCmds | Select-Object -First 3 | ForEach-Object {
-          $content = Get-Content $_.FullName -Raw
-          $content -split "`n" | Where-Object { $_ -match '-include=' } | ForEach-Object {
-            $p = $_ -replace '^.*-include="?([^"]*)"?.*$', '$1'
-            if ($p.Length -gt $maxPathLen) { $maxPathLen = $p.Length }
-            if ($p.Length -gt 240) { $longPaths += "$($p.Length): $($p.Substring(0, [Math]::Min($p.Length, 200)))..." }
-          }
-        }
-        Write-Host "  Longest include path: $maxPathLen chars"
-        if ($longPaths) {
-          Write-Host "  Paths > 240 chars:"
-          $longPaths | Select-Object -First 10 | ForEach-Object { Write-Host "    $_" }
-        }
-
-        # SubCommand.tmp のパス長問題を修正: ../../../../../ を解決
-        # e2studio は ${ProjDirPath}/../../../../../ パターンで長いパスを生成する。
-        # CC-RX は未解決の ../ を含むパスが 260 文字を超えるとファイルを開けない。
-        # projects/renesas/rx72n_envision_kit/e2studio/aws_demos/../../../../../ → (repo root)
-        Write-Host ""
-        Write-Host "=== Fixing SubCommand.tmp paths (resolving ../../..) ==="
-        $projRelFwd = "projects/renesas/rx72n_envision_kit/e2studio/aws_demos/../../../../../"
-        $projRelBwd = "projects\renesas\rx72n_envision_kit\e2studio\aws_demos\..\..\..\..\..\\"
-        $fixedCount = 0
-        Get-ChildItem $awsHD -Recurse -Filter "*SubCommand.tmp" -ErrorAction SilentlyContinue | ForEach-Object {
-          $content = Get-Content $_.FullName -Raw
-          $newContent = $content.Replace($projRelFwd, "")
-          $newContent = $newContent.Replace($projRelBwd, "")
-          if ($newContent -ne $content) {
-            Set-Content $_.FullName $newContent -NoNewline
-            $fixedCount++
-          }
-        }
-        Write-Host "  Fixed $fixedCount SubCommand.tmp files"
-
-        # 修正後のパス長を確認
-        if ($fixedCount -gt 0) {
-          $maxAfter = 0
-          Get-ChildItem $awsHD -Recurse -Filter "*SubCommand.tmp" -ErrorAction SilentlyContinue | Select-Object -First 1 | ForEach-Object {
-            $content = Get-Content $_.FullName -Raw
-            $content -split "`n" | Where-Object { $_ -match '-include=' } | ForEach-Object {
-              $p = $_ -replace '^.*-include="?([^"]*)"?.*$', '$1'
-              if ($p.Length -gt $maxAfter) { $maxAfter = $p.Length }
-            }
-          }
-          Write-Host "  Longest include path after fix: $maxAfter chars"
-        }
-
-        Write-Host ""
-        Write-Host "=== Pass 2: Rebuild aws_demos ==="
-        $logPass2 = "$logFile.pass2"
-        & "$env:E2STUDIO" @e2base -build "aws_demos/HardwareDebug" 2>&1 | Tee-Object -FilePath $logPass2 | Out-Null
-        Write-Host "e2studio exit code (retry): $LASTEXITCODE"
-        # Pass 2 ログを結合
-        Get-Content $logPass2 | Add-Content $logFile
-        # Pass 2: make レシピエラーのコンテキスト
-        $recipeErrors2 = Select-String -Path $logPass2 -Pattern '\*\*\* \[' -Context 15,2 -ErrorAction SilentlyContinue
-        if ($recipeErrors2) {
-          Write-Host "--- Pass 2 compilation errors with context ---"
-          $recipeErrors2 | Select-Object -First 5 | ForEach-Object {
-            Write-Host ""
-            $_.Context.PreContext | ForEach-Object { Write-Host "  > $_".Substring(0, [Math]::Min($_.Length + 4, 250)) }
-            Write-Host "  >>> $($_.Line.Substring(0, [Math]::Min($_.Line.Length, 250)))"
-            $_.Context.PostContext | ForEach-Object { Write-Host "  > $_".Substring(0, [Math]::Min($_.Length + 4, 250)) }
-          }
-        }
-        # Pass 2: CC-RX エラー
-        $ccrxErrors2 = Select-String -Path $logPass2 -Pattern '^[EFW]\d{4}' -ErrorAction SilentlyContinue
-        if ($ccrxErrors2) {
-          Write-Host "--- Pass 2 CC-RX errors ---"
-          $ccrxErrors2 | Select-Object -First 20 | ForEach-Object { Write-Host "  $($_.LineNumber): $($_.Line.Substring(0, [Math]::Min($_.Line.Length, 250)))" }
-        }
-
-        $mot_aws = Get-ChildItem "$env:CI_PROJECT_DIR\$env:E2STUDIO_PROJECTS\aws_demos\HardwareDebug\*.mot" -ErrorAction SilentlyContinue
-      }
 
       # 診断: 見つかった .mot ファイルの一覧
       Write-Host ""
