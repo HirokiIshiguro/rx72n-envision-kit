@@ -20,20 +20,53 @@ build:
   script:
     # ワークスペースを毎回クリア（キャッシュによるビルドスキップを防ぐ）
     - if (Test-Path "$env:WORKSPACE") { Remove-Item -Recurse -Force "$env:WORKSPACE" }
-    # aws_demos の r_config ワークアラウンド:
-    # aws_demos は smc_gen を vendors/ 配下に持つ特殊構造（AWS FreeRTOS の構成管理に起因）。
-    # e2studio ヘッドレスビルドのMakefile生成器が vendors/ への長い相対パスの一部を
-    # include path から脱落させるため、r_bsp_config.h が見つからずビルドが失敗する。
-    # 回避策: プロジェクト内に smc_gen/r_config のジャンクションを作成する。
+    # aws_demos リンクファイル解決ワークアラウンド:
+    # aws_demos は AWS FreeRTOS のポーティング構造に従い、ソースファイルを
+    # vendors/ 配下にリンクファイル（.project の linkedResources）で参照している。
+    # .cproject のインクルードパスは ${ProjDirPath}/../../../../../vendors/... という
+    # 長い相対パスを使うが、e2studio ヘッドレスビルドの Makefile 生成器がこれを
+    # 一部脱落させるため、ヘッダファイルが見つからずビルドが失敗する。
+    #
+    # 回避策（2段構え）:
+    # 1. プロジェクト内にジャンクションを作成し、リンクリソースを物理化
+    # 2. .cproject の長い相対パスを短いローカルパスに動的書き換え
+    # これにより .cproject をリポジトリ上で変更せずに CI でのみ修正できる。
     - |
-      $awsProj = "$env:CI_PROJECT_DIR\$env:E2STUDIO_PROJECTS\aws_demos"
-      $smcSrc  = "$env:CI_PROJECT_DIR\vendors\renesas\boards\rx72n-envision-kit\aws_demos\src\smc_gen\r_config"
-      $smcDst  = "$awsProj\src\smc_gen\r_config"
-      if (-not (Test-Path $smcDst)) {
-        New-Item -ItemType Directory -Path "$awsProj\src\smc_gen" -Force | Out-Null
-        New-Item -ItemType Junction -Path $smcDst -Target $smcSrc | Out-Null
-        Write-Host "Created junction: $smcDst -> $smcSrc"
+      $awsProj    = "$env:CI_PROJECT_DIR\$env:E2STUDIO_PROJECTS\aws_demos"
+      $vendorsAws = "$env:CI_PROJECT_DIR\vendors\renesas\boards\rx72n-envision-kit\aws_demos"
+
+      # --- Step 1: ジャンクション作成（リンクリソースの物理化）---
+      # 前回の CI ランの残骸があれば安全に除去（ジャンクションは rmdir で除去しないと
+      # ターゲットの中身まで消える）
+      @("$awsProj\src\smc_gen", "$awsProj\application_code", "$awsProj\config_files") | ForEach-Object {
+        if (Test-Path $_) { cmd /c "rmdir `"$_`"" 2>$null; Remove-Item $_ -Recurse -Force -ErrorAction SilentlyContinue }
       }
+
+      # src/smc_gen: Smart Configurator 生成コード（r_bsp, r_config, r_dmaca_rx, etc.）
+      New-Item -ItemType Junction -Path "$awsProj\src\smc_gen" -Target "$vendorsAws\src\smc_gen" | Out-Null
+      Write-Host "Junction: src/smc_gen -> vendors/.../src/smc_gen"
+
+      # application_code: renesas_code, aws_code, main.c（.project の linkedResources）
+      New-Item -ItemType Directory -Path "$awsProj\application_code" -Force | Out-Null
+      New-Item -ItemType Junction -Path "$awsProj\application_code\renesas_code" -Target "$vendorsAws\application_code\renesas_code" | Out-Null
+      New-Item -ItemType Junction -Path "$awsProj\application_code\aws_code" -Target "$vendorsAws\application_code\aws_code" | Out-Null
+      Copy-Item "$vendorsAws\application_code\main.c" "$awsProj\application_code\main.c"
+      Write-Host "Junction: application_code/renesas_code, aws_code -> vendors/..."
+
+      # config_files: FreeRTOS/AWS 設定ヘッダ群
+      New-Item -ItemType Junction -Path "$awsProj\config_files" -Target "$vendorsAws\config_files" | Out-Null
+      Write-Host "Junction: config_files -> vendors/.../config_files"
+
+      # --- Step 2: .cproject のインクルードパス短縮（CI 実行時のみ）---
+      # ${ProjDirPath}/../../../../../vendors/.../aws_demos/X → ${ProjDirPath}/X
+      # 例: .../aws_demos/src/smc_gen/r_bsp → ${ProjDirPath}/src/smc_gen/r_bsp
+      $cproject = Get-Content "$awsProj\.cproject" -Raw
+      $longPath = '${ProjDirPath}/../../../../../vendors/renesas/boards/rx72n-envision-kit/aws_demos/'
+      $shortPath = '${ProjDirPath}/'
+      $count = ([regex]::Matches($cproject, [regex]::Escape($longPath))).Count
+      $cproject = $cproject.Replace($longPath, $shortPath)
+      Set-Content "$awsProj\.cproject" $cproject -NoNewline
+      Write-Host "Rewrote .cproject: replaced $count occurrences of long vendor path with short local path"
     # 3プロジェクトをまとめてインポート＆ビルド
     # e2studio の出力をログファイルに保存（GitLab ジョブログは truncate されるため）
     - |
