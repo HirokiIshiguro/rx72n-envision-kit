@@ -119,15 +119,56 @@ build:
       $mot_emwin = Get-ChildItem "$env:WORKSPACE\segger_emwin_demos\HardwareDebug\*.mot" -ErrorAction SilentlyContinue
       if (-not $mot_emwin) { $mot_emwin = Get-ChildItem "$env:CI_PROJECT_DIR\$env:E2STUDIO_PROJECTS\segger_emwin_demos\HardwareDebug\*.mot" -ErrorAction SilentlyContinue }
 
-      # aws_demos のビルド失敗時: 不足ディレクトリを補完してリトライ
-      # e2studio の Makefile 生成器はリンクリソースの深いパスに対して mkdir ルールを
-      # 生成しないことがあり、SubCommand.tmp の書き込みに失敗する。
-      # ビルド出力はワークスペースではなくソースディレクトリの HardwareDebug/ に生成される。
+      # aws_demos のビルド失敗時: SubCommand.tmp の内容とインクルードパスを診断
       if (-not $mot_aws) {
         Write-Host ""
-        Write-Host "=== aws_demos .mot not found - fixing output directories and retrying ==="
-        # ビルド出力はソースディレクトリに生成される（ワークスペースは .metadata のみ）
+        Write-Host "=== aws_demos .mot not found - diagnosing compiler options ==="
         $awsHD = "$env:CI_PROJECT_DIR\$env:E2STUDIO_PROJECTS\aws_demos\HardwareDebug"
+
+        # 失敗した2ファイルの SubCommand.tmp を表示
+        @("libraries\3rdparty\tracealyzer_recorder\streamports\AFR_WIFI_LOCAL\trcStreamingPort",
+          "src\smc_gen\r_flash_spi\src\dev_port\using_iodefine\r_flash_spi_dev_port") | ForEach-Object {
+          $subCmd = Get-ChildItem "$awsHD\$_*SubCommand.tmp" -ErrorAction SilentlyContinue | Select-Object -First 1
+          if ($subCmd) {
+            Write-Host ""
+            Write-Host "--- SubCommand.tmp: $($subCmd.Name) ---"
+            # インクルードパスのみ抽出
+            $content = Get-Content $subCmd.FullName -Raw
+            Write-Host "  File size: $($subCmd.Length) bytes"
+            $includeLines = $content -split "`n" | Where-Object { $_ -match '-include=' -or $_ -match '-I ' }
+            if ($includeLines) {
+              Write-Host "  Include paths ($($includeLines.Count)):"
+              $includeLines | ForEach-Object { Write-Host "    $_" }
+            } else {
+              # -include= が見つからない場合はファイル全体の先頭を表示
+              Write-Host "  Content (first 2000 chars):"
+              Write-Host "  $($content.Substring(0, [Math]::Min($content.Length, 2000)))"
+            }
+          } else {
+            Write-Host "--- SubCommand.tmp NOT FOUND for: $_ ---"
+            # ディレクトリの中身を表示
+            $dir = Split-Path "$awsHD\$_" -Parent
+            if (Test-Path $dir) {
+              Write-Host "  Directory contents:"
+              Get-ChildItem $dir -ErrorAction SilentlyContinue | ForEach-Object { Write-Host "    $($_.Name) ($($_.Length) bytes)" }
+            }
+          }
+        }
+
+        # 失敗対象のヘッダファイルの存在確認
+        Write-Host ""
+        Write-Host "--- Header file existence check ---"
+        $vendorsAws = "$env:CI_PROJECT_DIR\vendors\renesas\boards\rx72n-envision-kit\aws_demos"
+        $awsProj = "$env:CI_PROJECT_DIR\$env:E2STUDIO_PROJECTS\aws_demos"
+        @("$vendorsAws\application_code\renesas_code\rx72n_envision_kit_system.h",
+          "$awsProj\application_code\renesas_code\rx72n_envision_kit_system.h",
+          "$vendorsAws\src\smc_gen\r_flash_spi\src\r_flash_spi_private.h",
+          "$awsProj\src\smc_gen\r_flash_spi\src\r_flash_spi_private.h") | ForEach-Object {
+          Write-Host "  $(if (Test-Path $_) { 'EXISTS' } else { 'MISSING' }): $_"
+        }
+
+        Write-Host ""
+        Write-Host "=== Retrying build ==="
         Write-Host "Scanning: $awsHD"
         $created = 0
         if (Test-Path $awsHD) {
