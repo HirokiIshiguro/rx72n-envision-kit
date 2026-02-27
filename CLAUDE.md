@@ -21,9 +21,9 @@ RX72N Envision Kit の全機能を試せるようにする。
 
 | # | Objective | Status |
 |---|---|---|
-| 1 | Documentation cleanup: migrate Wiki to `docs/` | In progress |
+| 1 | Documentation cleanup: migrate Wiki to `docs/` | Done |
 | 2 | Set up Claude-assisted development environment | In progress |
-| 3 | Set up CI/CD pipeline | In progress |
+| 3 | Set up CI/CD pipeline | In progress (Phase 1 done) |
 | 4 | Replace FreeRTOS with latest Renesas IoT reference implementation ([iot-reference-rx](https://github.com/renesas/iot-reference-rx)) | Planned |
 
 ## Repository Locations / リポジトリ
@@ -40,7 +40,7 @@ RX72N Envision Kit の全機能を試せるようにする。
 
 | Phase | Goal | Status |
 |-------|------|--------|
-| 1 | e2studio ヘッドレスビルド（3プロジェクト） | In progress |
+| 1 | e2studio ヘッドレスビルド（3プロジェクト） | Done |
 | 2 | flash（rfp-cli）+ UART テスト自動化 | Planned |
 | 3 | FreeRTOS LTS 最新版適用（[iot-reference-rx](https://github.com/renesas/iot-reference-rx) 最新リリースタグ） | Planned |
 | 4 | AWS 接続を含む OTA テスト | Planned |
@@ -63,17 +63,89 @@ RX72N Envision Kit の全機能を試せるようにする。
 
 ### Design decisions / 設計判断
 
-**パス長対策:**
-プロジェクトの e2studio ソースが `projects/renesas/rx72n_envision_kit/e2studio/` 配下にあり、
-GitLab Runner のデフォルトチェックアウトパスと合わせると Windows 260文字制限に近づく。
-`GIT_CLONE_PATH` で短いチェックアウトパスを指定し、加えて `core.longpaths=true` と
-Windows レジストリ `LongPathsEnabled=1` で長いパスを許可する。
+**パス長対策（NTFS ジャンクション方式）:**
+e2studio の CDT managed build は `.cproject` 内のインクルードパスを `${ProjDirPath}/../../../../../vendors/...` パターンで生成する。
+GitLab Runner のチェックアウトパス（約80文字）+ `${ProjDirPath}`（約137文字）+ 相対パス + ヘッダファイル名を合計すると
+260文字を超え、CC-RX が `F0520005 (Cannot open source file)` エラーを出す。
+
+解決策: `CI_PROJECT_DIR` への短い NTFS ジャンクション `C:\rx72n-src` を作成し、
+そこからプロジェクトをインポートすることで `${ProjDirPath}` を約65文字に短縮（68文字の削減）。
+
+**aws_demos リンクリソースのジャンクション化:**
+aws_demos は AWS FreeRTOS のポーティング構造に従い、`.project` の `linkedResources`（type=2）で
+`vendors/` 配下のソースファイルを参照している。e2studio ヘッドレスビルドでは一部のリンクリソースが
+解決されないため、以下のジャンクションを作成してリンクリソースを物理化:
+- `src/smc_gen/r_config` → インクルードパス解決のみ（`src/smc_gen` 全体をジャンクション化すると二重コンパイルで `E0562300 Duplicate symbol` になる）
+- `application_code/{renesas_code,aws_code,smc_gen}` → ソースファイル参照
+- `config_files` → FreeRTOS/AWS 設定ヘッダ群
+
+**Git サブモジュール:**
+`libraries/coreSNTP` は Git サブモジュールのため、`GIT_SUBMODULE_STRATEGY: recursive` が必要。
 
 **ビルド方式:**
 hello_world_with_claude_on_cicd と同じ e2studio ヘッドレスビルドパターンを採用。
 3プロジェクトを1回の e2studio 起動でまとめてインポート＆ビルドする。
+ビルドログは 15MB+ になるため、`Tee-Object | Out-Null` でファイルに保存しつつ
+job log への出力を抑制（GitLab の 4MB ジョブログ制限を回避）。
+
+### Phase 1 troubleshooting log / Phase 1 トラブルシューティング記録
+
+Phase 1 完了まで約20回のパイプライン実行を要した。以下は主要な問題と解決策の記録（Zenn 記事素材）。
+
+**1. CC-RX コンパイラバージョン不一致（パイプライン #129）**
+- 症状: `E0562005: Specified option "lang=cpp" is not valid`（boot_loader, segger_emwin_demos）
+- 原因: `.cproject` に記載のツールチェーン v3.04.00/v3.01.00 が Runner マシンの v3.07.00 と不一致
+- 対策: `.cproject` のツールチェーンバージョンを v3.07.00 に統一
+- 備考: 元のバージョン (v3.04) でCLIビルドが通るかは今後検証予定（当時ベトナムチームが GitLab CI/CD で動かしていた実績あり）
+
+**2. CC-RX F0520005: Cannot open source file（パイプライン #136-138）**
+- 症状: `trcStreamingPort.c(137):F0520005:Could not open source file "rx72n_envision_kit_system.h"`
+- 原因: SubCommand.tmp 内のインクルードパスが最長251文字 → ヘッダファイル名を加えると281文字 > 260 MAX_PATH
+- 試行錯誤: SubCommand.tmp のパスを sed 的に置換する案 → make がコンパイル時に毎回再生成するため無効
+- **解決策: NTFS ジャンクション `C:\rx72n-src` → `$CI_PROJECT_DIR` で68文字を削減**
+
+**3. Git サブモジュール未初期化（パイプライン #139）**
+- 症状: `No rule to make target 'C:/rx72n-src/libraries/coreSNTP/source/core_sntp_client.c'`
+- 原因: `libraries/coreSNTP` が Git サブモジュールで、初期化されていなかった
+- 解決策: `GIT_SUBMODULE_STRATEGY: recursive` を `.gitlab-ci.yml` の variables に追加
+
+**4. Duplicate symbol（パイプライン #140）**
+- 症状: `E0562300: Duplicate symbol "_d2_getframebuffer"` in `application_code/smc_gen/r_drw2d_rx/...`
+- 原因: `src/smc_gen` 全体をジャンクション化 → `.project` の `application_code/smc_gen` リンクリソースと同じ物理ディレクトリを指すため、CDT が同じソースを2回コンパイル
+- 解決策: `src/smc_gen` 全体ではなく `src/smc_gen/r_config` のみジャンクション化（インクルードパス解決のみ）
+
+**5. r_bsp_config.h が見つからない（パイプライン #141）**
+- 症状: `Could not open source file "r_bsp_config.h"`（6ターゲット失敗）
+- 原因: `src/smc_gen` ジャンクションを除去したことで `${workspace_loc:/${ProjName}/src/smc_gen/r_config}` インクルードパスが解決不能に
+- 解決策: `src/smc_gen/r_config` のみをジャンクション化する「ターゲット型ジャンクション戦略」
+
+**6. Stale Makefile / HardwareDebug キャッシュ（パイプライン #131 等）**
+- 症状: `make: *** No rule to make target 'clean'. Stop.`
+- 原因: 前回ビルドの HardwareDebug ディレクトリに残った Makefile が現在のソース構造と不整合
+- 解決策: ビルド前に各プロジェクトの `HardwareDebug/` ディレクトリを削除（`-cleanBuild` に変更）
+
+**7. ジャンクション経由のコピーエラー（パイプライン #142）**
+- 症状: e2studio exit code 0（ビルド成功）だがジョブ失敗
+- 原因: `C:\rx72n-src\...\aws_demos.mot` と `$CI_PROJECT_DIR\...\aws_demos.mot` がジャンクション経由で同一物理パス → Copy-Item が失敗
+- 解決策: 不要なコピー処理を削除。ビルド出力はソースディレクトリ直下の `HardwareDebug/` に生成されるため、artifacts パスで直接指定
+
+**最終結果: パイプライン #143 で全3プロジェクトのビルド成功（.mot ファイル生成確認済み）**
 
 ## Changelog / 変更履歴
+
+### 2026-02-27: CI/CD Phase 1 — e2studio headless build
+
+Set up GitLab CI/CD pipeline for headless build of all 3 e2studio projects (aws_demos, boot_loader, segger_emwin_demos). Approximately 20 pipeline iterations were needed to resolve path length issues, linked resource resolution, and build configuration problems.
+
+e2studio ヘッドレスビルドによる CI/CD パイプライン Phase 1 を構築。3プロジェクト（aws_demos, boot_loader, segger_emwin_demos）全てのビルドに成功。パス長問題・リンクリソース解決・ビルド設定の問題解決に約20回のパイプライン実行を要した。
+
+**Key changes / 主な変更:**
+- `.gitlab-ci.yml` 新規作成（build ステージ）
+- `.cproject` ツールチェーンバージョンを v3.07.00 に統一（aws_demos, boot_loader, segger_emwin_demos）
+- NTFS ジャンクション戦略で Windows 260文字パス長制限を回避
+- aws_demos のリンクリソースをジャンクションで物理化
+
+**MR:** !7 (branch: `feature/cicd-build-stage`)
 
 ### 2026-02-27: Wiki migration to docs/
 
@@ -203,3 +275,4 @@ Python スクリプト（約330行）で以下を自動処理:
 | !1 | Initial wiki migration (58 pages + 117 images) | ~180 files |
 | !2 | Fix GitHub account name, add project goals to CLAUDE.md | 2 files |
 | !3 | Fix broken relative links (33 files), CLAUDE.md status update | 33 files |
+| !7 | CI/CD Phase 1: e2studio headless build pipeline | .gitlab-ci.yml + 3 .cproject + CLAUDE.md |
