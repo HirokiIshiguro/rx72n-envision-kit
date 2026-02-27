@@ -67,13 +67,17 @@ build:
       $cproject = $cproject.Replace($longPath, $shortPath)
       Set-Content "$awsProj\.cproject" $cproject -NoNewline
       Write-Host "Rewrote .cproject: replaced $count occurrences of long vendor path with short local path"
-    # 3プロジェクトをまとめてインポート＆ビルド
-    # e2studio の出力をログファイルに保存（GitLab ジョブログは truncate されるため）
+    # ビルド実行（インポート + cleanBuild）
+    # e2studio ヘッドレスビルドの Makefile 生成器は深いディレクトリの mkdir ルールを
+    # 生成しないことがあるため、ビルド失敗時にディレクトリを補完してリトライする。
     - |
       $logFile = "$env:CI_PROJECT_DIR\e2studio_build.log"
-      & "$env:E2STUDIO" --launcher.suppressErrors -nosplash -application org.eclipse.cdt.managedbuilder.core.headlessbuild -data "$env:WORKSPACE" -import "$env:CI_PROJECT_DIR\$env:E2STUDIO_PROJECTS\aws_demos" -import "$env:CI_PROJECT_DIR\$env:E2STUDIO_PROJECTS\boot_loader" -import "$env:CI_PROJECT_DIR\$env:E2STUDIO_PROJECTS\segger_emwin_demos" -cleanBuild all 2>&1 | Tee-Object -FilePath $logFile
-      $e2exit = $LASTEXITCODE
-      Write-Host "e2studio exit code: $e2exit"
+      $e2base = @("--launcher.suppressErrors", "-nosplash", "-application", "org.eclipse.cdt.managedbuilder.core.headlessbuild", "-data", "$env:WORKSPACE")
+      $imports = @("-import", "$env:CI_PROJECT_DIR\$env:E2STUDIO_PROJECTS\aws_demos", "-import", "$env:CI_PROJECT_DIR\$env:E2STUDIO_PROJECTS\boot_loader", "-import", "$env:CI_PROJECT_DIR\$env:E2STUDIO_PROJECTS\segger_emwin_demos")
+
+      Write-Host "=== Pass 1: Import + cleanBuild all ==="
+      & "$env:E2STUDIO" @e2base @imports -cleanBuild all 2>&1 | Tee-Object -FilePath $logFile
+      Write-Host "e2studio exit code: $LASTEXITCODE"
 
       # .mot ファイルを検索（ワークスペース側 → ソースディレクトリ側の順にフォールバック）
       # boot_loader のワークスペース名は rx72n_boot（.cproject の buildPath による）
@@ -85,7 +89,42 @@ build:
       $mot_emwin = Get-ChildItem "$env:WORKSPACE\segger_emwin_demos\HardwareDebug\*.mot" -ErrorAction SilentlyContinue
       if (-not $mot_emwin) { $mot_emwin = Get-ChildItem "$env:CI_PROJECT_DIR\$env:E2STUDIO_PROJECTS\segger_emwin_demos\HardwareDebug\*.mot" -ErrorAction SilentlyContinue }
 
+      # aws_demos のビルド失敗時: 不足ディレクトリを補完してリトライ
+      # e2studio の Makefile 生成器はリンクリソースの深いパスに対して mkdir ルールを
+      # 生成しないことがあり、SubCommand.tmp の書き込みに失敗する。
+      # Pass 1 で生成された subdir.mk 内の .obj パスを解析し、対応するディレクトリを作成する。
+      if (-not $mot_aws) {
+        Write-Host ""
+        Write-Host "=== aws_demos .mot not found - fixing output directories and retrying ==="
+        $awsHD = "$env:WORKSPACE\aws_demos\HardwareDebug"
+        $created = 0
+        if (Test-Path $awsHD) {
+          Get-ChildItem $awsHD -Recurse -Filter "subdir.mk" -ErrorAction SilentlyContinue | ForEach-Object {
+            $mkContent = Get-Content $_.FullName -Raw
+            # subdir.mk 内の .obj パスからディレクトリを抽出して作成
+            [regex]::Matches($mkContent, '(\S+)\.obj') | ForEach-Object {
+              $objRel = $_.Groups[1].Value + ".obj"
+              $objDir = Split-Path "$awsHD\$objRel" -Parent
+              if ($objDir -and -not (Test-Path $objDir)) {
+                New-Item -ItemType Directory -Path $objDir -Force | Out-Null
+                Write-Host "  Created: $objDir"
+                $created++
+              }
+            }
+          }
+        }
+        Write-Host "Created $created missing directories"
+
+        Write-Host "=== Pass 2: Rebuild aws_demos ==="
+        & "$env:E2STUDIO" @e2base -build "aws_demos/HardwareDebug" 2>&1 | Tee-Object -FilePath $logFile -Append
+        Write-Host "e2studio exit code (retry): $LASTEXITCODE"
+
+        $mot_aws = Get-ChildItem "$env:WORKSPACE\aws_demos\HardwareDebug\*.mot" -ErrorAction SilentlyContinue
+        if (-not $mot_aws) { $mot_aws = Get-ChildItem "$env:CI_PROJECT_DIR\$env:E2STUDIO_PROJECTS\aws_demos\HardwareDebug\*.mot" -ErrorAction SilentlyContinue }
+      }
+
       # 診断: 見つかった .mot ファイルの一覧
+      Write-Host ""
       Write-Host "--- .mot search results ---"
       Write-Host "  aws_demos:          $(if ($mot_aws) { $mot_aws.FullName } else { 'NOT FOUND' })"
       Write-Host "  boot_loader:        $(if ($mot_boot) { $mot_boot.FullName } else { 'NOT FOUND' })"
@@ -101,10 +140,8 @@ build:
         exit 1
       }
 
-      if ($e2exit -ne 0) {
-        Write-Host "NOTE: e2studio returned exit code $e2exit but all .mot files were generated."
-        Write-Host "This is a known issue: e2studio headless build may return non-zero even on successful builds (e.g. when warnings exist)."
-      }
+      Write-Host ""
+      Write-Host "All 3 .mot files generated successfully!"
 
       # .mot ファイルをソースディレクトリにコピー（artifacts 収集用）
       $projDir = "$env:CI_PROJECT_DIR\$env:E2STUDIO_PROJECTS"
