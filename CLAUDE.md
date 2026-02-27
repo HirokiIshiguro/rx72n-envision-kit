@@ -164,7 +164,8 @@ Phase 2 では boot_loader の flash 書き込み（rfp-cli）と UART 起動確
   - パワーオンリセット → BANKSEL に従い bank 1 から起動 → 空 → 動作しない
   - UART テストは rfp-cli -run 後に MCU がリセットされた状態で実行されるため、起動直後の1回限りの printf を捕捉できない
 - **暫定対策: flash 書き込み成功（rfp-cli exit code = 0）のみで検証**
-- **今後の対策: RX72N ハードウェアマニュアルで BANKSEL の動作を確認し、起動バンクを bank 0 に設定する方法を調査**
+- **HW マニュアル調査結果:** BANKSEL レジスタ (FE7F 5D20h) の BANKSWP[2:0] で起動バンクを選択。`111b` = バンク0 から起動、`000b` = バンク1 から起動。ブランク品は `FFFF_FFFFh` (=`111b`)。OFSM は物理的にバンク0 に紐づいていると推測される（[r_flash_type4.c](https://github.com/renesas/rx-driver-package/blob/b5227bc4601e83c0464bcdf1ef4104accb7fad51/source/r_flash_rx/r_flash_rx_vx.xx/r_flash_rx/src/flash_type_4/r_flash_type4.c#L507) 参照）
+- **今後の対策: rfp-cli でコンフィギュレーションクリア → BANKSEL を `111b` に戻してから書き込む方法を検討**
 
 **5. COM ポートの排他制御 — 人間と CI の共存問題**
 - 症状: CI パイプラインと TeraTerm が同じ COM ポートを取り合う可能性
