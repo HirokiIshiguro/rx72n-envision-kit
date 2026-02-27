@@ -41,7 +41,7 @@ RX72N Envision Kit の全機能を試せるようにする。
 | Phase | Goal | Status |
 |-------|------|--------|
 | 1 | e2studio ヘッドレスビルド（3プロジェクト） | Done |
-| 2 | flash（rfp-cli）+ UART テスト自動化 | In progress (flash done, UART blocked by BANKSEL) |
+| 2 | flash（rfp-cli）+ UART テスト自動化 | In progress (flash done, UART 実装準備中) |
 | 3 | FreeRTOS LTS 最新版適用（[iot-reference-rx](https://github.com/renesas/iot-reference-rx) 最新リリースタグ） | Planned |
 | 4 | AWS 接続を含む OTA テスト | Planned |
 | 5 | RX72N Envision Kit 複数台でのフリートプロビジョニング＋OTA 一斉実施の全自動テスト | Planned |
@@ -151,21 +151,30 @@ Phase 2 では boot_loader の flash 書き込み（rfp-cli）と UART 起動確
 - 分析: タイミング問題ではなく、根本的にデータが来ていない
 - 対策: COM6（オンボード RL78/G1C）と COM7（PMOD FTDI）を同時監視する診断モード追加
 
-**4. 全ポートで受信なし — デュアルバンク問題の発見（パイプライン #153）**
+**4. 全ポートで受信なし — パワーオンリセット問題の発見（パイプライン #153）**
 - 症状: COM6 (VID=1115/Renesas), COM7 (VID=1027/FTDI) いずれも raw_bytes=0
 - 手動検証:
-  - LCD には "RX72N secure boot program" が表示される（rfp-cli -run による実行時）
+  - rfp-cli `-run` → LCD に "RX72N secure boot program" 表示 + COM6 で UART 出力受信成功
   - E2 Lite USB ケーブル抜去 → パワーオンリセット → LCD 真っ黒、boot_loader 起動せず
-  - TeraTerm で全ポート監視しても応答なし
-- **根本原因: RX72N デュアルバンクフラッシュ（BANKSEL）**
-  - boot_loader はデュアルバンク構成を使用（`rx72n_boot_loader.c` line 398: `FLASH_CMD_BANK_GET`）
-  - 起動バンクが bank 1 のとき、rfp-cli は bank 0 に書き込む
-  - rfp-cli `-run` → bank 0 から直接実行 → LCD に表示される（動作する）
-  - パワーオンリセット → BANKSEL に従い bank 1 から起動 → 空 → 動作しない
-  - UART テストは rfp-cli -run 後に MCU がリセットされた状態で実行されるため、起動直後の1回限りの printf を捕捉できない
-- **暫定対策: flash 書き込み成功（rfp-cli exit code = 0）のみで検証**
-- **HW マニュアル調査結果:** BANKSEL レジスタ (FE7F 5D20h) の BANKSWP[2:0] で起動バンクを選択。`111b` = バンク0 から起動、`000b` = バンク1 から起動。ブランク品は `FFFF_FFFFh` (=`111b`)。OFSM は物理的にバンク0 に紐づいていると推測される（[r_flash_type4.c](https://github.com/renesas/rx-driver-package/blob/b5227bc4601e83c0464bcdf1ef4104accb7fad51/source/r_flash_rx/r_flash_rx_vx.xx/r_flash_rx/src/flash_type_4/r_flash_type4.c#L507) 参照）
-- **今後の対策: rfp-cli でコンフィギュレーションクリア → BANKSEL を `111b` に戻してから書き込む方法を検討**
+- **初期仮説（否定済み）: BANKSEL（デュアルバンク起動バンク選択）の問題**
+  - rfp-cli `-rv` で OFSM 読み出し → BANKSEL = `FFFFFFFF` (BANKSWP=`111b` = バンク0 から起動) → 正常
+  - MDE = `FFFFFF8F` → リトルエンディアン + デュアルモード → 正常
+  - リセットベクタ (FFFFFFFC) = `FFFC443E` → boot_loader コード領域内 → 正常
+  - **BANKSEL は原因ではないと確定**
+- **根本原因: オンボード E2 Lite (RL78/G1C) によるリセットホールド**
+  - E2 Lite 別冊マニュアル (R20UT0399JJ): 「デバッグ終了後にエミュレータを取り外してマイコン単体で動作させることは保証しておりません」「E2 Lite が接続されていない状態での最終評価を必ず実施してください」
+  - RX72N Envision Kit はオンボード E2 Lite (RL78/G1C = U9) を搭載。E2 Lite USB (CN8) 給電時は RL78/G1C がパワーオンリセット時に RX72N の RES# をホールドすると推定
+  - rfp-cli `-run` → E2 Lite 経由でリセット解除＋実行開始 → **動作する**
+  - パワーオンリセット（USB 抜き差し）→ E2 Lite がリセットホールド → **動作しない**
+  - **回路図確認:** CN7 (DC ジャック, 5V センタープラス) による E2 Lite USB 非依存の給電経路あり
+- **対策:** CI/CD では rfp-cli `-run` で書き込み＋実行開始し、直後に UART 出力を捕捉する
+- **未検証:** CN7 (AC アダプタ) 給電でのパワーオンリセット起動（5V アダプタ調達後に検証予定）
+
+**BANKSEL / デュアルバンク HW マニュアル調査結果:**
+- BANKSEL レジスタ (FE7F 5D20h): BANKSWP[2:0] で起動バンクを選択。`111b` = バンク0 から起動、`000b` = バンク1 から起動。ブランク品は `FFFF_FFFFh` (=`111b`)
+- MDE レジスタ (FE7F 5D00h): BANKMD[6:4] でバンクモード選択。`000b` = デュアル、`111b` = リニア
+- OFSM は物理的にバンク0 に紐づいていると推測される（[r_flash_type4.c](https://github.com/renesas/rx-driver-package/blob/b5227bc4601e83c0464bcdf1ef4104accb7fad51/source/r_flash_rx/r_flash_rx_vx.xx/r_flash_rx/src/flash_type_4/r_flash_type4.c#L507) 参照）
+- 参考: [RX72N ハードウェアマニュアル](https://www.renesas.com/ja/document/mah/rx72n-group-users-manual-hardware) 62章（フラッシュメモリ）
 
 **5. COM ポートの排他制御 — 人間と CI の共存問題**
 - 症状: CI パイプラインと TeraTerm が同じ COM ポートを取り合う可能性
@@ -200,9 +209,9 @@ rfp-cli -device RX72x -tool "e2l:<serial>" -if fine -speed 500K \
 
 ### 2026-02-27: CI/CD Phase 2 — flash boot_loader
 
-Added flash stage to CI/CD pipeline using rfp-cli. UART startup verification is deferred due to RX72N dual-bank flash (BANKSEL) issue — the boot_loader doesn't start on power-on reset when the startup bank differs from the programmed bank.
+Added flash stage to CI/CD pipeline using rfp-cli. Investigated power-on reset failure: initially suspected BANKSEL (dual-bank), but rfp-cli read verified BANKSEL=111b (correct). Root cause identified as on-board E2 Lite (RL78/G1C) holding RES# during USB power-on. Workaround: use rfp-cli `-run` to start MCU execution after flash. AC adapter (CN7) power-on reset test pending.
 
-rfp-cli による flash ステージを CI/CD パイプラインに追加。RX72N デュアルバンクフラッシュ（BANKSEL）の問題により、UART 起動確認テストは保留。起動バンクと書き込みバンクが異なる場合、パワーオンリセットで boot_loader が起動しない。
+rfp-cli による flash ステージを CI/CD パイプラインに追加。パワーオンリセット問題を調査: 当初 BANKSEL（デュアルバンク）を疑ったが rfp-cli 読み出しで BANKSEL=111b（正常）を確認。根本原因はオンボード E2 Lite (RL78/G1C) が USB パワーオン時に RES# をホールドすることと判明。対策: rfp-cli `-run` で flash 後に MCU を実行開始。AC アダプタ (CN7) 給電でのパワーオンリセットテストは保留中。
 
 **Key changes / 主な変更:**
 - `.gitlab-ci.yml` に flash ステージ追加（`flash_boot_loader` ジョブ）
