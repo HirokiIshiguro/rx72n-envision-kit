@@ -149,6 +149,7 @@
 									<listOptionValue builtIn="false" value="&quot;${ProjDirPath}/../../../../../vendors/renesas/boards/rx72n-envision-kit/aws_demos/src/smc_gen/general&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${ProjDirPath}/../../../../../vendors/renesas/boards/rx72n-envision-kit/aws_demos/src/smc_gen/r_pincfg&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${ProjDirPath}/../../../../../vendors/renesas/boards/rx72n-envision-kit/aws_demos/src/smc_gen/r_config&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/src/smc_gen/r_config}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${ProjDirPath}/../../../../../vendors/renesas/boards/rx72n-envision-kit/aws_demos/src/smc_gen/r_ether_rx&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${ProjDirPath}/../../../../../vendors/renesas/boards/rx72n-envision-kit/aws_demos/src/smc_gen/r_byteq&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${ProjDirPath}/../../../../../vendors/renesas/boards/rx72n-envision-kit/aws_demos/src/smc_gen/r_byteq/src&quot;"/>
@@ -230,6 +231,7 @@
 									<listOptionValue builtIn="false" value="&quot;${ProjDirPath}/../../../../../vendors/renesas/boards/rx72n-envision-kit/aws_demos/src/smc_gen/general&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${ProjDirPath}/../../../../../vendors/renesas/boards/rx72n-envision-kit/aws_demos/src/smc_gen/r_pincfg&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${ProjDirPath}/../../../../../vendors/renesas/boards/rx72n-envision-kit/aws_demos/src/smc_gen/r_config&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/src/smc_gen/r_config}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${ProjDirPath}/../../../../../vendors/renesas/boards/rx72n-envision-kit/aws_demos/src/smc_gen/r_ether_rx&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${ProjDirPath}/../../../../../vendors/renesas/boards/rx72n-envision-kit/aws_demos/src/smc_gen/r_byteq&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${ProjDirPath}/../../../../../vendors/renesas/boards/rx72n-envision-kit/aws_demos/src/smc_gen/r_byteq/src&quot;"/>

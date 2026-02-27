@@ -20,6 +20,20 @@ build:
   script:
     # ワークスペースを毎回クリア（キャッシュによるビルドスキップを防ぐ）
     - if (Test-Path "$env:WORKSPACE") { Remove-Item -Recurse -Force "$env:WORKSPACE" }
+    # aws_demos の r_config ワークアラウンド:
+    # aws_demos は smc_gen を vendors/ 配下に持つ特殊構造（AWS FreeRTOS の構成管理に起因）。
+    # e2studio ヘッドレスビルドのMakefile生成器が vendors/ への長い相対パスの一部を
+    # include path から脱落させるため、r_bsp_config.h が見つからずビルドが失敗する。
+    # 回避策: プロジェクト内に smc_gen/r_config のジャンクションを作成する。
+    - |
+      $awsProj = "$env:CI_PROJECT_DIR\$env:E2STUDIO_PROJECTS\aws_demos"
+      $smcSrc  = "$env:CI_PROJECT_DIR\vendors\renesas\boards\rx72n-envision-kit\aws_demos\src\smc_gen\r_config"
+      $smcDst  = "$awsProj\src\smc_gen\r_config"
+      if (-not (Test-Path $smcDst)) {
+        New-Item -ItemType Directory -Path "$awsProj\src\smc_gen" -Force | Out-Null
+        New-Item -ItemType Junction -Path $smcDst -Target $smcSrc | Out-Null
+        Write-Host "Created junction: $smcDst -> $smcSrc"
+      }
     # 3プロジェクトをまとめてインポート＆ビルド
     # e2studio の出力をログファイルに保存（GitLab ジョブログは truncate されるため）
     - |
