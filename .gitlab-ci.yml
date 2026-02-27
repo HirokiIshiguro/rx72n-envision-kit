@@ -18,8 +18,8 @@ build:
   tags:
     - run_ishiguro_machine
   script:
-    # ワークスペースのメタデータをクリア（2回目以降の -import 失敗を防ぐ）
-    - if (Test-Path "$env:WORKSPACE\.metadata") { Remove-Item -Recurse -Force "$env:WORKSPACE\.metadata" }
+    # ワークスペースを毎回クリア（キャッシュによるビルドスキップを防ぐ）
+    - if (Test-Path "$env:WORKSPACE") { Remove-Item -Recurse -Force "$env:WORKSPACE" }
     # 3プロジェクトをまとめてインポート＆ビルド
     # e2studio の終了コードはビルド成功でも非ゼロになる場合があるため、
     # .mot ファイルの存在で実際のビルド成否を判定する
