@@ -20,8 +20,13 @@ build:
   tags:
     - run_ishiguro_machine
   script:
-    # ワークスペースを毎回クリア（キャッシュによるビルドスキップを防ぐ）
+    # ワークスペースと HardwareDebug をクリア（stale Makefile とキャッシュの除去）
     - if (Test-Path "$env:WORKSPACE") { Remove-Item -Recurse -Force "$env:WORKSPACE" }
+    - |
+      @("aws_demos", "boot_loader", "segger_emwin_demos") | ForEach-Object {
+        $hd = "$env:CI_PROJECT_DIR\$env:E2STUDIO_PROJECTS\$_\HardwareDebug"
+        if (Test-Path $hd) { Remove-Item -Recurse -Force $hd; Write-Host "Cleared: $hd" }
+      }
     # Windows 260文字パス長制限ワークアラウンド:
     # e2studio の CDT managed build は ${ProjDirPath}/../../../../../vendors/... パターンで
     # インクルードパスを生成する。GitLab Runner のチェックアウトパスが長い場合（約80文字）、
@@ -52,16 +57,21 @@ build:
         if (Test-Path $_) { cmd /c "rmdir `"$_`"" 2>$null; Remove-Item $_ -Recurse -Force -ErrorAction SilentlyContinue }
       }
 
-      # 注意: src/smc_gen のジャンクションは作成しない。
-      # .project の application_code/smc_gen リンクリソースが同じ vendors/.../src/smc_gen を
-      # 参照しており、両方あると CDT が二重コンパイルして E0562300 (Duplicate symbol) になる。
+      # src/smc_gen: インクルードパスの解決のみ（r_config サブディレクトリのみジャンクション化）
+      # 注意: src/smc_gen 全体をジャンクションにすると、.project の
+      # application_code/smc_gen リンクリソース（同じ物理ディレクトリを参照）と二重コンパイルされ
+      # E0562300 (Duplicate symbol) になる。r_config のみ作成すればインクルードパスが解決する。
+      New-Item -ItemType Directory -Path "$awsProj\src\smc_gen" -Force | Out-Null
+      New-Item -ItemType Junction -Path "$awsProj\src\smc_gen\r_config" -Target "$vendorsAws\src\smc_gen\r_config" | Out-Null
+      Write-Host "Junction: src/smc_gen/r_config -> vendors/.../src/smc_gen/r_config (include path only)"
 
-      # application_code: renesas_code, aws_code, main.c（.project の linkedResources）
+      # application_code: renesas_code, aws_code, smc_gen, main.c（.project の linkedResources）
       New-Item -ItemType Directory -Path "$awsProj\application_code" -Force | Out-Null
       New-Item -ItemType Junction -Path "$awsProj\application_code\renesas_code" -Target "$vendorsAws\application_code\renesas_code" | Out-Null
       New-Item -ItemType Junction -Path "$awsProj\application_code\aws_code" -Target "$vendorsAws\application_code\aws_code" | Out-Null
+      New-Item -ItemType Junction -Path "$awsProj\application_code\smc_gen" -Target "$vendorsAws\src\smc_gen" | Out-Null
       Copy-Item "$vendorsAws\application_code\main.c" "$awsProj\application_code\main.c"
-      Write-Host "Junction: application_code/renesas_code, aws_code -> vendors/..."
+      Write-Host "Junction: application_code/{renesas_code,aws_code,smc_gen} -> vendors/..."
 
       # config_files: FreeRTOS/AWS 設定ヘッダ群
       New-Item -ItemType Junction -Path "$awsProj\config_files" -Target "$vendorsAws\config_files" | Out-Null
