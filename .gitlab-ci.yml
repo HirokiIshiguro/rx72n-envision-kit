@@ -81,16 +81,33 @@ build:
       Write-Host "--- Build log tail ---"
       Get-Content $logFile -Tail 30 | ForEach-Object { Write-Host "  $_" }
 
-      # ビルドログからエラー・警告の要約を表示（幅広いパターンで検索）
-      $errors = Select-String -Path $logFile -Pattern '(\*\*\*|Error \d|error:|No such|exit code|SubCommand\.tmp|\.mot|make\[)' -ErrorAction SilentlyContinue
-      if ($errors) {
-        Write-Host "--- Build log errors/key lines ($(($errors).Count) matches) ---"
-        $errors | Select-Object -First 50 | ForEach-Object { Write-Host "  $($_.LineNumber): $($_.Line.Substring(0, [Math]::Min($_.Line.Length, 200)))" }
+      # make レシピエラーの前後コンテキストを表示（実際のコンパイラエラーを特定）
+      $recipeErrors = Select-String -Path $logFile -Pattern '\*\*\* \[' -Context 15,2 -ErrorAction SilentlyContinue
+      if ($recipeErrors) {
+        Write-Host "--- Compilation errors with context ($($recipeErrors.Count) targets failed) ---"
+        $recipeErrors | Select-Object -First 5 | ForEach-Object {
+          Write-Host ""
+          $_.Context.PreContext | ForEach-Object { Write-Host "  > $_".Substring(0, [Math]::Min($_.Length + 4, 250)) }
+          Write-Host "  >>> $($_.Line.Substring(0, [Math]::Min($_.Line.Length, 250)))"
+          $_.Context.PostContext | ForEach-Object { Write-Host "  > $_".Substring(0, [Math]::Min($_.Length + 4, 250)) }
+        }
       }
-      # 診断: aws_demos 固有の行を検索
-      $awsLines = Select-String -Path $logFile -Pattern 'aws_demos' -ErrorAction SilentlyContinue
-      Write-Host "--- 'aws_demos' mentions in build log: $(if ($awsLines) { $awsLines.Count } else { 0 }) ---"
-      if ($awsLines) { $awsLines | Select-Object -First 10 | ForEach-Object { Write-Host "  $($_.LineNumber): $($_.Line.Substring(0, [Math]::Min($_.Line.Length, 200)))" } }
+
+      # CC-RX コンパイラエラー検出（E0520=error, F0520=fatal, W0520=warning）
+      $ccrxErrors = Select-String -Path $logFile -Pattern '^[EFW]\d{4}' -ErrorAction SilentlyContinue
+      if ($ccrxErrors) {
+        Write-Host ""
+        Write-Host "--- CC-RX compiler errors/warnings ($($ccrxErrors.Count) lines) ---"
+        $ccrxErrors | Select-Object -First 30 | ForEach-Object { Write-Host "  $($_.LineNumber): $($_.Line.Substring(0, [Math]::Min($_.Line.Length, 250)))" }
+      }
+
+      # make の終了ステータス行
+      $makeStatus = Select-String -Path $logFile -Pattern '(terminated with exit code|Build might be incomplete|\*\*\* No rule)' -ErrorAction SilentlyContinue
+      if ($makeStatus) {
+        Write-Host ""
+        Write-Host "--- Make status lines ---"
+        $makeStatus | ForEach-Object { Write-Host "  $($_.LineNumber): $($_.Line.Substring(0, [Math]::Min($_.Line.Length, 250)))" }
+      }
 
       # .mot ファイルを検索（ワークスペース側 → ソースディレクトリ側の順にフォールバック）
       # boot_loader のワークスペース名は rx72n_boot（.cproject の buildPath による）
@@ -141,10 +158,22 @@ build:
         Write-Host "e2studio exit code (retry): $LASTEXITCODE"
         # Pass 2 ログを結合
         Get-Content $logPass2 | Add-Content $logFile
-        $errors2 = Select-String -Path $logPass2 -Pattern '((\berror\b.*:)|^E[0-9]{4}|^F[0-9]{4}|SubCommand\.tmp.*No such|\.mot)' -ErrorAction SilentlyContinue
-        if ($errors2) {
-          Write-Host "--- Pass 2 errors/key lines ---"
-          $errors2 | Select-Object -First 20 | ForEach-Object { Write-Host "  $($_.LineNumber): $($_.Line.Substring(0, [Math]::Min($_.Line.Length, 200)))" }
+        # Pass 2: make レシピエラーのコンテキスト
+        $recipeErrors2 = Select-String -Path $logPass2 -Pattern '\*\*\* \[' -Context 15,2 -ErrorAction SilentlyContinue
+        if ($recipeErrors2) {
+          Write-Host "--- Pass 2 compilation errors with context ---"
+          $recipeErrors2 | Select-Object -First 5 | ForEach-Object {
+            Write-Host ""
+            $_.Context.PreContext | ForEach-Object { Write-Host "  > $_".Substring(0, [Math]::Min($_.Length + 4, 250)) }
+            Write-Host "  >>> $($_.Line.Substring(0, [Math]::Min($_.Line.Length, 250)))"
+            $_.Context.PostContext | ForEach-Object { Write-Host "  > $_".Substring(0, [Math]::Min($_.Length + 4, 250)) }
+          }
+        }
+        # Pass 2: CC-RX エラー
+        $ccrxErrors2 = Select-String -Path $logPass2 -Pattern '^[EFW]\d{4}' -ErrorAction SilentlyContinue
+        if ($ccrxErrors2) {
+          Write-Host "--- Pass 2 CC-RX errors ---"
+          $ccrxErrors2 | Select-Object -First 20 | ForEach-Object { Write-Host "  $($_.LineNumber): $($_.Line.Substring(0, [Math]::Min($_.Line.Length, 250)))" }
         }
 
         $mot_aws = Get-ChildItem "$env:CI_PROJECT_DIR\$env:E2STUDIO_PROJECTS\aws_demos\HardwareDebug\*.mot" -ErrorAction SilentlyContinue
