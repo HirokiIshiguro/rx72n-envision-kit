@@ -66,8 +66,11 @@ SEND_CHUNK_SIZE = 4096
 MSG_INSTALLING_FW = "installing firmware"
 MSG_COMPLETED_FW = "completed installing firmware"
 MSG_INTEGRITY_CHECK = "integrity check"
-MSG_CHECK_OK = "OK"
-MSG_CHECK_NG = "NG"
+# Boot loader outputs "...OK" or "...NG" for check results.
+# Must use "..." prefix to avoid false positives from lifecycle state strings
+# like "LIFECYCLE_STATE_TESTING" which contains "NG".
+MSG_CHECK_OK = "...OK"
+MSG_CHECK_NG = "...NG"
 MSG_CONST_DATA = "installing const data"
 MSG_COMPLETED_CONST = "completed installing const data"
 MSG_SW_RESET = "software reset"
