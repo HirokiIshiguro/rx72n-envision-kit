@@ -24,7 +24,7 @@ build:
     # e2studio の終了コードはビルド成功でも非ゼロになる場合があるため、
     # .mot ファイルの存在で実際のビルド成否を判定する
     - |
-      & "$env:E2STUDIO" --launcher.suppressErrors -nosplash -application org.eclipse.cdt.managedbuilder.core.headlessbuild -data "$env:WORKSPACE" -import "$env:CI_PROJECT_DIR\$env:E2STUDIO_PROJECTS\aws_demos" -import "$env:CI_PROJECT_DIR\$env:E2STUDIO_PROJECTS\boot_loader" -import "$env:CI_PROJECT_DIR\$env:E2STUDIO_PROJECTS\segger_emwin_demos" -build all
+      & "$env:E2STUDIO" --launcher.suppressErrors -nosplash -application org.eclipse.cdt.managedbuilder.core.headlessbuild -data "$env:WORKSPACE" -import "$env:CI_PROJECT_DIR\$env:E2STUDIO_PROJECTS\aws_demos" -import "$env:CI_PROJECT_DIR\$env:E2STUDIO_PROJECTS\boot_loader" -import "$env:CI_PROJECT_DIR\$env:E2STUDIO_PROJECTS\segger_emwin_demos" -cleanBuild all
       $e2exit = $LASTEXITCODE
       Write-Host "e2studio exit code: $e2exit"
       $mot_aws     = Get-ChildItem "$env:CI_PROJECT_DIR\$env:E2STUDIO_PROJECTS\aws_demos\HardwareDebug\*.mot" -ErrorAction SilentlyContinue
