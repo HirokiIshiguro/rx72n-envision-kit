@@ -1,0 +1,24 @@
+stages:
+  - build
+
+variables:
+  E2STUDIO: "C:\\Renesas\\e2_studio_2025_12\\eclipse\\e2studioc.exe"
+  WORKSPACE: "C:\\workspace_rx72n"
+  GIT_CLONE_PATH: $CI_BUILDS_DIR/rx72n
+  E2STUDIO_PROJECTS: "projects\\renesas\\rx72n_envision_kit\\e2studio"
+
+build:
+  stage: build
+  tags:
+    - run_ishiguro_machine
+  script:
+    # ワークスペースのメタデータをクリア（2回目以降の -import 失敗を防ぐ）
+    - if (Test-Path "$env:WORKSPACE\.metadata") { Remove-Item -Recurse -Force "$env:WORKSPACE\.metadata" }
+    # 3プロジェクトをまとめてインポート＆ビルド
+    - '& "$env:E2STUDIO" --launcher.suppressErrors -nosplash -application org.eclipse.cdt.managedbuilder.core.headlessbuild -data "$env:WORKSPACE" -import "$env:CI_PROJECT_DIR\$env:E2STUDIO_PROJECTS\aws_demos" -import "$env:CI_PROJECT_DIR\$env:E2STUDIO_PROJECTS\boot_loader" -import "$env:CI_PROJECT_DIR\$env:E2STUDIO_PROJECTS\segger_emwin_demos" -build all'
+  artifacts:
+    paths:
+      - projects/renesas/rx72n_envision_kit/e2studio/aws_demos/HardwareDebug/*.mot
+      - projects/renesas/rx72n_envision_kit/e2studio/boot_loader/HardwareDebug/*.mot
+      - projects/renesas/rx72n_envision_kit/e2studio/segger_emwin_demos/HardwareDebug/*.mot
+    expire_in: 1 week

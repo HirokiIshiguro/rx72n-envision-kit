@@ -23,7 +23,7 @@ RX72N Envision Kit の全機能を試せるようにする。
 |---|---|---|
 | 1 | Documentation cleanup: migrate Wiki to `docs/` | In progress |
 | 2 | Set up Claude-assisted development environment | In progress |
-| 3 | Set up CI/CD pipeline | Planned |
+| 3 | Set up CI/CD pipeline | In progress |
 | 4 | Replace FreeRTOS with latest Renesas IoT reference implementation ([iot-reference-rx](https://github.com/renesas/iot-reference-rx)) | Planned |
 
 ## Repository Locations / リポジトリ
@@ -33,6 +33,45 @@ RX72N Envision Kit の全機能を試せるようにする。
 | Primary (GitLab) | https://shelty2.servegame.com/oss/import/github/renesas/rx72n-envision-kit |
 | Mirror (GitHub fork) | https://github.com/HirokiIshiguro/rx72n-envision-kit |
 | Upstream (GitHub) | https://github.com/renesas/rx72n-envision-kit |
+
+## CI/CD Pipeline
+
+### Goals / 目標
+
+| Phase | Goal | Status |
+|-------|------|--------|
+| 1 | e2studio ヘッドレスビルド（3プロジェクト） | In progress |
+| 2 | flash（rfp-cli）+ UART テスト自動化 | Planned |
+| 3 | FreeRTOS LTS 最新版適用（[iot-reference-rx](https://github.com/renesas/iot-reference-rx) 最新リリースタグ） | Planned |
+| 4 | AWS 接続を含む OTA テスト | Planned |
+| 5 | RX72N Envision Kit 複数台でのフリートプロビジョニング＋OTA 一斉実施の全自動テスト | Planned |
+
+### Build environment / ビルド環境
+
+- **IDE:** e2 studio 2025-12（`C:\Renesas\e2_studio_2025_12\eclipse\e2studioc.exe`）
+- **Compiler:** CC-RX v3.04（aws_demos, boot_loader）/ v3.01（segger_emwin_demos）
+- **Runner tag:** `run_ishiguro_machine`（Windows 11、RX72N Envision Kit 物理接続済み）
+- **Workspace:** `C:\workspace_rx72n`（hello_world とは別ディレクトリ）
+
+### Build targets / ビルド対象
+
+| Project | Path | Output |
+|---------|------|--------|
+| aws_demos | `projects/renesas/rx72n_envision_kit/e2studio/aws_demos` | `aws_demos.mot` |
+| boot_loader | `projects/renesas/rx72n_envision_kit/e2studio/boot_loader` | `rx72n_boot.mot` |
+| segger_emwin_demos | `projects/renesas/rx72n_envision_kit/e2studio/segger_emwin_demos` | `segger_emwin_demos.mot` |
+
+### Design decisions / 設計判断
+
+**パス長対策:**
+プロジェクトの e2studio ソースが `projects/renesas/rx72n_envision_kit/e2studio/` 配下にあり、
+GitLab Runner のデフォルトチェックアウトパスと合わせると Windows 260文字制限に近づく。
+`GIT_CLONE_PATH` で短いチェックアウトパスを指定し、加えて `core.longpaths=true` と
+Windows レジストリ `LongPathsEnabled=1` で長いパスを許可する。
+
+**ビルド方式:**
+hello_world_with_claude_on_cicd と同じ e2studio ヘッドレスビルドパターンを採用。
+3プロジェクトを1回の e2studio 起動でまとめてインポート＆ビルドする。
 
 ## Changelog / 変更履歴
 
