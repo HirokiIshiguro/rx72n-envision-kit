@@ -52,9 +52,9 @@ build:
         if (Test-Path $_) { cmd /c "rmdir `"$_`"" 2>$null; Remove-Item $_ -Recurse -Force -ErrorAction SilentlyContinue }
       }
 
-      # src/smc_gen: Smart Configurator 生成コード（r_bsp, r_config, r_dmaca_rx, etc.）
-      New-Item -ItemType Junction -Path "$awsProj\src\smc_gen" -Target "$vendorsAws\src\smc_gen" | Out-Null
-      Write-Host "Junction: src/smc_gen -> vendors/.../src/smc_gen"
+      # 注意: src/smc_gen のジャンクションは作成しない。
+      # .project の application_code/smc_gen リンクリソースが同じ vendors/.../src/smc_gen を
+      # 参照しており、両方あると CDT が二重コンパイルして E0562300 (Duplicate symbol) になる。
 
       # application_code: renesas_code, aws_code, main.c（.project の linkedResources）
       New-Item -ItemType Directory -Path "$awsProj\application_code" -Force | Out-Null
