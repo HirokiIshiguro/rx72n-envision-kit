@@ -21,32 +21,12 @@ build:
     # ワークスペースを毎回クリア（キャッシュによるビルドスキップを防ぐ）
     - if (Test-Path "$env:WORKSPACE") { Remove-Item -Recurse -Force "$env:WORKSPACE" }
     # 3プロジェクトをまとめてインポート＆ビルド
-    # e2studio の終了コードはビルド成功でも非ゼロになる場合があるため、
-    # .mot ファイルの存在で実際のビルド成否を判定する
+    # e2studio の出力をログファイルに保存（GitLab ジョブログは truncate されるため）
     - |
-      & "$env:E2STUDIO" --launcher.suppressErrors -nosplash -application org.eclipse.cdt.managedbuilder.core.headlessbuild -data "$env:WORKSPACE" -import "$env:CI_PROJECT_DIR\$env:E2STUDIO_PROJECTS\aws_demos" -import "$env:CI_PROJECT_DIR\$env:E2STUDIO_PROJECTS\boot_loader" -import "$env:CI_PROJECT_DIR\$env:E2STUDIO_PROJECTS\segger_emwin_demos" -cleanBuild all
+      $logFile = "$env:CI_PROJECT_DIR\e2studio_build.log"
+      & "$env:E2STUDIO" --launcher.suppressErrors -nosplash -application org.eclipse.cdt.managedbuilder.core.headlessbuild -data "$env:WORKSPACE" -import "$env:CI_PROJECT_DIR\$env:E2STUDIO_PROJECTS\aws_demos" -import "$env:CI_PROJECT_DIR\$env:E2STUDIO_PROJECTS\boot_loader" -import "$env:CI_PROJECT_DIR\$env:E2STUDIO_PROJECTS\segger_emwin_demos" -cleanBuild all 2>&1 | Tee-Object -FilePath $logFile
       $e2exit = $LASTEXITCODE
       Write-Host "e2studio exit code: $e2exit"
-
-      # 診断: ワークスペースとソースディレクトリの両方を確認
-      Write-Host "--- Diagnostic: searching for .mot files ---"
-      Write-Host "WORKSPACE: $env:WORKSPACE"
-      Write-Host "CI_PROJECT_DIR: $env:CI_PROJECT_DIR"
-      $allMots = Get-ChildItem "$env:WORKSPACE\*.mot" -Recurse -ErrorAction SilentlyContinue
-      if ($allMots) {
-        Write-Host "Found .mot files in WORKSPACE:"
-        $allMots | ForEach-Object { Write-Host "  $($_.FullName)" }
-      } else {
-        Write-Host "No .mot files found in WORKSPACE"
-      }
-      $srcMots = Get-ChildItem "$env:CI_PROJECT_DIR\$env:E2STUDIO_PROJECTS\*.mot" -Recurse -ErrorAction SilentlyContinue
-      if ($srcMots) {
-        Write-Host "Found .mot files in source dir:"
-        $srcMots | ForEach-Object { Write-Host "  $($_.FullName)" }
-      } else {
-        Write-Host "No .mot files found in source dir"
-      }
-      Write-Host "--- End diagnostic ---"
 
       # .mot ファイルを検索（ワークスペース側 → ソースディレクトリ側の順にフォールバック）
       # boot_loader のワークスペース名は rx72n_boot（.cproject の buildPath による）
@@ -58,12 +38,19 @@ build:
       $mot_emwin = Get-ChildItem "$env:WORKSPACE\segger_emwin_demos\HardwareDebug\*.mot" -ErrorAction SilentlyContinue
       if (-not $mot_emwin) { $mot_emwin = Get-ChildItem "$env:CI_PROJECT_DIR\$env:E2STUDIO_PROJECTS\segger_emwin_demos\HardwareDebug\*.mot" -ErrorAction SilentlyContinue }
 
+      # 診断: 見つかった .mot ファイルの一覧
+      Write-Host "--- .mot search results ---"
+      Write-Host "  aws_demos:          $(if ($mot_aws) { $mot_aws.FullName } else { 'NOT FOUND' })"
+      Write-Host "  boot_loader:        $(if ($mot_boot) { $mot_boot.FullName } else { 'NOT FOUND' })"
+      Write-Host "  segger_emwin_demos: $(if ($mot_emwin) { $mot_emwin.FullName } else { 'NOT FOUND' })"
+
       $missing = @()
       if (-not $mot_aws)   { $missing += "aws_demos" }
       if (-not $mot_boot)  { $missing += "boot_loader" }
       if (-not $mot_emwin) { $missing += "segger_emwin_demos" }
       if ($missing.Count -gt 0) {
         Write-Host "ERROR: .mot file not found for: $($missing -join ', ')"
+        Write-Host "Full e2studio log saved as artifact: e2studio_build.log"
         exit 1
       }
 
@@ -93,7 +80,9 @@ build:
       Write-Host "  boot_loader:        $($mot_boot.FullName)"
       Write-Host "  segger_emwin_demos: $($mot_emwin.FullName)"
   artifacts:
+    when: always
     paths:
+      - e2studio_build.log
       - projects/renesas/rx72n_envision_kit/e2studio/aws_demos/HardwareDebug/*.mot
       - projects/renesas/rx72n_envision_kit/e2studio/boot_loader/HardwareDebug/*.mot
       - projects/renesas/rx72n_envision_kit/e2studio/segger_emwin_demos/HardwareDebug/*.mot
