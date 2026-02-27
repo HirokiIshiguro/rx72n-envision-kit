@@ -49,7 +49,7 @@ RX72N Envision Kit の全機能を試せるようにする。
 ### Build environment / ビルド環境
 
 - **IDE:** e2 studio 2025-12（`C:\Renesas\e2_studio_2025_12\eclipse\e2studioc.exe`）
-- **Compiler:** CC-RX v3.04（aws_demos, boot_loader）/ v3.01（segger_emwin_demos）
+- **Compiler:** CC-RX v3.07（3プロジェクト共通。元は v3.04/v3.01 だったが Runner 環境に合わせて統一）
 - **Runner tag:** `run_ishiguro_machine`（Windows 11、RX72N Envision Kit 物理接続済み）
 - **Workspace:** `C:\workspace_rx72n`（hello_world とは別ディレクトリ）
 
