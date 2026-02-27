@@ -167,32 +167,61 @@ build:
           Write-Host "  $(if (Test-Path $_) { 'EXISTS' } else { 'MISSING' }): $_"
         }
 
+        # SubCommand.tmp のパス長診断
         Write-Host ""
-        Write-Host "=== Retrying build ==="
-        Write-Host "Scanning: $awsHD"
-        $created = 0
-        if (Test-Path $awsHD) {
-          Get-ChildItem $awsHD -Recurse -Filter "subdir.mk" -ErrorAction SilentlyContinue | ForEach-Object {
-            $mkContent = Get-Content $_.FullName -Raw
-            # subdir.mk 内の .obj パスからディレクトリを抽出して作成
-            [regex]::Matches($mkContent, '(\S+)\.obj') | ForEach-Object {
-              $objRel = $_.Groups[1].Value + ".obj"
-              $objDir = Split-Path "$awsHD\$objRel" -Parent
-              if ($objDir -and -not (Test-Path $objDir)) {
-                New-Item -ItemType Directory -Path $objDir -Force | Out-Null
-                Write-Host "  Created: $objDir"
-                $created++
-              }
-            }
+        Write-Host "--- Include path length analysis ---"
+        $allSubCmds = Get-ChildItem $awsHD -Recurse -Filter "*SubCommand.tmp" -ErrorAction SilentlyContinue
+        Write-Host "  Total SubCommand.tmp files: $($allSubCmds.Count)"
+        $maxPathLen = 0
+        $longPaths = @()
+        $allSubCmds | Select-Object -First 3 | ForEach-Object {
+          $content = Get-Content $_.FullName -Raw
+          $content -split "`n" | Where-Object { $_ -match '-include=' } | ForEach-Object {
+            $p = $_ -replace '^.*-include="?([^"]*)"?.*$', '$1'
+            if ($p.Length -gt $maxPathLen) { $maxPathLen = $p.Length }
+            if ($p.Length -gt 240) { $longPaths += "$($p.Length): $($p.Substring(0, [Math]::Min($p.Length, 200)))..." }
           }
-          Write-Host "Created $created missing directories"
-          # subdir.mk の総数も表示
-          $mkCount = (Get-ChildItem $awsHD -Recurse -Filter "subdir.mk" -ErrorAction SilentlyContinue).Count
-          Write-Host "Total subdir.mk files found: $mkCount"
-        } else {
-          Write-Host "WARNING: HardwareDebug directory not found at $awsHD"
+        }
+        Write-Host "  Longest include path: $maxPathLen chars"
+        if ($longPaths) {
+          Write-Host "  Paths > 240 chars:"
+          $longPaths | Select-Object -First 10 | ForEach-Object { Write-Host "    $_" }
         }
 
+        # SubCommand.tmp のパス長問題を修正: ../../../../../ を解決
+        # e2studio は ${ProjDirPath}/../../../../../ パターンで長いパスを生成する。
+        # CC-RX は未解決の ../ を含むパスが 260 文字を超えるとファイルを開けない。
+        # projects/renesas/rx72n_envision_kit/e2studio/aws_demos/../../../../../ → (repo root)
+        Write-Host ""
+        Write-Host "=== Fixing SubCommand.tmp paths (resolving ../../..) ==="
+        $projRelFwd = "projects/renesas/rx72n_envision_kit/e2studio/aws_demos/../../../../../"
+        $projRelBwd = "projects\renesas\rx72n_envision_kit\e2studio\aws_demos\..\..\..\..\..\\"
+        $fixedCount = 0
+        Get-ChildItem $awsHD -Recurse -Filter "*SubCommand.tmp" -ErrorAction SilentlyContinue | ForEach-Object {
+          $content = Get-Content $_.FullName -Raw
+          $newContent = $content.Replace($projRelFwd, "")
+          $newContent = $newContent.Replace($projRelBwd, "")
+          if ($newContent -ne $content) {
+            Set-Content $_.FullName $newContent -NoNewline
+            $fixedCount++
+          }
+        }
+        Write-Host "  Fixed $fixedCount SubCommand.tmp files"
+
+        # 修正後のパス長を確認
+        if ($fixedCount -gt 0) {
+          $maxAfter = 0
+          Get-ChildItem $awsHD -Recurse -Filter "*SubCommand.tmp" -ErrorAction SilentlyContinue | Select-Object -First 1 | ForEach-Object {
+            $content = Get-Content $_.FullName -Raw
+            $content -split "`n" | Where-Object { $_ -match '-include=' } | ForEach-Object {
+              $p = $_ -replace '^.*-include="?([^"]*)"?.*$', '$1'
+              if ($p.Length -gt $maxAfter) { $maxAfter = $p.Length }
+            }
+          }
+          Write-Host "  Longest include path after fix: $maxAfter chars"
+        }
+
+        Write-Host ""
         Write-Host "=== Pass 2: Rebuild aws_demos ==="
         $logPass2 = "$logFile.pass2"
         & "$env:E2STUDIO" @e2base -build "aws_demos/HardwareDebug" 2>&1 | Tee-Object -FilePath $logPass2 | Out-Null
