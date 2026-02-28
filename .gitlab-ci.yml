@@ -245,7 +245,7 @@ download_aws_demos:
       Write-Host "  Key: $key"
       Write-Host "  RSU: $rsu"
       Write-Host "  Seq: $env:RSU_SEQ_NO"
-      python "$env:CI_PROJECT_DIR\test_scripts\mot_to_rsu\mot_to_rsu.py" `
+      python "$env:CI_PROJECT_DIR\tools\mcu-tool-rx\mot_to_rsu.py" `
         --mot "$mot" --key "$key" -o "$rsu" --seq-no $env:RSU_SEQ_NO
       if ($LASTEXITCODE -ne 0) {
         Write-Host "ERROR: mot_to_rsu conversion failed"
