@@ -1,3 +1,8 @@
+# FIXME: Phase 3 フリーズ現象の解析が完了するまでパイプラインを一時停止
+workflow:
+  rules:
+    - when: never
+
 stages:
   - build
   - flash
