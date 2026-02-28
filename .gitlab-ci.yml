@@ -214,8 +214,16 @@ flash_boot_loader:
     #   暗黙的に行う（boot_loader が応答しなければ UART ダウンロードがタイムアウト）。
     - |
       $mot = "$env:CI_PROJECT_DIR\$env:E2STUDIO_PROJECTS\boot_loader\HardwareDebug\rx72n_boot_loader.mot"
+      # Step 1: erase-chip（Config Area 含む全消去。-erase-chip は他の操作と併用不可）
       & "$env:RFP_CLI" -device RX72x -tool "e2l:$env:E2LITE_SERIAL" -if fine -speed 1500K `
-        -auth id FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF -erase-chip -p -v "$mot" -run -noquery
+        -auth id FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF -erase-chip -noquery
+      if ($LASTEXITCODE -ne 0) {
+        Write-Host "ERROR: Erase-chip failed with exit code $LASTEXITCODE"
+        exit 1
+      }
+      # Step 2: program + verify + run
+      & "$env:RFP_CLI" -device RX72x -tool "e2l:$env:E2LITE_SERIAL" -if fine -speed 1500K `
+        -auth id FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF -p "$mot" -v -run -noquery
       if ($LASTEXITCODE -ne 0) {
         Write-Host "ERROR: Flash failed with exit code $LASTEXITCODE"
         exit 1

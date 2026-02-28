@@ -225,14 +225,17 @@ MCU 応答を受信できた場合は integrity check 結果で判定する TX-o
 
 ```bash
 # boot_loader 書き込み（CI/CD 標準 — -erase-chip で BANKSEL リセット）
-rfp-cli -device RX72x -tool "e2l:<serial>" -if fine -speed 1500K \
-  -auth id FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF \
-  -erase-chip -p -v <boot_loader.mot> -run -noquery
+# 注意: -erase-chip は他の操作 (-p, -v 等) と併用不可。2コマンドに分ける必要がある
+rfp-cli -d RX72x -t "e2l:<serial>" -if fine -s 1500K \
+  -auth id FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF -erase-chip -noquery
+rfp-cli -d RX72x -t "e2l:<serial>" -if fine -s 1500K \
+  -auth id FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF -p <boot_loader.mot> -v -run -noquery
 
 # 開発用（Verify 省略で高速化）
 rfp-cli -d RX72x -t "e2l:<serial>" -if fine -s 1500K \
-  -auth id FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF \
-  -erase-chip -p <mot_file> -run -noquery -nocheck-range
+  -auth id FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF -erase-chip -noquery
+rfp-cli -d RX72x -t "e2l:<serial>" -if fine -s 1500K \
+  -auth id FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF -p <mot_file> -run -noquery -nocheck-range
 ```
 
 - サポート速度: 250K / 500K / 750K / 1000K / **1500K**（最大）
@@ -343,9 +346,12 @@ aws_demos のリセットベクタは `0xFFFBFFFC`（boot_loader 用のジャン
 
 ```bash
 # Step 1: boot_loader（Config Area 含む全消去 + 書き込み）
+# -erase-chip は他の操作と併用不可のため2コマンドに分割
+rfp-cli -d RX72x -t "e2l:<serial>" -if fine -s 1500K \
+  -auth id FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF -erase-chip -noquery
 rfp-cli -d RX72x -t "e2l:<serial>" -if fine -s 1500K \
   -auth id FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF \
-  -erase-chip -p -v boot_loader.mot -run -noquery -nocheck-range
+  -p boot_loader.mot -v -run -noquery -nocheck-range
 
 # Step 2: aws_demos（消去なし、書き込みのみ — boot_loader 領域を保持）
 rfp-cli -d RX72x -t "e2l:<serial>" -if fine -s 1500K \
