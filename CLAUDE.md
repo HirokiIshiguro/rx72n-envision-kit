@@ -216,6 +216,45 @@ rfp-cli -d RX72x -t "e2l:<serial>" -if fine -s 500K \
 注意: 正規の運用では boot_loader → UART ダウンロード（`.rsu` ファイル）で aws_demos を転送する。
 2段階フラッシュは開発・デバッグ用の代替手段。
 
+**RSU (Renesas Secure Update) ファイルフォーマット:**
+
+仕様書: [ルネサス MCU におけるファームウェアアップデートの設計方針](https://www.renesas.com/ja/document/apn/renesas-mcu-firmware-update-design-policy-rev100)
+
+Microchip OTA Image 互換フォーマット（将来の MCU ベンダ間標準化を見据えた設計）。
+
+| Offset | Component | Size |
+|--------|-----------|------|
+| 0x000 | Header (Magic Code, Image Flags, FW Verification Type) | 512B |
+| 0x008 | Signature (ECDSA P-256) | 256B + size field |
+| 0x10c | Option (Dataflash Flag, DF Start/End Address, Image Size) | |
+| 0x200 | Descriptor (Sequence Number, Start/End/Exec Address, HW ID) | 256B |
+| 0x300 | Application Binary (Code Flash) | N bytes |
+| 0x300+N | Dataflash Binary (32KB padded) | 32KB |
+
+- SCI ダブルバッファ: 32KB × 2（A/B 交互使用、割り込み駆動バイト単位受信）
+- `dataflash_flag`: ヘッダに定義済みだが boot_loader コードでは未チェック（常にデータフラッシュ受信を行う）
+- Dataflash Binary は SCI バッファサイズ（32KB）に合わせてパディングが必要
+
+**aws_demos UART コマンド（COM6 経由、115200bps）:**
+
+| Command | Function |
+|---------|----------|
+| `version` | ファームウェアバージョン読み出し |
+| `freertos cpuload read` | FreeRTOS CPU 負荷確認 |
+| `freertos cpuload reset` | CPU 負荷カウンタリセット |
+| `dataflash info` | データフラッシュ情報（物理サイズ、割当サイズ、空き） |
+| `dataflash read` | 全設定データ読み出し |
+| `dataflash erase` | 全設定データ消去 |
+| `dataflash write aws clientprivatekey` | AWS クライアント秘密鍵（PEM 入力モード） |
+| `dataflash write aws clientcertificate` | AWS クライアント証明書（PEM 入力モード） |
+| `dataflash write aws codesignercertificate` | OTA コード署名証明書（PEM 入力モード） |
+| `dataflash write aws mqttbrokerendpoint <endpoint>` | MQTT ブローカーエンドポイント |
+| `dataflash write aws iotthingname <name>` | IoT Thing 名 |
+| `timezone <tz>` | タイムゾーン設定（例: `UTC+09:00`） |
+| `reset` | ソフトウェアリセット |
+
+データフラッシュはデュアルプレーン＋故障時復旧機構を備え、書き込み中の電源断に耐える設計。
+
 ## Changelog / 変更履歴
 
 ### 2026-03-01: FIT モジュール自動解決 + e2studio ヘッドレスビルド SMC 検証
