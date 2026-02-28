@@ -13,7 +13,7 @@ Typical CI flow:
        → aws_demos boots
 
 UART Protocol (from rx72n_boot_loader.c):
-    Boot loader uses SCI2 at 115200 bps (8N1).
+    Boot loader uses SCI7 at 921600 bps (8N1) via PMOD FTDI (COM7).
     Reception is interrupt-driven, byte-by-byte, with 32KB double buffering.
     No flow control needed — UART speed is the bottleneck.
 
@@ -31,7 +31,7 @@ UART Protocol (from rx72n_boot_loader.c):
 
 Usage:
     python test_uart_download.py --rsu userprog.rsu
-    python test_uart_download.py --rsu userprog.rsu --port COM6 --baud 115200
+    python test_uart_download.py --rsu userprog.rsu --port COM7 --baud 921600
     python test_uart_download.py --rsu userprog.rsu --timeout 300 --diag
 
 Dependencies:
@@ -54,9 +54,9 @@ except ImportError:
 
 
 # Default UART settings
-DEFAULT_PORT = os.environ.get("UART_PORT", "COM6")
-DEFAULT_BAUD = int(os.environ.get("UART_BAUD_RATE", "115200"))
-DEFAULT_TIMEOUT = 300  # 5 minutes (1.8MB at 115200 = ~160s + flash time)
+DEFAULT_PORT = os.environ.get("UART_PORT", "COM7")
+DEFAULT_BAUD = int(os.environ.get("UART_BAUD_RATE", "921600"))
+DEFAULT_TIMEOUT = 300  # 5 minutes (1.8MB at 921600 = ~20s + flash write time)
 
 # UART send chunk size (bytes)
 # Large enough for efficiency, small enough to allow progress monitoring
