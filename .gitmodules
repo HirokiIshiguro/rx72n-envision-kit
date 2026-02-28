@@ -4,4 +4,4 @@
 	branch = 7c54c2b12eab3380145de6057beca03f7f5e1377
 [submodule "tools/mcu-tool-rx"]
 	path = tools/mcu-tool-rx
-	url = git@shelty2.servegame.com:oss/experiment/generic/scripts/python/mcu-tool/renesas/rx.git
+	url = https://shelty2.servegame.com/oss/experiment/generic/scripts/python/mcu-tool/renesas/rx.git
