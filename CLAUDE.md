@@ -41,7 +41,7 @@ RX72N Envision Kit の全機能を試せるようにする。
 | Phase | Goal | Status |
 |-------|------|--------|
 | 1 | e2studio ヘッドレスビルド（3プロジェクト） | Done |
-| 2 | flash（rfp-cli）+ UART テスト自動化 | In progress (flash + UART boot test done, UART download 検証中) |
+| 2 | flash（rfp-cli）+ UART テスト自動化 | Done (MR !9) |
 | 3 | FreeRTOS LTS 最新版適用（[iot-reference-rx](https://github.com/renesas/iot-reference-rx) 最新リリースタグ） | Planned |
 | 4 | AWS 接続を含む OTA テスト | Planned |
 | 5 | RX72N Envision Kit 複数台でのフリートプロビジョニング＋OTA 一斉実施の全自動テスト | Planned |
@@ -52,9 +52,40 @@ RX72N Envision Kit の全機能を試せるようにする。
 ### Build environment / ビルド環境
 
 - **IDE:** e2 studio 2025-12（`C:\Renesas\e2_studio_2025_12\eclipse\e2studioc.exe`）
+  - e2 studio 2024-01 でもビルド確認済み（upstream v2.0.2 タグ当時の推定バージョン）
 - **Compiler:** CC-RX v3.04.00（3プロジェクト共通。v3.07.00 は LCD 消灯バグあり、MR !11 で戻し）
 - **Runner tag:** `run_ishiguro_machine`（Windows 11、RX72N Envision Kit 物理接続済み）
 - **Workspace:** `C:\workspace_rx72n`（hello_world とは別ディレクトリ）
+
+**FIT モジュール管理 (Smart Configurator 依存):**
+
+SMC（Smart Configurator）は `.scfg` ファイルに記録された FIT モジュールバージョンをローカルの
+`~/.eclipse/com.renesas.platform_download/FITModules/` フォルダから取得する。
+**必要なバージョンがローカルにない場合、SMC はエラーを出さずにコード生成をスキップする（サイレントスキップ）。**
+結果として `smc_gen/` 配下のソースが生成されず、ビルドエラーとなる。
+
+- `.scfg` の `<component display="..." version="...">` タグから必要モジュール一覧を取得可能
+- aws_demos: 27 モジュール、boot_loader: 11 モジュール（計30ユニーク）
+- ローカルに不足するモジュールは https://github.com/renesas/rx-driver-package/blob/master/versions.xml で URL を解決し、ダウンロード可能
+- **自動化スクリプト:** `tools/resolve_fit_modules.py` — `.scfg` パース → ローカルチェック → 不足分ダウンロード
+
+```bash
+# 使用例
+python tools/resolve_fit_modules.py <scfg_file_or_dir> [--fit-dir <path>] [--dry-run]
+```
+
+**e2studio ヘッドレスビルドでの AWS_IOT_MCU_ROOT パス変数:**
+
+aws_demos の `.project` は `AWS_IOT_MCU_ROOT` パス変数を使った linkedResources を含む。
+ヘッドレスビルドでは以下のワークスペース設定ファイルでパス変数を事前定義する:
+
+```
+# <workspace>/.metadata/.plugins/org.eclipse.core.runtime/.settings/org.eclipse.core.resources.prefs
+eclipse.preferences.version=1
+pathvariable.AWS_IOT_MCU_ROOT=C\:/rx72n-local
+```
+
+注意: `-import` オプションのパスは `file:///C:/...` URI 形式を使用すること（`C:/...` はスキームエラーになる）。
 
 ### Build targets / ビルド対象
 
@@ -264,7 +295,44 @@ rfp-cli -device RX72x -tool "e2l:<serial>" -if fine -speed 500K \
 - Flash 所要時間: 約13秒（erase + write + verify + config area + disconnect）
 - `-run`: プログラム書き込み後に MCU を実行開始（BANKSEL を無視して書き込んだバンクから起動）
 
+**boot_loader + aws_demos の2段階フラッシュ:**
+
+aws_demos のリセットベクタは `0xFFFBFFFC`（boot_loader 用のジャンプ先）であり、
+ハードウェアリセットベクタ `0xFFFFFFFC` は boot_loader 側にある。
+そのため aws_demos 単体では起動できず、boot_loader + aws_demos の両方が必要。
+
+両者の Config Area (0xFE7F5D00) が衝突するため、1コマンドでの同時書き込みは不可（`E3000101: The data already exist and cannot be overwritten`）。2段階で書き込む:
+
+```bash
+# Step 1: boot_loader（全消去 + 書き込み）
+rfp-cli -d RX72x -t "e2l:<serial>" -if fine -s 500K \
+  -auth id FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF \
+  -auto boot_loader.mot -run -noquery -nocheck-range
+
+# Step 2: aws_demos（消去なし、書き込みのみ — boot_loader 領域を保持）
+rfp-cli -d RX72x -t "e2l:<serial>" -if fine -s 500K \
+  -auth id FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF \
+  -file aws_demos.mot -auto -noerase -run -noquery -nocheck-range
+```
+
+注意: 正規の運用では boot_loader → UART ダウンロード（`.rsu` ファイル）で aws_demos を転送する。
+2段階フラッシュは開発・デバッグ用の代替手段。
+
 ## Changelog / 変更履歴
+
+### 2026-03-01: FIT モジュール自動解決 + e2studio ヘッドレスビルド SMC 検証
+
+Identified root cause of build failures on fresh machines: FIT module versions required by .scfg files were missing from local FITModules folder. Created `tools/resolve_fit_modules.py` to automate detection and download of missing modules from rx-driver-package versions.xml. Verified e2studio 2024-01 headless build with SMC code generation (0 errors, 103 warnings, 29s). Confirmed CC-RX v3.04 baseline: LCD stable after boot_loader + aws_demos flash via rfp-cli 2-step method.
+
+ビルドマシンに .scfg が要求する FIT モジュールバージョンがインストールされていないことがビルドエラーの根本原因と判明。`tools/resolve_fit_modules.py` で不足モジュールの検出・ダウンロードを自動化。e2studio 2024-01 でヘッドレスビルド + SMC コード生成を検証成功。CC-RX v3.04 ベースラインで LCD 安定動作を確認（rfp-cli 2段階フラッシュ方式）。
+
+**Key findings / 主な知見:**
+- SMC は必要な FIT モジュールがローカルにない場合、エラーなしにコード生成をスキップする（サイレントスキップ）
+- aws_demos は 27 FIT モジュール、boot_loader は 11 モジュールに依存（計30ユニーク）
+- versions.xml (https://github.com/renesas/rx-driver-package/blob/master/versions.xml) に全697モジュールの URL が集約
+- e2studio ヘッドレスビルドでは `AWS_IOT_MCU_ROOT` パス変数をワークスペース `.metadata` に事前定義が必要
+- `-import` のパスは `file:///C:/...` URI 形式（`C:/...` はスキームエラー）
+- boot_loader + aws_demos は Config Area 衝突により1コマンドで同時書き込み不可 → 2段階フラッシュ
 
 ### 2026-03-01: CLI ビルド（make + CC-RX）検証
 
