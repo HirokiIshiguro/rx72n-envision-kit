@@ -42,11 +42,12 @@ RX72N Envision Kit の全機能を試せるようにする。
 |-------|------|--------|
 | 1 | e2studio ヘッドレスビルド（3プロジェクト） | Done |
 | 2 | flash（rfp-cli）+ UART テスト自動化 | Done (MR !9) |
-| 3 | e2studio 2024-01 / CC-RX v3.04 環境で既存機能の動作検証（AWS 接続、SD カードによるファームウェアアップデート、各種コマンドレスポンス） | Planned |
-| 4 | e2studio 2025-12 / CC-RX v3.07 に変更し、既存機能の動作検証（AWS 接続、SD カードによるファームウェアアップデート、各種コマンドレスポンス） | Planned |
-| 5 | FreeRTOS LTS 最新版適用（[iot-reference-rx](https://github.com/renesas/iot-reference-rx) 最新リリースタグ） | Planned |
-| 6 | AWS 接続を含む OTA テスト | Planned |
-| 7 | RX72N Envision Kit 複数台でのフリートプロビジョニング＋OTA 一斉実施の全自動テスト | Planned |
+| 3 | UART ダウンロード後のフリーズ現象の解析（2回に1回、boot_loader → aws_demos 転送後に画面表示なしでフリーズ） | Planned |
+| 4 | e2studio 2024-01 / CC-RX v3.04 環境で既存機能の動作検証（AWS 接続、SD カードによるファームウェアアップデート、各種コマンドレスポンス） | Planned |
+| 5 | e2studio 2025-12 / CC-RX v3.07 に変更し、既存機能の動作検証（AWS 接続、SD カードによるファームウェアアップデート、各種コマンドレスポンス） | Planned |
+| 6 | FreeRTOS LTS 最新版適用（[iot-reference-rx](https://github.com/renesas/iot-reference-rx) 最新リリースタグ） | Planned |
+| 7 | AWS 接続を含む OTA テスト | Planned |
+| 8 | RX72N Envision Kit 複数台でのフリートプロビジョニング＋OTA 一斉実施の全自動テスト | Planned |
 | - | UART テストスクリプトの共通ライブラリ化（[mcu-test/uart](https://shelty2.servegame.com/oss/experiment/generic/scripts/python/mcu-test) へ切り出し、git submodule で各プロジェクトから参照） | Planned |
 | - | mot_to_rsu コンバータの共通部品化（git submodule で各プロジェクトから参照） | Done (MR !12) |
 | - | UART ダウンロード高速化: COM7 (PMOD FTDI, 921600bps) への切替検討（要ファームウェア SCI ポート変更） | Planned |
