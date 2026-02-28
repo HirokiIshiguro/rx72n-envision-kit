@@ -1,8 +1,3 @@
-# FIXME: Phase 3 フリーズ現象の解析が完了するまでパイプラインを一時停止
-workflow:
-  rules:
-    - when: never
-
 stages:
   - build
   - flash
@@ -206,15 +201,29 @@ flash_boot_loader:
       Write-Host "  Tool:    E2 Lite ($env:E2LITE_SERIAL)"
       Write-Host "  I/F:     FINE"
     # rfp-cli で boot_loader を書き込み + 実行
-    # -run: 書き込み後にターゲットプログラムを実行開始
+    # -erase-chip: Config Area (BANKSEL 含む) も消去。通常の -e (= -erase) は Code Flash +
+    #   Data Flash のみ消去し Config Area は消去しない。前回の UART ダウンロードで
+    #   boot_loader が bank swap を実行すると BANKSEL が 0xF8 (bank1 起動) に反転する。
+    #   Config Area はフラッシュの性質上 1→0 書き換えのみ可能なため、-e だけでは
+    #   BANKSEL を 0xFF (bank0 起動) に戻せず、.mot 内の BANKSEL 値 (0xFFFFFFFF) と
+    #   デバイス上の値 (0xFFFFFFF8) が不一致となり verify が失敗する。
+    # -run: 書き込み後にターゲットプログラムを実行開始（必須、省略すると MCU 停止）
     # 注意: E2 Lite (RL78/G1C) と COM6 は同一 USB コンポジットデバイス上にあるため、
     #   rfp-cli のデバッガ切断時に USB バスが再初期化され、COM6 の受信バッファが
     #   失われる。boot_loader の UART バナー検証は download_aws_demos ステップで
     #   暗黙的に行う（boot_loader が応答しなければ UART ダウンロードがタイムアウト）。
     - |
       $mot = "$env:CI_PROJECT_DIR\$env:E2STUDIO_PROJECTS\boot_loader\HardwareDebug\rx72n_boot_loader.mot"
-      & "$env:RFP_CLI" -device RX72x -tool "e2l:$env:E2LITE_SERIAL" -if fine -speed 500K `
-        -auth id FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF -auto "$mot" -run -noquery
+      # Step 1: erase-chip（Config Area 含む全消去。-erase-chip は他の操作と併用不可）
+      & "$env:RFP_CLI" -device RX72x -tool "e2l:$env:E2LITE_SERIAL" -if fine -speed 1500K `
+        -auth id FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF -erase-chip -noquery
+      if ($LASTEXITCODE -ne 0) {
+        Write-Host "ERROR: Erase-chip failed with exit code $LASTEXITCODE"
+        exit 1
+      }
+      # Step 2: program + verify + run
+      & "$env:RFP_CLI" -device RX72x -tool "e2l:$env:E2LITE_SERIAL" -if fine -speed 1500K `
+        -auth id FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF -p "$mot" -v -run -noquery
       if ($LASTEXITCODE -ne 0) {
         Write-Host "ERROR: Flash failed with exit code $LASTEXITCODE"
         exit 1
