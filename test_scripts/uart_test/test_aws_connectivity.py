@@ -200,7 +200,9 @@ def send_reset(cmd_ser, timeout=10):
 
     # --- ステップ 3: リセット確認 ---
     # MCU がリセットされると COM6 (SCI2 115200) は無応答になるはず
-    time.sleep(3.0)
+    # 注: RX72N は約3秒で起動完了するため、1秒後にチェックする。
+    #      3秒待つと新しい aws_demos のプロンプトを拾って false negative になる。
+    time.sleep(1.0)
     cmd_ser.reset_input_buffer()
     cmd_ser.write(b"\r\n")
     cmd_ser.flush()
