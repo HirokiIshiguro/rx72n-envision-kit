@@ -1,6 +1,7 @@
 stages:
   - build
   - flash
+  - test
 
 variables:
   E2STUDIO: "C:\\Renesas\\e2_studio_2025_12\\eclipse\\e2studioc.exe"
@@ -284,3 +285,26 @@ download_aws_demos:
     paths:
       - userprog.rsu
     expire_in: 1 week
+
+test_commands:
+  stage: test
+  tags:
+    - run_ishiguro_machine
+  needs:
+    - job: download_aws_demos
+  variables:
+    # aws_demos のコマンドインターフェースは COM6 (SCI2, 115200bps)
+    COMMAND_PORT: "COM6"
+    COMMAND_BAUD_RATE: "115200"
+    COMMAND_TIMEOUT: "10"
+  script:
+    - pip install pyserial
+    # aws_demos は download_aws_demos ジョブで書き込み・起動済み。
+    # boot_loader の bank swap + reset 後に aws_demos が自動起動し、
+    # コマンドターミナルが SCI2 (COM6, 115200bps) で待機状態になっている。
+    - |
+      Write-Host "=== UART Command-Response Test ==="
+      Write-Host "  Port: $env:COMMAND_PORT @ ${env:COMMAND_BAUD_RATE}bps"
+      python "$env:CI_PROJECT_DIR\test_scripts\uart_test\test_aws_demos_commands.py" `
+        --port "$env:COMMAND_PORT" --baud $env:COMMAND_BAUD_RATE `
+        --timeout $env:COMMAND_TIMEOUT --initial-wait 10
