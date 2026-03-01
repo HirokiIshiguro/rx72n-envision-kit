@@ -163,6 +163,8 @@ def main():
     parser = argparse.ArgumentParser(
         description="AWS IoT Core connectivity test for aws_demos"
     )
+    parser.add_argument("--device-id",
+                        help="Device ID (loads config from device_config.json)")
     parser.add_argument("--cmd-port", default=DEFAULT_CMD_PORT,
                         help=f"Command serial port (default: {DEFAULT_CMD_PORT})")
     parser.add_argument("--cmd-baud", type=int, default=DEFAULT_CMD_BAUD,
@@ -176,6 +178,22 @@ def main():
     parser.add_argument("--skip-reset", action="store_true",
                         help="Skip device reset (assume already running)")
     args = parser.parse_args()
+
+    # --device-id が指定された場合、device_config.json からポート設定を解決
+    if args.device_id:
+        sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+        from device_config_loader import load_device_config
+        device = load_device_config(args.device_id)
+        print(f"[INFO] Loaded config for device: {args.device_id}")
+
+        if args.cmd_port == DEFAULT_CMD_PORT:
+            args.cmd_port = device["command_port"]
+        if args.cmd_baud == DEFAULT_CMD_BAUD:
+            args.cmd_baud = device["command_baud"]
+        if args.log_port == DEFAULT_LOG_PORT:
+            args.log_port = device["log_port"]
+        if args.log_baud == DEFAULT_LOG_BAUD:
+            args.log_baud = device["log_baud"]
 
     print("=" * 60)
     print("[INFO] AWS IoT Core Connectivity Test")

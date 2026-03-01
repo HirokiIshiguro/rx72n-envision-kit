@@ -185,15 +185,60 @@ def main():
                         help=f"Baud rate (default: {DEFAULT_BAUD})")
     parser.add_argument("--timeout", type=int, default=DEFAULT_TIMEOUT,
                         help=f"Command timeout in seconds (default: {DEFAULT_TIMEOUT})")
-    parser.add_argument("--endpoint", required=True,
+    parser.add_argument("--device-id",
+                        help="Device ID (loads config from device_config.json)")
+    parser.add_argument("--endpoint", default=None,
                         help="AWS IoT MQTT broker endpoint")
-    parser.add_argument("--thing-name", required=True,
+    parser.add_argument("--thing-name", default=None,
                         help="AWS IoT Thing name")
-    parser.add_argument("--cert", required=True,
+    parser.add_argument("--cert", default=None,
                         help="Path to client certificate PEM file")
-    parser.add_argument("--key", required=True,
+    parser.add_argument("--key", default=None,
                         help="Path to client private key PEM file")
     args = parser.parse_args()
+
+    # --device-id が指定された場合、device_config.json から設定を解決
+    if args.device_id:
+        sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+        from device_config_loader import (
+            load_device_config, get_cert_env_var_name, get_key_env_var_name
+        )
+        device = load_device_config(args.device_id)
+        print(f"[INFO] Loaded config for device: {args.device_id}")
+
+        # CLI 引数が未指定ならコンフィグの値を使用
+        if args.port == DEFAULT_PORT:
+            args.port = device["command_port"]
+        if args.baud == DEFAULT_BAUD:
+            args.baud = device["command_baud"]
+        if not args.endpoint:
+            args.endpoint = device["aws_endpoint"]
+        if not args.thing_name:
+            args.thing_name = device["thing_name"]
+        if not args.cert:
+            cert_var = get_cert_env_var_name(args.device_id)
+            args.cert = os.environ.get(cert_var)
+            if not args.cert:
+                print(f"[ERROR] Environment variable {cert_var} not set")
+                sys.exit(1)
+            print(f"[INFO] Certificate path from ${cert_var}")
+        if not args.key:
+            key_var = get_key_env_var_name(args.device_id)
+            args.key = os.environ.get(key_var)
+            if not args.key:
+                print(f"[ERROR] Environment variable {key_var} not set")
+                sys.exit(1)
+            print(f"[INFO] Private key path from ${key_var}")
+
+    # --device-id なしの場合、必須引数をチェック
+    if not args.endpoint:
+        parser.error("--endpoint is required (or use --device-id)")
+    if not args.thing_name:
+        parser.error("--thing-name is required (or use --device-id)")
+    if not args.cert:
+        parser.error("--cert is required (or use --device-id)")
+    if not args.key:
+        parser.error("--key is required (or use --device-id)")
 
     # ファイル存在チェック
     for path, desc in [(args.cert, "Certificate"), (args.key, "Private key")]:

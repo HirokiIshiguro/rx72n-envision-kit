@@ -15,6 +15,8 @@ variables:
   UART_PORT: "COM7"
   UART_BAUD_RATE: "921600"
   UART_TIMEOUT_SEC: "30"
+  # デバイス ID（device_config.json で定義、複数デバイス時に切り替え）
+  DEVICE_ID: "rx72n-01"
   # Git サブモジュール初期化（coreSNTP 等の外部ライブラリ）
   GIT_SUBMODULE_STRATEGY: recursive
   # Windows 260文字パス長制限の回避
@@ -362,9 +364,6 @@ provision_and_reset:
   timeout: 3 minutes
   needs:
     - job: test_screen_navigation
-  variables:
-    COMMAND_PORT: "COM6"
-    COMMAND_BAUD_RATE: "115200"
   before_script:
     - |
       Get-Process | Where-Object { $_.ProcessName -eq 'python' -and $_.Id -ne $PID } |
@@ -378,19 +377,13 @@ provision_and_reset:
     # AWS IoT Core プロビジョニング: 証明書・秘密鍵・エンドポイント・Thing名を
     # データフラッシュに書き込む。flash_boot_loader の -erase-chip でデータフラッシュが
     # 毎回消去されるため、パイプライン実行ごとにプロビジョニングが必要。
-    # AWS_CLIENT_CERT / AWS_PRIVATE_KEY は GitLab CI/CD の File 型変数で、
-    # Runner が一時ファイルに展開しそのパスが環境変数に入る。
+    # --device-id で device_config.json からポート・エンドポイント・Thing名を解決。
+    # 証明書は CI/CD File 型変数 AWS_CLIENT_CERT_{ID} / AWS_PRIVATE_KEY_{ID} から取得。
     - |
       Write-Host "=== AWS IoT Core Provisioning ==="
-      Write-Host "  Port: $env:COMMAND_PORT @ ${env:COMMAND_BAUD_RATE}bps"
-      Write-Host "  Endpoint: $env:AWS_MQTT_ENDPOINT"
-      Write-Host "  Thing: $env:AWS_IOT_THING_NAME"
+      Write-Host "  Device ID: $env:DEVICE_ID"
       python "$env:CI_PROJECT_DIR\test_scripts\uart_test\provision_aws.py" `
-        --port "$env:COMMAND_PORT" --baud $env:COMMAND_BAUD_RATE `
-        --endpoint "$env:AWS_MQTT_ENDPOINT" `
-        --thing-name "$env:AWS_IOT_THING_NAME" `
-        --cert "$env:AWS_CLIENT_CERT" `
-        --key "$env:AWS_PRIVATE_KEY"
+        --device-id "$env:DEVICE_ID"
 
 confirm_aws_mqtt:
   stage: test
@@ -399,11 +392,6 @@ confirm_aws_mqtt:
   timeout: 5 minutes
   needs:
     - job: provision_and_reset
-  variables:
-    COMMAND_PORT: "COM6"
-    COMMAND_BAUD_RATE: "115200"
-    UART_PORT: "COM7"
-    UART_BAUD_RATE: "921600"
   before_script:
     - |
       Get-Process | Where-Object { $_.ProcessName -eq 'python' -and $_.Id -ne $PID } |
@@ -414,15 +402,11 @@ confirm_aws_mqtt:
       Start-Sleep -Seconds 1
     - pip install pyserial
   script:
-    # AWS IoT Core MQTT 接続検証: MCU をリセットし、COM7 の FreeRTOS ログから
+    # AWS IoT Core MQTT 接続検証: MCU をリセットし、ログポートから
     # 3つのマイルストーン (DHCP, TLS, MQTT CONNACK) を検出する。
-    # test_aws_connectivity.py が COM6 で reset コマンドを送信し、
-    # COM7 (921600bps) でログを監視する。
+    # --device-id で device_config.json からコマンド/ログポートを解決。
     - |
       Write-Host "=== AWS IoT Core MQTT Connectivity Test ==="
-      Write-Host "  Cmd Port: $env:COMMAND_PORT @ ${env:COMMAND_BAUD_RATE}bps"
-      Write-Host "  Log Port: $env:UART_PORT @ ${env:UART_BAUD_RATE}bps"
+      Write-Host "  Device ID: $env:DEVICE_ID"
       python "$env:CI_PROJECT_DIR\test_scripts\uart_test\test_aws_connectivity.py" `
-        --cmd-port "$env:COMMAND_PORT" --cmd-baud $env:COMMAND_BAUD_RATE `
-        --log-port "$env:UART_PORT" --log-baud $env:UART_BAUD_RATE `
-        --timeout 120
+        --device-id "$env:DEVICE_ID" --timeout 120
