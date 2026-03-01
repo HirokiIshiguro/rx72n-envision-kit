@@ -202,11 +202,13 @@ def upload_rsu_to_sdcard(ser, rsu_path, filename="userprog.rsu"):
 def verify_sdcard_file(ser, filename="userprog.rsu"):
     """Phase 2: sdcard list でファイルの存在を確認する"""
     response = send_command(ser, "sdcard list", timeout=10)
-    if response and filename in response:
+    # FAT ファイルシステムは 8.3 形式でファイル名を大文字化するため
+    # case-insensitive で比較する
+    if response and filename.upper() in response.upper():
         print(f"[VERIFY] {filename} found on SD card")
         # ファイルサイズも表示
         for line in response.split("\n"):
-            if filename in line:
+            if filename.upper() in line.upper():
                 print(f"  >> {line.strip()}")
         return True
     else:
