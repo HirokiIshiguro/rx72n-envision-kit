@@ -74,6 +74,7 @@ Typedef definitions
 #define COMMAND_TIMEZONE 3
 #define COMMAND_RESET 4
 #define COMMAND_DATAFLASH 5
+#define COMMAND_TOUCH 6
 
 #define DATA_FLASH_STORE_SUCCESS "stored data into dataflash correctly.\n"
 #define DATA_FLASH_STORE_FAIL "could not store data into dataflash.\n"
@@ -507,6 +508,41 @@ void serial_terminal_task( void * pvParameters )
                             serial_terminal_putstring(task_info->hWin_serial_terminal, sci_handle, message_buffer);
                         }
                         break;
+                    case COMMAND_TOUCH:
+                    {
+                        int touch_x, touch_y;
+                        if(!strcmp((const char *)arg1, "any"))
+                        {
+                            touch_x = 240;
+                            touch_y = 136;
+                        }
+                        else
+                        {
+                            touch_x = atoi((const char *)arg1);
+                            touch_y = atoi((const char *)arg2);
+                        }
+                        if(touch_x < 0 || touch_x >= 480 || touch_y < 0 || touch_y >= 272)
+                        {
+                            sprintf(message_buffer, "touch: invalid coordinates (%d, %d)\n", touch_x, touch_y);
+                            serial_terminal_putstring(task_info->hWin_serial_terminal, sci_handle, message_buffer);
+                        }
+                        else
+                        {
+                            GUI_PID_STATE pid_state = {0};
+                            pid_state.Layer = 0;
+                            pid_state.x = touch_x;
+                            pid_state.y = touch_y;
+                            pid_state.Pressed = 1;
+                            GUI_TOUCH_StoreStateEx(&pid_state);
+                            vTaskDelay(50);
+                            pid_state.Pressed = 0;
+                            GUI_TOUCH_StoreStateEx(&pid_state);
+                            vTaskDelay(50);
+                            sprintf(message_buffer, "touch (%d, %d) OK\n", touch_x, touch_y);
+                            serial_terminal_putstring(task_info->hWin_serial_terminal, sci_handle, message_buffer);
+                        }
+                        break;
+                    }
                     default:
                         serial_terminal_putstring(task_info->hWin_serial_terminal, sci_handle, COMMAND_NOT_FOUND);
                         break;
@@ -557,6 +593,10 @@ static int32_t get_command_code(uint8_t *command)
     else if(!strcmp((char*)command, "dataflash"))
     {
         return_code = COMMAND_DATAFLASH;
+    }
+    else if(!strcmp((char*)command, "touch"))
+    {
+        return_code = COMMAND_TOUCH;
     }
     else
     {

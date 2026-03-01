@@ -324,3 +324,33 @@ test_commands:
       python "$env:CI_PROJECT_DIR\test_scripts\uart_test\test_aws_demos_commands.py" `
         --port "$env:COMMAND_PORT" --baud $env:COMMAND_BAUD_RATE `
         --timeout $env:COMMAND_TIMEOUT --prompt-timeout 60 --initial-wait 3
+
+test_screen_navigation:
+  stage: test
+  tags:
+    - run_ishiguro_machine
+  timeout: 3 minutes
+  needs:
+    - job: test_commands
+  variables:
+    COMMAND_PORT: "COM6"
+    COMMAND_BAUD_RATE: "115200"
+  before_script:
+    - |
+      Get-Process | Where-Object { $_.ProcessName -eq 'python' -and $_.Id -ne $PID } |
+        ForEach-Object {
+          Write-Host "[WARN] Killing stale Python PID=$($_.Id) StartTime=$($_.StartTime)"
+          Stop-Process -Id $_.Id -Force -ErrorAction SilentlyContinue
+        }
+      Start-Sleep -Seconds 1
+    - pip install pyserial
+  script:
+    # Screen 00 (タイトル) → Screen 01 (メイン) への画面遷移テスト。
+    # touch コマンドで疑似タッチイベントを注入し、AppWizard の画面遷移を実行。
+    # Screen 00 → 01 遷移には touch × 2 回が必要 (VAR_01 が 2 になると遷移条件成立)。
+    - |
+      Write-Host "=== Screen Navigation Test ==="
+      Write-Host "  Port: $env:COMMAND_PORT @ ${env:COMMAND_BAUD_RATE}bps"
+      python "$env:CI_PROJECT_DIR\test_scripts\uart_test\test_touch_navigation.py" `
+        --cmd-port "$env:COMMAND_PORT" --cmd-baud $env:COMMAND_BAUD_RATE `
+        --timeout 30 --prompt-timeout 30 --initial-wait 1
