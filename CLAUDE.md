@@ -543,6 +543,24 @@ CI/CD パイプラインで画面遷移（Screen 00→01）とボタンタッチ
   - `before_script` で残留 Python プロセスの強制終了（ポートロック対策）
 - `.gitlab-ci.yml`: `test_screen_navigation` ジョブ追加（test_commands 後に実行）
   - touch any × 2 で Screen 00→01 遷移、BUTTON_00/BUTTON_01 タッチ操作を検証
+- `.gitlab-ci.yml`: `provision_and_reset` ジョブ追加（test_screen_navigation 後に実行）
+  - `provision_aws.py --device-id "$env:DEVICE_ID"` で証明書・エンドポイント・Thing名を MCU に書き込み
+  - ソフトウェアリセット（`SYSTEM.SWRR = 0xa501`）で AWS 接続を開始
+- `.gitlab-ci.yml`: `confirm_aws_mqtt` ジョブ追加（provision_and_reset 後に実行）
+  - `test_aws_connectivity.py --device-id "$env:DEVICE_ID" --timeout 120` で DHCP/TLS/MQTT CONNACK を監視
+  - ジョブタイムアウト 5 分
+- `.gitlab-ci.yml`: グローバル変数 `DEVICE_ID: "rx72n-01"` 追加
+
+**デバイス ID 方式 (Phase 5-E):**
+- `test_scripts/device_config.json`: デバイスごとのハードウェア構成（COM ポート、E2 Lite シリアル、Thing 名等）
+- `test_scripts/device_config_loader.py`: コンフィグローダーユーティリティ
+  - `device_id_to_env_suffix()`: "rx72n-01" → "RX72N_01"（ハイフン→アンダースコア、大文字）
+  - 証明書環境変数名: `AWS_CLIENT_CERT_{SUFFIX}` / `AWS_PRIVATE_KEY_{SUFFIX}`
+- 証明書は GitLab CI/CD Variables (File 型) で管理
+  - **Visibility は Visible を使用**（Masked/Masked and hidden は PEM の空白文字でエラー）
+  - **Protected は No**（フィーチャーブランチで使用するため。本番鍵は Protected にすること）
+- `provision_aws.py`, `test_aws_connectivity.py`: `--device-id` 引数追加（後方互換あり）
+- 将来の複数デバイス同時運用（フリートプロビジョニング）を見据えた設計
 
 **AWS IoT Core 接続検証結果:**
 - DHCP → SNTP → TLS (port 8883) → MQTT CONNECT → Subscribe/Publish/Unsubscribe → 3/3 iterations PASS
@@ -550,12 +568,22 @@ CI/CD パイプラインで画面遷移（Screen 00→01）とボタンタッチ
 - `rfp-cli -erase-chip` でデータフラッシュも消去されるため、フラッシュ後に再プロビジョニングが必要
   - `rfp-cli -range-exclude 00100000,00107FFF` でデータフラッシュ保護が可能（未検証）
 
+**Windows GitLab Runner での注意点:**
+- `open()` に `encoding="utf-8"` を明示指定すること（デフォルト cp932 で日本語含む JSON が UnicodeDecodeError）
+- GitLab CI/CD File 型変数: 環境変数の値は一時ファイルのパス（内容ではない）
+- 初回 provision → confirm 実行時、二重リセットでタイミング問題が発生する可能性あり（リトライで解決）
+
+**アクションアイテム:**
+- device_config.json を共通プロジェクト（git submodule）に移行（他プロジェクトからも参照可能にする）
+- AWS ノウハウ集 (oss/experiment/cloud/aws) に CI/CD Variables 知見・cp932 問題を追記
+
 **CLAUDE.md changes / CLAUDE.md 変更:**
 - Phase 5 ステータス更新
 - LCD タッチ依存の完全解消（gui_initialize_complete_flag + 全4タスク通知）の知見を追記
 - AWS IoT Core 接続アーキテクチャ・プロビジョニング方法・PEM プロトコルの知見を追記
 - rfp-cli `-range-exclude` によるデータフラッシュ保護オプションを追記
-- アクションアイテム追加: AWS ノウハウ export、SD カード更新の完全自動化
+- デバイス ID 方式、CI/CD Variables 管理、Windows Runner 注意点を追記
+- アクションアイテム追加: AWS ノウハウ export、SD カード更新の完全自動化、device_config 共通化
 
 ### 2026-03-01: Phase 4 — boot_loader UART を COM7 (SCI7, 921600bps) に変更
 
