@@ -166,6 +166,7 @@ extern void vTaskClearUsage(void);
 extern void vTaskClearUsageSingleList(List_t *pxList);
 
 extern void firmware_version_read(char **ver_str);
+extern void firmware_update_update_file_search(TASK_INFO *task_info);
 
 /*******************************************************************************
  global variables and functions
@@ -685,9 +686,17 @@ void serial_terminal_task( void * pvParameters )
                                 serial_terminal_putstring(task_info->hWin_serial_terminal, sci_handle, message_buffer);
                             }
                         }
+                        else if(!strcmp((const char *)arg1, "rescan"))
+                        {
+                            /* Force the FW Update LISTBOX to re-scan SD card files.
+                             * Needed after sdcard write because sdcard_task only scans
+                             * on SD card attach events (physical insertion). */
+                            firmware_update_update_file_search(task_info);
+                            serial_terminal_putstring(task_info->hWin_serial_terminal, sci_handle, "rescan OK\r\n");
+                        }
                         else
                         {
-                            serial_terminal_putstring(task_info->hWin_serial_terminal, sci_handle, "usage: sdcard list|write|delete\r\n");
+                            serial_terminal_putstring(task_info->hWin_serial_terminal, sci_handle, "usage: sdcard list|write|delete|rescan\r\n");
                         }
                         break;
                     }

@@ -80,7 +80,7 @@ static void trap(void);
 
 static void firmware_update_list_add(TASK_INFO *task_info, char *pstring);
 static void firmware_update_list_clear(TASK_INFO *task_info);
-static void firmware_update_update_file_search(TASK_INFO *task_info);
+void firmware_update_update_file_search(TASK_INFO *task_info);
 static void firmware_update_ok_after_message(TASK_INFO *task_info);
 static void firmware_update_ng_after_message(TASK_INFO *task_info);
 static void firmware_update_file_size_progress_bar_string(TASK_INFO *task_info, uint32_t prog, uint32_t file_size, uint32_t processed_file_size);

@@ -219,7 +219,38 @@ def verify_sdcard_file(ser, filename="userprog.rsu"):
 
 
 def trigger_fw_update_gui(ser):
-    """Phase 3: touch コマンドで FW Update GUI を操作し更新を実行する"""
+    """Phase 3: touch コマンドで FW Update GUI を操作し更新を実行する
+
+    前提: confirm_aws_mqtt 後のデバイスは Screen 00（スプラッシュ画面）にいる。
+    provision_and_reset でデバイスがリセットされ、confirm_aws_mqtt は MQTT 監視のみで
+    画面操作を行わないため。
+    """
+    # --- Screen 00 → Screen 01 遷移 (touch any × 2) ---
+    print("[GUI] Passing splash screen (Screen 00 → Screen 01)...")
+    for i in range(1, 3):
+        resp = send_command(ser, "touch any", timeout=5)
+        if resp and "OK" in resp:
+            print(f"[GUI] touch any ({i}/2): OK")
+        else:
+            print(f"[WARN] touch any ({i}/2): {resp[:100] if resp else 'None'}")
+        time.sleep(1)
+
+    # Screen 01 ロード待ち
+    time.sleep(2)
+
+    # --- LISTBOX 強制リフレッシュ ---
+    # sdcard_task は SD カード attach イベント時のみファイルスキャンを行う。
+    # sdcard write で書き込んだファイルは LISTBOX に自動反映されないため、
+    # sdcard rescan コマンドで強制的に再スキャンする。
+    print("[GUI] Forcing LISTBOX refresh (sdcard rescan)...")
+    resp = send_command(ser, "sdcard rescan", timeout=5)
+    if resp and "rescan OK" in resp:
+        print("[GUI] LISTBOX rescan: OK")
+    else:
+        print(f"[WARN] LISTBOX rescan response: {resp[:100] if resp else 'None'}")
+    time.sleep(1)
+
+    # --- FW Update タブへ切り替え ---
     print("[GUI] Switching to FW Update tab...")
     resp = send_command(ser, "touch 434 10", timeout=5)
     if resp and "OK" in resp:
@@ -227,9 +258,10 @@ def trigger_fw_update_gui(ser):
     else:
         print(f"[WARN] FW Update tab response: {resp[:100] if resp else 'None'}")
 
-    # SD カードファイルスキャン待ち (sdcard_task の 1000ms ポーリング)
+    # ファイルリスト表示待ち
     time.sleep(2)
 
+    # --- LISTBOX からファイル選択 ---
     print("[GUI] Selecting file in LISTBOX...")
     resp = send_command(ser, "touch 77 34", timeout=5)
     if resp and "OK" in resp:
@@ -238,6 +270,7 @@ def trigger_fw_update_gui(ser):
         print(f"[WARN] File selection response: {resp[:100] if resp else 'None'}")
     time.sleep(0.5)
 
+    # --- Update ボタン押下 ---
     print("[GUI] Pressing Update button...")
     resp = send_command(ser, "touch 346 238", timeout=5)
     if resp and "OK" in resp:
