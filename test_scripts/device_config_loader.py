@@ -33,7 +33,7 @@ def load_device_config(device_id, config_path=None):
         ValueError: 指定の device_id が config に存在しない
     """
     path = config_path or DEFAULT_CONFIG_PATH
-    with open(path) as f:
+    with open(path, encoding="utf-8") as f:
         config = json.load(f)
 
     if device_id not in config["devices"]:
