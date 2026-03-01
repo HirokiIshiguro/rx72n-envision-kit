@@ -27,3 +27,8 @@
 |v1.0.4|dataflash|write tcpsendperformanceserverportnumber <port_number>|TCP送信性能測定サーバのポート番号を登録する。<port_number>の例：5001|
 |v2.0.0|dataflash|write tracealyzerserveripaddress <ip_address>|TracealyzerサーバのIPアドレスを登録する。<ip_address>の例：192.168.1.206|
 |v2.0.0|dataflash|write tracealyzerserverportnumber <port_number>|Tracealyzerサーバのポート番号を登録する。<port_number>の例：12000|
+|v2.1.0|touch|\<x\> \<y\>|指定座標 (x, y) にタッチイベントを発行する。0 <= x < 480, 0 <= y < 272。GUI ボタン操作の自動化に利用|
+|v2.1.0|touch|any|画面中央 (240, 136) にタッチイベントを発行する。起動時のスプラッシュスクリーンを通過するために使用|
+|v2.1.0|sdcard|list|SDカード内のファイル一覧（ファイル名とサイズ）を表示する|
+|v2.1.0|sdcard|write \<filename\> \<size\>|UART経由でバイナリデータを受信しSDカードにファイルを書き込む。ハンドシェイクプロトコル（READY/W/DONE）で転送制御|
+|v2.1.0|sdcard|delete \<filename\>|SDカードからファイルを削除する|

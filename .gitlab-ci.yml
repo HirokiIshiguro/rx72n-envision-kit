@@ -415,3 +415,39 @@ confirm_aws_mqtt:
       Write-Host "  Device ID: $env:DEVICE_ID"
       python "$env:CI_PROJECT_DIR\test_scripts\uart_test\test_aws_connectivity.py" `
         --device-id "$env:DEVICE_ID" --timeout 120
+
+test_sd_update:
+  stage: test
+  tags:
+    - run_ishiguro_machine
+  timeout: 10 minutes
+  needs:
+    - job: confirm_aws_mqtt
+    - job: download_aws_demos
+      artifacts: true
+  before_script:
+    - |
+      Get-Process | Where-Object { $_.ProcessName -eq 'python' -and $_.Id -ne $PID } |
+        ForEach-Object {
+          Write-Host "[WARN] Killing stale Python PID=$($_.Id) StartTime=$($_.StartTime)"
+          Stop-Process -Id $_.Id -Force -ErrorAction SilentlyContinue
+        }
+      Start-Sleep -Seconds 1
+    - pip install pyserial
+  script:
+    # SD カードファームウェアアップデートの統合テスト。
+    # 1. userprog.rsu を UART (sdcard write) 経由で SD カードに転送
+    # 2. touch コマンドで FW Update 画面に遷移し Update 実行
+    # 3. COM7 で boot_loader ログを監視（integrity check → bank swap → jump to user program）
+    # 4. aws_demos 再起動確認
+    # 5. SD カードから userprog.rsu を削除（次回パイプラインの boot_loader 干渉防止）
+    # confirm_aws_mqtt 後に実行: aws_demos が起動済みで Screen 00 表示状態。
+    # download_aws_demos の artifacts から userprog.rsu を取得。
+    - |
+      Write-Host "=== SD Card Firmware Update Test ==="
+      Write-Host "  Device ID: $env:DEVICE_ID"
+      Write-Host "  RSU file:  $env:CI_PROJECT_DIR\userprog.rsu"
+      python "$env:CI_PROJECT_DIR\test_scripts\uart_test\test_sd_update.py" `
+        --device-id "$env:DEVICE_ID" `
+        --rsu "$env:CI_PROJECT_DIR\userprog.rsu" `
+        --timeout 300

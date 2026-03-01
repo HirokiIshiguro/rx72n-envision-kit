@@ -24,6 +24,7 @@ PEM ストリーミングプロトコル:
 
 import argparse
 import os
+import re
 import sys
 import time
 
@@ -37,6 +38,33 @@ DEFAULT_TIMEOUT = 15
 PROMPT = "$ "
 STORE_SUCCESS = "stored data into dataflash correctly."
 STORE_FAIL = "could not store data into dataflash."
+
+
+def mask_sensitive_output(text):
+    """標準出力に表示する前に PRIVATE KEY の本体をマスクする。
+
+    PEM ヘッダ/フッタは表示し、本体の base64 部分を部分マスクする。
+    証明書 (CERTIFICATE) は公開情報のためマスクしない。
+    """
+    def _mask_pem_body(match):
+        header = match.group(1)
+        body = match.group(2)
+        footer = match.group(3)
+        # 先頭20文字 + ... + 末尾20文字
+        body_stripped = body.strip()
+        if len(body_stripped) > 48:
+            masked_body = body_stripped[:20] + "...***MASKED***..." + body_stripped[-20:]
+        else:
+            masked_body = "***MASKED***"
+        return f"{header}\n{masked_body}\n{footer}"
+
+    masked = re.sub(
+        r'(-----BEGIN [A-Z ]*PRIVATE KEY-----)\s*(.*?)\s*(-----END [A-Z ]*PRIVATE KEY-----)',
+        _mask_pem_body,
+        text,
+        flags=re.DOTALL
+    )
+    return masked
 
 
 def wait_for_prompt(ser, timeout=30):
@@ -351,7 +379,9 @@ def main():
 
         response = send_command(ser, "dataflash read", timeout=10)
         if response:
-            lines = response.replace("\r", "").split("\n")
+            # PRIVATE KEY の本体をマスクしてから表示
+            masked_response = mask_sensitive_output(response)
+            lines = masked_response.replace("\r", "").split("\n")
             for line in lines:
                 stripped = line.strip()
                 if stripped and stripped != "$" and "dataflash read" not in stripped:
