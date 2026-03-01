@@ -142,6 +142,7 @@ def upload_rsu_to_sdcard(ser, rsu_path, filename="userprog.rsu"):
 
     # バイナリ転送ループ
     start_time = time.time()
+    last_ack = None
     with open(rsu_path, "rb") as f:
         sent = 0
         chunk_count = 0
@@ -163,6 +164,7 @@ def upload_rsu_to_sdcard(ser, rsu_path, filename="userprog.rsu"):
                 print(f"\n[FAIL] Timeout waiting for ACK at {sent} bytes")
                 return False
 
+            last_ack = ack
             sent += len(chunk_data)
             chunk_count += 1
             pct = sent * 100 // file_size
@@ -171,7 +173,12 @@ def upload_rsu_to_sdcard(ser, rsu_path, filename="userprog.rsu"):
             print(f"\r[UPLOAD] {sent}/{file_size} ({pct}%) [{speed:.1f} KB/s]", end="", flush=True)
 
     # DONE 待ち
-    done = wait_for_marker(ser, "DONE", timeout=10)
+    # 注意: MCU は最後のチャンクに対して W と DONE を連続送信するため、
+    # 最後の W ACK のバッファに DONE が含まれている場合がある
+    if last_ack and "DONE" in last_ack:
+        done = last_ack
+    else:
+        done = wait_for_marker(ser, "DONE", timeout=30)
     elapsed = time.time() - start_time
     print()
     if done is None:
