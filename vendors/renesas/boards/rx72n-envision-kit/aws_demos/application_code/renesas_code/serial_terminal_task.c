@@ -167,6 +167,9 @@ extern void vTaskClearUsageSingleList(List_t *pxList);
 
 extern void firmware_version_read(char **ver_str);
 extern void firmware_update_update_file_search(TASK_INFO *task_info);
+extern int firmware_update_listbox_get_num_items(TASK_INFO *task_info);
+extern int firmware_update_listbox_get_sel(TASK_INFO *task_info);
+extern void firmware_update_listbox_set_sel(TASK_INFO *task_info, int sel);
 
 /*******************************************************************************
  global variables and functions
@@ -694,9 +697,62 @@ void serial_terminal_task( void * pvParameters )
                             firmware_update_update_file_search(task_info);
                             serial_terminal_putstring(task_info->hWin_serial_terminal, sci_handle, "rescan OK\r\n");
                         }
+                        else if(!strcmp((const char *)arg1, "update"))
+                        {
+                            /* sdcard update <filename>
+                             * Directly trigger firmware update without GUI interaction.
+                             * Calls firmware_update_request() which is the same function
+                             * that the FW Update BUTTON_03 (START) callback uses.
+                             * The sdcard_task loop will process the update, and after
+                             * completion will set software_reset_requested_flag to trigger
+                             * a software reset. */
+                            if(arg2[0] == '\0')
+                            {
+                                serial_terminal_putstring(task_info->hWin_serial_terminal, sci_handle, "usage: sdcard update <filename>\r\n");
+                            }
+                            else if(true == is_firmware_updating())
+                            {
+                                serial_terminal_putstring(task_info->hWin_serial_terminal, sci_handle, "ERROR: firmware update already in progress\r\n");
+                            }
+                            else
+                            {
+                                firmware_update_request((char *)arg2);
+                                sprintf(message_buffer, "firmware update started: %s\r\n", (char *)arg2);
+                                serial_terminal_putstring(task_info->hWin_serial_terminal, sci_handle, message_buffer);
+                            }
+                        }
+                        else if(!strcmp((const char *)arg1, "status"))
+                        {
+                            /* sdcard status
+                             * Report LISTBOX state for debugging GUI touch issues.
+                             * Returns number of items and current selection index. */
+                            int num_items = firmware_update_listbox_get_num_items(task_info);
+                            int sel = firmware_update_listbox_get_sel(task_info);
+                            sprintf(message_buffer, "listbox items=%d sel=%d\r\n", num_items, sel);
+                            serial_terminal_putstring(task_info->hWin_serial_terminal, sci_handle, message_buffer);
+                        }
+                        else if(!strcmp((const char *)arg1, "select"))
+                        {
+                            /* sdcard select <index>
+                             * Programmatically select a LISTBOX item by index.
+                             * Equivalent to touching the item in the LISTBOX. */
+                            int sel_index = atoi((const char *)arg2);
+                            int num_items = firmware_update_listbox_get_num_items(task_info);
+                            if(sel_index < 0 || sel_index >= num_items)
+                            {
+                                sprintf(message_buffer, "ERROR: index %d out of range (0..%d)\r\n", sel_index, num_items - 1);
+                                serial_terminal_putstring(task_info->hWin_serial_terminal, sci_handle, message_buffer);
+                            }
+                            else
+                            {
+                                firmware_update_listbox_set_sel(task_info, sel_index);
+                                sprintf(message_buffer, "selected %d\r\n", sel_index);
+                                serial_terminal_putstring(task_info->hWin_serial_terminal, sci_handle, message_buffer);
+                            }
+                        }
                         else
                         {
-                            serial_terminal_putstring(task_info->hWin_serial_terminal, sci_handle, "usage: sdcard list|write|delete|rescan\r\n");
+                            serial_terminal_putstring(task_info->hWin_serial_terminal, sci_handle, "usage: sdcard list|write|delete|rescan|update|status|select\r\n");
                         }
                         break;
                     }

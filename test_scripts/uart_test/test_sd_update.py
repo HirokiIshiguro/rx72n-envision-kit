@@ -224,6 +224,13 @@ def trigger_fw_update_gui(ser):
     前提: confirm_aws_mqtt 後のデバイスは Screen 00（スプラッシュ画面）にいる。
     provision_and_reset でデバイスがリセットされ、confirm_aws_mqtt は MQTT 監視のみで
     画面操作を行わないため。
+
+    GUI 操作フロー:
+      1. Screen 00 → Screen 01 遷移 (touch any × 2)
+      2. sdcard rescan で LISTBOX 強制リフレッシュ
+      3. FW Update タブへ切り替え (touch BUTTON_01)
+      4. LISTBOX でファイル選択 (touch → sdcard status で確認 → 失敗時 sdcard select で補完)
+      5. Update ボタン押下 (touch BUTTON_03)
     """
     # --- Screen 00 → Screen 01 遷移 (touch any × 2) ---
     print("[GUI] Passing splash screen (Screen 00 → Screen 01)...")
@@ -239,9 +246,6 @@ def trigger_fw_update_gui(ser):
     time.sleep(2)
 
     # --- LISTBOX 強制リフレッシュ ---
-    # sdcard_task は SD カード attach イベント時のみファイルスキャンを行う。
-    # sdcard write で書き込んだファイルは LISTBOX に自動反映されないため、
-    # sdcard rescan コマンドで強制的に再スキャンする。
     print("[GUI] Forcing LISTBOX refresh (sdcard rescan)...")
     resp = send_command(ser, "sdcard rescan", timeout=5)
     if resp and "rescan OK" in resp:
@@ -250,8 +254,13 @@ def trigger_fw_update_gui(ser):
         print(f"[WARN] LISTBOX rescan response: {resp[:100] if resp else 'None'}")
     time.sleep(1)
 
+    # --- LISTBOX 状態確認 (rescan 後) ---
+    resp = send_command(ser, "sdcard status", timeout=5)
+    if resp:
+        print(f"[DIAG] LISTBOX after rescan: {[l.strip() for l in resp.split(chr(10)) if 'listbox' in l]}")
+
     # --- FW Update タブへ切り替え ---
-    print("[GUI] Switching to FW Update tab...")
+    print("[GUI] Switching to FW Update tab (touch 434 10)...")
     resp = send_command(ser, "touch 434 10", timeout=5)
     if resp and "OK" in resp:
         print("[GUI] FW Update tab: OK")
@@ -261,17 +270,65 @@ def trigger_fw_update_gui(ser):
     # ファイルリスト表示待ち
     time.sleep(2)
 
-    # --- LISTBOX からファイル選択 ---
-    print("[GUI] Selecting file in LISTBOX...")
-    resp = send_command(ser, "touch 77 34", timeout=5)
+    # --- LISTBOX からファイル選択 (touch + 診断 + フォールバック) ---
+    # LISTBOX_00 絶対座標: (2, 24) - (152, 224)
+    # 先頭行の中心 y ≈ 24 + 10 = 34
+    print("[GUI] Selecting file in LISTBOX (touch 77 50)...")
+    resp = send_command(ser, "touch 77 50", timeout=5)
     if resp and "OK" in resp:
-        print("[GUI] File selection: OK")
+        print("[GUI] LISTBOX touch: OK")
     else:
-        print(f"[WARN] File selection response: {resp[:100] if resp else 'None'}")
+        print(f"[WARN] LISTBOX touch response: {resp[:100] if resp else 'None'}")
     time.sleep(0.5)
 
+    # LISTBOX 選択状態を診断
+    resp = send_command(ser, "sdcard status", timeout=5)
+    listbox_sel = -1
+    listbox_items = 0
+    if resp:
+        for line in resp.split("\n"):
+            if "listbox" in line:
+                print(f"[DIAG] LISTBOX state: {line.strip()}")
+                # "listbox items=1 sel=0" の形式をパース
+                parts = line.strip().split()
+                for part in parts:
+                    if part.startswith("sel="):
+                        listbox_sel = int(part.split("=")[1])
+                    elif part.startswith("items="):
+                        listbox_items = int(part.split("=")[1])
+
+    if listbox_items == 0:
+        print("[FAIL] LISTBOX is empty (no .rsu files found)")
+        return False
+
+    if listbox_sel == -1:
+        # touch による選択が失敗 → sdcard select でフォールバック
+        print("[WARN] Touch did not select LISTBOX item, using sdcard select 0...")
+        resp = send_command(ser, "sdcard select 0", timeout=5)
+        if resp and "selected" in resp:
+            print("[GUI] Programmatic selection: OK")
+        else:
+            print(f"[WARN] Programmatic selection response: {resp[:100] if resp else 'None'}")
+        time.sleep(0.5)
+
+        # 再確認
+        resp = send_command(ser, "sdcard status", timeout=5)
+        if resp:
+            for line in resp.split("\n"):
+                if "listbox" in line:
+                    print(f"[DIAG] LISTBOX after select: {line.strip()}")
+                    for part in line.strip().split():
+                        if part.startswith("sel="):
+                            listbox_sel = int(part.split("=")[1])
+        if listbox_sel == -1:
+            print("[FAIL] Could not select LISTBOX item")
+            return False
+    else:
+        print(f"[GUI] LISTBOX selection confirmed: index={listbox_sel}")
+
     # --- Update ボタン押下 ---
-    print("[GUI] Pressing Update button...")
+    # BUTTON_03 絶対座標: (306, 230) - (386, 246), center (346, 238)
+    print("[GUI] Pressing Update button (touch 346 238)...")
     resp = send_command(ser, "touch 346 238", timeout=5)
     if resp and "OK" in resp:
         print("[GUI] Update button: OK")
@@ -476,11 +533,16 @@ def main():
         print("[PHASE 3/5] Triggering firmware update via GUI")
         print("=" * 60)
 
-        # COM7 をフォーム更新前に開いておく（boot_loader ログを逃さない）
+        # COM7 をファームウェア更新前に開いておく（boot_loader ログを逃さない）
         log_ser = serial.Serial(log_port, log_baud, timeout=0)
         log_ser.reset_input_buffer()
 
-        trigger_fw_update_gui(cmd_ser)
+        if not trigger_fw_update_gui(cmd_ser):
+            print("[FAIL] Could not trigger firmware update via GUI")
+            cmd_ser.close()
+            log_ser.close()
+            sys.exit(1)
+
         cmd_ser.close()
         print("[INFO] Command port closed. Waiting for MCU reset...")
 

@@ -342,6 +342,27 @@ void firmware_update_list_clear(TASK_INFO *task_info)
     }
 }
 
+int firmware_update_listbox_get_num_items(TASK_INFO *task_info)
+{
+    WM_HWIN hItem;
+    hItem = WM_GetDialogItem(task_info->hWin_firmware_update_via_sd_card, ID_LISTBOX_00);
+    return (int)LISTBOX_GetNumItems(hItem);
+}
+
+int firmware_update_listbox_get_sel(TASK_INFO *task_info)
+{
+    WM_HWIN hItem;
+    hItem = WM_GetDialogItem(task_info->hWin_firmware_update_via_sd_card, ID_LISTBOX_00);
+    return LISTBOX_GetSel(hItem);
+}
+
+void firmware_update_listbox_set_sel(TASK_INFO *task_info, int sel)
+{
+    WM_HWIN hItem;
+    hItem = WM_GetDialogItem(task_info->hWin_firmware_update_via_sd_card, ID_LISTBOX_00);
+    LISTBOX_SetSel(hItem, sel);
+}
+
 void firmware_update_ok_after_message(TASK_INFO *task_info)
 {
     APPW_SetValue(ID_SCREEN_01, ID_PROGBAR_00, 100);
