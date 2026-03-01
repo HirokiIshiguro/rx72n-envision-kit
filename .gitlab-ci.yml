@@ -4,7 +4,7 @@ stages:
   - test
 
 variables:
-  E2STUDIO: "C:\\Renesas\\e2_studio_2025_12\\eclipse\\e2studioc.exe"
+  E2STUDIO: "C:\\Renesas\\e2_studio_2024_01_1\\eclipse\\e2studioc.exe"
   WORKSPACE: "C:\\workspace_rx72n"
   E2STUDIO_PROJECTS: "projects\\renesas\\rx72n_envision_kit\\e2studio"
   # Renesas Flash Programmer CLI

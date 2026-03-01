@@ -56,8 +56,10 @@ RX72N Envision Kit の全機能を試せるようにする。
 
 ### Build environment / ビルド環境
 
-- **IDE:** e2 studio 2025-12（`C:\Renesas\e2_studio_2025_12\eclipse\e2studioc.exe`）
-  - e2 studio 2024-01 でもビルド確認済み（upstream v2.0.2 タグ当時の推定バージョン）
+- **IDE:** e2 studio 2024-01（`C:\Renesas\e2_studio_2024_01_1\eclipse\e2studioc.exe`）
+  - **重要:** CI と GUI で必ず同じ e2 studio バージョンを使うこと（SMC 生成物・Makefile テンプレートが異なり、バイナリ互換性が壊れる）
+  - e2 studio バージョン変更時は smc_gen 再生成 → コミット → MOT 比較 → 実機検証 が必須
+  - Phase 6 で e2 studio 2025-12 / CC-RX v3.07 への移行を予定
 - **Compiler:** CC-RX v3.04.00（3プロジェクト共通。v3.07.00 は LCD 消灯バグあり、MR !11 で戻し）
 - **Runner tag:** `run_ishiguro_machine`（Windows 11、RX72N Envision Kit 物理接続済み）
 - **Workspace:** `C:\workspace_rx72n`（hello_world とは別ディレクトリ）
