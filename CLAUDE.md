@@ -499,8 +499,8 @@ python test_scripts/uart_test/provision_aws.py \
 - 証明書・秘密鍵: `certs/` ディレクトリ（.gitignore で除外、秘密情報）
 
 **COM7 ログ出力のボーレート:**
-- `r_bsp_config.h` の `MY_BSP_CFG_AFR_TERM_SCI_BITRATE` = `912600`（921600 の近似値、誤差約1%で通信可能）
-- テストスクリプトは 921600bps で接続し正常動作を確認
+- `r_bsp_config.h` の `MY_BSP_CFG_AFR_TERM_SCI_BITRATE` = `921600`（boot_loader と統一）
+- テストスクリプトも 921600bps で接続
 
 ## Changelog / 変更履歴
 
