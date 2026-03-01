@@ -302,17 +302,16 @@ test_commands:
     # ポートロック対策: 前回ジョブの残留プロセスが COM ポートを掴んでいる場合がある。
     # ジョブ停止時に Python プロセスが正常終了せずシリアルポートがロックされると、
     # 次回ジョブで PermissionError になる。
+    # 注意: Get-Process -Name python は該当プロセスがないと $? が $false になり、
+    #   GitLab Runner の PowerShell ラッパーが exit 1 する。
+    #   Get-Process（名前指定なし）+ Where-Object でフィルタすることで回避。
     - |
-      $stale = Get-Process python -ErrorAction SilentlyContinue |
-        Where-Object { $_.Id -ne $PID }
-      if ($stale) {
-        Write-Host "[WARN] Killing stale Python processes that may hold COM port:"
-        $stale | ForEach-Object {
-          Write-Host "  PID=$($_.Id) StartTime=$($_.StartTime)"
+      Get-Process | Where-Object { $_.ProcessName -eq 'python' -and $_.Id -ne $PID } |
+        ForEach-Object {
+          Write-Host "[WARN] Killing stale Python PID=$($_.Id) StartTime=$($_.StartTime)"
           Stop-Process -Id $_.Id -Force -ErrorAction SilentlyContinue
         }
-        Start-Sleep -Seconds 2
-      }
+      Start-Sleep -Seconds 1
     - pip install pyserial
   script:
     # aws_demos は download_aws_demos ジョブで書き込み・起動済み。
