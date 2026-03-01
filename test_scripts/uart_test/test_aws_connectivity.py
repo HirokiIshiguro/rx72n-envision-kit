@@ -77,6 +77,7 @@ class MilestoneMonitor:
         self.detected = {}
         self.errors = []
         self.all_lines = []
+        self.rx_bytes_total = 0  # COM7 受信バイト数（診断用）
         self.lock = threading.Lock()
         self.stop_event = threading.Event()
 
@@ -130,6 +131,8 @@ def log_monitor_thread(ser, monitor):
             if n > 0:
                 chunk = ser.read(n)
                 buf += chunk
+                with monitor.lock:
+                    monitor.rx_bytes_total += len(chunk)
                 # 行単位で処理
                 while b"\n" in buf:
                     line_bytes, buf = buf.split(b"\n", 1)
@@ -142,21 +145,81 @@ def log_monitor_thread(ser, monitor):
 
 
 def send_reset(cmd_ser, timeout=10):
-    """COM6 で reset コマンドを送信"""
-    print("[INFO] Sending reset command via COM6...")
+    """COM6 で reset コマンドを送信し、リセット実行を検証する
 
-    # プロンプト待ち
+    検証ステップ:
+      1. プロンプト確認 — COM6 に \\r\\n を送り "$" が返るか (最大3回)
+      2. reset コマンド送信
+      3. リセット確認 — MCU リスタートにより COM6 が無応答になるか
+
+    Returns:
+        True  — リセットが実行された（COM6 無応答を確認）
+        False — リセット失敗の可能性あり
+    """
+    print("[INFO] Verifying COM6 prompt before reset...")
+
+    # --- ステップ 1: プロンプト確認 ---
+    prompt_detected = False
+    for attempt in range(1, 4):
+        cmd_ser.reset_input_buffer()
+        cmd_ser.write(b"\r\n")
+        cmd_ser.flush()
+
+        buf = b""
+        poll_start = time.time()
+        while (time.time() - poll_start) < 2.0:
+            n = cmd_ser.in_waiting
+            if n > 0:
+                buf += cmd_ser.read(n)
+                decoded = buf.decode("utf-8", errors="replace")
+                if "$" in decoded:
+                    prompt_detected = True
+                    break
+            else:
+                time.sleep(0.05)
+
+        decoded = buf.decode("utf-8", errors="replace").strip()
+        if prompt_detected:
+            print(f"[INFO] Prompt detected on attempt {attempt}")
+            print(f"[DEBUG] COM6 response: {decoded[:120]}")
+            break
+        else:
+            print(f"[WARN] Attempt {attempt}: no prompt. "
+                  f"RX bytes={len(buf)}, data={decoded[:80]!r}")
+
+    if not prompt_detected:
+        print("[ERROR] COM6 prompt NOT detected — MCU may not be responsive")
+        print("[ERROR] Sending reset anyway, but it may not take effect")
+
+    # --- ステップ 2: reset コマンド送信 ---
+    cmd_ser.reset_input_buffer()
+    time.sleep(0.1)
+    cmd_ser.write(b"reset\r\n")
+    cmd_ser.flush()
+    print("[INFO] Reset command sent.")
+
+    # --- ステップ 3: リセット確認 ---
+    # MCU がリセットされると COM6 (SCI2 115200) は無応答になるはず
+    time.sleep(3.0)
     cmd_ser.reset_input_buffer()
     cmd_ser.write(b"\r\n")
     cmd_ser.flush()
-    time.sleep(0.5)
-    if cmd_ser.in_waiting > 0:
-        cmd_ser.read(cmd_ser.in_waiting)
+    time.sleep(1.0)
 
-    # reset コマンド送信
-    cmd_ser.write(b"reset\r\n")
-    cmd_ser.flush()
-    print("[INFO] Reset command sent. MCU will restart.")
+    post_buf = b""
+    if cmd_ser.in_waiting > 0:
+        post_buf = cmd_ser.read(cmd_ser.in_waiting)
+    post_decoded = post_buf.decode("utf-8", errors="replace").strip()
+
+    if "$" in post_decoded:
+        print("[WARN] Prompt STILL detected after reset — MCU may NOT have reset!")
+        print(f"[DEBUG] Post-reset COM6: {post_decoded[:120]}")
+        return False
+    else:
+        print("[INFO] No prompt after reset — MCU appears to be resetting (expected)")
+        if post_decoded:
+            print(f"[DEBUG] Post-reset COM6 data: {post_decoded[:120]}")
+        return True
 
 
 def main():
@@ -218,6 +281,7 @@ def main():
         thread = threading.Thread(target=log_monitor_thread, args=(log_ser, monitor), daemon=True)
         thread.start()
 
+        reset_ok = True
         if not args.skip_reset:
             # COM6 コマンドポートを開く
             cmd_ser = serial.Serial(args.cmd_port, args.cmd_baud, timeout=0)
@@ -225,20 +289,24 @@ def main():
             cmd_ser.reset_input_buffer()
             print(f"[INFO] Opened cmd port: {args.cmd_port} at {args.cmd_baud} bps")
 
-            # リセット送信
-            send_reset(cmd_ser)
+            # リセット送信（検証付き）
+            reset_ok = send_reset(cmd_ser)
 
-            # COM6 を閉じる（リセット後は使えなくなる）
-            time.sleep(1)
+            # COM6 を閉じる
             cmd_ser.close()
             cmd_ser = None
-            print("[INFO] Closed cmd port (MCU resetting)")
+            print("[INFO] Closed cmd port")
+
+            if not reset_ok:
+                print("[WARN] Reset verification failed — continuing to monitor, "
+                      "but results may be unreliable")
 
         # マイルストーン監視
         print()
         print(f"[INFO] Monitoring COM7 for connection milestones (timeout={args.timeout}s)...")
         start = time.time()
         last_status = 0
+        early_check_done = False
 
         while (time.time() - start) < args.timeout:
             if monitor.all_detected():
@@ -246,13 +314,33 @@ def main():
                 print(f"\n[INFO] All milestones detected in {elapsed:.1f}s")
                 break
 
-            # 30秒ごとにステータス表示
             elapsed = time.time() - start
+
+            # 15秒経過時の診断チェック: COM7 から何かデータが来ているか？
+            if not early_check_done and elapsed >= 15:
+                early_check_done = True
+                with monitor.lock:
+                    rx_total = monitor.rx_bytes_total
+                    line_count = len(monitor.all_lines)
+                if rx_total == 0:
+                    print(f"[DIAG] 15s elapsed: COM7 received 0 bytes — "
+                          f"MCU may not have booted!")
+                    if not reset_ok:
+                        print(f"[DIAG] Combined with reset verification failure, "
+                              f"reset likely did NOT work")
+                else:
+                    print(f"[DIAG] 15s elapsed: COM7 received {rx_total} bytes, "
+                          f"{line_count} lines — MCU is outputting")
+
+            # 30秒ごとにステータス表示
             if int(elapsed) // 30 > last_status:
                 last_status = int(elapsed) // 30
+                with monitor.lock:
+                    rx_total = monitor.rx_bytes_total
                 report, errors = monitor.get_report()
                 detected = sum(1 for _, ok, _, _ in report if ok)
-                print(f"[INFO] {elapsed:.0f}s elapsed: {detected}/{len(report)} milestones detected")
+                print(f"[INFO] {elapsed:.0f}s elapsed: {detected}/{len(report)} milestones, "
+                      f"COM7 RX={rx_total} bytes")
 
             time.sleep(0.5)
 
@@ -278,6 +366,12 @@ def main():
     print()
     print("=" * 60)
     report, errors = monitor.get_report()
+    with monitor.lock:
+        rx_total = monitor.rx_bytes_total
+        line_count = len(monitor.all_lines)
+
+    print(f"  [INFO] COM7 total: {rx_total} bytes, {line_count} lines received")
+    print()
 
     for name, ok, description, line in report:
         status = "PASS" if ok else "FAIL"
@@ -300,11 +394,27 @@ def main():
     else:
         detected = sum(1 for _, ok, _, _ in report if ok)
         print(f"[FAIL] Only {detected}/{len(report)} milestones detected")
-        if not any(ok for _, ok, _, _ in report):
-            print("[HINT] No milestones detected - check:")
+
+        # 診断ヒント
+        if rx_total == 0:
+            print("[DIAG] COM7 received 0 bytes during entire monitoring period")
+            print("[DIAG] Possible causes:")
+            print("  1. Reset command did not reach MCU (COM6 not responsive)")
+            print("  2. MCU crashed at boot (before any UART output)")
+            print("  3. COM7 port issue (wrong port, baud rate, or held by other process)")
+            print("  4. Boot loader did not jump to user program")
+            if not reset_ok:
+                print("[DIAG] ** Reset verification FAILED — cause #1 is most likely **")
+        elif not any(ok for _, ok, _, _ in report):
+            print("[HINT] COM7 received data but no milestones matched:")
             print("  - Is the device provisioned? (run provision_aws.py)")
             print("  - Is Ethernet connected?")
             print("  - Is the MQTT broker endpoint correct?")
+            # 受信した行の先頭数行を表示（デバッグ用）
+            print("[DIAG] First lines received on COM7:")
+            with monitor.lock:
+                for i, line in enumerate(monitor.all_lines[:10]):
+                    print(f"  [{i+1}] {line.strip()[:100]}")
         sys.exit(1)
 
 
