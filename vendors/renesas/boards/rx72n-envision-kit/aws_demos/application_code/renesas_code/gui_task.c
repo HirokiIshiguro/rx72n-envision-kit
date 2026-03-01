@@ -130,11 +130,20 @@ void gui_task( void * pvParameters )
     APPW_Init(APPW_PROJECT_PATH);
     APPW_CreateRoot(APPW_INITIAL_SCREEN, WM_HBKWIN);
 
-    /* notify serial_terminal_task that GUI initialization is complete.
-     * serial_terminal_task only uses SCI (UART), not LCD windows,
-     * so it can start without waiting for the first LCD touch event.
-     * This enables CI/CD automated testing via UART without manual LCD touch. */
+    /* GUI initialization is complete. Set the flag so uart_string_printf()
+     * can start sending log output on COM7 (SCI7). Without this flag,
+     * all logging via configPRINTF is blocked. */
+    task_info->gui_initialize_complete_flag = 1;
+
+    /* Notify all tasks that GUI initialization is complete.
+     * Originally this was triggered by the first LCD touch event
+     * (ID_SCREEN_00__APPW_NOTIFICATION_PIDPRESSED in ID_SCREEN_00_Slots.c).
+     * Moving it here removes the LCD touch dependency, enabling CI/CD
+     * automated testing and headless AWS IoT Core connectivity. */
     xTaskNotifyGive(task_info->serial_terminal_task_handle);
+    xTaskNotifyGive(task_info->task_manager_task_handle);
+    xTaskNotifyGive(task_info->sdcard_task_handle);
+    xTaskNotifyGive(task_info->serial_flash_task_handle);
 
 #if 0
     /* generate frame window */

@@ -1,29 +1,21 @@
 #!/usr/bin/env python3
 """
-AWS IoT Core Provisioning Script for aws_demos
-RX72N Envision Kit の aws_demos に AWS 認証情報を UART 経由でプロビジョニングする
+AWS IoT Core Device Provisioning Script
+RX72N Envision Kit のデータフラッシュに AWS 認証情報を UART 経由で書き込む。
 
-aws_demos のコマンドターミナル (SCI2, COM6, 115200bps) を通じて、
-データフラッシュに以下の AWS 認証情報を書き込む:
-  1. MQTT Broker Endpoint
-  2. IoT Thing Name
-  3. Client Certificate (PEM)
-  4. Client Private Key (PEM)
-  5. Code Signer Certificate (PEM) — OTA 用
+プロビジョニング対象:
+  - MQTT broker endpoint (dataflash write aws mqttbrokerendpoint <url>)
+  - IoT Thing name        (dataflash write aws iotthingname <name>)
+  - Client certificate     (dataflash write aws clientcertificate → PEM streaming)
+  - Client private key     (dataflash write aws clientprivatekey → PEM streaming)
 
-PEM 入力モード:
-  "dataflash write aws clientprivatekey" 等のコマンド実行後、
-  MCU は PEM 入力待ち状態に遷移する。
-  PEM テキスト全体を送信し、"-----END ..." 行を検出すると自動的に保存される。
-  "exit" / "quit" でキャンセル可能。
-
-使用例:
-  python provision_aws.py \\
-    --endpoint abcdefg1234567-ats.iot.ap-northeast-1.amazonaws.com \\
-    --thing-name RX72N-EnvisionKit-01 \\
-    --cert path/to/device-cert.pem \\
-    --key path/to/private-key.pem \\
-    [--code-signer-cert path/to/code-signer-cert.pem]
+PEM ストリーミングプロトコル:
+  ファームウェア (serial_terminal_task.c) は PEM コマンド受信後、
+  文字単位で xQueueReceive で受信し sci_buffer (2048 bytes) に蓄積する。
+  終了マーカー検出で保存:
+    - 秘密鍵: "-----END RSA PRIVATE KEY-----\\n"
+    - 証明書: "-----END CERTIFICATE-----\\n"
+  重要: ラインエンディングは LF (\\n) のみ。CRLF だと終了マーカー不一致。
 
 環境変数:
   COMMAND_PORT      : シリアルポート (デフォルト: COM6)
@@ -37,262 +29,315 @@ import time
 
 import serial
 
+# --- 定数 ---
 DEFAULT_PORT = os.environ.get("COMMAND_PORT", "COM6")
 DEFAULT_BAUD = int(os.environ.get("COMMAND_BAUD_RATE", "115200"))
+DEFAULT_TIMEOUT = 15
+
 PROMPT = "$ "
-STORE_SUCCESS = "stored data into dataflash correctly"
-STORE_FAIL = "could not store data into dataflash"
+STORE_SUCCESS = "stored data into dataflash correctly."
+STORE_FAIL = "could not store data into dataflash."
 
 
-class Provisioner:
-    """AWS プロビジョニング実行クラス"""
-
-    def __init__(self, port, baud, timeout=15):
-        self.port = port
-        self.baud = baud
-        self.timeout = timeout
-        self.ser = None
-
-    def open(self):
-        self.ser = serial.Serial(self.port, self.baud, timeout=0)
-        time.sleep(0.1)
-        self.ser.reset_input_buffer()
-
-    def close(self):
-        if self.ser and self.ser.is_open:
-            self.ser.close()
-
-    def read_until(self, patterns, timeout=None):
-        """指定パターンのいずれかが現れるまで読み取る
-
-        Returns:
-            (data, matched_pattern): 受信データと一致したパターン
-            (data, None): タイムアウト
-        """
-        if timeout is None:
-            timeout = self.timeout
+def wait_for_prompt(ser, timeout=30):
+    """プロンプトをポーリングで待つ"""
+    print(f"[INFO] Polling for prompt (timeout={timeout}s)...")
+    start = time.time()
+    attempt = 0
+    while (time.time() - start) < timeout:
+        attempt += 1
+        ser.reset_input_buffer()
+        ser.write(b"\r\n")
+        ser.flush()
+        poll_start = time.time()
         buf = b""
-        start = time.time()
-        while (time.time() - start) < timeout:
-            n = self.ser.in_waiting
+        while (time.time() - poll_start) < 1.0:
+            n = ser.in_waiting
             if n > 0:
-                chunk = self.ser.read(n)
-                buf += chunk
+                buf += ser.read(n)
                 decoded = buf.decode("utf-8", errors="replace")
-                for pat in patterns:
-                    if pat in decoded:
-                        return decoded, pat
+                if "$" in decoded:
+                    elapsed = time.time() - start
+                    print(f"[INFO] Prompt detected after {attempt} attempts ({elapsed:.1f}s)")
+                    return True
             else:
                 time.sleep(0.05)
-        decoded = buf.decode("utf-8", errors="replace") if buf else ""
-        return decoded, None
+        if attempt <= 5 or attempt % 10 == 0:
+            print(f"[INFO] Attempt {attempt}: no prompt yet...")
+    return False
 
-    def send_command(self, cmd):
-        """コマンド送信 + プロンプト待ち"""
-        self.ser.reset_input_buffer()
-        time.sleep(0.1)
-        self.ser.write((cmd + "\r\n").encode("utf-8"))
-        self.ser.flush()
-        data, _ = self.read_until([PROMPT], timeout=self.timeout)
-        return data
 
-    def send_simple_value(self, label, cmd):
-        """単純な値書き込みコマンド（endpoint, thing name 等）"""
-        print(f"[PROV] {label}: sending '{cmd}'")
-        response = self.send_command(cmd)
-        if response and STORE_SUCCESS in response.lower():
-            print(f"[PASS] {label}: stored successfully")
-            return True
-        elif response and STORE_FAIL in response.lower():
-            print(f"[FAIL] {label}: store failed")
-            return False
+def send_command(ser, cmd, timeout=10):
+    """コマンドを送信し応答を取得する"""
+    ser.reset_input_buffer()
+    time.sleep(0.1)
+    ser.write((cmd + "\r\n").encode("utf-8"))
+    ser.flush()
+
+    buf = b""
+    start = time.time()
+    while (time.time() - start) < timeout:
+        n = ser.in_waiting
+        if n > 0:
+            chunk = ser.read(n)
+            buf += chunk
+            decoded = buf.decode("utf-8", errors="replace")
+            if "$ " in decoded.split("\n")[-1] or decoded.rstrip().endswith("$"):
+                return decoded
         else:
-            print(f"[WARN] {label}: unexpected response: {repr(response[:200])}")
-            return False
+            time.sleep(0.05)
+    if buf:
+        return buf.decode("utf-8", errors="replace")
+    return None
 
-    def send_pem(self, label, cmd, pem_path):
-        """PEM ファイル書き込みコマンド
 
-        コマンド送信後、MCU が PEM 入力待ちに遷移。
-        PEM ファイルの内容を1行ずつ送信する。
-        """
-        print(f"[PROV] {label}: sending PEM from {pem_path}")
+def send_simple_value(ser, cmd, timeout=10):
+    """単純な値コマンド (endpoint, thing name) を送信し成功を確認"""
+    print(f"[SEND] {cmd}")
+    response = send_command(ser, cmd, timeout)
+    if response is None:
+        print(f"[FAIL] No response")
+        return False
 
-        with open(pem_path, "r") as f:
-            pem_data = f.read()
+    if STORE_SUCCESS in response:
+        print(f"[OK] {STORE_SUCCESS}")
+        return True
+    elif STORE_FAIL in response:
+        print(f"[FAIL] {STORE_FAIL}")
+        return False
+    else:
+        print(f"[WARN] Unexpected response: {response[:200]}")
+        return STORE_SUCCESS in response
 
-        if not pem_data.strip():
-            print(f"[FAIL] {label}: PEM file is empty")
-            return False
 
-        # コマンド送信（PEM 入力モードに遷移）
-        self.ser.reset_input_buffer()
-        time.sleep(0.1)
-        self.ser.write((cmd + "\r\n").encode("utf-8"))
-        self.ser.flush()
-        time.sleep(0.5)
+def send_pem_streaming(ser, cmd, pem_content, timeout=30):
+    """PEM ストリーミング入力でデータフラッシュに書き込む
 
-        # PEM テキストを1行ずつ送信
-        # MCU はエコーバックするため、各行送信後に少し待つ
-        for line in pem_data.split("\n"):
-            if line.strip():
-                self.ser.write((line.strip() + "\n").encode("utf-8"))
-                self.ser.flush()
-                time.sleep(0.05)  # 1行ごとに少し待つ（SCI バッファ溢れ防止）
+    1. コマンドを送信 (改行付き)
+    2. PEM 内容を 1 文字ずつ送信 (LF のみ)
+    3. 成功メッセージを待つ
+    """
+    print(f"[SEND] {cmd}")
+    print(f"[INFO] PEM size: {len(pem_content)} bytes")
 
-        # 保存完了待ち
-        data, matched = self.read_until(
-            [STORE_SUCCESS, STORE_FAIL, PROMPT],
-            timeout=self.timeout
-        )
+    # コマンド送信
+    ser.reset_input_buffer()
+    time.sleep(0.1)
+    ser.write((cmd + "\r\n").encode("utf-8"))
+    ser.flush()
+    time.sleep(0.5)  # コマンド処理待ち
 
-        if matched and STORE_SUCCESS in (matched or ""):
-            print(f"[PASS] {label}: stored successfully")
-            return True
-        elif data and STORE_SUCCESS in data.lower():
-            print(f"[PASS] {label}: stored successfully")
-            return True
-        elif data and STORE_FAIL in data.lower():
-            print(f"[FAIL] {label}: store failed")
-            return False
+    # エコーバックを読み捨て
+    if ser.in_waiting > 0:
+        ser.read(ser.in_waiting)
+
+    # PEM 内容を正規化 (CRLF → LF)
+    pem_normalized = pem_content.replace("\r\n", "\n")
+    if not pem_normalized.endswith("\n"):
+        pem_normalized += "\n"
+
+    # 1 文字ずつ送信
+    sent = 0
+    for ch in pem_normalized:
+        ser.write(ch.encode("utf-8"))
+        ser.flush()
+        sent += 1
+        # エコーバック読み捨て（バッファ溢れ防止）
+        if ser.in_waiting > 0:
+            ser.read(ser.in_waiting)
+        # 改行ごとに小さなディレイ
+        if ch == "\n":
+            time.sleep(0.01)
+
+    print(f"[INFO] Sent {sent} characters")
+
+    # 成功/失敗メッセージを待つ
+    buf = b""
+    start = time.time()
+    while (time.time() - start) < timeout:
+        n = ser.in_waiting
+        if n > 0:
+            buf += ser.read(n)
+            decoded = buf.decode("utf-8", errors="replace")
+            if STORE_SUCCESS in decoded:
+                print(f"[OK] {STORE_SUCCESS}")
+                return True
+            if STORE_FAIL in decoded:
+                print(f"[FAIL] {STORE_FAIL}")
+                return False
         else:
-            print(f"[WARN] {label}: uncertain result: {repr(data[:200])}")
-            return False
+            time.sleep(0.05)
 
-    def verify_dataflash(self):
-        """dataflash read でプロビジョニング結果を確認"""
-        print()
-        print("[PROV] Verifying with 'dataflash read'...")
-        response = self.send_command("dataflash read")
-        if response:
-            print("[INFO] Dataflash contents:")
-            for line in response.replace("\r", "").split("\n"):
-                line = line.strip()
-                if line and line != "$" and "RX72N Envision Kit" not in line:
-                    print(f"  {line}")
-        return response
+    decoded = buf.decode("utf-8", errors="replace") if buf else ""
+    print(f"[FAIL] Timeout waiting for store result")
+    if decoded:
+        print(f"[DEBUG] Received: {decoded[:300]}")
+    return False
 
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Provision AWS IoT credentials to RX72N Envision Kit"
+        description="AWS IoT Core device provisioning via UART"
     )
-    parser.add_argument("--port", default=DEFAULT_PORT)
-    parser.add_argument("--baud", type=int, default=DEFAULT_BAUD)
+    parser.add_argument("--port", default=DEFAULT_PORT,
+                        help=f"Serial port (default: {DEFAULT_PORT})")
+    parser.add_argument("--baud", type=int, default=DEFAULT_BAUD,
+                        help=f"Baud rate (default: {DEFAULT_BAUD})")
+    parser.add_argument("--timeout", type=int, default=DEFAULT_TIMEOUT,
+                        help=f"Command timeout in seconds (default: {DEFAULT_TIMEOUT})")
     parser.add_argument("--endpoint", required=True,
-                        help="MQTT Broker Endpoint (e.g., xxx-ats.iot.region.amazonaws.com)")
+                        help="AWS IoT MQTT broker endpoint")
     parser.add_argument("--thing-name", required=True,
-                        help="IoT Thing Name")
+                        help="AWS IoT Thing name")
     parser.add_argument("--cert", required=True,
                         help="Path to client certificate PEM file")
     parser.add_argument("--key", required=True,
                         help="Path to client private key PEM file")
-    parser.add_argument("--code-signer-cert",
-                        help="Path to code signer certificate PEM file (for OTA)")
-    parser.add_argument("--timeout", type=int, default=15)
-    parser.add_argument("--skip-verify", action="store_true",
-                        help="Skip dataflash read verification")
     args = parser.parse_args()
 
-    # 入力ファイルの存在確認
-    for path, name in [(args.cert, "cert"), (args.key, "key")]:
+    # ファイル存在チェック
+    for path, desc in [(args.cert, "Certificate"), (args.key, "Private key")]:
         if not os.path.isfile(path):
-            print(f"[ERROR] File not found: {path} ({name})")
+            print(f"[ERROR] {desc} file not found: {path}")
             sys.exit(1)
-    if args.code_signer_cert and not os.path.isfile(args.code_signer_cert):
-        print(f"[ERROR] File not found: {args.code_signer_cert} (code-signer-cert)")
+
+    # PEM ファイル読み込み
+    with open(args.cert, "r") as f:
+        cert_pem = f.read()
+    with open(args.key, "r") as f:
+        key_pem = f.read()
+
+    # PEM 内容の基本検証
+    if "-----BEGIN CERTIFICATE-----" not in cert_pem:
+        print("[ERROR] Certificate file does not contain PEM header")
+        sys.exit(1)
+    if "-----BEGIN RSA PRIVATE KEY-----" not in key_pem:
+        # EC キーの場合もサポート（ただしファームウェアは RSA のみ対応）
+        if "-----BEGIN EC PRIVATE KEY-----" in key_pem:
+            print("[ERROR] EC private key detected. Firmware only supports RSA private keys.")
+            print("[HINT] When creating IoT certificates, use RSA key type.")
+            sys.exit(1)
+        print("[ERROR] Private key file does not contain RSA PEM header")
         sys.exit(1)
 
     print("=" * 60)
-    print("[INFO] AWS IoT Core Provisioning")
-    print(f"[INFO]   Port     : {args.port} @ {args.baud}bps")
-    print(f"[INFO]   Endpoint : {args.endpoint}")
-    print(f"[INFO]   Thing    : {args.thing_name}")
-    print(f"[INFO]   Cert     : {args.cert}")
-    print(f"[INFO]   Key      : {args.key}")
-    if args.code_signer_cert:
-        print(f"[INFO]   CodeSign : {args.code_signer_cert}")
+    print("[INFO] AWS IoT Core Device Provisioning")
+    print(f"[INFO]   Port      : {args.port} @ {args.baud}bps")
+    print(f"[INFO]   Endpoint  : {args.endpoint}")
+    print(f"[INFO]   Thing Name: {args.thing_name}")
+    print(f"[INFO]   Cert      : {args.cert} ({len(cert_pem)} bytes)")
+    print(f"[INFO]   Key       : {args.key} ({len(key_pem)} bytes)")
     print("=" * 60)
 
-    prov = Provisioner(args.port, args.baud, args.timeout)
-    results = []
+    results = {}
 
     try:
-        prov.open()
+        ser = serial.Serial(args.port, args.baud, timeout=0)
+        time.sleep(0.1)
+        ser.reset_input_buffer()
+        print(f"[INFO] Opened {args.port} at {args.baud} bps")
 
-        # 初期プロンプト待ち
-        print("[INFO] Waiting for prompt...")
-        time.sleep(2)
-        prov.ser.write(b"\r\n")
-        prov.ser.flush()
-        prov.read_until([PROMPT], timeout=5)
-
-        # 1. MQTT Broker Endpoint
-        ok = prov.send_simple_value(
-            "MQTT Endpoint",
-            f"dataflash write aws mqttbrokerendpoint {args.endpoint}"
-        )
-        results.append(("MQTT Endpoint", ok))
-
-        # 2. IoT Thing Name
-        ok = prov.send_simple_value(
-            "IoT Thing Name",
-            f"dataflash write aws iotthingname {args.thing_name}"
-        )
-        results.append(("IoT Thing Name", ok))
-
-        # 3. Client Certificate
-        ok = prov.send_pem(
-            "Client Certificate",
-            "dataflash write aws clientcertificate",
-            args.cert
-        )
-        results.append(("Client Certificate", ok))
-
-        # 4. Client Private Key
-        ok = prov.send_pem(
-            "Client Private Key",
-            "dataflash write aws clientprivatekey",
-            args.key
-        )
-        results.append(("Client Private Key", ok))
-
-        # 5. Code Signer Certificate (optional)
-        if args.code_signer_cert:
-            ok = prov.send_pem(
-                "Code Signer Certificate",
-                "dataflash write aws codesignercertificate",
-                args.code_signer_cert
-            )
-            results.append(("Code Signer Certificate", ok))
-
-        # 検証
-        if not args.skip_verify:
-            prov.verify_dataflash()
-
-        # 結果サマリ
-        print()
-        print("=" * 60)
-        all_ok = all(ok for _, ok in results)
-        for name, ok in results:
-            status = "PASS" if ok else "FAIL"
-            print(f"[{status}] {name}")
-
-        if all_ok:
-            print("[PASS] Provisioning completed successfully")
-            sys.exit(0)
-        else:
-            print("[FAIL] Some provisioning steps failed")
+        # プロンプト待ち
+        if not wait_for_prompt(ser, timeout=30):
+            print("[FAIL] Could not detect prompt")
             sys.exit(1)
+
+        # --- プロビジョニング実行 ---
+
+        print()
+        print("[STEP 1/4] Setting MQTT broker endpoint")
+        results["endpoint"] = send_simple_value(
+            ser, f"dataflash write aws mqttbrokerendpoint {args.endpoint}", args.timeout
+        )
+
+        # プロンプト復帰待ち
+        time.sleep(0.5)
+        ser.reset_input_buffer()
+        ser.write(b"\r\n")
+        ser.flush()
+        time.sleep(0.5)
+        if ser.in_waiting > 0:
+            ser.read(ser.in_waiting)
+
+        print()
+        print("[STEP 2/4] Setting IoT Thing name")
+        results["thing_name"] = send_simple_value(
+            ser, f"dataflash write aws iotthingname {args.thing_name}", args.timeout
+        )
+
+        time.sleep(0.5)
+        ser.reset_input_buffer()
+        ser.write(b"\r\n")
+        ser.flush()
+        time.sleep(0.5)
+        if ser.in_waiting > 0:
+            ser.read(ser.in_waiting)
+
+        print()
+        print("[STEP 3/4] Writing client certificate")
+        results["certificate"] = send_pem_streaming(
+            ser, "dataflash write aws clientcertificate", cert_pem, timeout=30
+        )
+
+        time.sleep(1.0)
+        ser.reset_input_buffer()
+        ser.write(b"\r\n")
+        ser.flush()
+        time.sleep(0.5)
+        if ser.in_waiting > 0:
+            ser.read(ser.in_waiting)
+
+        print()
+        print("[STEP 4/4] Writing client private key")
+        results["private_key"] = send_pem_streaming(
+            ser, "dataflash write aws clientprivatekey", key_pem, timeout=30
+        )
+
+        # --- 確認: dataflash read ---
+        print()
+        print("[VERIFY] Reading dataflash contents")
+        time.sleep(1.0)
+        ser.reset_input_buffer()
+        ser.write(b"\r\n")
+        ser.flush()
+        time.sleep(0.5)
+        if ser.in_waiting > 0:
+            ser.read(ser.in_waiting)
+
+        response = send_command(ser, "dataflash read", timeout=10)
+        if response:
+            lines = response.replace("\r", "").split("\n")
+            for line in lines:
+                stripped = line.strip()
+                if stripped and stripped != "$" and "dataflash read" not in stripped:
+                    if "RX72N Envision Kit" not in stripped:
+                        print(f"  {stripped}")
+
+        ser.close()
+        print(f"[INFO] Closed {args.port}")
 
     except serial.SerialException as e:
         print(f"[ERROR] Serial port error: {e}")
         sys.exit(1)
-    except KeyboardInterrupt:
-        print("\n[INFO] Interrupted")
-        sys.exit(130)
-    finally:
-        prov.close()
+
+    # --- 結果レポート ---
+    print()
+    print("=" * 60)
+    all_ok = all(results.values())
+    for name, ok in results.items():
+        status = "PASS" if ok else "FAIL"
+        print(f"  [{status}] {name}")
+    print("=" * 60)
+
+    if all_ok:
+        print("[PASS] All provisioning steps completed successfully")
+        print()
+        print("Next: Reset the device to connect to AWS IoT Core")
+        print("  python test_aws_connectivity.py --log-port COM7 --cmd-port COM6")
+        sys.exit(0)
+    else:
+        print("[FAIL] Some provisioning steps failed")
+        sys.exit(1)
 
 
 if __name__ == "__main__":

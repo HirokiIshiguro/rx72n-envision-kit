@@ -1,169 +1,293 @@
 #!/usr/bin/env python3
 """
 AWS IoT Core Connectivity Test for aws_demos
-RX72N Envision Kit の aws_demos が AWS IoT Core に接続できることを検証する
+RX72N Envision Kit の aws_demos が AWS IoT Core に MQTT 接続できることを検証する。
 
-aws_demos は起動後に自動的に AWS IoT Core への MQTT 接続を試行する。
-FreeRTOS ログは COM7 (SCI7, 921600bps) に出力される。
-本スクリプトは COM7 のログを監視し、MQTT 接続成功を検出する。
-
-検出パターン（aws_demos の FreeRTOS ログに含まれるメッセージ）:
-  - TLS 接続関連のメッセージ
-  - MQTT CONNECT / CONNACK
-  - "Connected to" 等の接続成功メッセージ
-
-注意:
-  - AWS 認証情報がデータフラッシュにプロビジョニング済みであること
-  - ネットワーク接続（Ethernet）が利用可能であること
-  - DNS 解決ができること
+処理フロー:
+  1. COM7 でログ監視スレッドを開始
+  2. COM6 で reset コマンドを送信（MCU リスタート）
+  3. COM7 のログで接続マイルストーンを順次検出:
+     - IP アドレス取得 (DHCP)
+     - TLS 接続確立
+     - MQTT 接続成功
+  4. 全マイルストーン検出で PASS、タイムアウトで FAIL
 
 環境変数:
-  UART_PORT      : FreeRTOS ログ用ポート (デフォルト: COM7)
-  UART_BAUD_RATE : ボーレート (デフォルト: 921600)
+  COMMAND_PORT      : コマンドポート (デフォルト: COM6)
+  COMMAND_BAUD_RATE : コマンドボーレート (デフォルト: 115200)
+  UART_PORT         : ログポート (デフォルト: COM7)
+  UART_BAUD_RATE    : ログボーレート (デフォルト: 921600)
 """
 
 import argparse
 import os
+import re
 import sys
+import threading
 import time
 
 import serial
 
-DEFAULT_PORT = os.environ.get("UART_PORT", "COM7")
-DEFAULT_BAUD = int(os.environ.get("UART_BAUD_RATE", "921600"))
-DEFAULT_TIMEOUT = 60
-
-# 接続成功を示すパターン（大文字小文字区別なし）
-SUCCESS_PATTERNS = [
-    "mqtt connect",
-    "connack",
-    "connected to",
-    "mqtt agent connected",
-    "tls connection established",
-    "mqtt_agent_connect",
-]
-
-# 接続失敗を示すパターン
-FAILURE_PATTERNS = [
-    "tls handshake failed",
-    "connection refused",
-    "dns resolution failed",
-    "network down",
-    "socket error",
-    "mqtt connection failed",
-]
+# --- デフォルト値 ---
+DEFAULT_CMD_PORT = os.environ.get("COMMAND_PORT", "COM6")
+DEFAULT_CMD_BAUD = int(os.environ.get("COMMAND_BAUD_RATE", "115200"))
+DEFAULT_LOG_PORT = os.environ.get("UART_PORT", "COM7")
+DEFAULT_LOG_BAUD = int(os.environ.get("UART_BAUD_RATE", "921600"))
+DEFAULT_TIMEOUT = 120
 
 
-def main():
-    parser = argparse.ArgumentParser(
-        description="Test AWS IoT Core connectivity via FreeRTOS log"
-    )
-    parser.add_argument("--port", default=DEFAULT_PORT,
-                        help=f"FreeRTOS log port (default: {DEFAULT_PORT})")
-    parser.add_argument("--baud", type=int, default=DEFAULT_BAUD,
-                        help=f"Baud rate (default: {DEFAULT_BAUD})")
-    parser.add_argument("--timeout", type=int, default=DEFAULT_TIMEOUT,
-                        help=f"Timeout in seconds (default: {DEFAULT_TIMEOUT})")
-    parser.add_argument("--reset-cmd",
-                        help="Command to reset MCU before test (e.g., rfp-cli run)")
-    args = parser.parse_args()
+class MilestoneMonitor:
+    """COM7 ログからマイルストーンを検出するモニター"""
 
-    print("=" * 60)
-    print("[INFO] AWS IoT Core Connectivity Test")
-    print(f"[INFO]   Port    : {args.port} @ {args.baud}bps")
-    print(f"[INFO]   Timeout : {args.timeout}s")
-    print("=" * 60)
+    # 検出対象マイルストーン（順序は問わない）
+    MILESTONES = {
+        "ip_address": {
+            "description": "IP address obtained (DHCP)",
+            "patterns": [
+                re.compile(r"IP\s*Address:\s*\d+\.\d+\.\d+\.\d+", re.IGNORECASE),
+                re.compile(r"network is up", re.IGNORECASE),
+            ],
+        },
+        "tls_connection": {
+            "description": "TLS connection established",
+            "patterns": [
+                re.compile(r"TLS connection to", re.IGNORECASE),
+                re.compile(r"Creating a TLS connection", re.IGNORECASE),
+            ],
+        },
+        "mqtt_connection": {
+            "description": "MQTT connection established",
+            "patterns": [
+                re.compile(r"MQTT connection is established", re.IGNORECASE),
+                re.compile(r"MQTT.+CONNACK", re.IGNORECASE),
+                re.compile(r"An MQTT connection is established", re.IGNORECASE),
+            ],
+        },
+    }
 
-    # MCU リセット（オプション）
-    if args.reset_cmd:
-        import subprocess
-        print(f"[INFO] Resetting MCU: {args.reset_cmd}")
-        subprocess.run(
-            ["powershell", "-NoProfile", "-Command", args.reset_cmd],
-            timeout=30
-        )
-        time.sleep(3)
+    # エラーパターン
+    ERROR_PATTERNS = [
+        re.compile(r"Connection to the broker failed", re.IGNORECASE),
+        re.compile(r"Failed to establish MQTT", re.IGNORECASE),
+        re.compile(r"TLS.+failed", re.IGNORECASE),
+        re.compile(r"Certificate verification failed", re.IGNORECASE),
+    ]
 
-    try:
-        ser = serial.Serial(args.port, args.baud, timeout=0)
-        ser.reset_input_buffer()
-        print(f"[INFO] Listening on {args.port}...")
+    def __init__(self):
+        self.detected = {}
+        self.errors = []
+        self.all_lines = []
+        self.lock = threading.Lock()
+        self.stop_event = threading.Event()
 
-        buf = b""
-        start = time.time()
-        connected = False
-        failed = False
-        lines_seen = 0
+    def check_line(self, line):
+        """1行のログをチェックし、マイルストーンまたはエラーを検出"""
+        with self.lock:
+            self.all_lines.append(line)
 
-        while (time.time() - start) < args.timeout:
+            # マイルストーン検出
+            for name, info in self.MILESTONES.items():
+                if name not in self.detected:
+                    for pattern in info["patterns"]:
+                        if pattern.search(line):
+                            self.detected[name] = {
+                                "time": time.time(),
+                                "line": line.strip(),
+                            }
+                            print(f"[MILESTONE] {info['description']}")
+                            print(f"  >> {line.strip()}")
+                            break
+
+            # エラー検出
+            for pattern in self.ERROR_PATTERNS:
+                if pattern.search(line):
+                    self.errors.append(line.strip())
+                    print(f"[ERROR] {line.strip()}")
+
+    def all_detected(self):
+        """全マイルストーンが検出されたか"""
+        with self.lock:
+            return len(self.detected) == len(self.MILESTONES)
+
+    def get_report(self):
+        """検出結果レポート"""
+        with self.lock:
+            report = []
+            for name, info in self.MILESTONES.items():
+                if name in self.detected:
+                    report.append((name, True, info["description"], self.detected[name]["line"]))
+                else:
+                    report.append((name, False, info["description"], ""))
+            return report, self.errors
+
+
+def log_monitor_thread(ser, monitor):
+    """COM7 ログ監視スレッド"""
+    buf = b""
+    while not monitor.stop_event.is_set():
+        try:
             n = ser.in_waiting
             if n > 0:
                 chunk = ser.read(n)
                 buf += chunk
+                # 行単位で処理
                 while b"\n" in buf:
-                    line_raw, buf = buf.split(b"\n", 1)
-                    decoded = line_raw.decode("utf-8", errors="replace").strip()
-                    if not decoded:
-                        continue
-                    lines_seen += 1
-                    elapsed = time.time() - start
-
-                    # ログ出力（最初の 50 行と、マッチした行を出力）
-                    lower = decoded.lower()
-                    is_match = any(p in lower for p in SUCCESS_PATTERNS + FAILURE_PATTERNS)
-                    if lines_seen <= 50 or is_match:
-                        print(f"[LOG] (t={elapsed:.1f}s) {decoded[:200]}")
-
-                    # 成功パターン検出
-                    for pat in SUCCESS_PATTERNS:
-                        if pat in lower:
-                            print(f"[MATCH] Success pattern: '{pat}'")
-                            connected = True
-
-                    # 失敗パターン検出
-                    for pat in FAILURE_PATTERNS:
-                        if pat in lower:
-                            print(f"[MATCH] Failure pattern: '{pat}'")
-                            failed = True
-
-                    if connected:
-                        break
+                    line_bytes, buf = buf.split(b"\n", 1)
+                    line = line_bytes.decode("utf-8", errors="replace")
+                    monitor.check_line(line)
             else:
                 time.sleep(0.05)
+        except serial.SerialException:
+            break
 
-            if connected:
+
+def send_reset(cmd_ser, timeout=10):
+    """COM6 で reset コマンドを送信"""
+    print("[INFO] Sending reset command via COM6...")
+
+    # プロンプト待ち
+    cmd_ser.reset_input_buffer()
+    cmd_ser.write(b"\r\n")
+    cmd_ser.flush()
+    time.sleep(0.5)
+    if cmd_ser.in_waiting > 0:
+        cmd_ser.read(cmd_ser.in_waiting)
+
+    # reset コマンド送信
+    cmd_ser.write(b"reset\r\n")
+    cmd_ser.flush()
+    print("[INFO] Reset command sent. MCU will restart.")
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="AWS IoT Core connectivity test for aws_demos"
+    )
+    parser.add_argument("--cmd-port", default=DEFAULT_CMD_PORT,
+                        help=f"Command serial port (default: {DEFAULT_CMD_PORT})")
+    parser.add_argument("--cmd-baud", type=int, default=DEFAULT_CMD_BAUD,
+                        help=f"Command baud rate (default: {DEFAULT_CMD_BAUD})")
+    parser.add_argument("--log-port", default=DEFAULT_LOG_PORT,
+                        help=f"Log serial port (default: {DEFAULT_LOG_PORT})")
+    parser.add_argument("--log-baud", type=int, default=DEFAULT_LOG_BAUD,
+                        help=f"Log baud rate (default: {DEFAULT_LOG_BAUD})")
+    parser.add_argument("--timeout", type=int, default=DEFAULT_TIMEOUT,
+                        help=f"Overall timeout in seconds (default: {DEFAULT_TIMEOUT})")
+    parser.add_argument("--skip-reset", action="store_true",
+                        help="Skip device reset (assume already running)")
+    args = parser.parse_args()
+
+    print("=" * 60)
+    print("[INFO] AWS IoT Core Connectivity Test")
+    print(f"[INFO]   Command Port: {args.cmd_port} @ {args.cmd_baud}bps")
+    print(f"[INFO]   Log Port    : {args.log_port} @ {args.log_baud}bps")
+    print(f"[INFO]   Timeout     : {args.timeout}s")
+    print(f"[INFO]   Skip Reset  : {args.skip_reset}")
+    print("=" * 60)
+
+    monitor = MilestoneMonitor()
+    log_ser = None
+    cmd_ser = None
+
+    try:
+        # COM7 ログポートを開く
+        log_ser = serial.Serial(args.log_port, args.log_baud, timeout=0)
+        time.sleep(0.1)
+        log_ser.reset_input_buffer()
+        print(f"[INFO] Opened log port: {args.log_port} at {args.log_baud} bps")
+
+        # ログ監視スレッド開始
+        thread = threading.Thread(target=log_monitor_thread, args=(log_ser, monitor), daemon=True)
+        thread.start()
+
+        if not args.skip_reset:
+            # COM6 コマンドポートを開く
+            cmd_ser = serial.Serial(args.cmd_port, args.cmd_baud, timeout=0)
+            time.sleep(0.1)
+            cmd_ser.reset_input_buffer()
+            print(f"[INFO] Opened cmd port: {args.cmd_port} at {args.cmd_baud} bps")
+
+            # リセット送信
+            send_reset(cmd_ser)
+
+            # COM6 を閉じる（リセット後は使えなくなる）
+            time.sleep(1)
+            cmd_ser.close()
+            cmd_ser = None
+            print("[INFO] Closed cmd port (MCU resetting)")
+
+        # マイルストーン監視
+        print()
+        print(f"[INFO] Monitoring COM7 for connection milestones (timeout={args.timeout}s)...")
+        start = time.time()
+        last_status = 0
+
+        while (time.time() - start) < args.timeout:
+            if monitor.all_detected():
+                elapsed = time.time() - start
+                print(f"\n[INFO] All milestones detected in {elapsed:.1f}s")
                 break
 
-        ser.close()
+            # 30秒ごとにステータス表示
+            elapsed = time.time() - start
+            if int(elapsed) // 30 > last_status:
+                last_status = int(elapsed) // 30
+                report, errors = monitor.get_report()
+                detected = sum(1 for _, ok, _, _ in report if ok)
+                print(f"[INFO] {elapsed:.0f}s elapsed: {detected}/{len(report)} milestones detected")
 
-        # 結果判定
-        print()
-        print("=" * 60)
-        elapsed = time.time() - start
-        print(f"[INFO] Total lines seen: {lines_seen}, elapsed: {elapsed:.1f}s")
+            time.sleep(0.5)
 
-        if connected and not failed:
-            print("[PASS] AWS IoT Core connection detected")
-            sys.exit(0)
-        elif connected and failed:
-            print("[WARN] Connection detected but errors also seen")
-            sys.exit(0)
-        elif failed:
-            print("[FAIL] Connection failure detected")
-            sys.exit(1)
-        else:
-            print(f"[FAIL] No connection detected within {args.timeout}s")
-            if lines_seen == 0:
-                print("[HINT] No log output received. Is aws_demos running?")
-                print("[HINT] Are AWS credentials provisioned? (use provision_aws.py)")
-            sys.exit(1)
+        # 監視終了
+        monitor.stop_event.set()
+        time.sleep(0.5)
 
     except serial.SerialException as e:
         print(f"[ERROR] Serial port error: {e}")
         sys.exit(1)
     except KeyboardInterrupt:
-        print("\n[INFO] Interrupted")
-        sys.exit(130)
+        print("\n[INFO] Interrupted by user")
+        monitor.stop_event.set()
+    finally:
+        if log_ser and log_ser.is_open:
+            log_ser.close()
+            print(f"[INFO] Closed {args.log_port}")
+        if cmd_ser and cmd_ser.is_open:
+            cmd_ser.close()
+            print(f"[INFO] Closed {args.cmd_port}")
+
+    # --- 結果レポート ---
+    print()
+    print("=" * 60)
+    report, errors = monitor.get_report()
+
+    for name, ok, description, line in report:
+        status = "PASS" if ok else "FAIL"
+        print(f"  [{status}] {description}")
+        if line:
+            print(f"         {line[:80]}")
+
+    if errors:
+        print()
+        print(f"  Errors detected ({len(errors)}):")
+        for err in errors[:5]:
+            print(f"    - {err[:80]}")
+
+    print("=" * 60)
+
+    all_ok = monitor.all_detected()
+    if all_ok:
+        print("[PASS] AWS IoT Core connectivity verified")
+        sys.exit(0)
+    else:
+        detected = sum(1 for _, ok, _, _ in report if ok)
+        print(f"[FAIL] Only {detected}/{len(report)} milestones detected")
+        if not any(ok for _, ok, _, _ in report):
+            print("[HINT] No milestones detected - check:")
+            print("  - Is the device provisioned? (run provision_aws.py)")
+            print("  - Is Ethernet connected?")
+            print("  - Is the MQTT broker endpoint correct?")
+        sys.exit(1)
 
 
 if __name__ == "__main__":
