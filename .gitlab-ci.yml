@@ -290,6 +290,7 @@ test_commands:
   stage: test
   tags:
     - run_ishiguro_machine
+  timeout: 5 minutes
   needs:
     - job: download_aws_demos
   variables:
@@ -297,14 +298,30 @@ test_commands:
     COMMAND_PORT: "COM6"
     COMMAND_BAUD_RATE: "115200"
     COMMAND_TIMEOUT: "10"
-  script:
+  before_script:
+    # ポートロック対策: 前回ジョブの残留プロセスが COM ポートを掴んでいる場合がある。
+    # ジョブ停止時に Python プロセスが正常終了せずシリアルポートがロックされると、
+    # 次回ジョブで PermissionError になる。
+    - |
+      $stale = Get-Process python -ErrorAction SilentlyContinue |
+        Where-Object { $_.Id -ne $PID }
+      if ($stale) {
+        Write-Host "[WARN] Killing stale Python processes that may hold COM port:"
+        $stale | ForEach-Object {
+          Write-Host "  PID=$($_.Id) StartTime=$($_.StartTime)"
+          Stop-Process -Id $_.Id -Force -ErrorAction SilentlyContinue
+        }
+        Start-Sleep -Seconds 2
+      }
     - pip install pyserial
+  script:
     # aws_demos は download_aws_demos ジョブで書き込み・起動済み。
     # boot_loader の bank swap + reset 後に aws_demos が自動起動し、
     # コマンドターミナルが SCI2 (COM6, 115200bps) で待機状態になっている。
+    # serial_terminal_task は GUI 初期化完了後に起動する（LCD タッチ不要）。
     - |
       Write-Host "=== UART Command-Response Test ==="
       Write-Host "  Port: $env:COMMAND_PORT @ ${env:COMMAND_BAUD_RATE}bps"
       python "$env:CI_PROJECT_DIR\test_scripts\uart_test\test_aws_demos_commands.py" `
         --port "$env:COMMAND_PORT" --baud $env:COMMAND_BAUD_RATE `
-        --timeout $env:COMMAND_TIMEOUT --initial-wait 10
+        --timeout $env:COMMAND_TIMEOUT --prompt-timeout 60 --initial-wait 3

@@ -199,23 +199,40 @@ class CommandTester:
             self.failed += 1
 
     def wait_for_prompt(self, timeout=None):
-        """初期プロンプトを待つ"""
+        """プロンプトをポーリングで待つ
+
+        1秒おきに \\r\\n を送信し、プロンプト '$ ' が返るまで繰り返す。
+        serial_terminal_task は GUI 初期化完了後に起動するため、
+        MCU 起動直後はまだ準備ができていない可能性がある。
+        """
         if timeout is None:
-            timeout = self.timeout
-        print(f"[INFO] Waiting for prompt (timeout={timeout}s)...")
-        response = self.read_until_prompt(timeout)
-        if response and PROMPT.strip() in response:
-            print("[INFO] Prompt detected")
-            return True
-        # プロンプトが来ない場合、空行を送って促す
-        print("[INFO] No prompt, sending empty line to trigger...")
-        self.ser.write(b"\r\n")
-        self.ser.flush()
-        response = self.read_until_prompt(5)
-        if response and PROMPT.strip() in response:
-            print("[INFO] Prompt detected after nudge")
-            return True
-        print("[WARN] Could not detect prompt")
+            timeout = max(self.timeout, 30)  # ポーリングは最低30秒
+        print(f"[INFO] Polling for prompt (sending \\r\\n every 1s, timeout={timeout}s)...")
+        start = time.time()
+        attempt = 0
+        while (time.time() - start) < timeout:
+            attempt += 1
+            self.ser.reset_input_buffer()
+            self.ser.write(b"\r\n")
+            self.ser.flush()
+            # 1秒待ちつつ受信チェック
+            poll_start = time.time()
+            buf = b""
+            while (time.time() - poll_start) < 1.0:
+                n = self.ser.in_waiting
+                if n > 0:
+                    buf += self.ser.read(n)
+                    decoded = buf.decode("utf-8", errors="replace")
+                    if "$" in decoded:
+                        elapsed = time.time() - start
+                        print(f"[INFO] Prompt detected after {attempt} attempts ({elapsed:.1f}s)")
+                        return True
+                else:
+                    time.sleep(0.05)
+            if attempt <= 5 or attempt % 10 == 0:
+                print(f"[INFO] Attempt {attempt}: no prompt yet...")
+        elapsed = time.time() - start
+        print(f"[WARN] Could not detect prompt after {attempt} attempts ({elapsed:.1f}s)")
         return False
 
 
@@ -312,16 +329,19 @@ def main():
                         help=f"Retry count for failed commands (default: {DEFAULT_RETRIES})")
     parser.add_argument("--skip-erase", action="store_true",
                         help="Skip dataflash erase test")
-    parser.add_argument("--initial-wait", type=float, default=5.0,
-                        help="Initial wait for aws_demos startup (default: 5s)")
+    parser.add_argument("--initial-wait", type=float, default=3.0,
+                        help="Initial wait before polling (default: 3s)")
+    parser.add_argument("--prompt-timeout", type=int, default=60,
+                        help="Timeout for prompt polling in seconds (default: 60)")
     args = parser.parse_args()
 
     print("=" * 60)
     print("[INFO] aws_demos UART Command-Response Test")
-    print(f"[INFO]   Port     : {args.port}")
-    print(f"[INFO]   Baud     : {args.baud}")
-    print(f"[INFO]   Timeout  : {args.timeout}s")
-    print(f"[INFO]   Retries  : {args.retries}")
+    print(f"[INFO]   Port           : {args.port}")
+    print(f"[INFO]   Baud           : {args.baud}")
+    print(f"[INFO]   Cmd timeout    : {args.timeout}s")
+    print(f"[INFO]   Prompt timeout : {args.prompt_timeout}s")
+    print(f"[INFO]   Retries        : {args.retries}")
     print("=" * 60)
 
     tester = CommandTester(args.port, args.baud, args.timeout, args.retries)
@@ -329,12 +349,15 @@ def main():
     try:
         tester.open()
 
-        # aws_demos が起動完了するまで待機
-        print(f"[INFO] Waiting {args.initial_wait}s for aws_demos to be ready...")
+        # MCU 起動直後のノイズ回避
+        print(f"[INFO] Waiting {args.initial_wait}s for MCU to stabilize...")
         time.sleep(args.initial_wait)
 
-        # プロンプト待ち
-        tester.wait_for_prompt(timeout=args.timeout)
+        # プロンプトポーリング（serial_terminal_task が起動するまで待つ）
+        if not tester.wait_for_prompt(timeout=args.prompt_timeout):
+            print("[FAIL] Could not establish communication with aws_demos")
+            print("[HINT] Is the MCU running? Has serial_terminal_task started?")
+            sys.exit(1)
 
         # --- テスト実行 ---
 

@@ -130,6 +130,12 @@ void gui_task( void * pvParameters )
     APPW_Init(APPW_PROJECT_PATH);
     APPW_CreateRoot(APPW_INITIAL_SCREEN, WM_HBKWIN);
 
+    /* notify serial_terminal_task that GUI initialization is complete.
+     * serial_terminal_task only uses SCI (UART), not LCD windows,
+     * so it can start without waiting for the first LCD touch event.
+     * This enables CI/CD automated testing via UART without manual LCD touch. */
+    xTaskNotifyGive(task_info->serial_terminal_task_handle);
+
 #if 0
     /* generate frame window */
     demo_window_free_list(demo_window_list_head);
