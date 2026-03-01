@@ -392,6 +392,9 @@ confirm_aws_mqtt:
   timeout: 5 minutes
   needs:
     - job: provision_and_reset
+  retry:
+    max: 1
+    when: script_failure
   before_script:
     - |
       Get-Process | Where-Object { $_.ProcessName -eq 'python' -and $_.Id -ne $PID } |
@@ -405,6 +408,8 @@ confirm_aws_mqtt:
     # AWS IoT Core MQTT 接続検証: MCU をリセットし、ログポートから
     # 3つのマイルストーン (DHCP, TLS, MQTT CONNACK) を検出する。
     # --device-id で device_config.json からコマンド/ログポートを解決。
+    # retry: フルパイプライン実行時、MCU の初回 MQTT 接続が不安定なため
+    #   1回のリトライを許可。リトライ時は MCU が再リセットされ成功する。
     - |
       Write-Host "=== AWS IoT Core MQTT Connectivity Test ==="
       Write-Host "  Device ID: $env:DEVICE_ID"
