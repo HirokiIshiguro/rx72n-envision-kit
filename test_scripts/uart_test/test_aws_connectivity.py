@@ -148,13 +148,13 @@ def send_reset(cmd_ser, timeout=10):
     """COM6 で reset コマンドを送信し、リセット実行を検証する
 
     検証ステップ:
-      1. プロンプト確認 — COM6 に \\r\\n を送り "$" が返るか (最大3回)
+      1. プロンプト確認 --COM6 に \\r\\n を送り "$" が返るか (最大3回)
       2. reset コマンド送信
-      3. リセット確認 — MCU リスタートにより COM6 が無応答になるか
+      3. リセット確認 --MCU リスタートにより COM6 が無応答になるか
 
     Returns:
-        True  — リセットが実行された（COM6 無応答を確認）
-        False — リセット失敗の可能性あり
+        True  --リセットが実行された（COM6 無応答を確認）
+        False --リセット失敗の可能性あり
     """
     print("[INFO] Verifying COM6 prompt before reset...")
 
@@ -188,7 +188,7 @@ def send_reset(cmd_ser, timeout=10):
                   f"RX bytes={len(buf)}, data={decoded[:80]!r}")
 
     if not prompt_detected:
-        print("[ERROR] COM6 prompt NOT detected — MCU may not be responsive")
+        print("[ERROR] COM6 prompt NOT detected --MCU may not be responsive")
         print("[ERROR] Sending reset anyway, but it may not take effect")
 
     # --- ステップ 2: reset コマンド送信 ---
@@ -212,11 +212,11 @@ def send_reset(cmd_ser, timeout=10):
     post_decoded = post_buf.decode("utf-8", errors="replace").strip()
 
     if "$" in post_decoded:
-        print("[WARN] Prompt STILL detected after reset — MCU may NOT have reset!")
+        print("[WARN] Prompt STILL detected after reset --MCU may NOT have reset!")
         print(f"[DEBUG] Post-reset COM6: {post_decoded[:120]}")
         return False
     else:
-        print("[INFO] No prompt after reset — MCU appears to be resetting (expected)")
+        print("[INFO] No prompt after reset --MCU appears to be resetting (expected)")
         if post_decoded:
             print(f"[DEBUG] Post-reset COM6 data: {post_decoded[:120]}")
         return True
@@ -298,7 +298,7 @@ def main():
             print("[INFO] Closed cmd port")
 
             if not reset_ok:
-                print("[WARN] Reset verification failed — continuing to monitor, "
+                print("[WARN] Reset verification failed --continuing to monitor, "
                       "but results may be unreliable")
 
         # マイルストーン監視
@@ -323,14 +323,14 @@ def main():
                     rx_total = monitor.rx_bytes_total
                     line_count = len(monitor.all_lines)
                 if rx_total == 0:
-                    print(f"[DIAG] 15s elapsed: COM7 received 0 bytes — "
+                    print(f"[DIAG] 15s elapsed: COM7 received 0 bytes --"
                           f"MCU may not have booted!")
                     if not reset_ok:
                         print(f"[DIAG] Combined with reset verification failure, "
                               f"reset likely did NOT work")
                 else:
                     print(f"[DIAG] 15s elapsed: COM7 received {rx_total} bytes, "
-                          f"{line_count} lines — MCU is outputting")
+                          f"{line_count} lines --MCU is outputting")
 
             # 30秒ごとにステータス表示
             if int(elapsed) // 30 > last_status:
@@ -404,7 +404,7 @@ def main():
             print("  3. COM7 port issue (wrong port, baud rate, or held by other process)")
             print("  4. Boot loader did not jump to user program")
             if not reset_ok:
-                print("[DIAG] ** Reset verification FAILED — cause #1 is most likely **")
+                print("[DIAG] ** Reset verification FAILED --cause #1 is most likely **")
         elif not any(ok for _, ok, _, _ in report):
             print("[HINT] COM7 received data but no milestones matched:")
             print("  - Is the device provisioned? (run provision_aws.py)")
