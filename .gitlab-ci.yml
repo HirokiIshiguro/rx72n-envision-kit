@@ -354,3 +354,75 @@ test_screen_navigation:
       python "$env:CI_PROJECT_DIR\test_scripts\uart_test\test_touch_navigation.py" `
         --cmd-port "$env:COMMAND_PORT" --cmd-baud $env:COMMAND_BAUD_RATE `
         --timeout 30 --prompt-timeout 30 --initial-wait 1
+
+provision_and_reset:
+  stage: test
+  tags:
+    - run_ishiguro_machine
+  timeout: 3 minutes
+  needs:
+    - job: test_screen_navigation
+  variables:
+    COMMAND_PORT: "COM6"
+    COMMAND_BAUD_RATE: "115200"
+  before_script:
+    - |
+      Get-Process | Where-Object { $_.ProcessName -eq 'python' -and $_.Id -ne $PID } |
+        ForEach-Object {
+          Write-Host "[WARN] Killing stale Python PID=$($_.Id) StartTime=$($_.StartTime)"
+          Stop-Process -Id $_.Id -Force -ErrorAction SilentlyContinue
+        }
+      Start-Sleep -Seconds 1
+    - pip install pyserial
+  script:
+    # AWS IoT Core プロビジョニング: 証明書・秘密鍵・エンドポイント・Thing名を
+    # データフラッシュに書き込む。flash_boot_loader の -erase-chip でデータフラッシュが
+    # 毎回消去されるため、パイプライン実行ごとにプロビジョニングが必要。
+    # AWS_CLIENT_CERT / AWS_PRIVATE_KEY は GitLab CI/CD の File 型変数で、
+    # Runner が一時ファイルに展開しそのパスが環境変数に入る。
+    - |
+      Write-Host "=== AWS IoT Core Provisioning ==="
+      Write-Host "  Port: $env:COMMAND_PORT @ ${env:COMMAND_BAUD_RATE}bps"
+      Write-Host "  Endpoint: $env:AWS_MQTT_ENDPOINT"
+      Write-Host "  Thing: $env:AWS_IOT_THING_NAME"
+      python "$env:CI_PROJECT_DIR\test_scripts\uart_test\provision_aws.py" `
+        --port "$env:COMMAND_PORT" --baud $env:COMMAND_BAUD_RATE `
+        --endpoint "$env:AWS_MQTT_ENDPOINT" `
+        --thing-name "$env:AWS_IOT_THING_NAME" `
+        --cert "$env:AWS_CLIENT_CERT" `
+        --key "$env:AWS_PRIVATE_KEY"
+
+confirm_aws_mqtt:
+  stage: test
+  tags:
+    - run_ishiguro_machine
+  timeout: 5 minutes
+  needs:
+    - job: provision_and_reset
+  variables:
+    COMMAND_PORT: "COM6"
+    COMMAND_BAUD_RATE: "115200"
+    UART_PORT: "COM7"
+    UART_BAUD_RATE: "921600"
+  before_script:
+    - |
+      Get-Process | Where-Object { $_.ProcessName -eq 'python' -and $_.Id -ne $PID } |
+        ForEach-Object {
+          Write-Host "[WARN] Killing stale Python PID=$($_.Id) StartTime=$($_.StartTime)"
+          Stop-Process -Id $_.Id -Force -ErrorAction SilentlyContinue
+        }
+      Start-Sleep -Seconds 1
+    - pip install pyserial
+  script:
+    # AWS IoT Core MQTT 接続検証: MCU をリセットし、COM7 の FreeRTOS ログから
+    # 3つのマイルストーン (DHCP, TLS, MQTT CONNACK) を検出する。
+    # test_aws_connectivity.py が COM6 で reset コマンドを送信し、
+    # COM7 (921600bps) でログを監視する。
+    - |
+      Write-Host "=== AWS IoT Core MQTT Connectivity Test ==="
+      Write-Host "  Cmd Port: $env:COMMAND_PORT @ ${env:COMMAND_BAUD_RATE}bps"
+      Write-Host "  Log Port: $env:UART_PORT @ ${env:UART_BAUD_RATE}bps"
+      python "$env:CI_PROJECT_DIR\test_scripts\uart_test\test_aws_connectivity.py" `
+        --cmd-port "$env:COMMAND_PORT" --cmd-baud $env:COMMAND_BAUD_RATE `
+        --log-port "$env:UART_PORT" --log-baud $env:UART_BAUD_RATE `
+        --timeout 120
