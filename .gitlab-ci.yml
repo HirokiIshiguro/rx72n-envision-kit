@@ -796,7 +796,7 @@ test_ota:
       $v2 = [int]$env:CI_PIPELINE_IID * 2 + 1
       Write-Host "=== AWS IoT OTA Update Test ==="
       Write-Host "  Expected version build: $v2"
-      python "$env:CI_PROJECT_DIR\test_scripts\uart_test\test_ota.py" `
+      python -u "$env:CI_PROJECT_DIR\test_scripts\uart_test\test_ota.py" `
         --device-id "$env:DEVICE_ID" `
         --rsu "$env:CI_PROJECT_DIR\ota_v2.rsu" `
         --s3-bucket "$env:OTA_S3_BUCKET" `
