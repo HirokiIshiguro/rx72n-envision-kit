@@ -195,19 +195,85 @@ def extract_signature_from_rsu(rsu_path):
     return sig_b64_for_cli
 
 
+def extract_ota_payload(rsu_path):
+    """RSU ファイルから OTA ペイロード (descriptor + code) を抽出する。
+
+    OTA PAL は受信ファイルを TEMP_AREA + 0x200 から書き込み、
+    total_image_length バイトをハッシュして署名検証する。
+    mot_to_rsu.py は descriptor(256B) + code_flash のみ署名するため、
+    RSU ヘッダ (0x200B) と data flash (末尾) を除いたペイロードを送る必要がある。
+
+    RSU ファイルレイアウト:
+        0x000-0x1FF  Header      (512B)  - NOT signed
+        0x200-0x2FF  Descriptor  (256B)  - signed
+        0x300+       Code flash  (N B)   - signed
+        末尾         Data flash  (32KB)  - NOT signed
+
+    Args:
+        rsu_path: RSU ファイルパス
+
+    Returns:
+        bytes: OTA ペイロード (descriptor + code)
+    """
+    with open(rsu_path, 'rb') as f:
+        rsu_data = f.read()
+
+    # Descriptor から code flash のアドレス範囲を読む
+    # Descriptor は RSU offset 0x200:
+    #   0x200-0x203: sequence_number (uint32 LE)
+    #   0x204-0x207: start_address   (uint32 LE)
+    #   0x208-0x20B: end_address     (uint32 LE)
+    DESCRIPTOR_OFFSET = 0x200
+    start_addr = struct.unpack_from('<I', rsu_data, DESCRIPTOR_OFFSET + 4)[0]
+    end_addr = struct.unpack_from('<I', rsu_data, DESCRIPTOR_OFFSET + 8)[0]
+    code_size = end_addr - start_addr + 1
+    descriptor_size = 256
+    payload_size = descriptor_size + code_size
+
+    payload = rsu_data[DESCRIPTOR_OFFSET:DESCRIPTOR_OFFSET + payload_size]
+
+    if len(payload) != payload_size:
+        raise ValueError(
+            f"RSU file too small: expected {payload_size} payload bytes from offset 0x200, "
+            f"but only {len(payload)} available"
+        )
+
+    print(f"[RSU] Extracted OTA payload from {os.path.basename(rsu_path)}")
+    print(f"[RSU]   RSU file size:    {len(rsu_data)} bytes")
+    print(f"[RSU]   Code range:       0x{start_addr:08X}-0x{end_addr:08X} ({code_size} bytes)")
+    print(f"[RSU]   Payload size:     {payload_size} bytes (descriptor {descriptor_size} + code {code_size})")
+    print(f"[RSU]   Stripped:         header {DESCRIPTOR_OFFSET}B + data flash {len(rsu_data) - DESCRIPTOR_OFFSET - payload_size}B")
+
+    return payload
+
+
 def upload_to_s3(rsu_path, s3_bucket, s3_key):
-    """v2.rsu を S3 にアップロードし、VersionId を返す。"""
-    print(f"[S3] Uploading {rsu_path} to s3://{s3_bucket}/{s3_key}")
+    """RSU から OTA ペイロードを抽出して S3 にアップロードし、VersionId を返す。"""
+    payload = extract_ota_payload(rsu_path)
+
+    # ペイロードを一時ファイルに書き出して S3 にアップロード
+    payload_path = rsu_path + ".ota_payload"
+    with open(payload_path, 'wb') as f:
+        f.write(payload)
+
+    print(f"[S3] Uploading OTA payload ({len(payload)} bytes) to s3://{s3_bucket}/{s3_key}")
     result = subprocess.run(
         ["aws", "s3api", "put-object",
          "--bucket", s3_bucket,
          "--key", s3_key,
-         "--body", rsu_path],
+         "--body", payload_path],
         capture_output=True, text=True, check=True
     )
     response = json.loads(result.stdout)
     version_id = response.get("VersionId", "")
     print(f"[S3] Upload complete. VersionId: {version_id}")
+
+    # 一時ファイル削除
+    try:
+        os.remove(payload_path)
+    except OSError:
+        pass
+
     return version_id
 
 
