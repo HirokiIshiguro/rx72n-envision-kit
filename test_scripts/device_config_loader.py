@@ -44,6 +44,7 @@ def load_device_config(device_id, config_path=None):
 
     device = dict(config["devices"][device_id])
     device["aws_endpoint"] = config["aws_endpoint"]
+    device["aws_region"] = config.get("aws_region", "ap-northeast-1")
     device["device_id"] = device_id
     return device
 
