@@ -78,7 +78,7 @@ GitLab UI の「Run Pipeline」画面でオーバーライド可能。
 | シナリオ | RUN_AWS_TESTS | RUN_SD_UPDATE_TEST | RUN_OTA_TEST |
 |----------|:---:|:---:|:---:|
 | AWS 接続テスト（デフォルト） | true | false | false |
-| ビルド+起動テスト（AWS スキップ） | **false** | false | false |
+| ビルド+起動テスト | **false** | false | false |
 | SD カード更新テスト | true | **true** | false |
 | OTA テスト | true | false | **true** |
 | フルテスト（SD + OTA） | true | **true** | **true** |
