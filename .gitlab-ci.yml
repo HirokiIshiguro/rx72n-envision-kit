@@ -3,6 +3,15 @@ stages:
   - flash
   - test
 
+# MR パイプライン (merge_request_event) を抑止。
+# rules: 付きジョブと rules: なしジョブが混在すると、MR パイプラインで
+# needs: の依存先が見つからず即座に失敗するため、ブランチパイプラインのみ使用する。
+workflow:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      when: never
+    - when: always
+
 variables:
   E2STUDIO: "C:\\Renesas\\e2_studio_2025_12\\eclipse\\e2studioc.exe"
   WORKSPACE: "C:\\workspace_rx72n"
