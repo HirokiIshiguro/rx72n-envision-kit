@@ -105,21 +105,37 @@ def parse_version_from_log(line):
 
 
 def extract_signature_from_rsu(rsu_path):
-    """RSU ファイルから ECDSA 署名を抽出し、base64 エンコードで返す。
+    """RSU ファイルから ECDSA 署名を抽出し、二重 base64 エンコードで返す。
 
     RSU ファイルレイアウト (mot_to_rsu.py 参照):
         0x028-0x02B  Signature Size  uint32 LE  (4 bytes) = 64 for ECDSA P-256
         0x02C-0x12B  Signature       raw bytes  (256 bytes, 実際は sig_size 分)
 
     ECDSA P-256 の署名は r(32 bytes) || s(32 bytes) = 64 bytes。
-    AWS IoT OTA の create-ota-update API は signature.inlineDocument に
-    base64 エンコードされた署名バイト列を要求する。
+
+    AWS CLI v2 の blob 型自動デコード問題:
+        create-ota-update API の signature.inlineDocument は blob 型。
+        AWS CLI v2 (cli_binary_format=base64, デフォルト) は JSON 内の
+        blob 値を base64 としてデコードしてから API に送信する。
+        AWS IoT OTA サービスは、ジョブドキュメントの sig-sha256-ecdsa に
+        保存した blob をそのまま文字列として埋め込む。
+
+        したがって、inlineDocument に base64(raw_sig) を渡すと:
+          CLI デコード → raw_sig bytes → ジョブドキュメントに raw bytes 埋め込み
+          → FreeRTOS が base64 デコード → Base64InvalidSymbol エラー！
+
+        修正: 二重 base64 エンコード
+          base64(base64(raw_sig)) を渡す → CLI デコード → base64(raw_sig) 文字列
+          → ジョブドキュメントに base64 文字列埋め込み
+          → FreeRTOS が base64 デコード → raw_sig → 成功！
+
+    See: https://repost.aws/questions/QUS14VnKE9SZ-RrTSfChTrqA
 
     Args:
         rsu_path: RSU ファイルパス
 
     Returns:
-        str: base64 エンコードされた署名文字列
+        str: 二重 base64 エンコードされた署名文字列 (AWS CLI v2 用)
     """
     with open(rsu_path, 'rb') as f:
         data = f.read(0x12C)  # ヘッダ部分のみ読み込み (署名末尾 = 0x02C + 256)
@@ -142,11 +158,18 @@ def extract_signature_from_rsu(rsu_path):
     if len(signature) != sig_size:
         raise ValueError(f"Could not read full signature: got {len(signature)}, expected {sig_size}")
 
+    # 1回目: raw bytes → base64 文字列 (デバイスが最終的にデコードする値)
     sig_b64 = base64.b64encode(signature).decode('utf-8')
+
+    # 2回目: AWS CLI v2 の blob 自動デコード対策
+    # CLI がデコードした後に sig_b64 がジョブドキュメントに埋め込まれるようにする
+    sig_b64_for_cli = base64.b64encode(sig_b64.encode('utf-8')).decode('utf-8')
+
     print(f"[RSU] Extracted signature from {os.path.basename(rsu_path)}")
     print(f"[RSU]   Signature size: {sig_size} bytes")
-    print(f"[RSU]   Base64 length:  {len(sig_b64)} chars")
-    return sig_b64
+    print(f"[RSU]   Base64 (device): {sig_b64[:40]}... ({len(sig_b64)} chars)")
+    print(f"[RSU]   Base64 (CLI):    {sig_b64_for_cli[:40]}... ({len(sig_b64_for_cli)} chars)")
+    return sig_b64_for_cli
 
 
 def upload_to_s3(rsu_path, s3_bucket, s3_key):
@@ -437,38 +460,12 @@ def verify_job_status(ota_update_id, region):
                 except json.JSONDecodeError:
                     print(job_doc_str[:3000])
             else:
-                # document が空の場合、他のフィールドを探す
+                # OTA 作成ジョブは describe-job で document が空になる既知の制限。
+                # ジョブドキュメントは documentSource (S3 URL) 経由で配信される。
                 doc_src = job_obj.get("documentSource", "")
-                print(f"[AWS] describe-job: document is empty")
-                print(f"[AWS]   documentSource: {doc_src[:200]}")
-                print(f"[AWS]   job keys: {list(job_obj.keys())}")
-                # describe-job-execution で取得を試みる
-                exec_result = subprocess.run(
-                    ["aws", "iot-data", "describe-job-execution",
-                     "--job-id", aws_job_id,
-                     "--thing-name", ota_info.get("targets", [""])[0].split("/")[-1],
-                     "--region", region,
-                     "--include-job-document"],
-                    capture_output=True, text=True
-                )
-                if exec_result.returncode == 0:
-                    exec_resp = json.loads(exec_result.stdout)
-                    exec_doc = exec_resp.get("execution", {}).get("jobDocument", "")
-                    if exec_doc:
-                        print(f"[AWS] Job execution document ({len(str(exec_doc))} chars):")
-                        if isinstance(exec_doc, str):
-                            try:
-                                print(json.dumps(json.loads(exec_doc), indent=2)[:3000])
-                            except json.JSONDecodeError:
-                                print(exec_doc[:3000])
-                        else:
-                            print(json.dumps(exec_doc, indent=2)[:3000])
-                    else:
-                        print(f"[AWS] describe-job-execution keys: "
-                              f"{list(exec_resp.get('execution', {}).keys())}")
-                else:
-                    print(f"[WARN] describe-job-execution failed: "
-                          f"{exec_result.stderr[:200]}")
+                print(f"[AWS] describe-job: document is empty (OTA jobs use documentSource)")
+                if doc_src:
+                    print(f"[AWS]   documentSource: {doc_src[:200]}")
         else:
             print(f"[WARN] describe-job failed: {job_result.stderr[:200]}")
 
