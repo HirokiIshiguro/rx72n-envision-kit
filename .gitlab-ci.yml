@@ -210,6 +210,7 @@ flash_boot_loader:
   stage: flash
   tags:
     - run_ishiguro_machine
+  resource_group: rx72n-device
   needs: [build]
   script:
     - |
@@ -257,6 +258,7 @@ download_aws_demos:
   stage: flash
   tags:
     - run_ishiguro_machine
+  resource_group: rx72n-device
   needs:
     - job: build
       artifacts: true
@@ -312,6 +314,7 @@ test_commands:
   stage: test
   tags:
     - run_ishiguro_machine
+  resource_group: rx72n-device
   timeout: 5 minutes
   needs:
     - job: download_aws_demos
@@ -355,6 +358,7 @@ test_screen_navigation:
   stage: test
   tags:
     - run_ishiguro_machine
+  resource_group: rx72n-device
   timeout: 3 minutes
   needs:
     - job: test_commands
@@ -385,6 +389,7 @@ provision_aws_credentials:
   stage: flash
   tags:
     - run_ishiguro_machine
+  resource_group: rx72n-device
   timeout: 3 minutes
   rules:
     - if: $RUN_AWS_TESTS == "true"
@@ -418,6 +423,7 @@ confirm_aws_mqtt:
   stage: test
   tags:
     - run_ishiguro_machine
+  resource_group: rx72n-device
   timeout: 5 minutes
   rules:
     - if: $RUN_AWS_TESTS == "true"
@@ -451,6 +457,7 @@ test_sd_update:
   stage: test
   tags:
     - run_ishiguro_machine
+  resource_group: rx72n-device
   timeout: 10 minutes
   rules:
     - if: $RUN_AWS_TESTS == "true" && $RUN_SD_UPDATE_TEST == "true"
@@ -648,6 +655,7 @@ prepare_ota:
   stage: test
   tags:
     - run_ishiguro_machine
+  resource_group: rx72n-device
   timeout: 5 minutes
   rules:
     - if: $RUN_OTA_TEST == "true"
@@ -728,6 +736,7 @@ test_ota:
   stage: test
   tags:
     - run_ishiguro_machine
+  resource_group: rx72n-device
   timeout: 15 minutes
   rules:
     - if: $RUN_OTA_TEST == "true"

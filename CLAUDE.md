@@ -89,6 +89,7 @@ GitLab UI の「Run Pipeline」画面でオーバーライド可能。
 **注意:**
 - `RUN_SD_UPDATE_TEST` は `RUN_AWS_TESTS == "true"` の場合のみ有効（AWS 接続が前提）
 - `RUN_OTA_TEST` は独立した OTA パイプライン（build_ota → prepare_ota → test_ota）を制御。`RUN_AWS_TESTS=false` でも OTA テスト可（`prepare_ota` 内で再プロビジョニング）
+- デバイスアクセスジョブには `resource_group: rx72n-device` を設定。同一ブランチへの連続 push で複数パイプラインが起動した際、先行パイプラインのデバイスジョブが完了するまで後続パイプラインのデバイスジョブは待機する（FIFO）。`build` / `build_ota` はデバイス非依存のため `resource_group` 不要。
 
 ### テストファーム構想 / Test Farm Architecture
 
