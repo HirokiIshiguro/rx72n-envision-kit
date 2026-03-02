@@ -54,13 +54,44 @@ RX72N Envision Kit の全機能を試せるようにする。
 | - | AWS CLI / IoT Core ノウハウを `oss/experiment/cloud/aws/iot-core/claude` に export | Planned |
 | - | SD カード更新の CI/CD 完全自動化: UART ファイル転送コマンド (`sdcard write`) + GUI ボタン操作コマンド (`touch`) の実装（ファームウェア変更） | Done (MR !20) |
 
+### Phase 9 テストファーム構想 / Test Farm Architecture
+
+**目標:** RX72N Envision Kit 3台 + セカンダリ MCU (FPB-RX140) 6台によるフリートプロビジョニング＋マルチ MCU OTA の全自動テスト
+
+**ハードウェア構成:**
+
+```
+[ビルド Runner (Windows)]           [実機 Runner (Raspberry Pi × 3台)]
+  e2studio + CC-RX                    ├─ Pi #1 ── RX72N #1 ─┬─ FPB-RX140 (A)
+  .mot/.rsu 生成                      │                      └─ FPB-RX140 (B)
+  artifacts で受け渡し                 ├─ Pi #2 ── RX72N #2 ─┬─ FPB-RX140 (C)
+                                      │                      └─ FPB-RX140 (D)
+                                      └─ Pi #3 ── RX72N #3 ─┬─ FPB-RX140 (E)
+                                                             └─ FPB-RX140 (F)
+```
+
+**調達済みハードウェア:**
+- RX72N Envision Kit × 3台（1台既存 + 2台追加購入）
+- FPB-RX140 × 6台（セカンダリ MCU、各 RX72N に2台ずつ接続）
+- USB ハブ + USB ケーブル多数
+
+**Runner 分離方針:**
+- **ビルド専用 Runner (Windows):** e2studio ヘッドレスビルド。実機不要、重い処理を分離
+- **実機操作専用 Runner (Raspberry Pi):** flash (rfp-cli) + UART テスト + SD カード転送。RX72N 物理接続。Python スクリプト実行
+
+**テストシナリオ（Phase 9）:**
+- AWS IoT Core フリートプロビジョニングで3台同時にデバイス登録・証明書発行
+- OTA ジョブで3台一斉にファームウェア更新
+- RX72N → FPB-RX140 へのセカンダリ MCU カスケード更新
+- 各デバイスの更新完了・正常動作を並列監視
+
 ### Build environment / ビルド環境
 
 - **IDE:** e2 studio 2025-12（`C:\Renesas\e2_studio_2025_12\eclipse\e2studioc.exe`）
   - **重要:** CI と GUI で必ず同じ e2 studio バージョンを使うこと（SMC 生成物・Makefile テンプレートが異なり、バイナリ互換性が壊れる）
   - e2 studio バージョン変更時は smc_gen 再生成 → コミット → MOT 比較 → 実機検証 が必須
   - Phase 5 まで: e2 studio 2024-01 / CC-RX v3.04（MR !20）
-- **Compiler:** CC-RX v3.07.00（e2 studio 2025-12 同梱。v3.04 → v3.07 移行中、LCD 消灯バグの再確認が必要）
+- **Compiler:** CC-RX v3.07.00（e2 studio 2025-12 同梱。v3.04 → v3.07 移行完了、LCD 消灯バグは Phase 5 の修正で解消確認済み）
 - **Runner tag:** `run_ishiguro_machine`（Windows 11、RX72N Envision Kit 物理接続済み）
 - **Workspace:** `C:\workspace_rx72n`（hello_world とは別ディレクトリ）
 
