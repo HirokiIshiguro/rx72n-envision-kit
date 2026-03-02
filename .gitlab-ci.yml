@@ -46,11 +46,20 @@ variables:
   RUN_AWS_TESTS: "true"
   RUN_SD_UPDATE_TEST: "true"
   RUN_OTA_TEST: "true"
+  # RUN_OTA_ONLY: OTA テストのみ実行するショートカットモード。
+  # "true" にすると通常のビルド/フラッシュ/テストジョブをスキップし、
+  # build_ota → prepare_ota → test_ota のみ実行する。
+  # OTA デバッグ中のイテレーション高速化用。安定後は "false" に戻すこと。
+  RUN_OTA_ONLY: "false"
 
 build:
   stage: build
   tags:
     - run_ishiguro_machine
+  rules:
+    - if: $RUN_OTA_ONLY == "true"
+      when: never
+    - when: always
   script:
     # ワークスペースと HardwareDebug をクリア（stale Makefile とキャッシュの除去）
     - if (Test-Path "$env:WORKSPACE") { Remove-Item -Recurse -Force "$env:WORKSPACE" }
@@ -211,6 +220,10 @@ flash_boot_loader:
   tags:
     - run_ishiguro_machine
   resource_group: rx72n-device
+  rules:
+    - if: $RUN_OTA_ONLY == "true"
+      when: never
+    - when: always
   needs: [build]
   script:
     - |
@@ -259,6 +272,10 @@ download_aws_demos:
   tags:
     - run_ishiguro_machine
   resource_group: rx72n-device
+  rules:
+    - if: $RUN_OTA_ONLY == "true"
+      when: never
+    - when: always
   needs:
     - job: build
       artifacts: true
@@ -316,6 +333,10 @@ test_commands:
     - run_ishiguro_machine
   resource_group: rx72n-device
   timeout: 5 minutes
+  rules:
+    - if: $RUN_OTA_ONLY == "true"
+      when: never
+    - when: always
   needs:
     - job: download_aws_demos
     # provision_aws_credentials も COM6 を使用するため、同時実行を防止。
@@ -363,6 +384,10 @@ test_screen_navigation:
     - run_ishiguro_machine
   resource_group: rx72n-device
   timeout: 3 minutes
+  rules:
+    - if: $RUN_OTA_ONLY == "true"
+      when: never
+    - when: always
   needs:
     - job: test_commands
   variables:
@@ -395,6 +420,8 @@ provision_aws_credentials:
   resource_group: rx72n-device
   timeout: 3 minutes
   rules:
+    - if: $RUN_OTA_ONLY == "true"
+      when: never
     - if: $RUN_AWS_TESTS == "true"
   needs:
     - job: download_aws_demos
@@ -429,6 +456,8 @@ confirm_aws_mqtt:
   resource_group: rx72n-device
   timeout: 5 minutes
   rules:
+    - if: $RUN_OTA_ONLY == "true"
+      when: never
     - if: $RUN_AWS_TESTS == "true"
   needs:
     - job: test_screen_navigation
@@ -463,6 +492,8 @@ test_sd_update:
   resource_group: rx72n-device
   timeout: 10 minutes
   rules:
+    - if: $RUN_OTA_ONLY == "true"
+      when: never
     - if: $RUN_AWS_TESTS == "true" && $RUN_SD_UPDATE_TEST == "true"
   needs:
     - job: confirm_aws_mqtt
@@ -664,11 +695,13 @@ prepare_ota:
     - if: $RUN_OTA_TEST == "true"
   needs:
     # 通常テスト完了後に実行。optional: true により、スキップされたジョブへの依存は無視。
+    # RUN_OTA_ONLY=true 時は全テストジョブがスキップされるため、全て optional にする。
     - job: test_sd_update
       optional: true
     - job: confirm_aws_mqtt
       optional: true
     - job: test_screen_navigation
+      optional: true
     - job: build_ota
       artifacts: true
   before_script:

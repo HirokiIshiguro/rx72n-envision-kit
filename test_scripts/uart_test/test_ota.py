@@ -271,11 +271,14 @@ def monitor_ota_progress(ser, timeout=600):
                 if not line:
                     continue
 
+                # デバイスログを標準出力に転送 (CI/CD パイプラインで確認可能)
+                elapsed = time.time() - start
+                print(f"[COM7] {elapsed:6.1f}s | {line[:300]}")
+
                 # ブロック受信カウント
                 if "Received valid file block" in line or "Received data message" in line:
                     block_count += 1
                     if block_count % 50 == 0 or block_count <= 3:
-                        elapsed = time.time() - start
                         print(f"[MONITOR] {elapsed:.0f}s: Block {block_count} received")
 
                 # マイルストーン検出
@@ -370,7 +373,12 @@ def verify_new_version_after_reset(ser, expected_build, timeout=120):
 
 
 def verify_job_status(ota_update_id, region):
-    """AWS 側の OTA ジョブステータスを確認する。"""
+    """AWS 側の OTA ジョブステータスを確認する。
+
+    Returns:
+        dict: {"status": str, "error_info": dict or None}
+              status は CREATE_PENDING, CREATE_COMPLETE, CREATE_FAILED 等
+    """
     print(f"[AWS] Checking OTA update status: {ota_update_id}")
     result = subprocess.run(
         ["aws", "iot", "get-ota-update",
@@ -380,13 +388,68 @@ def verify_job_status(ota_update_id, region):
     )
     if result.returncode != 0:
         print(f"[WARN] Could not get OTA status: {result.stderr[:200]}")
-        return None
+        return {"status": None, "error_info": None}
 
     response = json.loads(result.stdout)
     ota_info = response.get("otaUpdateInfo", {})
     status = ota_info.get("otaUpdateStatus", "unknown")
+    error_info = ota_info.get("errorInfo")
     print(f"[AWS] OTA Update Status: {status}")
-    return status
+
+    if error_info:
+        print(f"[AWS] Error Code:    {error_info.get('code', 'N/A')}")
+        print(f"[AWS] Error Message: {error_info.get('message', 'N/A')}")
+
+    # デバッグ: OTA ファイル情報も出力
+    ota_files = ota_info.get("otaUpdateFiles", [])
+    for i, f in enumerate(ota_files):
+        signing = f.get("codeSigning", {})
+        custom = signing.get("customCodeSigning", {})
+        if custom:
+            sig_info = custom.get("signature", {})
+            cert_info = custom.get("certificateChain", {})
+            inline_doc = sig_info.get("inlineDocument", "")
+            cert_name = cert_info.get("certificateName", "")
+            print(f"[AWS] File[{i}] signature.inlineDocument: "
+                  f"{inline_doc[:40]}... ({len(inline_doc)} chars)")
+            print(f"[AWS] File[{i}] certificateName: {cert_name}")
+
+    return {"status": status, "error_info": error_info}
+
+
+def wait_for_ota_job_ready(ota_update_id, region, timeout=60):
+    """OTA ジョブが CREATE_PENDING を脱するまでポーリングする。
+
+    CREATE_PENDING → CREATE_COMPLETE: 成功（デバイスへの配信開始）
+    CREATE_PENDING → CREATE_FAILED:   失敗（設定不備等）
+
+    Returns:
+        dict: verify_job_status の戻り値
+    """
+    print(f"[AWS] Waiting for OTA job to be ready (timeout={timeout}s)...")
+    start = time.time()
+    poll_interval = 5  # 5秒間隔
+
+    while (time.time() - start) < timeout:
+        result = verify_job_status(ota_update_id, region)
+        status = result["status"]
+
+        if status == "CREATE_COMPLETE":
+            print("[AWS] OTA job is ready for device download")
+            return result
+        elif status == "CREATE_FAILED":
+            print("[ERROR] OTA job creation failed!")
+            return result
+        elif status != "CREATE_PENDING":
+            print(f"[WARN] Unexpected OTA status: {status}")
+            return result
+
+        elapsed = time.time() - start
+        print(f"[AWS] Still CREATE_PENDING ({elapsed:.0f}s)...")
+        time.sleep(poll_interval)
+
+    print(f"[WARN] OTA job still CREATE_PENDING after {timeout}s")
+    return verify_job_status(ota_update_id, region)
 
 
 def cleanup_s3(s3_bucket, s3_key):
@@ -540,49 +603,64 @@ def main():
         )
         results["ota_job_created"] = True
 
-        # --- Step 4: OTA 進捗監視 ---
+        # --- Step 3.5: OTA ジョブ状態確認 (CREATE_FAILED 早期検出) ---
         print()
-        print("[STEP 4/6] Monitoring OTA progress")
-        # バッファクリア
-        log_ser.reset_input_buffer()
-        milestones = monitor_ota_progress(log_ser, timeout=args.timeout)
-
-        # マイルストーン評価
-        required = {name for name, info in OTA_MILESTONES.items() if info["required"]}
-        # agent_ready は既に Step 1 で確認済み
-        required.discard("agent_ready")
-        missing = required - set(milestones.keys())
-        if missing:
-            print(f"[WARN] Missing milestones: {', '.join(missing)}")
+        print("[STEP 3.5/6] Waiting for OTA job to leave CREATE_PENDING")
+        job_result = wait_for_ota_job_ready(ota_update_id, args.region, timeout=60)
+        if job_result["status"] == "CREATE_FAILED":
+            print("[FAIL] OTA job CREATE_FAILED - aborting (skip 10min device wait)")
+            results["ota_job_ready"] = False
             results["ota_download"] = False
-        else:
-            print("[PASS] All required OTA milestones detected")
-            results["ota_download"] = True
-
-        # --- Step 5: 新バージョン起動確認 ---
-        print()
-        print("[STEP 5/6] Verifying new version after reset")
-        if args.expected_build:
-            version_ok = verify_new_version_after_reset(
-                log_ser, args.expected_build, timeout=120
-            )
-            results["new_version"] = version_ok
-        else:
-            print("[SKIP] --expected-build not specified, skipping version check")
-            results["new_version"] = True
-
-        # --- Step 6: AWS ジョブステータス確認 ---
-        print()
-        print("[STEP 6/6] Checking AWS OTA job status")
-        if ota_update_id:
-            aws_status = verify_job_status(ota_update_id, args.region)
-            # CREATE_COMPLETE は正常（デバイス側の実行状態とは別）
-            results["aws_status"] = aws_status is not None
-        else:
+            results["new_version"] = False
             results["aws_status"] = False
+            log_ser.close()
+            print(f"[INFO] Closed {args.log_port}")
+        else:
+            results["ota_job_ready"] = True
 
-        log_ser.close()
-        print(f"[INFO] Closed {args.log_port}")
+            # --- Step 4: OTA 進捗監視 ---
+            print()
+            print("[STEP 4/6] Monitoring OTA progress")
+            # バッファクリア
+            log_ser.reset_input_buffer()
+            milestones = monitor_ota_progress(log_ser, timeout=args.timeout)
+
+            # マイルストーン評価
+            required = {name for name, info in OTA_MILESTONES.items() if info["required"]}
+            # agent_ready は既に Step 1 で確認済み
+            required.discard("agent_ready")
+            missing = required - set(milestones.keys())
+            if missing:
+                print(f"[WARN] Missing milestones: {', '.join(missing)}")
+                results["ota_download"] = False
+            else:
+                print("[PASS] All required OTA milestones detected")
+                results["ota_download"] = True
+
+            # --- Step 5: 新バージョン起動確認 ---
+            print()
+            print("[STEP 5/6] Verifying new version after reset")
+            if args.expected_build:
+                version_ok = verify_new_version_after_reset(
+                    log_ser, args.expected_build, timeout=120
+                )
+                results["new_version"] = version_ok
+            else:
+                print("[SKIP] --expected-build not specified, skipping version check")
+                results["new_version"] = True
+
+            # --- Step 6: AWS ジョブステータス確認 ---
+            print()
+            print("[STEP 6/6] Checking AWS OTA job status")
+            if ota_update_id:
+                job_result = verify_job_status(ota_update_id, args.region)
+                # CREATE_COMPLETE は正常（デバイス側の実行状態とは別）
+                results["aws_status"] = job_result["status"] is not None
+            else:
+                results["aws_status"] = False
+
+            log_ser.close()
+            print(f"[INFO] Closed {args.log_port}")
 
     except serial.SerialException as e:
         print(f"[ERROR] Serial port error: {e}")
