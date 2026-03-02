@@ -350,9 +350,12 @@ test_commands:
     - |
       Write-Host "=== UART Command-Response Test ==="
       Write-Host "  Port: $env:COMMAND_PORT @ ${env:COMMAND_BAUD_RATE}bps"
+      # --skip-erase: provision_aws_credentials が flash stage でプロビジョニング済み。
+      #   dataflash erase を実行すると endpoint/cert 等が消去され confirm_aws_mqtt が失敗する。
       python "$env:CI_PROJECT_DIR\test_scripts\uart_test\test_aws_demos_commands.py" `
         --port "$env:COMMAND_PORT" --baud $env:COMMAND_BAUD_RATE `
-        --timeout $env:COMMAND_TIMEOUT --prompt-timeout 60 --initial-wait 3
+        --timeout $env:COMMAND_TIMEOUT --prompt-timeout 60 --initial-wait 3 `
+        --skip-erase
 
 test_screen_navigation:
   stage: test
