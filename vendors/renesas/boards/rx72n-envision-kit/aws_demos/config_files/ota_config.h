@@ -88,7 +88,7 @@
  *
  * <b>Possible values:</b> Any unsigned 32 integer. <br>
  */
-#define otaconfigFILE_REQUEST_WAIT_MS           2500U
+#define otaconfigFILE_REQUEST_WAIT_MS           1000U
 
 /**
  * @brief The maximum allowed length of the thing name used by the OTA agent.
@@ -118,7 +118,7 @@
  *
  * <b>Possible values:</b> Any unsigned 32 integer value greater than 0. <br>
  */
-#define otaconfigMAX_NUM_BLOCKS_REQUEST         1U
+#define otaconfigMAX_NUM_BLOCKS_REQUEST         4U
 
 /**
  * @brief The maximum number of requests allowed to send without a response
