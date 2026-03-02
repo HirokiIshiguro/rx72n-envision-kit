@@ -315,6 +315,10 @@ test_commands:
   timeout: 5 minutes
   needs:
     - job: download_aws_demos
+    # provision_aws_credentials も COM6 を使用するため、同時実行を防止。
+    # RUN_AWS_TESTS=false 時は provision がスキップされるため optional: true。
+    - job: provision_aws_credentials
+      optional: true
   variables:
     # aws_demos のコマンドインターフェースは COM6 (SCI2, 115200bps)
     COMMAND_PORT: "COM6"
@@ -377,15 +381,15 @@ test_screen_navigation:
         --cmd-port "$env:COMMAND_PORT" --cmd-baud $env:COMMAND_BAUD_RATE `
         --timeout 30 --prompt-timeout 30 --initial-wait 1
 
-provision_and_reset:
-  stage: test
+provision_aws_credentials:
+  stage: flash
   tags:
     - run_ishiguro_machine
   timeout: 3 minutes
   rules:
     - if: $RUN_AWS_TESTS == "true"
   needs:
-    - job: test_screen_navigation
+    - job: download_aws_demos
   before_script:
     - |
       Get-Process | Where-Object { $_.ProcessName -eq 'python' -and $_.Id -ne $PID } |
@@ -396,16 +400,19 @@ provision_and_reset:
       Start-Sleep -Seconds 1
     - pip install pyserial
   script:
-    # AWS IoT Core プロビジョニング: 証明書・秘密鍵・エンドポイント・Thing名を
-    # データフラッシュに書き込む。flash_boot_loader の -erase-chip でデータフラッシュが
-    # 毎回消去されるため、パイプライン実行ごとにプロビジョニングが必要。
+    # AWS IoT Core プロビジョニング: 証明書・秘密鍵・エンドポイント・Thing名・
+    # OTA 署名検証証明書をデータフラッシュに書き込む。
+    # flash_boot_loader の -erase-chip でデータフラッシュが毎回消去されるため、
+    # パイプライン実行ごとにプロビジョニングが必要。
     # --device-id で device_config.json からポート・エンドポイント・Thing名を解決。
     # 証明書は CI/CD File 型変数 AWS_CLIENT_CERT_{ID} / AWS_PRIVATE_KEY_{ID} から取得。
+    # --codesigner-cert: OTA 署名検証用証明書（sample_keys/secp256r1.crt）も書き込む。
     - |
       Write-Host "=== AWS IoT Core Provisioning ==="
       Write-Host "  Device ID: $env:DEVICE_ID"
       python "$env:CI_PROJECT_DIR\test_scripts\uart_test\provision_aws.py" `
-        --device-id "$env:DEVICE_ID"
+        --device-id "$env:DEVICE_ID" `
+        --codesigner-cert "$env:CI_PROJECT_DIR\sample_keys\secp256r1.crt"
 
 confirm_aws_mqtt:
   stage: test
@@ -415,7 +422,7 @@ confirm_aws_mqtt:
   rules:
     - if: $RUN_AWS_TESTS == "true"
   needs:
-    - job: provision_and_reset
+    - job: test_screen_navigation
   retry:
     max: 1
     when: script_failure
@@ -637,13 +644,20 @@ build_ota:
       - projects/renesas/rx72n_envision_kit/e2studio/boot_loader/HardwareDebug/*.mot
     expire_in: 1 week
 
-flash_and_provision_ota:
-  stage: flash
+prepare_ota:
+  stage: test
   tags:
     - run_ishiguro_machine
+  timeout: 5 minutes
   rules:
     - if: $RUN_OTA_TEST == "true"
   needs:
+    # 通常テスト完了後に実行。optional: true により、スキップされたジョブへの依存は無視。
+    - job: test_sd_update
+      optional: true
+    - job: confirm_aws_mqtt
+      optional: true
+    - job: test_screen_navigation
     - job: build_ota
       artifacts: true
   before_script:
@@ -656,6 +670,10 @@ flash_and_provision_ota:
       Start-Sleep -Seconds 1
     - pip install cryptography pyserial
   script:
+    # OTA デバイス準備: 通常テスト完了後に実行。
+    # 通常テスト時は aws_demos (MQTT デモ) が実行中のため、OTA デモ版の aws_demos に
+    # 入れ替える必要がある。erase-chip で全フラッシュを消去し、boot_loader 再書き込み→
+    # UART で ota_v1.rsu をダウンロード → 再プロビジョニング（erase-chip でデータフラッシュ消去済み）。
     # Step 1: boot_loader 書き込み (erase-chip + program + run)
     - |
       $mot = "$env:CI_PROJECT_DIR\$env:E2STUDIO_PROJECTS\boot_loader\HardwareDebug\rx72n_boot_loader.mot"
@@ -714,7 +732,7 @@ test_ota:
   rules:
     - if: $RUN_OTA_TEST == "true"
   needs:
-    - job: flash_and_provision_ota
+    - job: prepare_ota
     - job: build_ota
       artifacts: true
   before_script:
