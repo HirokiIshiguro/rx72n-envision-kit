@@ -45,16 +45,24 @@ RX72N Envision Kit の全機能を試せるようにする。
 | 3 | UART ダウンロード後のフリーズ現象の解析・修正（原因: BANKSEL 未リセット、修正: `-erase-chip`） | Done |
 | 4 | boot_loader の UART ダウンロードを COM6 (SCI2, 115200bps) から COM7 (SCI7 PMOD FTDI, 921600bps) に変更（要ファームウェア SCI ポート変更。ダウンロード時間短縮でデバッグ効率改善） | Done |
 | 5 | e2studio 2024-01 / CC-RX v3.04 環境で既存機能の動作検証（AWS 接続、SD カードによるファームウェアアップデート、各種コマンドレスポンス） | Done (MR !20) |
-| 6 | e2studio 2025-12 / CC-RX v3.07 に変更し、既存機能の動作検証（AWS 接続、SD カードによるファームウェアアップデート、各種コマンドレスポンス） | In progress |
-| 7 | FreeRTOS LTS 最新版適用（[iot-reference-rx](https://github.com/renesas/iot-reference-rx) 最新リリースタグ） | Planned |
-| 8 | AWS 接続を含む OTA テスト | Planned |
-| 9 | RX72N Envision Kit 複数台でのフリートプロビジョニング＋OTA 一斉実施の全自動テスト | Planned |
+| 6 | e2studio 2025-12 / CC-RX v3.07 に変更し、既存機能の動作検証（AWS 接続、SD カードによるファームウェアアップデート、各種コマンドレスポンス） | In progress (MR !21) |
+| 7 | AWS 接続を含む OTA テスト（1台） | Planned |
+| 8 | AWS 接続を含むフリートプロビジョニング テスト（1台） | Planned |
+| 9 | FreeRTOS LTS 最新版適用（[iot-reference-rx](https://github.com/renesas/iot-reference-rx) 最新リリースタグ） | Planned |
+| 10 | AWS 接続を含む OTA テスト（1台、新 FW で再検証） | Planned |
+| 11 | AWS 接続を含むフリートプロビジョニング テスト（1台、新 FW で再検証） | Planned |
+| 12 | AWS 接続を含むセカンダリ MCU ファームウェアアップデート テスト（RX72N → FPB-RX140） | Planned |
+| 13 | OTA × 3 一斉テスト | Planned |
+| 14 | フリートプロビジョニング × 3 + 一斉 OTA テスト | Planned |
+| 15 | フリートプロビジョニング × 3 + セカンダリ MCU アップデート × 2 + 一斉 OTA テスト（フル構成） | Planned |
 | - | UART テストスクリプトの共通ライブラリ化（[mcu-test/uart](https://shelty2.servegame.com/oss/experiment/generic/scripts/python/mcu-test) へ切り出し、git submodule で各プロジェクトから参照） | Planned |
 | - | mot_to_rsu コンバータの共通部品化（git submodule で各プロジェクトから参照） | Done (MR !12) |
 | - | AWS CLI / IoT Core ノウハウを `oss/experiment/cloud/aws/iot-core/claude` に export | Planned |
 | - | SD カード更新の CI/CD 完全自動化: UART ファイル転送コマンド (`sdcard write`) + GUI ボタン操作コマンド (`touch`) の実装（ファームウェア変更） | Done (MR !20) |
+| - | BUTTON_03 タッチ問題: J-Link 実機デバッグで WM_NOTIFICATION_CLICKED 発火確認 | Planned |
+| - | Runner 分離: ビルド専用 (Windows) / 実機操作専用 (Raspberry Pi) に分けて並列度向上 | Planned |
 
-### Phase 9 テストファーム構想 / Test Farm Architecture
+### テストファーム構想 / Test Farm Architecture
 
 **目標:** RX72N Envision Kit 3台 + セカンダリ MCU (FPB-RX140) 6台によるフリートプロビジョニング＋マルチ MCU OTA の全自動テスト
 
