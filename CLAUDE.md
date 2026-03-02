@@ -44,8 +44,8 @@ RX72N Envision Kit の全機能を試せるようにする。
 | 2 | flash（rfp-cli）+ UART テスト自動化 | Done (MR !9) |
 | 3 | UART ダウンロード後のフリーズ現象の解析・修正（原因: BANKSEL 未リセット、修正: `-erase-chip`） | Done |
 | 4 | boot_loader の UART ダウンロードを COM6 (SCI2, 115200bps) から COM7 (SCI7 PMOD FTDI, 921600bps) に変更（要ファームウェア SCI ポート変更。ダウンロード時間短縮でデバッグ効率改善） | Done |
-| 5 | e2studio 2024-01 / CC-RX v3.04 環境で既存機能の動作検証（AWS 接続、SD カードによるファームウェアアップデート、各種コマンドレスポンス） | In progress (MR !20) |
-| 6 | e2studio 2025-12 / CC-RX v3.07 に変更し、既存機能の動作検証（AWS 接続、SD カードによるファームウェアアップデート、各種コマンドレスポンス） | Planned |
+| 5 | e2studio 2024-01 / CC-RX v3.04 環境で既存機能の動作検証（AWS 接続、SD カードによるファームウェアアップデート、各種コマンドレスポンス） | Done (MR !20) |
+| 6 | e2studio 2025-12 / CC-RX v3.07 に変更し、既存機能の動作検証（AWS 接続、SD カードによるファームウェアアップデート、各種コマンドレスポンス） | In progress |
 | 7 | FreeRTOS LTS 最新版適用（[iot-reference-rx](https://github.com/renesas/iot-reference-rx) 最新リリースタグ） | Planned |
 | 8 | AWS 接続を含む OTA テスト | Planned |
 | 9 | RX72N Envision Kit 複数台でのフリートプロビジョニング＋OTA 一斉実施の全自動テスト | Planned |
@@ -56,11 +56,11 @@ RX72N Envision Kit の全機能を試せるようにする。
 
 ### Build environment / ビルド環境
 
-- **IDE:** e2 studio 2024-01（`C:\Renesas\e2_studio_2024_01_1\eclipse\e2studioc.exe`）
+- **IDE:** e2 studio 2025-12（`C:\Renesas\e2_studio_2025_12\eclipse\e2studioc.exe`）
   - **重要:** CI と GUI で必ず同じ e2 studio バージョンを使うこと（SMC 生成物・Makefile テンプレートが異なり、バイナリ互換性が壊れる）
   - e2 studio バージョン変更時は smc_gen 再生成 → コミット → MOT 比較 → 実機検証 が必須
-  - Phase 6 で e2 studio 2025-12 / CC-RX v3.07 への移行を予定
-- **Compiler:** CC-RX v3.04.00（3プロジェクト共通。v3.07.00 は LCD 消灯バグあり、MR !11 で戻し）
+  - Phase 5 まで: e2 studio 2024-01 / CC-RX v3.04（MR !20）
+- **Compiler:** CC-RX v3.07.00（e2 studio 2025-12 同梱。v3.04 → v3.07 移行中、LCD 消灯バグの再確認が必要）
 - **Runner tag:** `run_ishiguro_machine`（Windows 11、RX72N Envision Kit 物理接続済み）
 - **Workspace:** `C:\workspace_rx72n`（hello_world とは別ディレクトリ）
 
