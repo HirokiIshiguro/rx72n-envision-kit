@@ -45,8 +45,8 @@ RX72N Envision Kit の全機能を試せるようにする。
 | 3 | UART ダウンロード後のフリーズ現象の解析・修正（原因: BANKSEL 未リセット、修正: `-erase-chip`） | Done |
 | 4 | boot_loader の UART ダウンロードを COM6 (SCI2, 115200bps) から COM7 (SCI7 PMOD FTDI, 921600bps) に変更（要ファームウェア SCI ポート変更。ダウンロード時間短縮でデバッグ効率改善） | Done |
 | 5 | e2studio 2024-01 / CC-RX v3.04 環境で既存機能の動作検証（AWS 接続、SD カードによるファームウェアアップデート、各種コマンドレスポンス） | Done (MR !20) |
-| 6 | e2studio 2025-12 / CC-RX v3.07 に変更し、既存機能の動作検証（AWS 接続、SD カードによるファームウェアアップデート、各種コマンドレスポンス） | In progress (MR !21) |
-| 7 | AWS 接続を含む OTA テスト（1台） | Planned |
+| 6 | e2studio 2025-12 / CC-RX v3.07 ツールチェーン更新 + 既存機能の動作検証 | Done (MR !21) |
+| 7 | AWS IoT OTA テスト自動化（S3 + OTA ジョブ → MQTT ダウンロード → 署名検証 → バンクスワップ → 自己テスト）（1台） | In progress |
 | 8 | AWS 接続を含むフリートプロビジョニング テスト（1台） | Planned |
 | 9 | FreeRTOS LTS 最新版適用（[iot-reference-rx](https://github.com/renesas/iot-reference-rx) 最新リリースタグ） | Planned |
 | 10 | AWS 接続を含む OTA テスト（1台、新 FW で再検証） | Planned |
@@ -57,8 +57,9 @@ RX72N Envision Kit の全機能を試せるようにする。
 | 15 | フリートプロビジョニング × 3 + セカンダリ MCU アップデート × 2 + 一斉 OTA テスト（フル構成） | Planned |
 | - | UART テストスクリプトの共通ライブラリ化（[mcu-test/uart](https://shelty2.servegame.com/oss/experiment/generic/scripts/python/mcu-test) へ切り出し、git submodule で各プロジェクトから参照） | Planned |
 | - | mot_to_rsu コンバータの共通部品化（git submodule で各プロジェクトから参照） | Done (MR !12) |
-| - | AWS CLI / IoT Core ノウハウを `oss/experiment/cloud/aws/iot-core/claude` に export | Planned |
+| - | AWS CLI / IoT Core ノウハウを `oss/experiment/cloud/aws/iot-core/claude` に export | Done (MR !1 on iot-core/claude) |
 | - | SD カード更新の CI/CD 完全自動化: UART ファイル転送コマンド (`sdcard write`) + GUI ボタン操作コマンド (`touch`) の実装（ファームウェア変更） | Done (MR !20) |
+| - | パイプライン条件分岐（`RUN_AWS_TESTS` / `RUN_OTA_TEST` 変数で AWS テスト・OTA テストを選択実行） | In progress |
 | - | BUTTON_03 タッチ問題: J-Link 実機デバッグで WM_NOTIFICATION_CLICKED 発火確認 | Planned |
 | - | Runner 分離: ビルド専用 (Windows) / 実機操作専用 (Raspberry Pi) に分けて並列度向上 | Planned |
 
@@ -99,6 +100,7 @@ RX72N Envision Kit の全機能を試せるようにする。
   - **重要:** CI と GUI で必ず同じ e2 studio バージョンを使うこと（SMC 生成物・Makefile テンプレートが異なり、バイナリ互換性が壊れる）
   - e2 studio バージョン変更時は smc_gen 再生成 → コミット → MOT 比較 → 実機検証 が必須
   - Phase 5 まで: e2 studio 2024-01 / CC-RX v3.04（MR !20）
+  - Phase 6 (MR !21) で e2 studio 2024-01 → 2025-12 / CC-RX v3.04 → v3.07 へ移行完了
 - **Compiler:** CC-RX v3.07.00（e2 studio 2025-12 同梱。v3.04 → v3.07 移行完了、LCD 消灯バグは Phase 5 の修正で解消確認済み）
 - **Runner tag:** `run_ishiguro_machine`（Windows 11、RX72N Envision Kit 物理接続済み）
 - **Workspace:** `C:\workspace_rx72n`（hello_world とは別ディレクトリ）
@@ -567,6 +569,39 @@ python test_scripts/uart_test/provision_aws.py \
 - テストスクリプトも 921600bps で接続
 
 ## Changelog / 変更履歴
+
+### 2026-03-02: Phase 7 — AWS IoT OTA テスト自動化 + パイプライン条件分岐
+
+Added OTA (Over-The-Air) firmware update test automation via AWS IoT Core. Also introduced pipeline conditional execution variables (`RUN_AWS_TESTS`, `RUN_OTA_TEST`) for faster pipeline runs.
+
+AWS IoT Core 経由の OTA ファームウェア更新テストの自動化を追加。パイプライン実行の高速化のため、条件分岐変数 (`RUN_AWS_TESTS`, `RUN_OTA_TEST`) を導入。
+
+**OTA テストフロー:**
+1. `build_ota`: `aws_demo_config.h` を OTA モードに切り替え、v1/v2 の2バージョンをビルド
+2. `flash_and_provision_ota`: boot_loader + v1 書き込み + AWS プロビジョニング（コード署名証明書含む）
+3. `test_ota`: v2 を S3 にアップロード → OTA ジョブ作成 → ログ監視（ジョブ受信→ダウンロード→署名検証→自己テスト→受理）
+
+**パイプライン条件分岐:**
+- `RUN_AWS_TESTS`: `"true"`(デフォルト) / `"false"` — AWS 接続テスト (provision, MQTT, SD update) の実行制御
+- `RUN_OTA_TEST`: `"false"`(デフォルト) / `"true"` — OTA テストの実行制御
+- GitLab UI の「Run Pipeline」画面で変数をオーバーライド可能
+
+**New files / 新規ファイル:**
+- `test_scripts/uart_test/test_ota.py` — OTA テストスクリプト（S3 アップロード、OTA ジョブ作成、マイルストーン監視、バージョン検証）
+
+**Modified files / 変更ファイル:**
+- `.gitlab-ci.yml`: `build_ota`, `flash_and_provision_ota`, `test_ota` ジョブ追加 + `rules:` による条件分岐
+- `test_scripts/uart_test/provision_aws.py`: `--codesigner-cert` オプション追加（OTA 用コード署名証明書）
+- `test_scripts/device_config.json`: `aws_region`, `codesigner_cert` フィールド追加
+- `test_scripts/device_config_loader.py`: `aws_region` フィールドサポート追加
+
+**AWS 側の前提条件（手動設定、1回限り）:**
+- S3 バケット作成（バージョニング有効）
+- OTA サービスロール作成
+- IoT ポリシー更新（OTA 関連トピックのアクセス権限）
+- GitLab CI/CD Variables: `OTA_S3_BUCKET`, `OTA_ROLE_ARN`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`
+
+**参照ナレッジベース:** [AWS IoT Core OTA](https://shelty2.servegame.com/oss/experiment/cloud/aws/iot-core/claude/-/blob/main/CLAUDE.md)
 
 ### 2026-03-01: Phase 5 — 既存機能の動作検証 + AWS IoT Core 接続 + UART touch コマンド
 
