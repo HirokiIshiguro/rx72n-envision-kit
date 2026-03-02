@@ -427,17 +427,48 @@ def verify_job_status(ota_update_id, region):
         )
         if job_result.returncode == 0:
             job_response = json.loads(job_result.stdout)
-            job_doc_str = job_response.get("job", {}).get("document", "")
+            job_obj = job_response.get("job", {})
+            job_doc_str = job_obj.get("document", "")
             if job_doc_str:
                 print(f"[AWS] Raw job document ({len(job_doc_str)} chars):")
-                # JSON として整形して表示
                 try:
                     job_doc = json.loads(job_doc_str)
-                    print(json.dumps(job_doc, indent=2)[:2000])
+                    print(json.dumps(job_doc, indent=2)[:3000])
                 except json.JSONDecodeError:
-                    print(job_doc_str[:2000])
+                    print(job_doc_str[:3000])
             else:
-                print("[AWS] No job document found in describe-job response")
+                # document が空の場合、他のフィールドを探す
+                doc_src = job_obj.get("documentSource", "")
+                print(f"[AWS] describe-job: document is empty")
+                print(f"[AWS]   documentSource: {doc_src[:200]}")
+                print(f"[AWS]   job keys: {list(job_obj.keys())}")
+                # describe-job-execution で取得を試みる
+                exec_result = subprocess.run(
+                    ["aws", "iot-data", "describe-job-execution",
+                     "--job-id", aws_job_id,
+                     "--thing-name", ota_info.get("targets", [""])[0].split("/")[-1],
+                     "--region", region,
+                     "--include-job-document"],
+                    capture_output=True, text=True
+                )
+                if exec_result.returncode == 0:
+                    exec_resp = json.loads(exec_result.stdout)
+                    exec_doc = exec_resp.get("execution", {}).get("jobDocument", "")
+                    if exec_doc:
+                        print(f"[AWS] Job execution document ({len(str(exec_doc))} chars):")
+                        if isinstance(exec_doc, str):
+                            try:
+                                print(json.dumps(json.loads(exec_doc), indent=2)[:3000])
+                            except json.JSONDecodeError:
+                                print(exec_doc[:3000])
+                        else:
+                            print(json.dumps(exec_doc, indent=2)[:3000])
+                    else:
+                        print(f"[AWS] describe-job-execution keys: "
+                              f"{list(exec_resp.get('execution', {}).keys())}")
+                else:
+                    print(f"[WARN] describe-job-execution failed: "
+                          f"{exec_result.stderr[:200]}")
         else:
             print(f"[WARN] describe-job failed: {job_result.stderr[:200]}")
 
@@ -648,8 +679,7 @@ def main():
             # --- Step 4: OTA 進捗監視 ---
             print()
             print("[STEP 4/6] Monitoring OTA progress")
-            # バッファクリア
-            log_ser.reset_input_buffer()
+            # Note: バッファクリアしない（JSON received ログを捕捉するため）
             milestones = monitor_ota_progress(log_ser, timeout=args.timeout)
 
             # マイルストーン評価
