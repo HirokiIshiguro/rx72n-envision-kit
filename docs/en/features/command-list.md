@@ -27,3 +27,8 @@
 |v1.0.4|dataflash|write tcpsendperformanceserverportnumber <port_number>|Register the TCP send performance measurement server Port number. Example of <port_number>: 5001|
 |v2.0.0|dataflash|write tracealyzerserveripaddress <ip_address>|Register the Tracealyzer server IP address. Example of <ip_address>: 192.168.1.206|
 |v2.0.0|dataflash|write tracealyzerserverportnumber <port_number>|Register the Tracealyzer server Port number. Example of <port_number>: 12000|
+|v2.1.0|touch|\<x\> \<y\>|Issue a touch event at coordinates (x, y). 0 <= x < 480, 0 <= y < 272. Used for GUI button automation|
+|v2.1.0|touch|any|Issue a touch event at screen center (240, 136). Used to pass through splash screen at startup|
+|v2.1.0|sdcard|list|List all files on SD card (filename and size)|
+|v2.1.0|sdcard|write \<filename\> \<size\>|Receive binary data via UART and write to SD card. Transfer controlled by handshake protocol (READY/W/DONE)|
+|v2.1.0|sdcard|delete \<filename\>|Delete a file from SD card|

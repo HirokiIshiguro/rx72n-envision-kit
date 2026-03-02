@@ -1,9 +1,10 @@
 stages:
   - build
   - flash
+  - test
 
 variables:
-  E2STUDIO: "C:\\Renesas\\e2_studio_2025_12\\eclipse\\e2studioc.exe"
+  E2STUDIO: "C:\\Renesas\\e2_studio_2024_01_1\\eclipse\\e2studioc.exe"
   WORKSPACE: "C:\\workspace_rx72n"
   E2STUDIO_PROJECTS: "projects\\renesas\\rx72n_envision_kit\\e2studio"
   # Renesas Flash Programmer CLI
@@ -14,6 +15,8 @@ variables:
   UART_PORT: "COM7"
   UART_BAUD_RATE: "921600"
   UART_TIMEOUT_SEC: "30"
+  # デバイス ID（device_config.json で定義、複数デバイス時に切り替え）
+  DEVICE_ID: "rx72n-01"
   # Git サブモジュール初期化（coreSNTP 等の外部ライブラリ）
   GIT_SUBMODULE_STRATEGY: recursive
   # Windows 260文字パス長制限の回避
@@ -284,3 +287,167 @@ download_aws_demos:
     paths:
       - userprog.rsu
     expire_in: 1 week
+
+test_commands:
+  stage: test
+  tags:
+    - run_ishiguro_machine
+  timeout: 5 minutes
+  needs:
+    - job: download_aws_demos
+  variables:
+    # aws_demos のコマンドインターフェースは COM6 (SCI2, 115200bps)
+    COMMAND_PORT: "COM6"
+    COMMAND_BAUD_RATE: "115200"
+    COMMAND_TIMEOUT: "10"
+  before_script:
+    # ポートロック対策: 前回ジョブの残留プロセスが COM ポートを掴んでいる場合がある。
+    # ジョブ停止時に Python プロセスが正常終了せずシリアルポートがロックされると、
+    # 次回ジョブで PermissionError になる。
+    # 注意: Get-Process -Name python は該当プロセスがないと $? が $false になり、
+    #   GitLab Runner の PowerShell ラッパーが exit 1 する。
+    #   Get-Process（名前指定なし）+ Where-Object でフィルタすることで回避。
+    - |
+      Get-Process | Where-Object { $_.ProcessName -eq 'python' -and $_.Id -ne $PID } |
+        ForEach-Object {
+          Write-Host "[WARN] Killing stale Python PID=$($_.Id) StartTime=$($_.StartTime)"
+          Stop-Process -Id $_.Id -Force -ErrorAction SilentlyContinue
+        }
+      Start-Sleep -Seconds 1
+    - pip install pyserial
+  script:
+    # aws_demos は download_aws_demos ジョブで書き込み・起動済み。
+    # boot_loader の bank swap + reset 後に aws_demos が自動起動し、
+    # コマンドターミナルが SCI2 (COM6, 115200bps) で待機状態になっている。
+    # serial_terminal_task は GUI 初期化完了後に起動する（LCD タッチ不要）。
+    - |
+      Write-Host "=== UART Command-Response Test ==="
+      Write-Host "  Port: $env:COMMAND_PORT @ ${env:COMMAND_BAUD_RATE}bps"
+      python "$env:CI_PROJECT_DIR\test_scripts\uart_test\test_aws_demos_commands.py" `
+        --port "$env:COMMAND_PORT" --baud $env:COMMAND_BAUD_RATE `
+        --timeout $env:COMMAND_TIMEOUT --prompt-timeout 60 --initial-wait 3
+
+test_screen_navigation:
+  stage: test
+  tags:
+    - run_ishiguro_machine
+  timeout: 3 minutes
+  needs:
+    - job: test_commands
+  variables:
+    COMMAND_PORT: "COM6"
+    COMMAND_BAUD_RATE: "115200"
+  before_script:
+    - |
+      Get-Process | Where-Object { $_.ProcessName -eq 'python' -and $_.Id -ne $PID } |
+        ForEach-Object {
+          Write-Host "[WARN] Killing stale Python PID=$($_.Id) StartTime=$($_.StartTime)"
+          Stop-Process -Id $_.Id -Force -ErrorAction SilentlyContinue
+        }
+      Start-Sleep -Seconds 1
+    - pip install pyserial
+  script:
+    # Screen 00 (タイトル) → Screen 01 (メイン) への画面遷移テスト。
+    # touch コマンドで疑似タッチイベントを注入し、AppWizard の画面遷移を実行。
+    # Screen 00 → 01 遷移には touch × 2 回が必要 (VAR_01 が 2 になると遷移条件成立)。
+    - |
+      Write-Host "=== Screen Navigation Test ==="
+      Write-Host "  Port: $env:COMMAND_PORT @ ${env:COMMAND_BAUD_RATE}bps"
+      python "$env:CI_PROJECT_DIR\test_scripts\uart_test\test_touch_navigation.py" `
+        --cmd-port "$env:COMMAND_PORT" --cmd-baud $env:COMMAND_BAUD_RATE `
+        --timeout 30 --prompt-timeout 30 --initial-wait 1
+
+provision_and_reset:
+  stage: test
+  tags:
+    - run_ishiguro_machine
+  timeout: 3 minutes
+  needs:
+    - job: test_screen_navigation
+  before_script:
+    - |
+      Get-Process | Where-Object { $_.ProcessName -eq 'python' -and $_.Id -ne $PID } |
+        ForEach-Object {
+          Write-Host "[WARN] Killing stale Python PID=$($_.Id) StartTime=$($_.StartTime)"
+          Stop-Process -Id $_.Id -Force -ErrorAction SilentlyContinue
+        }
+      Start-Sleep -Seconds 1
+    - pip install pyserial
+  script:
+    # AWS IoT Core プロビジョニング: 証明書・秘密鍵・エンドポイント・Thing名を
+    # データフラッシュに書き込む。flash_boot_loader の -erase-chip でデータフラッシュが
+    # 毎回消去されるため、パイプライン実行ごとにプロビジョニングが必要。
+    # --device-id で device_config.json からポート・エンドポイント・Thing名を解決。
+    # 証明書は CI/CD File 型変数 AWS_CLIENT_CERT_{ID} / AWS_PRIVATE_KEY_{ID} から取得。
+    - |
+      Write-Host "=== AWS IoT Core Provisioning ==="
+      Write-Host "  Device ID: $env:DEVICE_ID"
+      python "$env:CI_PROJECT_DIR\test_scripts\uart_test\provision_aws.py" `
+        --device-id "$env:DEVICE_ID"
+
+confirm_aws_mqtt:
+  stage: test
+  tags:
+    - run_ishiguro_machine
+  timeout: 5 minutes
+  needs:
+    - job: provision_and_reset
+  retry:
+    max: 1
+    when: script_failure
+  before_script:
+    - |
+      Get-Process | Where-Object { $_.ProcessName -eq 'python' -and $_.Id -ne $PID } |
+        ForEach-Object {
+          Write-Host "[WARN] Killing stale Python PID=$($_.Id) StartTime=$($_.StartTime)"
+          Stop-Process -Id $_.Id -Force -ErrorAction SilentlyContinue
+        }
+      Start-Sleep -Seconds 1
+    - pip install pyserial
+  script:
+    # AWS IoT Core MQTT 接続検証: MCU をリセットし、ログポートから
+    # 3つのマイルストーン (DHCP, TLS, MQTT CONNACK) を検出する。
+    # --device-id で device_config.json からコマンド/ログポートを解決。
+    # retry: フルパイプライン実行時、MCU の初回 MQTT 接続が不安定なため
+    #   1回のリトライを許可。リトライ時は MCU が再リセットされ成功する。
+    - |
+      Write-Host "=== AWS IoT Core MQTT Connectivity Test ==="
+      Write-Host "  Device ID: $env:DEVICE_ID"
+      python "$env:CI_PROJECT_DIR\test_scripts\uart_test\test_aws_connectivity.py" `
+        --device-id "$env:DEVICE_ID" --timeout 120
+
+test_sd_update:
+  stage: test
+  tags:
+    - run_ishiguro_machine
+  timeout: 10 minutes
+  needs:
+    - job: confirm_aws_mqtt
+    - job: download_aws_demos
+      artifacts: true
+  before_script:
+    - |
+      Get-Process | Where-Object { $_.ProcessName -eq 'python' -and $_.Id -ne $PID } |
+        ForEach-Object {
+          Write-Host "[WARN] Killing stale Python PID=$($_.Id) StartTime=$($_.StartTime)"
+          Stop-Process -Id $_.Id -Force -ErrorAction SilentlyContinue
+        }
+      Start-Sleep -Seconds 1
+    - pip install pyserial
+  script:
+    # SD カードファームウェアアップデートの統合テスト。
+    # 1. userprog.rsu を UART (sdcard write) 経由で SD カードに転送
+    # 2. touch コマンドで FW Update 画面に遷移し Update 実行
+    # 3. COM7 で boot_loader ログを監視（integrity check → bank swap → jump to user program）
+    # 4. aws_demos 再起動確認
+    # 5. SD カードから userprog.rsu を削除（次回パイプラインの boot_loader 干渉防止）
+    # confirm_aws_mqtt 後に実行: aws_demos が起動済みで Screen 00 表示状態。
+    # download_aws_demos の artifacts から userprog.rsu を取得。
+    - |
+      Write-Host "=== SD Card Firmware Update Test ==="
+      Write-Host "  Device ID: $env:DEVICE_ID"
+      Write-Host "  RSU file:  $env:CI_PROJECT_DIR\userprog.rsu"
+      python "$env:CI_PROJECT_DIR\test_scripts\uart_test\test_sd_update.py" `
+        --device-id "$env:DEVICE_ID" `
+        --rsu "$env:CI_PROJECT_DIR\userprog.rsu" `
+        --timeout 300

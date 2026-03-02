@@ -56,9 +56,9 @@ void R_Pins_Create(void)
     R_BSP_RegisterProtectDisable(BSP_REG_PROTECT_MPC);
 
     /* Set AN000 pin */
-    MPC.P40PFS.BYTE = 0x80U;
     PORT4.PMR.BYTE &= 0xFEU;
     PORT4.PDR.BYTE &= 0xFEU;
+    MPC.P40PFS.BYTE = 0x80U;
 
     /* Set AUDIO_CLK pin */
     MPC.P00PFS.BYTE = 0x17U;
