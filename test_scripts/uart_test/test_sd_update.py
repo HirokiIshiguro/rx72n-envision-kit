@@ -233,7 +233,7 @@ def trigger_fw_update_gui(ser, filename="userprog.rsu"):
       5. Update ボタン押下 (touch BUTTON_03)
     """
     # --- Screen 00 → Screen 01 遷移 (touch any × 2) ---
-    print("[GUI] Passing splash screen (Screen 00 → Screen 01)...")
+    print("[GUI] Passing splash screen (Screen 00 -> Screen 01)...")
     for i in range(1, 3):
         resp = send_command(ser, "touch any", timeout=5)
         if resp and "OK" in resp:
@@ -345,9 +345,9 @@ def trigger_fw_update_gui(ser, filename="userprog.rsu"):
     print("[DIAG] Verifying firmware update state (sdcard update fallback)...")
     resp = send_command(ser, f"sdcard update {filename}", timeout=10)
     if resp and "already in progress" in resp:
-        print("[DIAG] ✓ Button touch successfully triggered firmware update")
+        print("[DIAG] Button touch successfully triggered firmware update")
     elif resp and "firmware update started" in resp:
-        print("[WARN] Button touch did NOT trigger update — sdcard update fallback activated")
+        print("[WARN] Button touch did NOT trigger update -- sdcard update fallback activated")
     else:
         print(f"[WARN] Unexpected sdcard update response: {resp[:200] if resp else 'None'}")
 
