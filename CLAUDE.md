@@ -70,18 +70,21 @@ GitLab UI の「Run Pipeline」画面でオーバーライド可能。
 | 変数 | デフォルト | 説明 |
 |------|-----------|------|
 | `RUN_AWS_TESTS` | `"true"` | AWS 接続テスト（provision, MQTT）を実行するか |
-| `RUN_SD_UPDATE_TEST` | `"false"` | SD カードファームウェア更新テストを実行するか |
-| `RUN_OTA_TEST` | `"false"` | OTA テスト（build_ota, flash_ota, test_ota）を実行するか |
+| `RUN_SD_UPDATE_TEST` | `"true"` | SD カードファームウェア更新テストを実行するか |
+| `RUN_OTA_TEST` | `"true"` | OTA テスト（build_ota, flash_ota, test_ota）を実行するか |
 
 **実行パターン:**
 
+デフォルトはフルテスト（MR マージ前に全テスト通過を保証）。
+ダミーブランチで個別テストを回す場合は変数をオーバーライドする。
+
 | シナリオ | RUN_AWS_TESTS | RUN_SD_UPDATE_TEST | RUN_OTA_TEST |
 |----------|:---:|:---:|:---:|
-| AWS 接続テスト（デフォルト） | true | false | false |
-| ビルド+起動テスト | **false** | false | false |
-| SD カード更新テスト | true | **true** | false |
-| OTA テスト | true | false | **true** |
-| フルテスト（SD + OTA） | true | **true** | **true** |
+| フルテスト（デフォルト） | true | true | true |
+| AWS 接続テスト | true | **false** | **false** |
+| ビルド+起動テスト | **false** | **false** | **false** |
+| SD カード更新テスト | true | true | **false** |
+| OTA テスト | true | **false** | true |
 
 **注意:**
 - `RUN_SD_UPDATE_TEST` は `RUN_AWS_TESTS == "true"` の場合のみ有効（AWS 接続が前提）
