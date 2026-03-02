@@ -415,6 +415,32 @@ def verify_job_status(ota_update_id, region):
                   f"{inline_doc[:40]}... ({len(inline_doc)} chars)")
             print(f"[AWS] File[{i}] certificateName: {cert_name}")
 
+    # デバッグ: IoT Job のジョブドキュメントを取得して表示
+    aws_job_id = ota_info.get("awsIotJobId")
+    if aws_job_id:
+        print(f"[AWS] IoT Job ID: {aws_job_id}")
+        job_result = subprocess.run(
+            ["aws", "iot", "describe-job",
+             "--job-id", aws_job_id,
+             "--region", region],
+            capture_output=True, text=True
+        )
+        if job_result.returncode == 0:
+            job_response = json.loads(job_result.stdout)
+            job_doc_str = job_response.get("job", {}).get("document", "")
+            if job_doc_str:
+                print(f"[AWS] Raw job document ({len(job_doc_str)} chars):")
+                # JSON として整形して表示
+                try:
+                    job_doc = json.loads(job_doc_str)
+                    print(json.dumps(job_doc, indent=2)[:2000])
+                except json.JSONDecodeError:
+                    print(job_doc_str[:2000])
+            else:
+                print("[AWS] No job document found in describe-job response")
+        else:
+            print(f"[WARN] describe-job failed: {job_result.stderr[:200]}")
+
     return {"status": status, "error_info": error_info}
 
 
