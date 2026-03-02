@@ -59,9 +59,33 @@ RX72N Envision Kit の全機能を試せるようにする。
 | - | mot_to_rsu コンバータの共通部品化（git submodule で各プロジェクトから参照） | Done (MR !12) |
 | - | AWS CLI / IoT Core ノウハウを `oss/experiment/cloud/aws/iot-core/claude` に export | Done (MR !1 on iot-core/claude) |
 | - | SD カード更新の CI/CD 完全自動化: UART ファイル転送コマンド (`sdcard write`) + GUI ボタン操作コマンド (`touch`) の実装（ファームウェア変更） | Done (MR !20) |
-| - | パイプライン条件分岐（`RUN_AWS_TESTS` / `RUN_OTA_TEST` 変数で AWS テスト・OTA テストを選択実行） | In progress |
+| - | パイプライン条件分岐（`RUN_AWS_TESTS` / `RUN_SD_UPDATE_TEST` / `RUN_OTA_TEST` 変数で各テストを選択実行） | Done (MR !23) |
 | - | BUTTON_03 タッチ問題: J-Link 実機デバッグで WM_NOTIFICATION_CLICKED 発火確認 | Planned |
 | - | Runner 分離: ビルド専用 (Windows) / 実機操作専用 (Raspberry Pi) に分けて並列度向上 | Planned |
+
+### パイプライン変数 / Pipeline Variables
+
+GitLab UI の「Run Pipeline」画面でオーバーライド可能。
+
+| 変数 | デフォルト | 説明 |
+|------|-----------|------|
+| `RUN_AWS_TESTS` | `"true"` | AWS 接続テスト（provision, MQTT）を実行するか |
+| `RUN_SD_UPDATE_TEST` | `"false"` | SD カードファームウェア更新テストを実行するか |
+| `RUN_OTA_TEST` | `"false"` | OTA テスト（build_ota, flash_ota, test_ota）を実行するか |
+
+**実行パターン:**
+
+| シナリオ | RUN_AWS_TESTS | RUN_SD_UPDATE_TEST | RUN_OTA_TEST |
+|----------|:---:|:---:|:---:|
+| AWS 接続テスト（デフォルト） | true | false | false |
+| ビルド+起動テスト（AWS スキップ） | **false** | false | false |
+| SD カード更新テスト | true | **true** | false |
+| OTA テスト | true | false | **true** |
+| フルテスト（SD + OTA） | true | **true** | **true** |
+
+**注意:**
+- `RUN_SD_UPDATE_TEST` は `RUN_AWS_TESTS == "true"` の場合のみ有効（AWS 接続が前提）
+- `RUN_OTA_TEST` は独立した OTA パイプライン（build_ota → flash_and_provision_ota → test_ota）を制御
 
 ### テストファーム構想 / Test Farm Architecture
 
