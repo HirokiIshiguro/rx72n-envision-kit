@@ -683,7 +683,7 @@ flash_and_provision_ota:
       Write-Host "  Port: $env:UART_PORT @ ${env:UART_BAUD_RATE}bps"
       python "$env:CI_PROJECT_DIR\test_scripts\uart_test\test_uart_download.py" `
         --rsu "$rsu" --port "$env:UART_PORT" --baud $env:UART_BAUD_RATE `
-        --timeout 300 --diag
+        --timeout 300 --diag --wait-for-ready --ready-timeout 60
       if ($LASTEXITCODE -ne 0) { Write-Host "ERROR: UART download failed"; exit 1 }
     # Step 3: AWS プロビジョニング (endpoint, thing, cert, key, codesigner cert)
     - |

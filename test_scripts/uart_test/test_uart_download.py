@@ -75,17 +75,21 @@ MSG_CONST_DATA = "installing const data"
 MSG_COMPLETED_CONST = "completed installing const data"
 MSG_SW_RESET = "software reset"
 MSG_JUMP_USER = "jump to user program"
+MSG_READY = "send \"userprog.rsu\" via UART."
 
 
 class UartDownloader:
     """Send .rsu firmware to boot loader via UART and monitor progress."""
 
-    def __init__(self, port, baud, timeout, post_tx_wait=30, diag=False):
+    def __init__(self, port, baud, timeout, post_tx_wait=30, diag=False,
+                 wait_for_ready=False, ready_timeout=60):
         self.port_name = port
         self.baud = baud
         self.timeout = timeout
         self.post_tx_wait = post_tx_wait
         self.diag = diag
+        self.wait_for_ready = wait_for_ready
+        self.ready_timeout = ready_timeout
         self.ser = None
         self.rx_buffer = ""
         self.messages = []
@@ -211,6 +215,38 @@ class UartDownloader:
             drain_text = drain_data.decode('ascii', errors='replace').strip()
             if drain_text:
                 print(f"[drain] {drain_text}")
+
+        # Wait for boot_loader ready signal if requested
+        # boot_loader outputs 'send "userprog.rsu" via UART.' after completing
+        # code flash erase. Without this wait, data sent during erase will
+        # freeze the MCU.
+        if self.wait_for_ready:
+            print(f"Waiting for boot_loader ready signal (timeout={self.ready_timeout}s)...")
+            ready_start = time.time()
+            rx_buf = drain_data.decode('ascii', errors='replace') if drain_data else ""
+            ready_found = MSG_READY in rx_buf
+            while not ready_found:
+                elapsed = time.time() - ready_start
+                if elapsed > self.ready_timeout:
+                    print(f"TIMEOUT: boot_loader ready signal not detected after {self.ready_timeout}s")
+                    print(f"  Expected: '{MSG_READY}'")
+                    print(f"  Received so far: {rx_buf[-200:]}")
+                    self.close_port()
+                    return 1
+                data = self.ser.read(self.ser.in_waiting or 1)
+                if data:
+                    text = data.decode('ascii', errors='replace')
+                    rx_buf += text
+                    # Print lines as they arrive
+                    while '\n' in text:
+                        line, text = text.split('\n', 1)
+                        line = line.strip('\r').strip()
+                        if line:
+                            print(f"  [{elapsed:.1f}s] {line}")
+                    if MSG_READY in rx_buf:
+                        ready_found = True
+                        print(f"  Boot_loader ready ({elapsed:.1f}s)")
+                time.sleep(0.05)
 
         # Start send thread
         print(f"Sending {self.total_bytes:,} bytes...")
@@ -358,6 +394,11 @@ def main():
                         help="Seconds to wait for MCU response after TX completes (default: 30)")
     parser.add_argument("--diag", action="store_true",
                         help="Print additional diagnostic output")
+    parser.add_argument("--wait-for-ready", action="store_true",
+                        help="Wait for boot_loader ready signal before sending. "
+                             "Required when boot_loader was just flashed in the same job.")
+    parser.add_argument("--ready-timeout", type=int, default=60,
+                        help="Timeout for boot_loader ready signal in seconds (default: 60)")
 
     args = parser.parse_args()
 
@@ -371,6 +412,8 @@ def main():
         timeout=args.timeout,
         post_tx_wait=args.post_tx_wait,
         diag=args.diag,
+        wait_for_ready=args.wait_for_ready,
+        ready_timeout=args.ready_timeout,
     )
 
     try:
