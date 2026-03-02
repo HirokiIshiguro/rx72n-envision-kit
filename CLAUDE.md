@@ -44,23 +44,62 @@ RX72N Envision Kit の全機能を試せるようにする。
 | 2 | flash（rfp-cli）+ UART テスト自動化 | Done (MR !9) |
 | 3 | UART ダウンロード後のフリーズ現象の解析・修正（原因: BANKSEL 未リセット、修正: `-erase-chip`） | Done |
 | 4 | boot_loader の UART ダウンロードを COM6 (SCI2, 115200bps) から COM7 (SCI7 PMOD FTDI, 921600bps) に変更（要ファームウェア SCI ポート変更。ダウンロード時間短縮でデバッグ効率改善） | Done |
-| 5 | e2studio 2024-01 / CC-RX v3.04 環境で既存機能の動作検証（AWS 接続、SD カードによるファームウェアアップデート、各種コマンドレスポンス） | In progress (MR !20) |
-| 6 | e2studio 2025-12 / CC-RX v3.07 に変更し、既存機能の動作検証（AWS 接続、SD カードによるファームウェアアップデート、各種コマンドレスポンス） | Planned |
-| 7 | FreeRTOS LTS 最新版適用（[iot-reference-rx](https://github.com/renesas/iot-reference-rx) 最新リリースタグ） | Planned |
-| 8 | AWS 接続を含む OTA テスト | Planned |
-| 9 | RX72N Envision Kit 複数台でのフリートプロビジョニング＋OTA 一斉実施の全自動テスト | Planned |
+| 5 | e2studio 2024-01 / CC-RX v3.04 環境で既存機能の動作検証（AWS 接続、SD カードによるファームウェアアップデート、各種コマンドレスポンス） | Done (MR !20) |
+| 6 | e2studio 2025-12 / CC-RX v3.07 に変更し、既存機能の動作検証（AWS 接続、SD カードによるファームウェアアップデート、各種コマンドレスポンス） | In progress (MR !21) |
+| 7 | AWS 接続を含む OTA テスト（1台） | Planned |
+| 8 | AWS 接続を含むフリートプロビジョニング テスト（1台） | Planned |
+| 9 | FreeRTOS LTS 最新版適用（[iot-reference-rx](https://github.com/renesas/iot-reference-rx) 最新リリースタグ） | Planned |
+| 10 | AWS 接続を含む OTA テスト（1台、新 FW で再検証） | Planned |
+| 11 | AWS 接続を含むフリートプロビジョニング テスト（1台、新 FW で再検証） | Planned |
+| 12 | AWS 接続を含むセカンダリ MCU ファームウェアアップデート テスト（RX72N → FPB-RX140） | Planned |
+| 13 | OTA × 3 一斉テスト | Planned |
+| 14 | フリートプロビジョニング × 3 + 一斉 OTA テスト | Planned |
+| 15 | フリートプロビジョニング × 3 + セカンダリ MCU アップデート × 2 + 一斉 OTA テスト（フル構成） | Planned |
 | - | UART テストスクリプトの共通ライブラリ化（[mcu-test/uart](https://shelty2.servegame.com/oss/experiment/generic/scripts/python/mcu-test) へ切り出し、git submodule で各プロジェクトから参照） | Planned |
 | - | mot_to_rsu コンバータの共通部品化（git submodule で各プロジェクトから参照） | Done (MR !12) |
 | - | AWS CLI / IoT Core ノウハウを `oss/experiment/cloud/aws/iot-core/claude` に export | Planned |
 | - | SD カード更新の CI/CD 完全自動化: UART ファイル転送コマンド (`sdcard write`) + GUI ボタン操作コマンド (`touch`) の実装（ファームウェア変更） | Done (MR !20) |
+| - | BUTTON_03 タッチ問題: J-Link 実機デバッグで WM_NOTIFICATION_CLICKED 発火確認 | Planned |
+| - | Runner 分離: ビルド専用 (Windows) / 実機操作専用 (Raspberry Pi) に分けて並列度向上 | Planned |
+
+### テストファーム構想 / Test Farm Architecture
+
+**目標:** RX72N Envision Kit 3台 + セカンダリ MCU (FPB-RX140) 6台によるフリートプロビジョニング＋マルチ MCU OTA の全自動テスト
+
+**ハードウェア構成:**
+
+```
+[ビルド Runner (Windows)]           [実機 Runner (Raspberry Pi × 3台)]
+  e2studio + CC-RX                    ├─ Pi #1 ── RX72N #1 ─┬─ FPB-RX140 (A)
+  .mot/.rsu 生成                      │                      └─ FPB-RX140 (B)
+  artifacts で受け渡し                 ├─ Pi #2 ── RX72N #2 ─┬─ FPB-RX140 (C)
+                                      │                      └─ FPB-RX140 (D)
+                                      └─ Pi #3 ── RX72N #3 ─┬─ FPB-RX140 (E)
+                                                             └─ FPB-RX140 (F)
+```
+
+**調達済みハードウェア:**
+- RX72N Envision Kit × 3台（1台既存 + 2台追加購入）
+- FPB-RX140 × 6台（セカンダリ MCU、各 RX72N に2台ずつ接続）
+- USB ハブ + USB ケーブル多数
+
+**Runner 分離方針:**
+- **ビルド専用 Runner (Windows):** e2studio ヘッドレスビルド。実機不要、重い処理を分離
+- **実機操作専用 Runner (Raspberry Pi):** flash (rfp-cli) + UART テスト + SD カード転送。RX72N 物理接続。Python スクリプト実行
+
+**テストシナリオ（Phase 9）:**
+- AWS IoT Core フリートプロビジョニングで3台同時にデバイス登録・証明書発行
+- OTA ジョブで3台一斉にファームウェア更新
+- RX72N → FPB-RX140 へのセカンダリ MCU カスケード更新
+- 各デバイスの更新完了・正常動作を並列監視
 
 ### Build environment / ビルド環境
 
-- **IDE:** e2 studio 2024-01（`C:\Renesas\e2_studio_2024_01_1\eclipse\e2studioc.exe`）
+- **IDE:** e2 studio 2025-12（`C:\Renesas\e2_studio_2025_12\eclipse\e2studioc.exe`）
   - **重要:** CI と GUI で必ず同じ e2 studio バージョンを使うこと（SMC 生成物・Makefile テンプレートが異なり、バイナリ互換性が壊れる）
   - e2 studio バージョン変更時は smc_gen 再生成 → コミット → MOT 比較 → 実機検証 が必須
-  - Phase 6 で e2 studio 2025-12 / CC-RX v3.07 への移行を予定
-- **Compiler:** CC-RX v3.04.00（3プロジェクト共通。v3.07.00 は LCD 消灯バグあり、MR !11 で戻し）
+  - Phase 5 まで: e2 studio 2024-01 / CC-RX v3.04（MR !20）
+- **Compiler:** CC-RX v3.07.00（e2 studio 2025-12 同梱。v3.04 → v3.07 移行完了、LCD 消灯バグは Phase 5 の修正で解消確認済み）
 - **Runner tag:** `run_ishiguro_machine`（Windows 11、RX72N Envision Kit 物理接続済み）
 - **Workspace:** `C:\workspace_rx72n`（hello_world とは別ディレクトリ）
 
