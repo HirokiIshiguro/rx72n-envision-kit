@@ -29,11 +29,14 @@ variables:
   #
   # --- パイプライン条件分岐 ---
   # GitLab UI の「Run Pipeline」画面でオーバーライド可能。
-  # RUN_AWS_TESTS: AWS 接続テスト (provision, MQTT, SD update) を実行するか
-  # RUN_OTA_TEST:  OTA テスト (build_ota, flash_ota, test_ota) を実行するか
+  # RUN_AWS_TESTS:      AWS 接続テスト (provision, MQTT) を実行するか
+  # RUN_SD_UPDATE_TEST: SD カードファームウェア更新テストを実行するか
+  # RUN_OTA_TEST:       OTA テスト (build_ota, flash_ota, test_ota) を実行するか
   # 高速化: RUN_AWS_TESTS=false で AWS 依存ジョブをスキップ（ビルド+基本テストのみ）
+  # SD テスト: RUN_SD_UPDATE_TEST=false でスキップ（OTA テストのみ実行する場合等）
   # OTA テスト: RUN_OTA_TEST=true を明示的に指定
   RUN_AWS_TESTS: "true"
+  RUN_SD_UPDATE_TEST: "true"
   RUN_OTA_TEST: "false"
 
 build:
@@ -435,7 +438,7 @@ test_sd_update:
     - run_ishiguro_machine
   timeout: 10 minutes
   rules:
-    - if: $RUN_AWS_TESTS == "true"
+    - if: $RUN_AWS_TESTS == "true" && $RUN_SD_UPDATE_TEST == "true"
   needs:
     - job: confirm_aws_mqtt
     - job: download_aws_demos
@@ -536,12 +539,28 @@ build_ota:
       $logFile = "$env:CI_PROJECT_DIR\e2studio_ota_build.log"
       $e2base = @("--launcher.suppressErrors", "-nosplash", "-application", "org.eclipse.cdt.managedbuilder.core.headlessbuild", "-data", "$env:WORKSPACE")
       $imports = @("-import", "$shortProj\aws_demos", "-import", "$shortProj\boot_loader")
+      # -cleanBuild all: import したプロジェクト (aws_demos + rx72n_boot_loader) をすべてビルド。
+      # 注意: boot_loader ディレクトリの e2studio プロジェクト名は "rx72n_boot_loader"（.project 参照）。
+      # カンマ区切りの個別指定 ("aws_demos/HardwareDebug,rx72n_boot_loader/HardwareDebug") より
+      # "all" の方が安全で、import 済みプロジェクトのみがビルドされる。
       Write-Host "=== Build v1 (aws_demos + boot_loader) ==="
-      & "$env:E2STUDIO" @e2base @imports -cleanBuild "aws_demos/HardwareDebug,boot_loader/HardwareDebug" 2>&1 | Tee-Object -FilePath $logFile | Out-Null
+      & "$env:E2STUDIO" @e2base @imports -cleanBuild all 2>&1 | Tee-Object -FilePath $logFile | Out-Null
       Write-Host "e2studio exit code: $LASTEXITCODE"
+
+      # 診断: ビルドログの末尾20行
+      Write-Host "--- Build log tail ---"
+      Get-Content $logFile -Tail 20 -ErrorAction SilentlyContinue | ForEach-Object { Write-Host "  $_" }
+
+      # .mot ファイルの検索（ジャンクション経由とCI_PROJECT_DIR直接の両方を試行）
       $mot_aws = Get-ChildItem "$shortProj\aws_demos\HardwareDebug\*.mot" -ErrorAction SilentlyContinue
       if (-not $mot_aws) { $mot_aws = Get-ChildItem "$env:CI_PROJECT_DIR\$env:E2STUDIO_PROJECTS\aws_demos\HardwareDebug\*.mot" -ErrorAction SilentlyContinue }
+      $mot_boot = Get-ChildItem "$env:WORKSPACE\rx72n_boot_loader\HardwareDebug\*.mot" -ErrorAction SilentlyContinue
+      if (-not $mot_boot) { $mot_boot = Get-ChildItem "$shortProj\boot_loader\HardwareDebug\*.mot" -ErrorAction SilentlyContinue }
+      if (-not $mot_boot) { $mot_boot = Get-ChildItem "$env:CI_PROJECT_DIR\$env:E2STUDIO_PROJECTS\boot_loader\HardwareDebug\*.mot" -ErrorAction SilentlyContinue }
+      Write-Host "  aws_demos .mot:  $(if ($mot_aws) { $mot_aws.FullName } else { 'NOT FOUND' })"
+      Write-Host "  boot_loader .mot: $(if ($mot_boot) { $mot_boot.FullName } else { 'NOT FOUND' })"
       if (-not $mot_aws) { Write-Host "ERROR: v1 aws_demos.mot not found"; exit 1 }
+      if (-not $mot_boot) { Write-Host "ERROR: v1 boot_loader.mot not found"; exit 1 }
       Write-Host "  v1 .mot: $($mot_aws.FullName)"
     # v1.mot → ota_v1.rsu 変換
     - |
@@ -567,9 +586,16 @@ build_ota:
       $shortProj = "$shortRoot\$env:E2STUDIO_PROJECTS"
       $logFile = "$env:CI_PROJECT_DIR\e2studio_ota_build_v2.log"
       $e2base = @("--launcher.suppressErrors", "-nosplash", "-application", "org.eclipse.cdt.managedbuilder.core.headlessbuild", "-data", "$env:WORKSPACE")
+      # v2 は aws_demos のみリビルド。boot_loader は v1 と同じで変更不要だが、
+      # -cleanBuild all を使って確実にビルドする（boot_loader の再ビルドは無害）。
       Write-Host "=== Build v2 (aws_demos only) ==="
-      & "$env:E2STUDIO" @e2base -cleanBuild "aws_demos/HardwareDebug" 2>&1 | Tee-Object -FilePath $logFile | Out-Null
+      & "$env:E2STUDIO" @e2base -cleanBuild all 2>&1 | Tee-Object -FilePath $logFile | Out-Null
       Write-Host "e2studio exit code: $LASTEXITCODE"
+
+      # 診断: ビルドログの末尾20行
+      Write-Host "--- Build log tail ---"
+      Get-Content $logFile -Tail 20 -ErrorAction SilentlyContinue | ForEach-Object { Write-Host "  $_" }
+
       $mot_aws = Get-ChildItem "$shortProj\aws_demos\HardwareDebug\*.mot" -ErrorAction SilentlyContinue
       if (-not $mot_aws) { $mot_aws = Get-ChildItem "$env:CI_PROJECT_DIR\$env:E2STUDIO_PROJECTS\aws_demos\HardwareDebug\*.mot" -ErrorAction SilentlyContinue }
       if (-not $mot_aws) { Write-Host "ERROR: v2 aws_demos.mot not found"; exit 1 }
