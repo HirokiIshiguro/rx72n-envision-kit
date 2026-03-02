@@ -274,7 +274,7 @@ def monitor_ota_progress(ser, timeout=600):
 
                 # デバイスログを標準出力に転送 (CI/CD パイプラインで確認可能)
                 elapsed = time.time() - start
-                print(f"[COM7] {elapsed:6.1f}s | {line[:300]}")
+                print(f"[COM7] {elapsed:6.1f}s | {line[:2000]}")
 
                 # ブロック受信カウント
                 if "Received valid file block" in line or "Received data message" in line:
@@ -467,12 +467,12 @@ def wait_for_ota_job_ready(ota_update_id, region, timeout=60):
         elif status == "CREATE_FAILED":
             print("[ERROR] OTA job creation failed!")
             return result
-        elif status != "CREATE_PENDING":
+        elif status not in ("CREATE_PENDING", "CREATE_IN_PROGRESS"):
             print(f"[WARN] Unexpected OTA status: {status}")
             return result
 
         elapsed = time.time() - start
-        print(f"[AWS] Still CREATE_PENDING ({elapsed:.0f}s)...")
+        print(f"[AWS] Still {status} ({elapsed:.0f}s)...")
         time.sleep(poll_interval)
 
     print(f"[WARN] OTA job still CREATE_PENDING after {timeout}s")
