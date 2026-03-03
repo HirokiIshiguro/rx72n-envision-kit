@@ -47,14 +47,13 @@ RX72N Envision Kit の全機能を試せるようにする。
 | 5 | e2studio 2024-01 / CC-RX v3.04 環境で既存機能の動作検証（AWS 接続、SD カードによるファームウェアアップデート、各種コマンドレスポンス） | Done (MR !20) |
 | 6 | e2studio 2025-12 / CC-RX v3.07 ツールチェーン更新 + 既存機能の動作検証 | Done (MR !21) |
 | 7 | AWS IoT OTA テスト自動化（S3 + OTA ジョブ → MQTT ダウンロード → 署名検証 → バンクスワップ → 自己テスト）（1台） | Done (MR !23) |
-| 8 | AWS 接続を含むフリートプロビジョニング テスト（1台） | Planned |
-| 9 | FreeRTOS LTS 最新版適用（[iot-reference-rx](https://github.com/renesas/iot-reference-rx) 最新リリースタグ） | Planned |
-| 10 | AWS 接続を含む OTA テスト（1台、新 FW で再検証） | Planned |
-| 11 | AWS 接続を含むフリートプロビジョニング テスト（1台、新 FW で再検証） | Planned |
-| 12 | AWS 接続を含むセカンダリ MCU ファームウェアアップデート テスト（RX72N → FPB-RX140） | Planned |
-| 13 | OTA × 3 一斉テスト | Planned |
-| 14 | フリートプロビジョニング × 3 + 一斉 OTA テスト | Planned |
-| 15 | フリートプロビジョニング × 3 + セカンダリ MCU アップデート × 2 + 一斉 OTA テスト（フル構成） | Planned |
+| 8 | FreeRTOS LTS 最新版適用（[iot-reference-rx](https://github.com/renesas/iot-reference-rx) 最新リリースタグ） | Planned |
+| 9 | AWS 接続を含む OTA テスト（1台、新 FW で再検証） | Planned |
+| 10 | AWS 接続を含むフリートプロビジョニング テスト（1台。iot-reference-rx の FP デモを活用） | Planned |
+| 11 | AWS 接続を含むセカンダリ MCU ファームウェアアップデート テスト（RX72N → FPB-RX140） | Planned |
+| 12 | OTA × 3 一斉テスト | Planned |
+| 13 | フリートプロビジョニング × 3 + 一斉 OTA テスト | Planned |
+| 14 | フリートプロビジョニング × 3 + セカンダリ MCU アップデート × 2 + 一斉 OTA テスト（フル構成） | Planned |
 | - | UART テストスクリプトの共通ライブラリ化（[mcu-test/uart](https://shelty2.servegame.com/oss/experiment/generic/scripts/python/mcu-test) へ切り出し、git submodule で各プロジェクトから参照） | Planned |
 | - | mot_to_rsu コンバータの共通部品化（git submodule で各プロジェクトから参照） | Done (MR !12) |
 | - | AWS CLI / IoT Core ノウハウを `oss/experiment/cloud/aws/iot-core/claude` に export | Done (MR !1 on iot-core/claude) |
@@ -116,7 +115,7 @@ GitLab UI の「Run Pipeline」画面でオーバーライド可能。
 - **ビルド専用 Runner (Windows):** e2studio ヘッドレスビルド。実機不要、重い処理を分離
 - **実機操作専用 Runner (Raspberry Pi):** flash (rfp-cli) + UART テスト + SD カード転送。RX72N 物理接続。Python スクリプト実行
 
-**テストシナリオ（Phase 9）:**
+**テストシナリオ（Phase 12-14）:**
 - AWS IoT Core フリートプロビジョニングで3台同時にデバイス登録・証明書発行
 - OTA ジョブで3台一斉にファームウェア更新
 - RX72N → FPB-RX140 へのセカンダリ MCU カスケード更新
@@ -597,6 +596,30 @@ python test_scripts/uart_test/provision_aws.py \
 - テストスクリプトも 921600bps で接続
 
 ## Changelog / 変更履歴
+
+### 2026-03-03: Phase 8-14 順序変更 — iot-reference-rx 移行を先行
+
+Reordered CI/CD phases 8-14. Moved iot-reference-rx migration (formerly Phase 9) to Phase 8, and consolidated fleet provisioning tests (formerly Phase 8 + 11) into a single Phase 10 on the new firmware. Total phases reduced from 15 to 14.
+
+CI/CD フェーズ 8-14 の順序を変更。iot-reference-rx 移行（旧 Phase 9）を Phase 8 に前倒しし、フリートプロビジョニングテスト（旧 Phase 8 + 11）を新 FW 上の Phase 10 に一本化。全フェーズ数を 15 → 14 に削減。
+
+**変更理由:**
+- Phase 8 計画立案の調査で、現行ファームウェアに Fleet Provisioning デモが含まれていない可能性が判明
+- iot-reference-rx には coreMQTT Agent + Fleet Provisioning デモが統合済みであり、移行後に FP テストを行う方が効率的
+- 旧 Phase 8（現行 FW で FP テスト）と旧 Phase 11（新 FW で FP 再検証）を統合し、重複を排除
+
+**変更前 → 変更後:**
+
+| 旧 Phase | 旧内容 | 新 Phase | 新内容 |
+|-----------|--------|-----------|--------|
+| 8 | FP テスト（現行 FW） | 8 | iot-reference-rx 移行 |
+| 9 | iot-reference-rx 移行 | 9 | OTA テスト（新 FW 再検証） |
+| 10 | OTA テスト（新 FW 再検証） | 10 | FP テスト（新 FW、旧 8+11 統合） |
+| 11 | FP テスト（新 FW 再検証） | 11 | セカンダリ MCU テスト |
+| 12 | セカンダリ MCU テスト | 12 | OTA × 3 |
+| 13 | OTA × 3 | 13 | FP × 3 + OTA |
+| 14 | FP × 3 + OTA | 14 | フル構成 |
+| 15 | フル構成 | - | (統合により削除) |
 
 ### 2026-03-02: Phase 7 — AWS IoT OTA テスト自動化 + パイプライン条件分岐
 
