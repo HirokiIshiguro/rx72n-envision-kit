@@ -47,7 +47,7 @@ RX72N Envision Kit の全機能を試せるようにする。
 | 5 | e2studio 2024-01 / CC-RX v3.04 環境で既存機能の動作検証（AWS 接続、SD カードによるファームウェアアップデート、各種コマンドレスポンス） | Done (MR !20) |
 | 6 | e2studio 2025-12 / CC-RX v3.07 ツールチェーン更新 + 既存機能の動作検証 | Done (MR !21) |
 | 7 | AWS IoT OTA テスト自動化（S3 + OTA ジョブ → MQTT ダウンロード → 署名検証 → バンクスワップ → 自己テスト）（1台） | Done (MR !23) |
-| 8 | FreeRTOS LTS 最新版適用（[iot-reference-rx](https://github.com/renesas/iot-reference-rx) 最新リリースタグ） | Planned |
+| 8 | FreeRTOS LTS 最新版適用（[iot-reference-rx](https://github.com/renesas/iot-reference-rx) 最新リリースタグ）。作業リポジトリ: [iot-reference-rx (GitLab)](https://shelty2.servegame.com/oss/import/github/renesas/iot-reference-rx)。CK-RX65N V1 で先行構築（Phase 8a）→ RX72N に移植（Phase 8b）の2段階アプローチ。詳細計画は [iot-reference-rx の CLAUDE.md](https://shelty2.servegame.com/oss/import/github/renesas/iot-reference-rx/-/blob/main/CLAUDE.md) を参照 | Planned |
 | 9 | AWS 接続を含む OTA テスト（1台、新 FW で再検証） | Planned |
 | 10 | AWS 接続を含むフリートプロビジョニング テスト（1台。iot-reference-rx の FP デモを活用） | Planned |
 | 11 | AWS 接続を含むセカンダリ MCU ファームウェアアップデート テスト（RX72N → FPB-RX140） | Planned |
@@ -620,6 +620,14 @@ CI/CD フェーズ 8-14 の順序を変更。iot-reference-rx 移行（旧 Phase
 | 13 | OTA × 3 | 13 | FP × 3 + OTA |
 | 14 | FP × 3 + OTA | 14 | フル構成 |
 | 15 | フル構成 | - | (統合により削除) |
+
+**Phase 8 作業リポジトリ:** [iot-reference-rx (GitLab)](https://shelty2.servegame.com/oss/import/github/renesas/iot-reference-rx) — CK-RX65N V1 で先行構築（8a）→ RX72N に移植（8b）。詳細は [iot-reference-rx の CLAUDE.md](https://shelty2.servegame.com/oss/import/github/renesas/iot-reference-rx/-/blob/main/CLAUDE.md) を参照。
+
+### 2026-03-03: Phase 8 作業リポジトリ追加
+
+Added iot-reference-rx repository link to Phase 8 description. Phase 8 uses a two-stage approach: build CI/CD on CK-RX65N V1 first (8a), then port to RX72N (8b). Detailed plan is in iot-reference-rx CLAUDE.md.
+
+Phase 8 の説明に iot-reference-rx 作業リポジトリへのリンクを追加。2段階アプローチ（CK-RX65N V1 で先行構築 → RX72N に移植）の記載と、iot-reference-rx リポジトリの CLAUDE.md への参照を追加。
 
 ### 2026-03-02: Phase 7 — AWS IoT OTA テスト自動化 + パイプライン条件分岐
 
