@@ -360,13 +360,18 @@ def monitor_ota_progress(ser, timeout=600):
     """COM7 のログを監視し、OTA マイルストーンを検出する。
 
     Returns:
-        dict: 検出されたマイルストーン {name: timestamp}
+        tuple: (detected_milestones, last_version)
+            - detected_milestones: dict {name: timestamp}
+            - last_version: tuple (major, minor, build) or None
+              モニタリング中に検出された最後のバージョン情報。
+              self_test 後のリブートでバージョンが出力された場合にここに格納される。
     """
     detected = {}
     start = time.time()
     buf = b""
     block_count = 0
     last_progress_time = start
+    last_version = None  # モニタリング中に検出したバージョン情報
 
     print(f"[MONITOR] Watching OTA progress (timeout={timeout}s)...")
 
@@ -406,6 +411,14 @@ def monitor_ota_progress(ser, timeout=600):
                             print(f"  Log: {line[:200]}")
                             break
 
+                # バージョン検出 (self_test 後のリブートで出力されるバージョンを記録)
+                ver = parse_version_from_log(line)
+                if ver:
+                    last_version = ver
+                    if "self_test" in detected:
+                        elapsed = time.time() - start
+                        print(f"[MONITOR] {elapsed:.0f}s: Post-reboot version {ver[0]}.{ver[1]}.{ver[2]} detected")
+
                 # エラー検出
                 if re.search(r"Error|FAIL|Failed|Abort", line, re.IGNORECASE):
                     if "OtaJobEventFail" in line or "Failed to" in line:
@@ -432,7 +445,9 @@ def monitor_ota_progress(ser, timeout=600):
     elapsed = time.time() - start
     print(f"[MONITOR] Monitoring ended after {elapsed:.0f}s")
     print(f"[MONITOR] Total blocks received: {block_count}")
-    return detected
+    if last_version:
+        print(f"[MONITOR] Last detected version: {last_version[0]}.{last_version[1]}.{last_version[2]}")
+    return detected, last_version
 
 
 def verify_new_version_after_reset(ser, expected_build, timeout=120):
@@ -766,7 +781,7 @@ def main():
             print()
             print("[STEP 4/6] Monitoring OTA progress")
             # Note: バッファクリアしない（JSON received ログを捕捉するため）
-            milestones = monitor_ota_progress(log_ser, timeout=args.timeout)
+            milestones, monitor_version = monitor_ota_progress(log_ser, timeout=args.timeout)
 
             # マイルストーン評価
             required = {name for name, info in OTA_MILESTONES.items() if info["required"]}
@@ -784,10 +799,20 @@ def main():
             print()
             print("[STEP 5/6] Verifying new version after reset")
             if args.expected_build:
-                version_ok = verify_new_version_after_reset(
-                    log_ser, args.expected_build, timeout=120
-                )
-                results["new_version"] = version_ok
+                # モニタリング中に既にバージョンが検出されている場合はそれを使用
+                # (self_test 後のリブートでバージョンが出力され、monitor が消費済み)
+                if monitor_version and monitor_version[2] == args.expected_build:
+                    print(f"[PASS] New version already confirmed during monitoring: "
+                          f"{monitor_version[0]}.{monitor_version[1]}.{monitor_version[2]}")
+                    results["new_version"] = True
+                else:
+                    if monitor_version:
+                        print(f"[INFO] Monitor saw version {monitor_version[0]}.{monitor_version[1]}.{monitor_version[2]}, "
+                              f"expected build={args.expected_build}, waiting for correct version...")
+                    version_ok = verify_new_version_after_reset(
+                        log_ser, args.expected_build, timeout=120
+                    )
+                    results["new_version"] = version_ok
             else:
                 print("[SKIP] --expected-build not specified, skipping version check")
                 results["new_version"] = True
