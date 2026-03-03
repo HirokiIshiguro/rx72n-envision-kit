@@ -3,6 +3,15 @@ stages:
   - flash
   - test
 
+# MR パイプライン (merge_request_event) を抑止。
+# rules: 付きジョブと rules: なしジョブが混在すると、MR パイプラインで
+# needs: の依存先が見つからず即座に失敗するため、ブランチパイプラインのみ使用する。
+workflow:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      when: never
+    - when: always
+
 variables:
   E2STUDIO: "C:\\Renesas\\e2_studio_2025_12\\eclipse\\e2studioc.exe"
   WORKSPACE: "C:\\workspace_rx72n"
@@ -29,17 +38,28 @@ variables:
   #
   # --- パイプライン条件分岐 ---
   # GitLab UI の「Run Pipeline」画面でオーバーライド可能。
-  # RUN_AWS_TESTS: AWS 接続テスト (provision, MQTT, SD update) を実行するか
-  # RUN_OTA_TEST:  OTA テスト (build_ota, flash_ota, test_ota) を実行するか
-  # 高速化: RUN_AWS_TESTS=false で AWS 依存ジョブをスキップ（ビルド+基本テストのみ）
-  # OTA テスト: RUN_OTA_TEST=true を明示的に指定
+  # RUN_AWS_TESTS:      AWS 接続テスト (provision, MQTT) を実行するか
+  # RUN_SD_UPDATE_TEST: SD カードファームウェア更新テストを実行するか
+  # RUN_OTA_TEST:       OTA テスト (build_ota, flash_ota, test_ota) を実行するか
+  # デフォルトはフルテスト（MR マージ前に全テスト通過を保証）。
+  # ダミーブランチで個別テストを回す場合は変数をオーバーライドする。
   RUN_AWS_TESTS: "true"
-  RUN_OTA_TEST: "false"
+  RUN_SD_UPDATE_TEST: "true"
+  RUN_OTA_TEST: "true"
+  # RUN_OTA_ONLY: OTA テストのみ実行するショートカットモード。
+  # "true" にすると通常のビルド/フラッシュ/テストジョブをスキップし、
+  # build_ota → prepare_ota → test_ota のみ実行する。
+  # OTA デバッグ中のイテレーション高速化用。安定後は "false" に戻すこと。
+  RUN_OTA_ONLY: "false"
 
 build:
   stage: build
   tags:
     - run_ishiguro_machine
+  rules:
+    - if: $RUN_OTA_ONLY == "true"
+      when: never
+    - when: always
   script:
     # ワークスペースと HardwareDebug をクリア（stale Makefile とキャッシュの除去）
     - if (Test-Path "$env:WORKSPACE") { Remove-Item -Recurse -Force "$env:WORKSPACE" }
@@ -199,6 +219,11 @@ flash_boot_loader:
   stage: flash
   tags:
     - run_ishiguro_machine
+  resource_group: rx72n-device
+  rules:
+    - if: $RUN_OTA_ONLY == "true"
+      when: never
+    - when: always
   needs: [build]
   script:
     - |
@@ -246,6 +271,11 @@ download_aws_demos:
   stage: flash
   tags:
     - run_ishiguro_machine
+  resource_group: rx72n-device
+  rules:
+    - if: $RUN_OTA_ONLY == "true"
+      when: never
+    - when: always
   needs:
     - job: build
       artifacts: true
@@ -301,9 +331,18 @@ test_commands:
   stage: test
   tags:
     - run_ishiguro_machine
+  resource_group: rx72n-device
   timeout: 5 minutes
+  rules:
+    - if: $RUN_OTA_ONLY == "true"
+      when: never
+    - when: always
   needs:
     - job: download_aws_demos
+    # provision_aws_credentials も COM6 を使用するため、同時実行を防止。
+    # RUN_AWS_TESTS=false 時は provision がスキップされるため optional: true。
+    - job: provision_aws_credentials
+      optional: true
   variables:
     # aws_demos のコマンドインターフェースは COM6 (SCI2, 115200bps)
     COMMAND_PORT: "COM6"
@@ -332,15 +371,23 @@ test_commands:
     - |
       Write-Host "=== UART Command-Response Test ==="
       Write-Host "  Port: $env:COMMAND_PORT @ ${env:COMMAND_BAUD_RATE}bps"
+      # --skip-erase: provision_aws_credentials が flash stage でプロビジョニング済み。
+      #   dataflash erase を実行すると endpoint/cert 等が消去され confirm_aws_mqtt が失敗する。
       python "$env:CI_PROJECT_DIR\test_scripts\uart_test\test_aws_demos_commands.py" `
         --port "$env:COMMAND_PORT" --baud $env:COMMAND_BAUD_RATE `
-        --timeout $env:COMMAND_TIMEOUT --prompt-timeout 60 --initial-wait 3
+        --timeout $env:COMMAND_TIMEOUT --prompt-timeout 60 --initial-wait 3 `
+        --skip-erase
 
 test_screen_navigation:
   stage: test
   tags:
     - run_ishiguro_machine
+  resource_group: rx72n-device
   timeout: 3 minutes
+  rules:
+    - if: $RUN_OTA_ONLY == "true"
+      when: never
+    - when: always
   needs:
     - job: test_commands
   variables:
@@ -366,15 +413,18 @@ test_screen_navigation:
         --cmd-port "$env:COMMAND_PORT" --cmd-baud $env:COMMAND_BAUD_RATE `
         --timeout 30 --prompt-timeout 30 --initial-wait 1
 
-provision_and_reset:
-  stage: test
+provision_aws_credentials:
+  stage: flash
   tags:
     - run_ishiguro_machine
+  resource_group: rx72n-device
   timeout: 3 minutes
   rules:
+    - if: $RUN_OTA_ONLY == "true"
+      when: never
     - if: $RUN_AWS_TESTS == "true"
   needs:
-    - job: test_screen_navigation
+    - job: download_aws_demos
   before_script:
     - |
       Get-Process | Where-Object { $_.ProcessName -eq 'python' -and $_.Id -ne $PID } |
@@ -385,26 +435,32 @@ provision_and_reset:
       Start-Sleep -Seconds 1
     - pip install pyserial
   script:
-    # AWS IoT Core プロビジョニング: 証明書・秘密鍵・エンドポイント・Thing名を
-    # データフラッシュに書き込む。flash_boot_loader の -erase-chip でデータフラッシュが
-    # 毎回消去されるため、パイプライン実行ごとにプロビジョニングが必要。
+    # AWS IoT Core プロビジョニング: 証明書・秘密鍵・エンドポイント・Thing名・
+    # OTA 署名検証証明書をデータフラッシュに書き込む。
+    # flash_boot_loader の -erase-chip でデータフラッシュが毎回消去されるため、
+    # パイプライン実行ごとにプロビジョニングが必要。
     # --device-id で device_config.json からポート・エンドポイント・Thing名を解決。
     # 証明書は CI/CD File 型変数 AWS_CLIENT_CERT_{ID} / AWS_PRIVATE_KEY_{ID} から取得。
+    # --codesigner-cert: OTA 署名検証用証明書（sample_keys/secp256r1.crt）も書き込む。
     - |
       Write-Host "=== AWS IoT Core Provisioning ==="
       Write-Host "  Device ID: $env:DEVICE_ID"
       python "$env:CI_PROJECT_DIR\test_scripts\uart_test\provision_aws.py" `
-        --device-id "$env:DEVICE_ID"
+        --device-id "$env:DEVICE_ID" `
+        --codesigner-cert "$env:CI_PROJECT_DIR\sample_keys\secp256r1.crt"
 
 confirm_aws_mqtt:
   stage: test
   tags:
     - run_ishiguro_machine
+  resource_group: rx72n-device
   timeout: 5 minutes
   rules:
+    - if: $RUN_OTA_ONLY == "true"
+      when: never
     - if: $RUN_AWS_TESTS == "true"
   needs:
-    - job: provision_and_reset
+    - job: test_screen_navigation
   retry:
     max: 1
     when: script_failure
@@ -433,9 +489,12 @@ test_sd_update:
   stage: test
   tags:
     - run_ishiguro_machine
+  resource_group: rx72n-device
   timeout: 10 minutes
   rules:
-    - if: $RUN_AWS_TESTS == "true"
+    - if: $RUN_OTA_ONLY == "true"
+      when: never
+    - if: $RUN_AWS_TESTS == "true" && $RUN_SD_UPDATE_TEST == "true"
   needs:
     - job: confirm_aws_mqtt
     - job: download_aws_demos
@@ -469,7 +528,7 @@ test_sd_update:
 
 # ==============================================================================
 # Phase 7: AWS IoT OTA テスト
-# RUN_OTA_TEST=true で有効化。通常のパイプラインでは実行しない。
+# RUN_OTA_TEST=false でスキップ可能。
 # OTA テストには2つの異なるバージョンの FW が必要:
 #   v1 (APP_VERSION_BUILD=N)   : デバイスに初期書き込み。OTA Agent が稼働しジョブ待機
 #   v2 (APP_VERSION_BUILD=N+1) : S3 にアップロードし OTA で配信
@@ -536,12 +595,28 @@ build_ota:
       $logFile = "$env:CI_PROJECT_DIR\e2studio_ota_build.log"
       $e2base = @("--launcher.suppressErrors", "-nosplash", "-application", "org.eclipse.cdt.managedbuilder.core.headlessbuild", "-data", "$env:WORKSPACE")
       $imports = @("-import", "$shortProj\aws_demos", "-import", "$shortProj\boot_loader")
+      # -cleanBuild all: import したプロジェクト (aws_demos + rx72n_boot_loader) をすべてビルド。
+      # 注意: boot_loader ディレクトリの e2studio プロジェクト名は "rx72n_boot_loader"（.project 参照）。
+      # カンマ区切りの個別指定 ("aws_demos/HardwareDebug,rx72n_boot_loader/HardwareDebug") より
+      # "all" の方が安全で、import 済みプロジェクトのみがビルドされる。
       Write-Host "=== Build v1 (aws_demos + boot_loader) ==="
-      & "$env:E2STUDIO" @e2base @imports -cleanBuild "aws_demos/HardwareDebug,boot_loader/HardwareDebug" 2>&1 | Tee-Object -FilePath $logFile | Out-Null
+      & "$env:E2STUDIO" @e2base @imports -cleanBuild all 2>&1 | Tee-Object -FilePath $logFile | Out-Null
       Write-Host "e2studio exit code: $LASTEXITCODE"
+
+      # 診断: ビルドログの末尾20行
+      Write-Host "--- Build log tail ---"
+      Get-Content $logFile -Tail 20 -ErrorAction SilentlyContinue | ForEach-Object { Write-Host "  $_" }
+
+      # .mot ファイルの検索（ジャンクション経由とCI_PROJECT_DIR直接の両方を試行）
       $mot_aws = Get-ChildItem "$shortProj\aws_demos\HardwareDebug\*.mot" -ErrorAction SilentlyContinue
       if (-not $mot_aws) { $mot_aws = Get-ChildItem "$env:CI_PROJECT_DIR\$env:E2STUDIO_PROJECTS\aws_demos\HardwareDebug\*.mot" -ErrorAction SilentlyContinue }
+      $mot_boot = Get-ChildItem "$env:WORKSPACE\rx72n_boot_loader\HardwareDebug\*.mot" -ErrorAction SilentlyContinue
+      if (-not $mot_boot) { $mot_boot = Get-ChildItem "$shortProj\boot_loader\HardwareDebug\*.mot" -ErrorAction SilentlyContinue }
+      if (-not $mot_boot) { $mot_boot = Get-ChildItem "$env:CI_PROJECT_DIR\$env:E2STUDIO_PROJECTS\boot_loader\HardwareDebug\*.mot" -ErrorAction SilentlyContinue }
+      Write-Host "  aws_demos .mot:  $(if ($mot_aws) { $mot_aws.FullName } else { 'NOT FOUND' })"
+      Write-Host "  boot_loader .mot: $(if ($mot_boot) { $mot_boot.FullName } else { 'NOT FOUND' })"
       if (-not $mot_aws) { Write-Host "ERROR: v1 aws_demos.mot not found"; exit 1 }
+      if (-not $mot_boot) { Write-Host "ERROR: v1 boot_loader.mot not found"; exit 1 }
       Write-Host "  v1 .mot: $($mot_aws.FullName)"
     # v1.mot → ota_v1.rsu 変換
     - |
@@ -567,9 +642,16 @@ build_ota:
       $shortProj = "$shortRoot\$env:E2STUDIO_PROJECTS"
       $logFile = "$env:CI_PROJECT_DIR\e2studio_ota_build_v2.log"
       $e2base = @("--launcher.suppressErrors", "-nosplash", "-application", "org.eclipse.cdt.managedbuilder.core.headlessbuild", "-data", "$env:WORKSPACE")
+      # v2 は aws_demos のみリビルド。boot_loader は v1 と同じで変更不要だが、
+      # -cleanBuild all を使って確実にビルドする（boot_loader の再ビルドは無害）。
       Write-Host "=== Build v2 (aws_demos only) ==="
-      & "$env:E2STUDIO" @e2base -cleanBuild "aws_demos/HardwareDebug" 2>&1 | Tee-Object -FilePath $logFile | Out-Null
+      & "$env:E2STUDIO" @e2base -cleanBuild all 2>&1 | Tee-Object -FilePath $logFile | Out-Null
       Write-Host "e2studio exit code: $LASTEXITCODE"
+
+      # 診断: ビルドログの末尾20行
+      Write-Host "--- Build log tail ---"
+      Get-Content $logFile -Tail 20 -ErrorAction SilentlyContinue | ForEach-Object { Write-Host "  $_" }
+
       $mot_aws = Get-ChildItem "$shortProj\aws_demos\HardwareDebug\*.mot" -ErrorAction SilentlyContinue
       if (-not $mot_aws) { $mot_aws = Get-ChildItem "$env:CI_PROJECT_DIR\$env:E2STUDIO_PROJECTS\aws_demos\HardwareDebug\*.mot" -ErrorAction SilentlyContinue }
       if (-not $mot_aws) { Write-Host "ERROR: v2 aws_demos.mot not found"; exit 1 }
@@ -603,13 +685,23 @@ build_ota:
       - projects/renesas/rx72n_envision_kit/e2studio/boot_loader/HardwareDebug/*.mot
     expire_in: 1 week
 
-flash_and_provision_ota:
-  stage: flash
+prepare_ota:
+  stage: test
   tags:
     - run_ishiguro_machine
+  resource_group: rx72n-device
+  timeout: 5 minutes
   rules:
     - if: $RUN_OTA_TEST == "true"
   needs:
+    # 通常テスト完了後に実行。optional: true により、スキップされたジョブへの依存は無視。
+    # RUN_OTA_ONLY=true 時は全テストジョブがスキップされるため、全て optional にする。
+    - job: test_sd_update
+      optional: true
+    - job: confirm_aws_mqtt
+      optional: true
+    - job: test_screen_navigation
+      optional: true
     - job: build_ota
       artifacts: true
   before_script:
@@ -622,6 +714,10 @@ flash_and_provision_ota:
       Start-Sleep -Seconds 1
     - pip install cryptography pyserial
   script:
+    # OTA デバイス準備: 通常テスト完了後に実行。
+    # 通常テスト時は aws_demos (MQTT デモ) が実行中のため、OTA デモ版の aws_demos に
+    # 入れ替える必要がある。erase-chip で全フラッシュを消去し、boot_loader 再書き込み→
+    # UART で ota_v1.rsu をダウンロード → 再プロビジョニング（erase-chip でデータフラッシュ消去済み）。
     # Step 1: boot_loader 書き込み (erase-chip + program + run)
     - |
       $mot = "$env:CI_PROJECT_DIR\$env:E2STUDIO_PROJECTS\boot_loader\HardwareDebug\rx72n_boot_loader.mot"
@@ -649,7 +745,7 @@ flash_and_provision_ota:
       Write-Host "  Port: $env:UART_PORT @ ${env:UART_BAUD_RATE}bps"
       python "$env:CI_PROJECT_DIR\test_scripts\uart_test\test_uart_download.py" `
         --rsu "$rsu" --port "$env:UART_PORT" --baud $env:UART_BAUD_RATE `
-        --timeout 300 --diag
+        --timeout 300 --diag --wait-for-ready --ready-timeout 60
       if ($LASTEXITCODE -ne 0) { Write-Host "ERROR: UART download failed"; exit 1 }
     # Step 3: AWS プロビジョニング (endpoint, thing, cert, key, codesigner cert)
     - |
@@ -676,11 +772,12 @@ test_ota:
   stage: test
   tags:
     - run_ishiguro_machine
+  resource_group: rx72n-device
   timeout: 15 minutes
   rules:
     - if: $RUN_OTA_TEST == "true"
   needs:
-    - job: flash_and_provision_ota
+    - job: prepare_ota
     - job: build_ota
       artifacts: true
   before_script:
@@ -699,7 +796,7 @@ test_ota:
       $v2 = [int]$env:CI_PIPELINE_IID * 2 + 1
       Write-Host "=== AWS IoT OTA Update Test ==="
       Write-Host "  Expected version build: $v2"
-      python "$env:CI_PROJECT_DIR\test_scripts\uart_test\test_ota.py" `
+      python -u "$env:CI_PROJECT_DIR\test_scripts\uart_test\test_ota.py" `
         --device-id "$env:DEVICE_ID" `
         --rsu "$env:CI_PROJECT_DIR\ota_v2.rsu" `
         --s3-bucket "$env:OTA_S3_BUCKET" `
