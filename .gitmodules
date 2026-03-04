@@ -5,3 +5,6 @@
 [submodule "tools/mcu-tool-rx"]
 	path = tools/mcu-tool-rx
 	url = https://shelty2.servegame.com/oss/experiment/generic/scripts/python/mcu-tool/renesas/rx.git
+[submodule "tools/provisioning"]
+	path = tools/provisioning
+	url = https://shelty2.servegame.com/oss/experiment/generic/scripts/python/provisioning.git
