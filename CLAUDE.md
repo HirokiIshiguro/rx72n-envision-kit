@@ -66,6 +66,23 @@ RX72N Envision Kit の全機能を試せるようにする。
 
 GitLab UI の「Run Pipeline」画面でオーバーライド可能。
 
+**ハードウェア依存変数（hardware-config リポジトリで一元管理）:**
+
+COM ポート番号や E2 Lite シリアル番号は USB 抜き差しで変わるため、`.gitlab-ci.yml` にはハードコードせず
+`/oss` グループの CI/CD Variables から取得する。変更時は hardware-config リポジトリの CLAUDE.md を
+更新し、GitLab の CI/CD Variables を変更すること。
+
+| CI/CD Variable | .gitlab-ci.yml 変数 | 説明 |
+|---|---|---|
+| `E2L_SERIAL_ENVISION_KIT_RX72N_ECN1` | `E2LITE_SERIAL` | E2 Lite シリアル番号 (ECN1) |
+| `UART_PORT_ENVISION_KIT_RX72N_CN6` | `UART_PORT` | SCI7 ログ/ダウンロード (CN6 PMOD, 921600bps) |
+| `UART_PORT_ENVISION_KIT_RX72N_CN8` | `COMMAND_PORT` | SCI2 コマンド (CN8 USB Serial, 115200bps) |
+
+`device_config_loader.py` も `COMMAND_PORT` / `UART_PORT` / `E2LITE_SERIAL` 環境変数を検出すると
+`device_config.json` の値をオーバーライドする。
+
+**テスト制御変数:**
+
 | 変数 | デフォルト | 説明 |
 |------|-----------|------|
 | `RUN_AWS_TESTS` | `"true"` | AWS 接続テスト（provision, MQTT）を実行するか |

@@ -46,6 +46,19 @@ def load_device_config(device_id, config_path=None):
     device["aws_endpoint"] = config["aws_endpoint"]
     device["aws_region"] = config.get("aws_region", "ap-northeast-1")
     device["device_id"] = device_id
+
+    # 環境変数オーバーライド: CI/CD Variables (hardware-config) からの値を優先する。
+    # USB 抜き差しで COM 番号が変わった場合、JSON を変更せずに CI/CD Variables のみで対応可能。
+    env_overrides = {
+        "command_port": "COMMAND_PORT",
+        "log_port": "UART_PORT",
+        "e2lite_serial": "E2LITE_SERIAL",
+    }
+    for key, env_var in env_overrides.items():
+        val = os.environ.get(env_var)
+        if val and key in device:
+            device[key] = val
+
     return device
 
 

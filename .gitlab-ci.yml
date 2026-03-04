@@ -18,12 +18,18 @@ variables:
   E2STUDIO_PROJECTS: "projects\\renesas\\rx72n_envision_kit\\e2studio"
   # Renesas Flash Programmer CLI
   RFP_CLI: "C:\\Program Files (x86)\\Renesas Electronics\\Programming Tools\\Renesas Flash Programmer V3.22\\rfp-cli.exe"
-  E2LITE_SERIAL: "OBE110008"
-  # UART テスト用（PMOD FTDI 拡張基板 COM7, SCI7, 921600bps）
-  # Phase 4: boot_loader を SCI2 (COM6, 115200bps) → SCI7 (COM7, 921600bps) に変更
-  UART_PORT: "COM7"
+  # --- ハードウェア依存変数（hardware-config リポジトリの CI/CD Variables から取得） ---
+  # USB 抜き差しで COM 番号が変わった場合は、hardware-config リポジトリの CLAUDE.md を
+  # 更新し、/oss グループの CI/CD Variables を変更すること（本ファイルの修正は不要）。
+  # E2 Lite シリアル番号 (ECN1 コネクタ)
+  E2LITE_SERIAL: "${E2L_SERIAL_ENVISION_KIT_RX72N_ECN1}"
+  # UART ログ / ダウンロード用（CN6 PMOD FTDI, SCI7, 921600bps）
+  UART_PORT: "${UART_PORT_ENVISION_KIT_RX72N_CN6}"
   UART_BAUD_RATE: "921600"
   UART_TIMEOUT_SEC: "30"
+  # コマンドインターフェース用（CN8 USB Serial, SCI2, 115200bps）
+  COMMAND_PORT: "${UART_PORT_ENVISION_KIT_RX72N_CN8}"
+  COMMAND_BAUD_RATE: "115200"
   # デバイス ID（device_config.json で定義、複数デバイス時に切り替え）
   DEVICE_ID: "rx72n-01"
   # Git サブモジュール初期化（coreSNTP 等の外部ライブラリ）
@@ -339,14 +345,11 @@ test_commands:
     - when: always
   needs:
     - job: download_aws_demos
-    # provision_aws_credentials も COM6 を使用するため、同時実行を防止。
+    # provision_aws_credentials も COMMAND_PORT を使用するため、同時実行を防止。
     # RUN_AWS_TESTS=false 時は provision がスキップされるため optional: true。
     - job: provision_aws_credentials
       optional: true
   variables:
-    # aws_demos のコマンドインターフェースは COM6 (SCI2, 115200bps)
-    COMMAND_PORT: "COM6"
-    COMMAND_BAUD_RATE: "115200"
     COMMAND_TIMEOUT: "10"
   before_script:
     # ポートロック対策: 前回ジョブの残留プロセスが COM ポートを掴んでいる場合がある。
@@ -390,9 +393,6 @@ test_screen_navigation:
     - when: always
   needs:
     - job: test_commands
-  variables:
-    COMMAND_PORT: "COM6"
-    COMMAND_BAUD_RATE: "115200"
   before_script:
     - |
       Get-Process | Where-Object { $_.ProcessName -eq 'python' -and $_.Id -ne $PID } |
@@ -759,8 +759,8 @@ prepare_ota:
     # provision_aws.py 後、デバイスをリセットして MQTT 接続 + OTA Agent 起動を待つ
     - |
       Write-Host "=== Resetting device ==="
-      $cmdPort = "COM6"
-      $ser = [System.IO.Ports.SerialPort]::new($cmdPort, 115200)
+      $cmdPort = $env:COMMAND_PORT
+      $ser = [System.IO.Ports.SerialPort]::new($cmdPort, [int]$env:COMMAND_BAUD_RATE)
       $ser.Open()
       $ser.Write("reset`r`n")
       Start-Sleep -Seconds 1
