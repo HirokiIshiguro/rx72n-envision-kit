@@ -4,7 +4,7 @@
   "devices": {
     "rx72n-01": {
       "thing_name": "rx72n-01",
-      "command_port": "COM6",
+      "command_port": "COM10",
       "command_baud": 115200,
       "log_port": "COM7",
       "log_baud": 921600,
