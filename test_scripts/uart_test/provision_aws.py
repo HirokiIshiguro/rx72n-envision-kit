@@ -426,7 +426,7 @@ def main():
         print("[PASS] All provisioning steps completed successfully")
         print()
         print("Next: Reset the device to connect to AWS IoT Core")
-        print("  python test_aws_connectivity.py --log-port COM7 --cmd-port COM6")
+        print(f"  python test_aws_connectivity.py --device-id {args.device_id}" if args.device_id else "  python test_aws_connectivity.py --log-port <LOG_PORT> --cmd-port <CMD_PORT>")
         sys.exit(0)
     else:
         print("[FAIL] Some provisioning steps failed")

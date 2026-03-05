@@ -634,6 +634,10 @@ def main():
                         help="Log serial port (default: COM7)")
     parser.add_argument("--log-baud", type=int, default=921600,
                         help="Log serial baud rate (default: 921600)")
+    parser.add_argument("--cmd-port", default=None,
+                        help="Command serial port for reset (default: from device_config)")
+    parser.add_argument("--cmd-baud", type=int, default=115200,
+                        help="Command serial baud rate (default: 115200)")
     parser.add_argument("--rsu", required=True,
                         help="Path to v2 .rsu file for OTA update")
     parser.add_argument("--s3-bucket", default=os.environ.get("OTA_S3_BUCKET"),
@@ -664,6 +668,10 @@ def main():
             args.log_port = device["log_port"]
         if args.log_baud == 921600:
             args.log_baud = device["log_baud"]
+        if not args.cmd_port:
+            args.cmd_port = device.get("command_port")
+        if args.cmd_baud == 115200 and "command_baud" in device:
+            args.cmd_baud = device["command_baud"]
         if not args.region:
             args.region = device.get("aws_region", "ap-northeast-1")
         if not args.thing_name:
@@ -694,6 +702,7 @@ def main():
     print(f"[INFO]   Role ARN : {args.ota_role_arn}")
     print(f"[INFO]   RSU      : {args.rsu} ({os.path.getsize(args.rsu)} bytes)")
     print(f"[INFO]   Log Port : {args.log_port} @ {args.log_baud}bps")
+    print(f"[INFO]   Cmd Port : {args.cmd_port} @ {args.cmd_baud}bps" if args.cmd_port else "[INFO]   Cmd Port : (none, no pre-reset)")
     print(f"[INFO]   Timeout  : {args.timeout}s")
     print("=" * 60)
 
@@ -704,9 +713,26 @@ def main():
         # --- Step 1: OTA Agent 起動確認 ---
         print()
         print("[STEP 1/6] Confirming OTA Agent is running")
+
+        # ログポートを先に開いてからリセットすることで、起動メッセージを確実に捕捉する。
+        # prepare_ota → test_ota の間にデバイスが起動完了しアイドル状態になると、
+        # "OTA over MQTT demo" メッセージは既に出力済みで COM7 に新しいデータが来ない。
         log_ser = serial.Serial(args.log_port, args.log_baud, timeout=0)
         time.sleep(0.5)
         log_ser.reset_input_buffer()
+
+        if args.cmd_port:
+            print(f"[INFO] Sending reset via {args.cmd_port} to capture fresh startup messages")
+            try:
+                cmd_ser = serial.Serial(args.cmd_port, args.cmd_baud, timeout=1)
+                cmd_ser.write(b"reset\r\n")
+                time.sleep(1)
+                cmd_ser.close()
+                print("[INFO] Reset command sent, waiting for reboot...")
+                time.sleep(3)
+            except serial.SerialException as e:
+                print(f"[WARN] Could not send reset via {args.cmd_port}: {e}")
+                print("[WARN] Continuing without reset (may fail if device is idle)")
 
         # OTA Agent のログが出ていることを確認 (60秒待ち)
         agent_detected = False
