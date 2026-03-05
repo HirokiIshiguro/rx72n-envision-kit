@@ -4,16 +4,16 @@ AWS IoT Core Connectivity Test for aws_demos
 RX72N Envision Kit の aws_demos が AWS IoT Core に MQTT 接続できることを検証する。
 
 処理フロー:
-  1. COM7 でログ監視スレッドを開始
-  2. COM6 で reset コマンドを送信（MCU リスタート）
-  3. COM7 のログで接続マイルストーンを順次検出:
+  1. ログポートでログ監視スレッドを開始
+  2. コマンドポートで reset コマンドを送信（MCU リスタート）
+  3. ログポートのログで接続マイルストーンを順次検出:
      - IP アドレス取得 (DHCP)
      - TLS 接続確立
      - MQTT 接続成功
   4. 全マイルストーン検出で PASS、タイムアウトで FAIL
 
 環境変数:
-  COMMAND_PORT      : コマンドポート (デフォルト: COM6)
+  COMMAND_PORT      : コマンドポート (デフォルト: COM10)
   COMMAND_BAUD_RATE : コマンドボーレート (デフォルト: 115200)
   UART_PORT         : ログポート (デフォルト: COM7)
   UART_BAUD_RATE    : ログボーレート (デフォルト: 921600)
@@ -29,7 +29,7 @@ import time
 import serial
 
 # --- デフォルト値 ---
-DEFAULT_CMD_PORT = os.environ.get("COMMAND_PORT", "COM6")
+DEFAULT_CMD_PORT = os.environ.get("COMMAND_PORT", "COM10")
 DEFAULT_CMD_BAUD = int(os.environ.get("COMMAND_BAUD_RATE", "115200"))
 DEFAULT_LOG_PORT = os.environ.get("UART_PORT", "COM7")
 DEFAULT_LOG_BAUD = int(os.environ.get("UART_BAUD_RATE", "921600"))
@@ -145,18 +145,19 @@ def log_monitor_thread(ser, monitor):
 
 
 def send_reset(cmd_ser, timeout=10):
-    """COM6 で reset コマンドを送信し、リセット実行を検証する
+    """コマンドポートで reset コマンドを送信し、リセット実行を検証する
 
     検証ステップ:
-      1. プロンプト確認 --COM6 に \\r\\n を送り "$" が返るか (最大3回)
+      1. プロンプト確認 --コマンドポートに \\r\\n を送り "$" が返るか (最大3回)
       2. reset コマンド送信
-      3. リセット確認 --MCU リスタートにより COM6 が無応答になるか
+      3. リセット確認 --MCU リスタートによりコマンドポートが無応答になるか
 
     Returns:
-        True  --リセットが実行された（COM6 無応答を確認）
+        True  --リセットが実行された（コマンドポート無応答を確認）
         False --リセット失敗の可能性あり
     """
-    print("[INFO] Verifying COM6 prompt before reset...")
+    port_name = cmd_ser.port
+    print(f"[INFO] Verifying {port_name} prompt before reset...")
 
     # --- ステップ 1: プロンプト確認 ---
     prompt_detected = False
@@ -181,14 +182,14 @@ def send_reset(cmd_ser, timeout=10):
         decoded = buf.decode("utf-8", errors="replace").strip()
         if prompt_detected:
             print(f"[INFO] Prompt detected on attempt {attempt}")
-            print(f"[DEBUG] COM6 response: {decoded[:120]}")
+            print(f"[DEBUG] {port_name} response: {decoded[:120]}")
             break
         else:
             print(f"[WARN] Attempt {attempt}: no prompt. "
                   f"RX bytes={len(buf)}, data={decoded[:80]!r}")
 
     if not prompt_detected:
-        print("[ERROR] COM6 prompt NOT detected --MCU may not be responsive")
+        print(f"[ERROR] {port_name} prompt NOT detected --MCU may not be responsive")
         print("[ERROR] Sending reset anyway, but it may not take effect")
 
     # --- ステップ 2: reset コマンド送信 ---
@@ -199,7 +200,7 @@ def send_reset(cmd_ser, timeout=10):
     print("[INFO] Reset command sent.")
 
     # --- ステップ 3: リセット確認 ---
-    # MCU がリセットされると COM6 (SCI2 115200) は無応答になるはず
+    # MCU がリセットされるとコマンドポート (SCI2 115200) は無応答になるはず
     # 注: RX72N は約3秒で起動完了するため、1秒後にチェックする。
     #      3秒待つと新しい aws_demos のプロンプトを拾って false negative になる。
     time.sleep(1.0)
@@ -215,12 +216,12 @@ def send_reset(cmd_ser, timeout=10):
 
     if "$" in post_decoded:
         print("[WARN] Prompt STILL detected after reset --MCU may NOT have reset!")
-        print(f"[DEBUG] Post-reset COM6: {post_decoded[:120]}")
+        print(f"[DEBUG] Post-reset {port_name}: {post_decoded[:120]}")
         return False
     else:
         print("[INFO] No prompt after reset --MCU appears to be resetting (expected)")
         if post_decoded:
-            print(f"[DEBUG] Post-reset COM6 data: {post_decoded[:120]}")
+            print(f"[DEBUG] Post-reset {port_name} data: {post_decoded[:120]}")
         return True
 
 
@@ -285,7 +286,7 @@ def main():
 
         reset_ok = True
         if not args.skip_reset:
-            # COM6 コマンドポートを開く
+            # コマンドポートを開く
             cmd_ser = serial.Serial(args.cmd_port, args.cmd_baud, timeout=0)
             time.sleep(0.1)
             cmd_ser.reset_input_buffer()
@@ -294,7 +295,7 @@ def main():
             # リセット送信（検証付き）
             reset_ok = send_reset(cmd_ser)
 
-            # COM6 を閉じる
+            # コマンドポートを閉じる
             cmd_ser.close()
             cmd_ser = None
             print("[INFO] Closed cmd port")
@@ -401,7 +402,7 @@ def main():
         if rx_total == 0:
             print("[DIAG] COM7 received 0 bytes during entire monitoring period")
             print("[DIAG] Possible causes:")
-            print("  1. Reset command did not reach MCU (COM6 not responsive)")
+            print(f"  1. Reset command did not reach MCU ({args.cmd_port} not responsive)")
             print("  2. MCU crashed at boot (before any UART output)")
             print("  3. COM7 port issue (wrong port, baud rate, or held by other process)")
             print("  4. Boot loader did not jump to user program")

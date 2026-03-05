@@ -30,6 +30,8 @@ variables:
   # コマンドインターフェース用（CN8 USB Serial, SCI2, 115200bps）
   COMMAND_PORT: "${UART_PORT_ENVISION_KIT_RX72N_CN8}"
   COMMAND_BAUD_RATE: "115200"
+  # Ethernet MAC アドレス（ビルド前に FreeRTOSConfig.h を書き換え）
+  MAC_ADDR: "${MAC_ADDR_ENVISION_KIT_RX72N}"
   # デバイス ID（device_config.json で定義、複数デバイス時に切り替え）
   DEVICE_ID: "rx72n-01"
   # Git サブモジュール初期化（coreSNTP 等の外部ライブラリ）
@@ -67,6 +69,20 @@ build:
       when: never
     - when: always
   script:
+    # MAC アドレス書き換え（hardware-config リポジトリのスクリプトを使用）
+    - |
+      if ($env:MAC_ADDR) {
+        Write-Host "=== Set MAC address: $env:MAC_ADDR ==="
+        $hcDir = "C:\tmp\hardware-config"
+        if (-not (Test-Path "$hcDir\scripts\set_mac_address.py")) {
+          if (Test-Path $hcDir) { Remove-Item -Recurse -Force $hcDir }
+          git clone --depth 1 "$env:CI_SERVER_URL/oss/infra/hardware-config.git" $hcDir
+        }
+        python "$hcDir\scripts\set_mac_address.py" --mac $env:MAC_ADDR `
+          "$env:CI_PROJECT_DIR\vendors\renesas\boards\rx72n-envision-kit\aws_demos\config_files\FreeRTOSConfig.h"
+      } else {
+        Write-Host "[WARN] MAC_ADDR not set, using source default"
+      }
     # ワークスペースと HardwareDebug をクリア（stale Makefile とキャッシュの除去）
     - if (Test-Path "$env:WORKSPACE") { Remove-Item -Recurse -Force "$env:WORKSPACE" }
     - |
@@ -541,6 +557,20 @@ build_ota:
   rules:
     - if: $RUN_OTA_TEST == "true"
   script:
+    # MAC アドレス書き換え（build ジョブと同じ）
+    - |
+      if ($env:MAC_ADDR) {
+        Write-Host "=== Set MAC address: $env:MAC_ADDR ==="
+        $hcDir = "C:\tmp\hardware-config"
+        if (-not (Test-Path "$hcDir\scripts\set_mac_address.py")) {
+          if (Test-Path $hcDir) { Remove-Item -Recurse -Force $hcDir }
+          git clone --depth 1 "$env:CI_SERVER_URL/oss/infra/hardware-config.git" $hcDir
+        }
+        python "$hcDir\scripts\set_mac_address.py" --mac $env:MAC_ADDR `
+          "$env:CI_PROJECT_DIR\vendors\renesas\boards\rx72n-envision-kit\aws_demos\config_files\FreeRTOSConfig.h"
+      } else {
+        Write-Host "[WARN] MAC_ADDR not set, using source default"
+      }
     # ワークスペースと HardwareDebug をクリア
     - if (Test-Path "$env:WORKSPACE") { Remove-Item -Recurse -Force "$env:WORKSPACE" }
     - |
