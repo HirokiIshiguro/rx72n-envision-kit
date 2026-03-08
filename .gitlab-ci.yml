@@ -2,6 +2,9 @@ stages:
   - build
   - flash
   - test
+  - ota_prepare
+  - ota_run
+  - ota_finalize
 
 # MR パイプライン (merge_request_event) を抑止。
 # rules: 付きジョブと rules: なしジョブが混在すると、MR パイプラインで
@@ -15,19 +18,21 @@ workflow:
 variables:
   E2STUDIO: "C:\\Renesas\\e2_studio_2025_12\\eclipse\\e2studioc.exe"
   WORKSPACE: "C:\\workspace_rx72n"
-  E2STUDIO_PROJECTS: "projects\\renesas\\rx72n_envision_kit\\e2studio"
-  # Renesas Flash Programmer CLI
-  RFP_CLI: "C:\\Program Files (x86)\\Renesas Electronics\\Programming Tools\\Renesas Flash Programmer V3.22\\rfp-cli.exe"
+  E2STUDIO_PROJECTS: "projects/renesas/rx72n_envision_kit/e2studio"
+  # Renesas Flash Programmer CLI on Raspberry Pi
+  RFP_CLI: "rfp-cli"
   # --- ハードウェア依存変数（hardware-config リポジトリの CI/CD Variables から取得） ---
   # USB 抜き差しで COM 番号が変わった場合は、hardware-config リポジトリの CLAUDE.md を
   # 更新し、/oss グループの CI/CD Variables を変更すること（本ファイルの修正は不要）。
   # E2 Lite シリアル番号 (ECN1 コネクタ)
   E2LITE_SERIAL: "${E2L_SERIAL_ENVISION_KIT_RX72N_ECN1}"
   # UART ログ / ダウンロード用（CN6 PMOD FTDI, SCI7, 921600bps）
+  # Raspberry Pi では /dev/serial/by-id/... など Linux device path を設定する。
   UART_PORT: "${UART_PORT_ENVISION_KIT_RX72N_CN6}"
   UART_BAUD_RATE: "921600"
   UART_TIMEOUT_SEC: "30"
   # コマンドインターフェース用（CN8 USB Serial, SCI2, 115200bps）
+  # Raspberry Pi では /dev/serial/by-id/... など Linux device path を設定する。
   COMMAND_PORT: "${UART_PORT_ENVISION_KIT_RX72N_CN8}"
   COMMAND_BAUD_RATE: "115200"
   # Ethernet MAC アドレス（ビルド前に FreeRTOSConfig.h を書き換え）
@@ -48,7 +53,8 @@ variables:
   # GitLab UI の「Run Pipeline」画面でオーバーライド可能。
   # RUN_AWS_TESTS:      AWS 接続テスト (provision, MQTT) を実行するか
   # RUN_SD_UPDATE_TEST: SD カードファームウェア更新テストを実行するか
-  # RUN_OTA_TEST:       OTA テスト (build_ota, flash_ota, test_ota) を実行するか
+  # RUN_OTA_TEST:       OTA テスト (build_ota, prepare_ota, ota_create_job,
+  #                     ota_monitor, ota_finalize) を実行するか
   # デフォルトはフルテスト（MR マージ前に全テスト通過を保証）。
   # ダミーブランチで個別テストを回す場合は変数をオーバーライドする。
   RUN_AWS_TESTS: "true"
@@ -56,9 +62,49 @@ variables:
   RUN_OTA_TEST: "true"
   # RUN_OTA_ONLY: OTA テストのみ実行するショートカットモード。
   # "true" にすると通常のビルド/フラッシュ/テストジョブをスキップし、
-  # build_ota → prepare_ota → test_ota のみ実行する。
+  # build_ota → prepare_ota → ota_create_job/ota_monitor → ota_finalize のみ実行する。
   # OTA デバッグ中のイテレーション高速化用。安定後は "false" に戻すこと。
   RUN_OTA_ONLY: "false"
+
+.pi_device_job:
+  tags:
+    - exec-shell
+    - os-linux
+    - hw-raspi
+    - dev-rx72n
+  resource_group: rx72n-device
+
+.pi_flash_job:
+  extends: .pi_device_job
+  tags:
+    - exec-shell
+    - os-linux
+    - hw-raspi
+    - dev-rx72n
+    - cap-flash
+
+.pi_pyserial_job:
+  before_script:
+    - . "$CI_PROJECT_DIR/tools/ci/activate_pi_python.sh" pyserial
+
+.pi_crypto_serial_job:
+  before_script:
+    - . "$CI_PROJECT_DIR/tools/ci/activate_pi_python.sh" pyserial cryptography
+
+.windows_ota_aws_job:
+  tags:
+    - run_ishiguro_machine
+  environment:
+    # AWS credential variables can be environment-scoped to ota-aws-control so
+    # the Raspberry Pi runner never receives them.
+    name: ota-aws-control
+  before_script:
+    - |
+      if (-not (Get-Command aws -ErrorAction SilentlyContinue)) {
+        Write-Host "ERROR: aws CLI not found on this runner."
+        exit 1
+      }
+      python -m pip install --quiet --user cryptography
 
 build:
   stage: build
@@ -239,9 +285,7 @@ build:
 
 flash_boot_loader:
   stage: flash
-  tags:
-    - run_ishiguro_machine
-  resource_group: rx72n-device
+  extends: .pi_flash_job
   rules:
     - if: $RUN_OTA_ONLY == "true"
       when: never
@@ -249,51 +293,33 @@ flash_boot_loader:
   needs: [build]
   script:
     - |
-      $mot = "$env:CI_PROJECT_DIR\$env:E2STUDIO_PROJECTS\boot_loader\HardwareDebug\rx72n_boot_loader.mot"
-      if (-not (Test-Path $mot)) {
-        Write-Host "ERROR: $mot not found"
+      set -euo pipefail
+      mot="$CI_PROJECT_DIR/$E2STUDIO_PROJECTS/boot_loader/HardwareDebug/rx72n_boot_loader.mot"
+      if [[ ! -f "$mot" ]]; then
+        echo "ERROR: $mot not found"
         exit 1
-      }
-      Write-Host "=== Flash boot_loader ==="
-      Write-Host "  .mot:    $mot"
-      Write-Host "  Device:  RX72x"
-      Write-Host "  Tool:    E2 Lite ($env:E2LITE_SERIAL)"
-      Write-Host "  I/F:     FINE"
-    # rfp-cli で boot_loader を書き込み + 実行
-    # -erase-chip: Config Area (BANKSEL 含む) も消去。通常の -e (= -erase) は Code Flash +
-    #   Data Flash のみ消去し Config Area は消去しない。前回の UART ダウンロードで
-    #   boot_loader が bank swap を実行すると BANKSEL が 0xF8 (bank1 起動) に反転する。
-    #   Config Area はフラッシュの性質上 1→0 書き換えのみ可能なため、-e だけでは
-    #   BANKSEL を 0xFF (bank0 起動) に戻せず、.mot 内の BANKSEL 値 (0xFFFFFFFF) と
-    #   デバイス上の値 (0xFFFFFFF8) が不一致となり verify が失敗する。
-    # -run: 書き込み後にターゲットプログラムを実行開始（必須、省略すると MCU 停止）
-    # 注意: COM7 (PMOD FTDI) は E2 Lite と別の USB デバイスのため、rfp-cli のデバッガ
-    #   切断時の USB バスリセットの影響を受けない（旧 COM6 では問題だった）。
-    #   boot_loader の UART バナー検証は download_aws_demos ステップで暗黙的に行う。
-    - |
-      $mot = "$env:CI_PROJECT_DIR\$env:E2STUDIO_PROJECTS\boot_loader\HardwareDebug\rx72n_boot_loader.mot"
-      # Step 1: erase-chip（Config Area 含む全消去。-erase-chip は他の操作と併用不可）
-      & "$env:RFP_CLI" -device RX72x -tool "e2l:$env:E2LITE_SERIAL" -if fine -speed 1500K `
+      fi
+      if [[ -z "${E2LITE_SERIAL:-}" ]]; then
+        echo "ERROR: E2LITE_SERIAL not set"
+        exit 1
+      fi
+      echo "=== Flash boot_loader ==="
+      echo "  .mot:    $mot"
+      echo "  Device:  RX72x"
+      echo "  Tool:    E2 Lite (${E2LITE_SERIAL})"
+      echo "  I/F:     FINE"
+      "$RFP_CLI" -device RX72x -tool "e2l:${E2LITE_SERIAL}" -if fine -speed 1500K \
         -auth id FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF -erase-chip -noquery
-      if ($LASTEXITCODE -ne 0) {
-        Write-Host "ERROR: Erase-chip failed with exit code $LASTEXITCODE"
-        exit 1
-      }
-      # Step 2: program + verify + run
-      & "$env:RFP_CLI" -device RX72x -tool "e2l:$env:E2LITE_SERIAL" -if fine -speed 1500K `
+      "$RFP_CLI" -device RX72x -tool "e2l:${E2LITE_SERIAL}" -if fine -speed 1500K \
         -auth id FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF -p "$mot" -v -run -noquery
-      if ($LASTEXITCODE -ne 0) {
-        Write-Host "ERROR: Flash failed with exit code $LASTEXITCODE"
-        exit 1
-      }
-      Write-Host "Flash completed successfully. Boot loader is running."
-      Write-Host "  UART verification deferred to download_aws_demos step."
+      echo "Flash completed successfully. Boot loader is running."
+      echo "  UART verification deferred to download_aws_demos step."
 
 download_aws_demos:
   stage: flash
-  tags:
-    - run_ishiguro_machine
-  resource_group: rx72n-device
+  extends:
+    - .pi_flash_job
+    - .pi_crypto_serial_job
   rules:
     - if: $RUN_OTA_ONLY == "true"
       when: never
@@ -306,44 +332,29 @@ download_aws_demos:
     # .rsu 生成に使うシーケンス番号（OTA 更新ごとに増加させる）
     RSU_SEQ_NO: "1"
   script:
-    # Step 1: 依存パッケージのインストール
-    - pip install cryptography pyserial
-    # Step 2: aws_demos.mot → userprog.rsu 変換
     - |
-      $mot = "$env:CI_PROJECT_DIR\$env:E2STUDIO_PROJECTS\aws_demos\HardwareDebug\aws_demos.mot"
-      if (-not (Test-Path $mot)) {
-        Write-Host "ERROR: aws_demos.mot not found: $mot"
+      set -euo pipefail
+      bash "$CI_PROJECT_DIR/tools/ci/validate_pi_serial_path.sh" UART_PORT
+      mot="$CI_PROJECT_DIR/$E2STUDIO_PROJECTS/aws_demos/HardwareDebug/aws_demos.mot"
+      rsu="$CI_PROJECT_DIR/userprog.rsu"
+      key="$CI_PROJECT_DIR/sample_keys/secp256r1.privatekey"
+      if [[ ! -f "$mot" ]]; then
+        echo "ERROR: aws_demos.mot not found: $mot"
         exit 1
-      }
-      $rsu = "$env:CI_PROJECT_DIR\userprog.rsu"
-      $key = "$env:CI_PROJECT_DIR\sample_keys\secp256r1.privatekey"
-      Write-Host "=== Convert .mot to .rsu ==="
-      Write-Host "  MOT: $mot"
-      Write-Host "  Key: $key"
-      Write-Host "  RSU: $rsu"
-      Write-Host "  Seq: $env:RSU_SEQ_NO"
-      python "$env:CI_PROJECT_DIR\tools\mcu-tool-rx\mot_to_rsu.py" `
-        --mot "$mot" --key "$key" -o "$rsu" --seq-no $env:RSU_SEQ_NO
-      if ($LASTEXITCODE -ne 0) {
-        Write-Host "ERROR: mot_to_rsu conversion failed"
-        exit 1
-      }
-    # Step 3: UART で .rsu をブートローダに送信
-    # boot_loader は flash_boot_loader ジョブで書き込み・起動済み。
-    # rfp-cli -run でデバッガ経由で起動後、"send userprog.rsu via UART." を出力し
-    # UART 受信待ち状態になっている。
-    - |
-      $rsu = "$env:CI_PROJECT_DIR\userprog.rsu"
-      Write-Host "=== UART Download ==="
-      Write-Host "  RSU:  $rsu"
-      Write-Host "  Port: $env:UART_PORT @ ${env:UART_BAUD_RATE}bps"
-      python "$env:CI_PROJECT_DIR\test_scripts\uart_test\test_uart_download.py" `
-        --rsu "$rsu" --port "$env:UART_PORT" --baud $env:UART_BAUD_RATE `
+      fi
+      echo "=== Convert .mot to .rsu ==="
+      echo "  MOT: $mot"
+      echo "  Key: $key"
+      echo "  RSU: $rsu"
+      echo "  Seq: $RSU_SEQ_NO"
+      python3 "$CI_PROJECT_DIR/tools/mcu-tool-rx/mot_to_rsu.py" \
+        --mot "$mot" --key "$key" -o "$rsu" --seq-no "$RSU_SEQ_NO"
+      echo "=== UART Download ==="
+      echo "  RSU:  $rsu"
+      echo "  Port: $UART_PORT @ ${UART_BAUD_RATE}bps"
+      python3 "$CI_PROJECT_DIR/test_scripts/uart_test/test_uart_download.py" \
+        --rsu "$rsu" --port "$UART_PORT" --baud "$UART_BAUD_RATE" \
         --timeout 300 --diag
-      if ($LASTEXITCODE -ne 0) {
-        Write-Host "ERROR: UART download failed"
-        exit 1
-      }
   artifacts:
     paths:
       - userprog.rsu
@@ -351,9 +362,9 @@ download_aws_demos:
 
 test_commands:
   stage: test
-  tags:
-    - run_ishiguro_machine
-  resource_group: rx72n-device
+  extends:
+    - .pi_device_job
+    - .pi_pyserial_job
   timeout: 5 minutes
   rules:
     - if: $RUN_OTA_ONLY == "true"
@@ -367,41 +378,22 @@ test_commands:
       optional: true
   variables:
     COMMAND_TIMEOUT: "10"
-  before_script:
-    # ポートロック対策: 前回ジョブの残留プロセスが COM ポートを掴んでいる場合がある。
-    # ジョブ停止時に Python プロセスが正常終了せずシリアルポートがロックされると、
-    # 次回ジョブで PermissionError になる。
-    # 注意: Get-Process -Name python は該当プロセスがないと $? が $false になり、
-    #   GitLab Runner の PowerShell ラッパーが exit 1 する。
-    #   Get-Process（名前指定なし）+ Where-Object でフィルタすることで回避。
-    - |
-      Get-Process | Where-Object { $_.ProcessName -eq 'python' -and $_.Id -ne $PID } |
-        ForEach-Object {
-          Write-Host "[WARN] Killing stale Python PID=$($_.Id) StartTime=$($_.StartTime)"
-          Stop-Process -Id $_.Id -Force -ErrorAction SilentlyContinue
-        }
-      Start-Sleep -Seconds 1
-    - pip install pyserial
   script:
-    # aws_demos は download_aws_demos ジョブで書き込み・起動済み。
-    # boot_loader の bank swap + reset 後に aws_demos が自動起動し、
-    # コマンドターミナルが SCI2 (COM6, 115200bps) で待機状態になっている。
-    # serial_terminal_task は GUI 初期化完了後に起動する（LCD タッチ不要）。
     - |
-      Write-Host "=== UART Command-Response Test ==="
-      Write-Host "  Port: $env:COMMAND_PORT @ ${env:COMMAND_BAUD_RATE}bps"
-      # --skip-erase: provision_aws_credentials が flash stage でプロビジョニング済み。
-      #   dataflash erase を実行すると endpoint/cert 等が消去され confirm_aws_mqtt が失敗する。
-      python "$env:CI_PROJECT_DIR\test_scripts\uart_test\test_aws_demos_commands.py" `
-        --port "$env:COMMAND_PORT" --baud $env:COMMAND_BAUD_RATE `
-        --timeout $env:COMMAND_TIMEOUT --prompt-timeout 60 --initial-wait 3 `
+      set -euo pipefail
+      bash "$CI_PROJECT_DIR/tools/ci/validate_pi_serial_path.sh" COMMAND_PORT
+      echo "=== UART Command-Response Test ==="
+      echo "  Port: $COMMAND_PORT @ ${COMMAND_BAUD_RATE}bps"
+      python3 "$CI_PROJECT_DIR/test_scripts/uart_test/test_aws_demos_commands.py" \
+        --port "$COMMAND_PORT" --baud "$COMMAND_BAUD_RATE" \
+        --timeout "$COMMAND_TIMEOUT" --prompt-timeout 60 --initial-wait 3 \
         --skip-erase
 
 test_screen_navigation:
   stage: test
-  tags:
-    - run_ishiguro_machine
-  resource_group: rx72n-device
+  extends:
+    - .pi_device_job
+    - .pi_pyserial_job
   timeout: 3 minutes
   rules:
     - if: $RUN_OTA_ONLY == "true"
@@ -409,31 +401,21 @@ test_screen_navigation:
     - when: always
   needs:
     - job: test_commands
-  before_script:
-    - |
-      Get-Process | Where-Object { $_.ProcessName -eq 'python' -and $_.Id -ne $PID } |
-        ForEach-Object {
-          Write-Host "[WARN] Killing stale Python PID=$($_.Id) StartTime=$($_.StartTime)"
-          Stop-Process -Id $_.Id -Force -ErrorAction SilentlyContinue
-        }
-      Start-Sleep -Seconds 1
-    - pip install pyserial
   script:
-    # Screen 00 (タイトル) → Screen 01 (メイン) への画面遷移テスト。
-    # touch コマンドで疑似タッチイベントを注入し、AppWizard の画面遷移を実行。
-    # Screen 00 → 01 遷移には touch × 2 回が必要 (VAR_01 が 2 になると遷移条件成立)。
     - |
-      Write-Host "=== Screen Navigation Test ==="
-      Write-Host "  Port: $env:COMMAND_PORT @ ${env:COMMAND_BAUD_RATE}bps"
-      python "$env:CI_PROJECT_DIR\test_scripts\uart_test\test_touch_navigation.py" `
-        --cmd-port "$env:COMMAND_PORT" --cmd-baud $env:COMMAND_BAUD_RATE `
+      set -euo pipefail
+      bash "$CI_PROJECT_DIR/tools/ci/validate_pi_serial_path.sh" COMMAND_PORT
+      echo "=== Screen Navigation Test ==="
+      echo "  Port: $COMMAND_PORT @ ${COMMAND_BAUD_RATE}bps"
+      python3 "$CI_PROJECT_DIR/test_scripts/uart_test/test_touch_navigation.py" \
+        --cmd-port "$COMMAND_PORT" --cmd-baud "$COMMAND_BAUD_RATE" \
         --timeout 30 --prompt-timeout 30 --initial-wait 1
 
 provision_aws_credentials:
   stage: flash
-  tags:
-    - run_ishiguro_machine
-  resource_group: rx72n-device
+  extends:
+    - .pi_device_job
+    - .pi_pyserial_job
   timeout: 3 minutes
   rules:
     - if: $RUN_OTA_ONLY == "true"
@@ -441,35 +423,21 @@ provision_aws_credentials:
     - if: $RUN_AWS_TESTS == "true"
   needs:
     - job: download_aws_demos
-  before_script:
-    - |
-      Get-Process | Where-Object { $_.ProcessName -eq 'python' -and $_.Id -ne $PID } |
-        ForEach-Object {
-          Write-Host "[WARN] Killing stale Python PID=$($_.Id) StartTime=$($_.StartTime)"
-          Stop-Process -Id $_.Id -Force -ErrorAction SilentlyContinue
-        }
-      Start-Sleep -Seconds 1
-    - pip install pyserial
   script:
-    # AWS IoT Core プロビジョニング: 証明書・秘密鍵・エンドポイント・Thing名・
-    # OTA 署名検証証明書をデータフラッシュに書き込む。
-    # flash_boot_loader の -erase-chip でデータフラッシュが毎回消去されるため、
-    # パイプライン実行ごとにプロビジョニングが必要。
-    # --device-id で device_config.json からポート・エンドポイント・Thing名を解決。
-    # 証明書は CI/CD File 型変数 AWS_CLIENT_CERT_{ID} / AWS_PRIVATE_KEY_{ID} から取得。
-    # --codesigner-cert: OTA 署名検証用証明書（sample_keys/secp256r1.crt）も書き込む。
     - |
-      Write-Host "=== AWS IoT Core Provisioning ==="
-      Write-Host "  Device ID: $env:DEVICE_ID"
-      python "$env:CI_PROJECT_DIR\test_scripts\uart_test\provision_aws.py" `
-        --device-id "$env:DEVICE_ID" `
-        --codesigner-cert "$env:CI_PROJECT_DIR\sample_keys\secp256r1.crt"
+      set -euo pipefail
+      bash "$CI_PROJECT_DIR/tools/ci/validate_pi_serial_path.sh" COMMAND_PORT
+      echo "=== AWS IoT Core Provisioning ==="
+      echo "  Device ID: $DEVICE_ID"
+      python3 "$CI_PROJECT_DIR/test_scripts/uart_test/provision_aws.py" \
+        --device-id "$DEVICE_ID" \
+        --codesigner-cert "$CI_PROJECT_DIR/sample_keys/secp256r1.crt"
 
 confirm_aws_mqtt:
   stage: test
-  tags:
-    - run_ishiguro_machine
-  resource_group: rx72n-device
+  extends:
+    - .pi_device_job
+    - .pi_pyserial_job
   timeout: 5 minutes
   rules:
     - if: $RUN_OTA_ONLY == "true"
@@ -480,32 +448,20 @@ confirm_aws_mqtt:
   retry:
     max: 1
     when: script_failure
-  before_script:
-    - |
-      Get-Process | Where-Object { $_.ProcessName -eq 'python' -and $_.Id -ne $PID } |
-        ForEach-Object {
-          Write-Host "[WARN] Killing stale Python PID=$($_.Id) StartTime=$($_.StartTime)"
-          Stop-Process -Id $_.Id -Force -ErrorAction SilentlyContinue
-        }
-      Start-Sleep -Seconds 1
-    - pip install pyserial
   script:
-    # AWS IoT Core MQTT 接続検証: MCU をリセットし、ログポートから
-    # 3つのマイルストーン (DHCP, TLS, MQTT CONNACK) を検出する。
-    # --device-id で device_config.json からコマンド/ログポートを解決。
-    # retry: フルパイプライン実行時、MCU の初回 MQTT 接続が不安定なため
-    #   1回のリトライを許可。リトライ時は MCU が再リセットされ成功する。
     - |
-      Write-Host "=== AWS IoT Core MQTT Connectivity Test ==="
-      Write-Host "  Device ID: $env:DEVICE_ID"
-      python "$env:CI_PROJECT_DIR\test_scripts\uart_test\test_aws_connectivity.py" `
-        --device-id "$env:DEVICE_ID" --timeout 120
+      set -euo pipefail
+      bash "$CI_PROJECT_DIR/tools/ci/validate_pi_serial_path.sh" COMMAND_PORT UART_PORT
+      echo "=== AWS IoT Core MQTT Connectivity Test ==="
+      echo "  Device ID: $DEVICE_ID"
+      python3 "$CI_PROJECT_DIR/test_scripts/uart_test/test_aws_connectivity.py" \
+        --device-id "$DEVICE_ID" --timeout 120
 
 test_sd_update:
   stage: test
-  tags:
-    - run_ishiguro_machine
-  resource_group: rx72n-device
+  extends:
+    - .pi_device_job
+    - .pi_pyserial_job
   timeout: 10 minutes
   rules:
     - if: $RUN_OTA_ONLY == "true"
@@ -515,31 +471,16 @@ test_sd_update:
     - job: confirm_aws_mqtt
     - job: download_aws_demos
       artifacts: true
-  before_script:
-    - |
-      Get-Process | Where-Object { $_.ProcessName -eq 'python' -and $_.Id -ne $PID } |
-        ForEach-Object {
-          Write-Host "[WARN] Killing stale Python PID=$($_.Id) StartTime=$($_.StartTime)"
-          Stop-Process -Id $_.Id -Force -ErrorAction SilentlyContinue
-        }
-      Start-Sleep -Seconds 1
-    - pip install pyserial
   script:
-    # SD カードファームウェアアップデートの統合テスト。
-    # 1. userprog.rsu を UART (sdcard write) 経由で SD カードに転送
-    # 2. touch コマンドで FW Update 画面に遷移し Update 実行
-    # 3. COM7 で boot_loader ログを監視（integrity check → bank swap → jump to user program）
-    # 4. aws_demos 再起動確認
-    # 5. SD カードから userprog.rsu を削除（次回パイプラインの boot_loader 干渉防止）
-    # confirm_aws_mqtt 後に実行: aws_demos が起動済みで Screen 00 表示状態。
-    # download_aws_demos の artifacts から userprog.rsu を取得。
     - |
-      Write-Host "=== SD Card Firmware Update Test ==="
-      Write-Host "  Device ID: $env:DEVICE_ID"
-      Write-Host "  RSU file:  $env:CI_PROJECT_DIR\userprog.rsu"
-      python "$env:CI_PROJECT_DIR\test_scripts\uart_test\test_sd_update.py" `
-        --device-id "$env:DEVICE_ID" `
-        --rsu "$env:CI_PROJECT_DIR\userprog.rsu" `
+      set -euo pipefail
+      bash "$CI_PROJECT_DIR/tools/ci/validate_pi_serial_path.sh" COMMAND_PORT UART_PORT
+      echo "=== SD Card Firmware Update Test ==="
+      echo "  Device ID: $DEVICE_ID"
+      echo "  RSU file:  $CI_PROJECT_DIR/userprog.rsu"
+      python3 "$CI_PROJECT_DIR/test_scripts/uart_test/test_sd_update.py" \
+        --device-id "$DEVICE_ID" \
+        --rsu "$CI_PROJECT_DIR/userprog.rsu" \
         --timeout 300
 
 # ==============================================================================
@@ -716,120 +657,140 @@ build_ota:
     expire_in: 1 week
 
 prepare_ota:
-  stage: test
-  tags:
-    - run_ishiguro_machine
-  resource_group: rx72n-device
+  stage: ota_prepare
+  extends:
+    - .pi_flash_job
+    - .pi_crypto_serial_job
   timeout: 5 minutes
   rules:
     - if: $RUN_OTA_TEST == "true"
-  needs:
-    # 通常テスト完了後に実行。optional: true により、スキップされたジョブへの依存は無視。
-    # RUN_OTA_ONLY=true 時は全テストジョブがスキップされるため、全て optional にする。
-    - job: test_sd_update
-      optional: true
-    - job: confirm_aws_mqtt
-      optional: true
-    - job: test_screen_navigation
-      optional: true
-    - job: build_ota
-      artifacts: true
-  before_script:
-    - |
-      Get-Process | Where-Object { $_.ProcessName -eq 'python' -and $_.Id -ne $PID } |
-        ForEach-Object {
-          Write-Host "[WARN] Killing stale Python PID=$($_.Id) StartTime=$($_.StartTime)"
-          Stop-Process -Id $_.Id -Force -ErrorAction SilentlyContinue
-        }
-      Start-Sleep -Seconds 1
-    - pip install cryptography pyserial
+  dependencies:
+    - build_ota
   script:
-    # OTA デバイス準備: 通常テスト完了後に実行。
-    # 通常テスト時は aws_demos (MQTT デモ) が実行中のため、OTA デモ版の aws_demos に
-    # 入れ替える必要がある。erase-chip で全フラッシュを消去し、boot_loader 再書き込み→
-    # UART で ota_v1.rsu をダウンロード → 再プロビジョニング（erase-chip でデータフラッシュ消去済み）。
-    # Step 1: boot_loader 書き込み (erase-chip + program + run)
     - |
-      $mot = "$env:CI_PROJECT_DIR\$env:E2STUDIO_PROJECTS\boot_loader\HardwareDebug\rx72n_boot_loader.mot"
-      if (-not (Test-Path $mot)) {
-        Write-Host "ERROR: boot_loader.mot not found: $mot"
+      set -euo pipefail
+      mot="$CI_PROJECT_DIR/$E2STUDIO_PROJECTS/boot_loader/HardwareDebug/rx72n_boot_loader.mot"
+      if [[ ! -f "$mot" ]]; then
+        echo "ERROR: boot_loader.mot not found: $mot"
         exit 1
-      }
-      Write-Host "=== Flash boot_loader (OTA) ==="
-      & "$env:RFP_CLI" -device RX72x -tool "e2l:$env:E2LITE_SERIAL" -if fine -speed 1500K `
+      fi
+      echo "=== Flash boot_loader (OTA) ==="
+      "$RFP_CLI" -device RX72x -tool "e2l:${E2LITE_SERIAL}" -if fine -speed 1500K \
         -auth id FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF -erase-chip -noquery
-      if ($LASTEXITCODE -ne 0) { Write-Host "ERROR: Erase-chip failed"; exit 1 }
-      & "$env:RFP_CLI" -device RX72x -tool "e2l:$env:E2LITE_SERIAL" -if fine -speed 1500K `
+      "$RFP_CLI" -device RX72x -tool "e2l:${E2LITE_SERIAL}" -if fine -speed 1500K \
         -auth id FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF -p "$mot" -v -run -noquery
-      if ($LASTEXITCODE -ne 0) { Write-Host "ERROR: Flash failed"; exit 1 }
-      Write-Host "Boot loader flashed successfully."
-    # Step 2: v1.rsu を UART ダウンロード
+      echo "Boot loader flashed successfully."
     - |
-      $rsu = "$env:CI_PROJECT_DIR\ota_v1.rsu"
-      if (-not (Test-Path $rsu)) {
-        Write-Host "ERROR: ota_v1.rsu not found"
+      set -euo pipefail
+      bash "$CI_PROJECT_DIR/tools/ci/validate_pi_serial_path.sh" UART_PORT
+      rsu="$CI_PROJECT_DIR/ota_v1.rsu"
+      if [[ ! -f "$rsu" ]]; then
+        echo "ERROR: ota_v1.rsu not found"
         exit 1
-      }
-      Write-Host "=== UART Download v1 (OTA firmware) ==="
-      Write-Host "  RSU:  $rsu ($((Get-Item $rsu).Length) bytes)"
-      Write-Host "  Port: $env:UART_PORT @ ${env:UART_BAUD_RATE}bps"
-      python "$env:CI_PROJECT_DIR\test_scripts\uart_test\test_uart_download.py" `
-        --rsu "$rsu" --port "$env:UART_PORT" --baud $env:UART_BAUD_RATE `
+      fi
+      echo "=== UART Download v1 (OTA firmware) ==="
+      echo "  RSU:  $rsu ($(stat -c%s "$rsu") bytes)"
+      echo "  Port: $UART_PORT @ ${UART_BAUD_RATE}bps"
+      python3 "$CI_PROJECT_DIR/test_scripts/uart_test/test_uart_download.py" \
+        --rsu "$rsu" --port "$UART_PORT" --baud "$UART_BAUD_RATE" \
         --timeout 300 --diag --wait-for-ready --ready-timeout 60
-      if ($LASTEXITCODE -ne 0) { Write-Host "ERROR: UART download failed"; exit 1 }
-    # Step 3: AWS プロビジョニング (endpoint, thing, cert, key, codesigner cert)
     - |
-      Write-Host "=== AWS IoT Core Provisioning (with code signer cert) ==="
-      Write-Host "  Device ID: $env:DEVICE_ID"
-      python "$env:CI_PROJECT_DIR\test_scripts\uart_test\provision_aws.py" `
-        --device-id "$env:DEVICE_ID" `
-        --codesigner-cert "$env:CI_PROJECT_DIR\sample_keys\secp256r1.crt"
-      if ($LASTEXITCODE -ne 0) { Write-Host "ERROR: Provisioning failed"; exit 1 }
-    # Step 4: リセットして OTA Agent 起動確認
-    # provision_aws.py 後、デバイスをリセットして MQTT 接続 + OTA Agent 起動を待つ
+      set -euo pipefail
+      bash "$CI_PROJECT_DIR/tools/ci/validate_pi_serial_path.sh" COMMAND_PORT
+      echo "=== AWS IoT Core Provisioning (with code signer cert) ==="
+      echo "  Device ID: $DEVICE_ID"
+      python3 "$CI_PROJECT_DIR/test_scripts/uart_test/provision_aws.py" \
+        --device-id "$DEVICE_ID" \
+        --codesigner-cert "$CI_PROJECT_DIR/sample_keys/secp256r1.crt"
     - |
-      Write-Host "=== Resetting device ==="
-      $cmdPort = $env:COMMAND_PORT
-      $ser = [System.IO.Ports.SerialPort]::new($cmdPort, [int]$env:COMMAND_BAUD_RATE)
-      $ser.Open()
-      $ser.Write("reset`r`n")
-      Start-Sleep -Seconds 1
-      $ser.Close()
-      Write-Host "Reset command sent. Waiting for OTA Agent startup..."
-      Start-Sleep -Seconds 10
+      set -euo pipefail
+      bash "$CI_PROJECT_DIR/tools/ci/validate_pi_serial_path.sh" COMMAND_PORT
+      echo "=== Resetting device ==="
+      python3 "$CI_PROJECT_DIR/tools/ci/send_serial_command.py" \
+        --port "$COMMAND_PORT" --baud "$COMMAND_BAUD_RATE" \
+        --command reset --delay-after 1
+      echo "Reset command sent. Waiting for OTA Agent startup..."
+      sleep 10
 
-test_ota:
-  stage: test
-  tags:
-    - run_ishiguro_machine
-  resource_group: rx72n-device
-  timeout: 15 minutes
+ota_create_job:
+  stage: ota_run
+  extends:
+    - .windows_ota_aws_job
+  timeout: 10 minutes
   rules:
     - if: $RUN_OTA_TEST == "true"
-  needs:
-    - job: prepare_ota
-    - job: build_ota
-      artifacts: true
-  before_script:
-    - |
-      Get-Process | Where-Object { $_.ProcessName -eq 'python' -and $_.Id -ne $PID } |
-        ForEach-Object {
-          Write-Host "[WARN] Killing stale Python PID=$($_.Id) StartTime=$($_.StartTime)"
-          Stop-Process -Id $_.Id -Force -ErrorAction SilentlyContinue
-        }
-      Start-Sleep -Seconds 1
-    - pip install pyserial awscli
+  dependencies:
+    - build_ota
   script:
-    # OTA テスト: v2.rsu を S3 にアップロードし、OTA ジョブを作成し、
-    # デバイス側のログでダウンロード→署名検証→自己テスト→受理を確認
     - |
       $v2 = [int]$env:CI_PIPELINE_IID * 2 + 1
-      Write-Host "=== AWS IoT OTA Update Test ==="
+      Write-Host "=== AWS IoT OTA Create Job ==="
       Write-Host "  Expected version build: $v2"
       python -u "$env:CI_PROJECT_DIR\test_scripts\uart_test\test_ota.py" `
+        --mode create-job `
         --device-id "$env:DEVICE_ID" `
         --rsu "$env:CI_PROJECT_DIR\ota_v2.rsu" `
         --s3-bucket "$env:OTA_S3_BUCKET" `
         --ota-role-arn "$env:OTA_ROLE_ARN" `
-        --expected-build $v2 `
-        --timeout 600
+        --create-start-delay 15 `
+        --metadata-out "$env:CI_PROJECT_DIR\ota_job_metadata.json"
+  artifacts:
+    when: always
+    paths:
+      - ota_job_metadata.json
+    expire_in: 1 week
+
+ota_monitor:
+  stage: ota_run
+  extends:
+    - .pi_device_job
+    - .pi_pyserial_job
+  timeout: 15 minutes
+  rules:
+    - if: $RUN_OTA_TEST == "true"
+  dependencies: []
+  script:
+    - |
+      set -euo pipefail
+      bash "$CI_PROJECT_DIR/tools/ci/validate_pi_serial_path.sh" UART_PORT
+      bash "$CI_PROJECT_DIR/tools/ci/validate_pi_serial_path.sh" COMMAND_PORT
+      v2=$((CI_PIPELINE_IID * 2 + 1))
+      echo "=== AWS IoT OTA Monitor ==="
+      echo "  Expected version build: $v2"
+      python3 -u "$CI_PROJECT_DIR/test_scripts/uart_test/test_ota.py" \
+        --mode monitor \
+        --device-id "$DEVICE_ID" \
+        --expected-build "$v2" \
+        --timeout 600 \
+        --monitor-results-out "$CI_PROJECT_DIR/ota_monitor_results.json" | tee "$CI_PROJECT_DIR/ota_monitor.log"
+  artifacts:
+    when: always
+    paths:
+      - ota_monitor_results.json
+      - ota_monitor.log
+    expire_in: 1 week
+
+ota_finalize:
+  stage: ota_finalize
+  extends:
+    - .windows_ota_aws_job
+  timeout: 10 minutes
+  when: always
+  rules:
+    - if: $RUN_OTA_TEST == "true"
+  dependencies:
+    - ota_create_job
+    - ota_monitor
+  script:
+    - |
+      python -u "$env:CI_PROJECT_DIR\test_scripts\uart_test\test_ota.py" `
+        --mode finalize `
+        --metadata-in "$env:CI_PROJECT_DIR\ota_job_metadata.json" `
+        --monitor-results-in "$env:CI_PROJECT_DIR\ota_monitor_results.json"
+  artifacts:
+    when: always
+    paths:
+      - ota_job_metadata.json
+      - ota_monitor_results.json
+      - ota_monitor.log
+    expire_in: 1 week
