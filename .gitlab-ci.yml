@@ -319,6 +319,7 @@ download_aws_demos:
   script:
     - |
       set -euo pipefail
+      bash "$CI_PROJECT_DIR/tools/ci/validate_pi_serial_path.sh" UART_PORT
       mot="$CI_PROJECT_DIR/$E2STUDIO_PROJECTS/aws_demos/HardwareDebug/aws_demos.mot"
       rsu="$CI_PROJECT_DIR/userprog.rsu"
       key="$CI_PROJECT_DIR/sample_keys/secp256r1.privatekey"
@@ -365,6 +366,7 @@ test_commands:
   script:
     - |
       set -euo pipefail
+      bash "$CI_PROJECT_DIR/tools/ci/validate_pi_serial_path.sh" COMMAND_PORT
       echo "=== UART Command-Response Test ==="
       echo "  Port: $COMMAND_PORT @ ${COMMAND_BAUD_RATE}bps"
       python3 "$CI_PROJECT_DIR/test_scripts/uart_test/test_aws_demos_commands.py" \
@@ -387,6 +389,7 @@ test_screen_navigation:
   script:
     - |
       set -euo pipefail
+      bash "$CI_PROJECT_DIR/tools/ci/validate_pi_serial_path.sh" COMMAND_PORT
       echo "=== Screen Navigation Test ==="
       echo "  Port: $COMMAND_PORT @ ${COMMAND_BAUD_RATE}bps"
       python3 "$CI_PROJECT_DIR/test_scripts/uart_test/test_touch_navigation.py" \
@@ -408,6 +411,7 @@ provision_aws_credentials:
   script:
     - |
       set -euo pipefail
+      bash "$CI_PROJECT_DIR/tools/ci/validate_pi_serial_path.sh" COMMAND_PORT
       echo "=== AWS IoT Core Provisioning ==="
       echo "  Device ID: $DEVICE_ID"
       python3 "$CI_PROJECT_DIR/test_scripts/uart_test/provision_aws.py" \
@@ -432,6 +436,7 @@ confirm_aws_mqtt:
   script:
     - |
       set -euo pipefail
+      bash "$CI_PROJECT_DIR/tools/ci/validate_pi_serial_path.sh" COMMAND_PORT UART_PORT
       echo "=== AWS IoT Core MQTT Connectivity Test ==="
       echo "  Device ID: $DEVICE_ID"
       python3 "$CI_PROJECT_DIR/test_scripts/uart_test/test_aws_connectivity.py" \
@@ -454,6 +459,7 @@ test_sd_update:
   script:
     - |
       set -euo pipefail
+      bash "$CI_PROJECT_DIR/tools/ci/validate_pi_serial_path.sh" COMMAND_PORT UART_PORT
       echo "=== SD Card Firmware Update Test ==="
       echo "  Device ID: $DEVICE_ID"
       echo "  RSU file:  $CI_PROJECT_DIR/userprog.rsu"
@@ -670,6 +676,7 @@ prepare_ota:
       echo "Boot loader flashed successfully."
     - |
       set -euo pipefail
+      bash "$CI_PROJECT_DIR/tools/ci/validate_pi_serial_path.sh" UART_PORT
       rsu="$CI_PROJECT_DIR/ota_v1.rsu"
       if [[ ! -f "$rsu" ]]; then
         echo "ERROR: ota_v1.rsu not found"
@@ -683,6 +690,7 @@ prepare_ota:
         --timeout 300 --diag --wait-for-ready --ready-timeout 60
     - |
       set -euo pipefail
+      bash "$CI_PROJECT_DIR/tools/ci/validate_pi_serial_path.sh" COMMAND_PORT
       echo "=== AWS IoT Core Provisioning (with code signer cert) ==="
       echo "  Device ID: $DEVICE_ID"
       python3 "$CI_PROJECT_DIR/test_scripts/uart_test/provision_aws.py" \
@@ -690,6 +698,7 @@ prepare_ota:
         --codesigner-cert "$CI_PROJECT_DIR/sample_keys/secp256r1.crt"
     - |
       set -euo pipefail
+      bash "$CI_PROJECT_DIR/tools/ci/validate_pi_serial_path.sh" COMMAND_PORT
       echo "=== Resetting device ==="
       python3 "$CI_PROJECT_DIR/tools/ci/send_serial_command.py" \
         --port "$COMMAND_PORT" --baud "$COMMAND_BAUD_RATE" \
@@ -712,6 +721,7 @@ test_ota:
   script:
     - |
       set -euo pipefail
+      bash "$CI_PROJECT_DIR/tools/ci/validate_pi_serial_path.sh" UART_PORT
       v2=$((CI_PIPELINE_IID * 2 + 1))
       echo "=== AWS IoT OTA Update Test ==="
       echo "  Expected version build: $v2"
