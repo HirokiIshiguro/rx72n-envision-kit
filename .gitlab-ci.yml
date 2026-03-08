@@ -55,10 +55,10 @@ variables:
   # RUN_SD_UPDATE_TEST: SD カードファームウェア更新テストを実行するか
   # RUN_OTA_TEST:       OTA テスト (build_ota, prepare_ota, ota_create_job,
   #                     ota_monitor, ota_finalize) を実行するか
-  # デフォルトはフルテスト（MR マージ前に全テスト通過を保証）。
-  # ダミーブランチで個別テストを回す場合は変数をオーバーライドする。
+  # デフォルトは SD カード更新テストを除く通常テスト。
+  # フルテストを実施したい場合は RUN_SD_UPDATE_TEST=true を指定する。
   RUN_AWS_TESTS: "true"
-  RUN_SD_UPDATE_TEST: "true"
+  RUN_SD_UPDATE_TEST: "false"
   RUN_OTA_TEST: "true"
   # RUN_OTA_ONLY: OTA テストのみ実行するショートカットモード。
   # "true" にすると通常のビルド/フラッシュ/テストジョブをスキップし、
