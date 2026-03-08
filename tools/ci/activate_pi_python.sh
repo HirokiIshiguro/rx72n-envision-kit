@@ -32,6 +32,16 @@ check_system_requirement() {
   esac
 }
 
+install_user_requirements() {
+  if ! python3 -m pip --version >/dev/null 2>&1; then
+    echo "[ERROR] python3 -m pip is unavailable; cannot install missing dependencies." >&2
+    return 1
+  fi
+
+  export PATH="${HOME}/.local/bin:${PATH}"
+  python3 -m pip install --quiet --user "$@"
+}
+
 if [[ -d "${venv_dir}" ]] || python3 -m venv "${venv_dir}" >/dev/null 2>&1; then
   # shellcheck disable=SC1091
   . "${venv_dir}/bin/activate"
@@ -53,8 +63,8 @@ for requirement in "$@"; do
 done
 
 if [[ "${missing}" -ne 0 ]]; then
-  echo "[ERROR] Install python3-venv or preinstall the required Python packages on the Raspberry Pi runner." >&2
-  return 1
+  echo "[WARN] Installing missing dependencies into the gitlab-runner user site-packages." >&2
+  install_user_requirements "$@"
 fi
 
 export PIP_DISABLE_PIP_VERSION_CHECK=1
