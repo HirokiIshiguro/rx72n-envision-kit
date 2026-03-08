@@ -97,15 +97,43 @@ MCUboot package の初期確認:
   - `RM_MCUBOOT_CFG_MCUBOOT_AREA_SIZE = 0x10000`
   - `RM_MCUBOOT_CFG_APPLICATION_AREA_SIZE = 0x1F0000`
   - `RM_MCUBOOT_CFG_SCRATCH_AREA_SIZE = 0x10000`（swap mode 時）
+- 既定 config は `overwrite only` + `validate primary slot` 有効 +
+  `ECDSA P-256` 署名検証 + encryption 無効
 - この設定から、Renesas の公式 package 自体は
   **RX72N dual-bank を前提に MCUboot + 約 0x1F0000 の application slot**
   を想定していると読める
 
+2026-03-08 ローカル headless build の `.map` 実測
+（`tools/analyze_ccrx_map.py` で再現可能）:
+
+| Image | ROMDATA | PROGRAM | Flash-like total | Budget | Headroom |
+|------|--------:|--------:|-----------------:|-------:|---------:|
+| 現行 RX72N boot_loader | 10,367 B | 43,868 B | 54,235 B | `0x10000` (65,536 B) | 11,301 B |
+| 現行 RX72N aws_demos | 352,493 B | 727,062 B | 1,079,555 B | `0x1F0000` (2,031,616 B) | 952,061 B |
+
+補足:
+
+- app slot 側は、現行 `aws_demos` 基準でも **約 952 KiB の headroom**
+  があり、2MB/bank 全体では現時点で逼迫していない
+- 一方、boot area `0x10000` は現行 Renesas boot loader 基準で
+  **余白が 11,301 B** しかないため、
+  MCUboot fit 判定は boot side の実ビルドで取るべき
+- 仮に MCUboot 導入で boot area を `0x20000` (128 KiB) に増やしても、
+  app slot は `0x1E0000` となり、現行 `aws_demos` 比で
+  **886,525 B の headroom** が残る
+- 現行 `aws_demos` の flash-heavy 要素は主に
+  emWin 画像/フォント資産、PKCS11/mbedTLS、OTA/coreMQTT であり、
+  FreeRTOS kernel 自体は主に RAM (`heap_4`) 側に効いている
+- `RM_MCUBOOT_CFG_SIGN = RSA 2048` や image encryption 有効化は
+  boot size を押し上げる候補なので、worst-case 別計測が必要
+
 暫定判断:
 
-- 直ちに容量不足が確定している状態ではない
+- **application slot 容量は現時点で no-go には見えない**
 - ただし `rm_mcuboot` は FIT module であり、実サイズ確認には
   **RX72N 向け最小組み込みビルド** が必要
+- 最優先で潰すべき不確実性は
+  **MCUboot が boot area `0x10000` に収まるか** である
 - go/no-go は issue `#5` で
   `MCUboot + latest FreeRTOS app + OTA metadata` の実測を取ってから判定する
 
