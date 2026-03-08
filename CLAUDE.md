@@ -24,7 +24,7 @@ RX72N Envision Kit の全機能を試せるようにする。
 | 1 | Documentation cleanup: migrate Wiki to `docs/` | Done |
 | 2 | Set up Claude-assisted development environment | In progress |
 | 3 | Set up CI/CD pipeline | In progress (Phase 1-2 done) |
-| 4 | Replace FreeRTOS with latest Renesas IoT reference implementation ([iot-reference-rx](https://github.com/renesas/iot-reference-rx)) | Planned |
+| 4 | Replace FreeRTOS with latest Renesas IoT reference implementation ([iot-reference-rx](https://github.com/renesas/iot-reference-rx)) | In progress (Phase 8b-1 started, Issue #7) |
 
 ## Repository Locations / リポジトリ
 
@@ -47,7 +47,7 @@ RX72N Envision Kit の全機能を試せるようにする。
 | 5 | e2studio 2024-01 / CC-RX v3.04 環境で既存機能の動作検証（AWS 接続、SD カードによるファームウェアアップデート、各種コマンドレスポンス） | Done (MR !20) |
 | 6 | e2studio 2025-12 / CC-RX v3.07 ツールチェーン更新 + 既存機能の動作検証 | Done (MR !21) |
 | 7 | AWS IoT OTA テスト自動化（S3 + OTA ジョブ → MQTT ダウンロード → 署名検証 → バンクスワップ → 自己テスト）（1台） | Done (MR !23) |
-| 8 | FreeRTOS LTS 最新版適用（[iot-reference-rx](https://github.com/renesas/iot-reference-rx) 最新リリースタグ）。作業リポジトリ: [iot-reference-rx (GitLab)](https://shelty2.servegame.com/oss/import/github/renesas/iot-reference-rx)。CK-RX65N V1 で先行構築（Phase 8a）→ RX72N に移植（Phase 8b）の2段階アプローチ。詳細計画は [iot-reference-rx の CLAUDE.md](https://shelty2.servegame.com/oss/import/github/renesas/iot-reference-rx/-/blob/main/CLAUDE.md) を参照 | Planned |
+| 8 | FreeRTOS LTS 最新版適用（[iot-reference-rx](https://github.com/renesas/iot-reference-rx) 最新リリースタグ）。作業リポジトリ: [iot-reference-rx (GitLab)](https://shelty2.servegame.com/oss/import/github/renesas/iot-reference-rx)。CK-RX65N V1 で先行構築（Phase 8a）→ RX72N に移植（Phase 8b）の2段階アプローチ。詳細計画は [iot-reference-rx の CLAUDE.md](https://shelty2.servegame.com/oss/import/github/renesas/iot-reference-rx/-/blob/main/CLAUDE.md) を参照 | In progress (Phase 8b-1, Issue #7) |
 | 9 | AWS 接続を含む OTA テスト（1台、新 FW で再検証） | Planned |
 | 10 | AWS 接続を含むフリートプロビジョニング テスト（1台。iot-reference-rx の FP デモを活用） | Planned |
 | 11 | AWS 接続を含むセカンダリ MCU ファームウェアアップデート テスト（RX72N → FPB-RX140） | Planned |
@@ -60,7 +60,42 @@ RX72N Envision Kit の全機能を試せるようにする。
 | - | SD カード更新の CI/CD 完全自動化: UART ファイル転送コマンド (`sdcard write`) + GUI ボタン操作コマンド (`touch`) の実装（ファームウェア変更） | Done (MR !20) |
 | - | パイプライン条件分岐（`RUN_AWS_TESTS` / `RUN_SD_UPDATE_TEST` / `RUN_OTA_TEST` 変数で各テストを選択実行） | Done (MR !23) |
 | - | BUTTON_03 タッチ問題: J-Link 実機デバッグで WM_NOTIFICATION_CLICKED 発火確認 | Planned |
-| - | Runner 分離: ビルド専用 (Windows) / 実機操作専用 (Raspberry Pi) に分けて並列度向上 | In progress ([Issue #4](https://shelty2.servegame.com/oss/import/github/renesas/rx72n-envision-kit/-/issues/4)) |
+| - | Runner 分離: ビルド専用 (Windows) / 実機操作専用 (Raspberry Pi) に分けて並列度向上 | Done (MR !32) |
+
+### Phase 8b Migration Plan / 移行計画
+
+Phase 8b is tracked under the parent issue [#11](https://shelty2.servegame.com/oss/import/github/renesas/rx72n-envision-kit/-/issues/11).
+The work is intentionally split so that FreeRTOS migration, OTA recovery, and GUI reintegration do not
+fail at the same time.
+
+Phase 8b は親 issue [#11](https://shelty2.servegame.com/oss/import/github/renesas/rx72n-envision-kit/-/issues/11)
+で管理する。FreeRTOS 移行、OTA 再接続、GUI 再統合を同時に壊さないため、作業は分割して進める。
+
+| Step | Issue | Goal |
+|------|-------|------|
+| 8b-1 | [#7](https://shelty2.servegame.com/oss/import/github/renesas/rx72n-envision-kit/-/issues/7) | `iot-reference-rx` skeleton の取り込み方針と repo layout を確定 |
+| 8b-2 | [#8](https://shelty2.servegame.com/oss/import/github/renesas/rx72n-envision-kit/-/issues/8) | RX72N boot loader を新 baseline 上で build 可能にする |
+| 8b-3 | [#9](https://shelty2.servegame.com/oss/import/github/renesas/rx72n-envision-kit/-/issues/9) | RX72N app を新 baseline へ移植し MQTT baseline を回復 |
+| 8b-4 | [#10](https://shelty2.servegame.com/oss/import/github/renesas/rx72n-envision-kit/-/issues/10) | OTA を新 baseline 上で再検証 |
+| 8b-5 | [#12](https://shelty2.servegame.com/oss/import/github/renesas/rx72n-envision-kit/-/issues/12) | GUI / SD update / Envision Kit 独自 UX を再統合 |
+
+**Execution order / 実行順:**
+- First target is a headless baseline: `build -> flash -> provision -> MQTT -> OTA`.
+- GUI (`emWin` / AppWizard), SD update UX, and other Envision Kit specific functions come later.
+- MCUboot migration is a separate track and must not be mixed into the initial FreeRTOS baseline port.
+
+**Repo layout target / 目標構成:**
+- Current repo still uses the legacy lower-case tree (`projects/`, `vendors/`, `libraries/`, `freertos_kernel/`).
+- Target layout follows `iot-reference-rx`: `Common/`, `Configuration/`, `Middleware/`, `Projects/`, `Test/`.
+- Initial RX72N project names are expected to be `aws_ether_rx72n_envision_kit` and `boot_loader_rx72n_envision_kit`.
+
+**Windows filesystem constraint / Windows ファイルシステム制約:**
+- This repository currently runs with `core.ignorecase=true` on Windows.
+- Case-only rename steps such as `projects` -> `Projects` or `vendors` -> `Middleware` staging must be done carefully,
+  typically via temporary names or in a case-sensitive environment.
+- Therefore Phase 8b-1 documents and prepares the migration first; it does not attempt a destructive top-level rename yet.
+
+Detailed notes are tracked in [`docs/phase8b-migration-plan.md`](docs/phase8b-migration-plan.md).
 
 ### パイプライン変数 / Pipeline Variables
 
@@ -618,6 +653,21 @@ python test_scripts/uart_test/provision_aws.py \
 - テストスクリプトも 921600bps で接続
 
 ## Changelog / 変更履歴
+
+### 2026-03-09: Phase 8b started — skeleton import planning and issue split
+
+Started Phase 8b of the `iot-reference-rx` migration on the RX72N Envision Kit side.
+Created a parent issue plus split execution issues so the work can proceed in a controlled
+order: skeleton import, boot loader port, application port, OTA recovery, and GUI/SD
+reintegration. Also documented the Windows case-insensitive filesystem constraint
+(`core.ignorecase=true`) that affects top-level directory migration from the legacy
+lower-case tree to the `iot-reference-rx` style layout.
+
+RX72N Envision Kit 側で `iot-reference-rx` 移行の Phase 8b に着手。親 issue と
+実行順に沿った分割 issue（skeleton import、boot loader port、application port、
+OTA 再接続、GUI/SD 再統合）を作成した。あわせて、legacy の lower-case tree から
+`iot-reference-rx` 風の構成へ移行する際に影響する Windows の
+case-insensitive filesystem 制約（`core.ignorecase=true`）を文書化した。
 
 ### 2026-03-09: Issue #6 OTA AWS 制御を Windows runner へ分離
 
