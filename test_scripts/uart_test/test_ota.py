@@ -3,21 +3,15 @@
 AWS IoT OTA (Over-The-Air) Update Test Script
 RX72N Envision Kit の OTA ファームウェア更新を CI/CD で自動テストする。
 
-テストフロー:
-  1. COM7 で OTA Agent 起動を確認 (OTA over MQTT demo)
-  2. v2.rsu を S3 にアップロード
-  3. AWS IoT OTA ジョブを作成
-  4. デバイス側ログ監視 (マイルストーン検出)
-     a. ジョブ受信
-     b. データブロック受信開始
-     c. 署名検証成功 + ファイル受信完了
-     d. 自己テスト開始 (OtaJobEventStartTest)
-  5. リセット後の新バージョン起動確認
-  6. AWS 側のジョブ状態確認
-  7. S3 クリーンアップ
+実行モード:
+  - full:       従来どおり単一ホストで OTA テスト全体を実行
+  - create-job: Windows runner で S3 upload + OTA job 作成のみ実行
+  - monitor:    Raspberry Pi runner で UART 監視 + 新バージョン確認のみ実行
+  - finalize:   Windows runner で AWS 状態確認 + S3 cleanup を実行
 
 前提条件:
-  - AWS CLI がインストール済みで認証情報が設定されていること
+  - create-job / finalize: AWS CLI がインストール済みで認証情報が設定されていること
+  - monitor / full: pyserial がインストールされ、UART へアクセスできること
   - S3 バケットが作成済みでバージョニングが有効なこと
   - OTA サービスロールが作成済みであること
   - デバイスに v1 ファームウェア (OTA Agent 有効) が書き込み済みであること
@@ -34,7 +28,17 @@ import subprocess
 import sys
 import time
 
-import serial
+try:
+    import serial
+except ImportError as exc:
+    serial = None
+    SERIAL_IMPORT_ERROR = exc
+
+    class SerialException(Exception):
+        """Fallback exception used when pyserial is unavailable."""
+else:
+    SERIAL_IMPORT_ERROR = None
+    SerialException = serial.SerialException
 
 # --- マイルストーン定義 ---
 # OTA プロセスの各段階で検出すべきログパターン
@@ -91,6 +95,123 @@ OTA_MILESTONES = {
         "required": False,  # リセット後に出る可能性があるため optional
     },
 }
+
+
+def require_serial_support():
+    """pyserial が必要なモードで import 可否を確認する。"""
+    if serial is None:
+        raise RuntimeError(
+            "pyserial is required for this mode but is not installed: "
+            f"{SERIAL_IMPORT_ERROR}"
+        )
+
+
+def env_int(name, default):
+    """環境変数から int を読み取る。未設定/不正値なら default を返す。"""
+    value = os.environ.get(name)
+    if value in (None, ""):
+        return default
+    try:
+        return int(value)
+    except ValueError:
+        return default
+
+
+def format_version(version):
+    """(major, minor, build) を文字列化する。"""
+    if not version:
+        return None
+    return f"{version[0]}.{version[1]}.{version[2]}"
+
+
+def write_json(path, payload):
+    """JSON ファイルを書き出す。"""
+    if not path:
+        return
+    parent = os.path.dirname(os.path.abspath(path))
+    if parent:
+        os.makedirs(parent, exist_ok=True)
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(payload, f, indent=2, ensure_ascii=False)
+        f.write("\n")
+    print(f"[INFO] Wrote JSON metadata: {path}")
+
+
+def read_json(path):
+    """JSON ファイルを読み込む。"""
+    with open(path, encoding="utf-8") as f:
+        return json.load(f)
+
+
+def load_device_defaults(args):
+    """device_config.json と環境変数から不足引数を補完する。"""
+    device = {}
+    if args.device_id:
+        sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+        from device_config_loader import load_device_config
+
+        device = load_device_config(args.device_id)
+        print(f"[INFO] Loaded config for device: {args.device_id}")
+
+    if not args.log_port:
+        args.log_port = device.get("log_port") or os.environ.get("UART_PORT") or "COM7"
+    if not args.log_baud:
+        args.log_baud = device.get("log_baud") or env_int("UART_BAUD_RATE", 921600)
+    if not args.cmd_port:
+        args.cmd_port = device.get("command_port") or os.environ.get("COMMAND_PORT")
+    if not args.cmd_baud:
+        args.cmd_baud = device.get("command_baud") or env_int("COMMAND_BAUD_RATE", 115200)
+    if not args.region:
+        args.region = device.get("aws_region") or os.environ.get("AWS_DEFAULT_REGION") or "ap-northeast-1"
+    if not args.thing_name:
+        args.thing_name = device.get("thing_name")
+
+    return args
+
+
+def build_s3_key(rsu_path, thing_name):
+    """RSU パスから S3 key を決定する。"""
+    return f"ota/{thing_name}/{os.path.basename(rsu_path)}"
+
+
+def print_summary(results):
+    """結果サマリーを表示する。"""
+    print()
+    print("=" * 60)
+    all_ok = all(results.values()) if results else False
+    for name, ok in results.items():
+        status = "PASS" if ok else "FAIL"
+        print(f"  [{status}] {name}")
+    print("=" * 60)
+    return all_ok
+
+
+def validate_serial_args(parser, args):
+    """monitor/full 用のシリアル関連引数を検証する。"""
+    if not args.log_port:
+        parser.error("--log-port is required (or set UART_PORT / use --device-id)")
+
+
+def validate_create_args(parser, args):
+    """create-job/full 用の AWS 関連引数を検証する。"""
+    if not args.rsu:
+        parser.error("--rsu is required for this mode")
+    if not args.s3_bucket:
+        parser.error("--s3-bucket is required (or set OTA_S3_BUCKET env var)")
+    if not args.ota_role_arn:
+        parser.error("--ota-role-arn is required (or set OTA_ROLE_ARN env var)")
+    if not args.thing_name:
+        parser.error("--thing-name is required (or use --device-id)")
+    if not os.path.isfile(args.rsu):
+        parser.error(f"--rsu not found: {args.rsu}")
+
+
+def validate_finalize_args(parser, args):
+    """finalize 用の引数を検証する。"""
+    if not args.metadata_in:
+        parser.error("--metadata-in is required for finalize mode")
+    if not os.path.isfile(args.metadata_in):
+        parser.error(f"--metadata-in not found: {args.metadata_in}")
 
 
 def parse_version_from_log(line):
@@ -356,8 +477,8 @@ def create_ota_job(thing_name, s3_bucket, s3_key, s3_version_id,
     return ota_update_id
 
 
-def monitor_ota_progress(ser, timeout=600):
-    """COM7 のログを監視し、OTA マイルストーンを検出する。
+def monitor_ota_progress(ser, timeout=600, port_label="UART"):
+    """ログ UART を監視し、OTA マイルストーンを検出する。
 
     Returns:
         tuple: (detected_milestones, last_version)
@@ -391,7 +512,7 @@ def monitor_ota_progress(ser, timeout=600):
 
                 # デバイスログを標準出力に転送 (CI/CD パイプラインで確認可能)
                 elapsed = time.time() - start
-                print(f"[COM7] {elapsed:6.1f}s | {line[:2000]}")
+                print(f"[{port_label}] {elapsed:6.1f}s | {line[:2000]}")
 
                 # ブロック受信カウント
                 if "Received valid file block" in line or "Received data message" in line:
@@ -624,7 +745,7 @@ def cleanup_s3(s3_bucket, s3_key):
         print(f"[WARN] S3 cleanup failed: {result.stderr[:200]}")
 
 
-def main():
+def legacy_main():
     parser = argparse.ArgumentParser(
         description="AWS IoT OTA Update Test for RX72N Envision Kit"
     )
@@ -730,7 +851,7 @@ def main():
                 cmd_ser.close()
                 print("[INFO] Reset command sent, waiting for reboot...")
                 time.sleep(3)
-            except serial.SerialException as e:
+            except SerialException as e:
                 print(f"[WARN] Could not send reset via {args.cmd_port}: {e}")
                 print("[WARN] Continuing without reset (may fail if device is idle)")
 
@@ -856,7 +977,7 @@ def main():
             log_ser.close()
             print(f"[INFO] Closed {args.log_port}")
 
-    except serial.SerialException as e:
+    except SerialException as e:
         print(f"[ERROR] Serial port error: {e}")
         results["serial"] = False
     except subprocess.CalledProcessError as e:
@@ -890,5 +1011,489 @@ def main():
         sys.exit(1)
 
 
+def open_log_port(args):
+    """ログ UART を開き、必要なら reset を送る。"""
+    require_serial_support()
+
+    log_ser = serial.Serial(args.log_port, args.log_baud, timeout=0)
+    time.sleep(0.5)
+    log_ser.reset_input_buffer()
+
+    if args.cmd_port:
+        print(f"[INFO] Sending reset via {args.cmd_port} to capture fresh startup messages")
+        try:
+            cmd_ser = serial.Serial(args.cmd_port, args.cmd_baud, timeout=1)
+            cmd_ser.write(b"reset\r\n")
+            time.sleep(1)
+            cmd_ser.close()
+            print("[INFO] Reset command sent, waiting for reboot...")
+            time.sleep(3)
+        except SerialException as exc:
+            print(f"[WARN] Could not send reset via {args.cmd_port}: {exc}")
+            print("[WARN] Continuing without reset (may fail if device is idle)")
+
+    return log_ser
+
+
+def confirm_ota_agent(log_ser):
+    """OTA Agent 起動ログを待つ。"""
+    agent_detected = False
+    detected_version = None
+    start = time.time()
+    buf = b""
+
+    while (time.time() - start) < 60:
+        n = log_ser.in_waiting
+        if n > 0:
+            buf += log_ser.read(n)
+            decoded = buf.decode("utf-8", errors="replace")
+            if re.search(r"OTA over MQTT demo", decoded):
+                print("[PASS] OTA Agent is running")
+                detected_version = parse_version_from_log(decoded)
+                if detected_version:
+                    print(f"[INFO] Current firmware version: {format_version(detected_version)}")
+                agent_detected = True
+                break
+        else:
+            time.sleep(0.2)
+
+    if not agent_detected:
+        decoded = buf.decode("utf-8", errors="replace")
+        if "MQTT" in decoded or "Subscribed" in decoded:
+            print("[WARN] OTA Agent banner not detected, but MQTT activity found")
+            agent_detected = True
+        else:
+            print("[FAIL] OTA Agent not detected within 60s")
+            print(f"[DEBUG] Received: {decoded[:300]}")
+
+    return agent_detected, detected_version
+
+
+def run_create_job_mode(args):
+    """S3 upload + OTA job 作成のみを実行する。"""
+    results = {
+        "s3_upload": False,
+        "ota_job_created": False,
+        "ota_job_ready": False,
+    }
+    s3_key = build_s3_key(args.rsu, args.thing_name)
+    metadata = {
+        "mode": args.mode,
+        "device_id": args.device_id,
+        "thing_name": args.thing_name,
+        "region": args.region,
+        "s3_bucket": args.s3_bucket,
+        "s3_key": s3_key,
+        "rsu_filename": os.path.basename(args.rsu),
+        "skip_upload": args.skip_upload,
+    }
+
+    print("=" * 60)
+    print("[INFO] AWS IoT OTA create-job phase")
+    print(f"[INFO]   Thing    : {args.thing_name}")
+    print(f"[INFO]   Region   : {args.region}")
+    print(f"[INFO]   S3       : s3://{args.s3_bucket}/{s3_key}")
+    print(f"[INFO]   Role ARN : {args.ota_role_arn}")
+    print(f"[INFO]   RSU      : {args.rsu} ({os.path.getsize(args.rsu)} bytes)")
+    print("=" * 60)
+
+    try:
+        if args.create_start_delay > 0:
+            print()
+            print(f"[INFO] Waiting {args.create_start_delay}s before AWS upload to let UART monitor attach")
+            time.sleep(args.create_start_delay)
+
+        print()
+        print("[STEP 1/3] Uploading firmware to S3")
+        if args.skip_upload:
+            print("[SKIP] S3 upload skipped (--skip-upload)")
+            s3_version_id = ""
+        else:
+            s3_version_id = upload_to_s3(args.rsu, args.s3_bucket, s3_key)
+        metadata["s3_version_id"] = s3_version_id
+        results["s3_upload"] = True
+
+        print()
+        print("[STEP 2/3] Creating OTA update job")
+        account_id = get_aws_account_id()
+        metadata["account_id"] = account_id
+        ota_update_id = create_ota_job(
+            args.thing_name, args.s3_bucket, s3_key, s3_version_id,
+            args.ota_role_arn, args.region, account_id, args.rsu
+        )
+        metadata["ota_update_id"] = ota_update_id
+        results["ota_job_created"] = True
+
+        print()
+        print("[STEP 3/3] Waiting for OTA job to leave CREATE_PENDING")
+        job_result = wait_for_ota_job_ready(ota_update_id, args.region, timeout=60)
+        metadata["job_ready_status"] = job_result["status"]
+        metadata["job_ready_error_info"] = job_result["error_info"]
+        results["ota_job_ready"] = job_result["status"] != "CREATE_FAILED"
+    except subprocess.CalledProcessError as exc:
+        metadata["error"] = str(exc)
+        if exc.stderr:
+            metadata["stderr"] = exc.stderr[:300]
+        print(f"[ERROR] AWS CLI error: {exc}")
+        if exc.stderr:
+            print(f"[DEBUG] stderr: {exc.stderr[:300]}")
+    except Exception as exc:  # pragma: no cover - defensive for CI cleanup path
+        metadata["error"] = str(exc)
+        print(f"[ERROR] create-job phase failed: {exc}")
+    finally:
+        metadata["create_job_ok"] = all(results.values())
+        write_json(args.metadata_out, metadata)
+    if print_summary(results):
+        print("[PASS] OTA create-job phase completed successfully")
+        return 0
+    print("[FAIL] OTA create-job phase failed")
+    return 1
+
+
+def run_monitor_mode(args):
+    """UART 監視と新バージョン確認のみを実行する。"""
+    results = {
+        "agent_ready": False,
+        "ota_download": False,
+        "new_version": False,
+    }
+    monitor_payload = {
+        "mode": args.mode,
+        "device_id": args.device_id,
+        "log_port": args.log_port,
+        "log_baud": args.log_baud,
+        "cmd_port": args.cmd_port,
+        "cmd_baud": args.cmd_baud,
+        "expected_build": args.expected_build,
+        "timeout": args.timeout,
+    }
+    log_ser = None
+
+    print("=" * 60)
+    print("[INFO] AWS IoT OTA monitor phase")
+    print(f"[INFO]   Log Port : {args.log_port} @ {args.log_baud}bps")
+    print(f"[INFO]   Cmd Port : {args.cmd_port} @ {args.cmd_baud}bps" if args.cmd_port else "[INFO]   Cmd Port : (none, no pre-reset)")
+    print(f"[INFO]   Timeout  : {args.timeout}s")
+    print("=" * 60)
+
+    try:
+        print()
+        print("[STEP 1/3] Confirming OTA Agent is running")
+        log_ser = open_log_port(args)
+        agent_detected, current_version = confirm_ota_agent(log_ser)
+        results["agent_ready"] = agent_detected
+        monitor_payload["current_version"] = format_version(current_version)
+        if not agent_detected:
+            raise RuntimeError("OTA Agent was not detected")
+
+        print()
+        print("[STEP 2/3] Monitoring OTA progress")
+        milestones, monitor_version = monitor_ota_progress(
+            log_ser, timeout=args.timeout, port_label=os.path.basename(args.log_port)
+        )
+        monitor_payload["milestones"] = milestones
+        monitor_payload["monitor_version"] = format_version(monitor_version)
+
+        required = {name for name, info in OTA_MILESTONES.items() if info["required"]}
+        required.discard("agent_ready")
+        missing = sorted(required - set(milestones.keys()))
+        if missing:
+            print(f"[WARN] Missing milestones: {', '.join(missing)}")
+            monitor_payload["missing_milestones"] = missing
+        else:
+            print("[PASS] All required OTA milestones detected")
+            results["ota_download"] = True
+
+        print()
+        print("[STEP 3/3] Verifying new version after reset")
+        if args.expected_build:
+            if monitor_version and monitor_version[2] == args.expected_build:
+                print(f"[PASS] New version already confirmed during monitoring: {format_version(monitor_version)}")
+                results["new_version"] = True
+            else:
+                if monitor_version:
+                    print(
+                        f"[INFO] Monitor saw version {format_version(monitor_version)}, "
+                        f"expected build={args.expected_build}, waiting for correct version..."
+                    )
+                results["new_version"] = verify_new_version_after_reset(
+                    log_ser, args.expected_build, timeout=120
+                )
+        else:
+            print("[SKIP] --expected-build not specified, skipping version check")
+            results["new_version"] = True
+    except (RuntimeError, SerialException) as exc:
+        monitor_payload["error"] = str(exc)
+        print(f"[ERROR] monitor phase failed: {exc}")
+    except KeyboardInterrupt:
+        monitor_payload["error"] = "Interrupted by user"
+        print("\n[INFO] Test interrupted by user")
+    finally:
+        if log_ser:
+            log_ser.close()
+            print(f"[INFO] Closed {args.log_port}")
+        monitor_payload["monitor_ok"] = all(results.values())
+        write_json(args.monitor_results_out, monitor_payload)
+    if print_summary(results):
+        print("[PASS] OTA monitor phase completed successfully")
+        return 0
+    print("[FAIL] OTA monitor phase failed")
+    return 1
+
+
+def run_finalize_mode(args):
+    """AWS 側のジョブ状態確認と cleanup を実行する。"""
+    results = {
+        "create_job": False,
+        "aws_status": False,
+    }
+    metadata = read_json(args.metadata_in)
+    monitor_results = None
+    if args.monitor_results_in and os.path.isfile(args.monitor_results_in):
+        monitor_results = read_json(args.monitor_results_in)
+
+    s3_bucket = metadata.get("s3_bucket") or args.s3_bucket
+    s3_key = metadata.get("s3_key")
+    region = metadata.get("region") or args.region or os.environ.get("AWS_DEFAULT_REGION") or "ap-northeast-1"
+    ota_update_id = metadata.get("ota_update_id")
+
+    print("=" * 60)
+    print("[INFO] AWS IoT OTA finalize phase")
+    print(f"[INFO]   Thing    : {metadata.get('thing_name')}")
+    print(f"[INFO]   Region   : {region}")
+    print(f"[INFO]   S3       : s3://{s3_bucket}/{s3_key}" if s3_bucket and s3_key else "[INFO]   S3       : (not available)")
+    print(f"[INFO]   OTA ID   : {ota_update_id}" if ota_update_id else "[INFO]   OTA ID   : (not available)")
+    print("=" * 60)
+
+    if monitor_results:
+        print("[INFO] Monitor summary:")
+        print(f"[INFO]   monitor_ok: {monitor_results.get('monitor_ok')}")
+        if monitor_results.get("monitor_version"):
+            print(f"[INFO]   version   : {monitor_results.get('monitor_version')}")
+
+    try:
+        results["create_job"] = bool(metadata.get("create_job_ok"))
+
+        print()
+        print("[STEP 1/2] Checking AWS OTA job status")
+        if ota_update_id:
+            job_result = verify_job_status(ota_update_id, region)
+            results["aws_status"] = job_result["status"] is not None
+        else:
+            print("[WARN] ota_update_id not available; skipping AWS status lookup")
+    except subprocess.CalledProcessError as exc:
+        print(f"[ERROR] AWS CLI error during finalize: {exc}")
+        if exc.stderr:
+            print(f"[DEBUG] stderr: {exc.stderr[:300]}")
+    finally:
+        if not args.skip_cleanup and s3_bucket and s3_key:
+            print()
+            print("[STEP 2/2] Cleaning up S3 object")
+            cleanup_s3(s3_bucket, s3_key)
+        elif args.skip_cleanup:
+            print("[SKIP] S3 cleanup skipped (--skip-cleanup)")
+        else:
+            print("[WARN] S3 cleanup skipped because bucket/key metadata is missing")
+    if print_summary(results):
+        print("[PASS] OTA finalize phase completed successfully")
+        return 0
+    print("[FAIL] OTA finalize phase failed")
+    return 1
+
+
+def run_full_mode(args):
+    """従来どおり単一ホストで OTA テスト全体を順次実行する。"""
+    results = {}
+    ota_update_id = None
+    s3_key = build_s3_key(args.rsu, args.thing_name)
+    log_ser = None
+
+    print("=" * 60)
+    print("[INFO] AWS IoT OTA Update Test")
+    print(f"[INFO]   Thing    : {args.thing_name}")
+    print(f"[INFO]   Region   : {args.region}")
+    print(f"[INFO]   S3       : s3://{args.s3_bucket}/{s3_key}")
+    print(f"[INFO]   Role ARN : {args.ota_role_arn}")
+    print(f"[INFO]   RSU      : {args.rsu} ({os.path.getsize(args.rsu)} bytes)")
+    print(f"[INFO]   Log Port : {args.log_port} @ {args.log_baud}bps")
+    print(f"[INFO]   Cmd Port : {args.cmd_port} @ {args.cmd_baud}bps" if args.cmd_port else "[INFO]   Cmd Port : (none, no pre-reset)")
+    print(f"[INFO]   Timeout  : {args.timeout}s")
+    print("=" * 60)
+
+    try:
+        print()
+        print("[STEP 1/6] Confirming OTA Agent is running")
+        log_ser = open_log_port(args)
+        agent_detected, current_version = confirm_ota_agent(log_ser)
+        results["agent_ready"] = agent_detected
+        if not agent_detected:
+            raise RuntimeError("OTA Agent was not detected")
+        if current_version:
+            print(f"[INFO] Current firmware version: {format_version(current_version)}")
+
+        print()
+        print("[STEP 2/6] Uploading firmware to S3")
+        if args.skip_upload:
+            print("[SKIP] S3 upload skipped (--skip-upload)")
+            s3_version_id = ""
+        else:
+            s3_version_id = upload_to_s3(args.rsu, args.s3_bucket, s3_key)
+        results["s3_upload"] = True
+
+        print()
+        print("[STEP 3/6] Creating OTA update job")
+        account_id = get_aws_account_id()
+        ota_update_id = create_ota_job(
+            args.thing_name, args.s3_bucket, s3_key, s3_version_id,
+            args.ota_role_arn, args.region, account_id, args.rsu
+        )
+        results["ota_job_created"] = True
+
+        print()
+        print("[STEP 3.5/6] Waiting for OTA job to leave CREATE_PENDING")
+        job_result = wait_for_ota_job_ready(ota_update_id, args.region, timeout=60)
+        if job_result["status"] == "CREATE_FAILED":
+            print("[FAIL] OTA job CREATE_FAILED - aborting (skip device wait)")
+            results["ota_job_ready"] = False
+            results["ota_download"] = False
+            results["new_version"] = False
+            results["aws_status"] = False
+            return 1
+        results["ota_job_ready"] = True
+
+        print()
+        print("[STEP 4/6] Monitoring OTA progress")
+        milestones, monitor_version = monitor_ota_progress(
+            log_ser, timeout=args.timeout, port_label=os.path.basename(args.log_port)
+        )
+        required = {name for name, info in OTA_MILESTONES.items() if info["required"]}
+        required.discard("agent_ready")
+        missing = required - set(milestones.keys())
+        if missing:
+            print(f"[WARN] Missing milestones: {', '.join(sorted(missing))}")
+            results["ota_download"] = False
+        else:
+            print("[PASS] All required OTA milestones detected")
+            results["ota_download"] = True
+
+        print()
+        print("[STEP 5/6] Verifying new version after reset")
+        if args.expected_build:
+            if monitor_version and monitor_version[2] == args.expected_build:
+                print(f"[PASS] New version already confirmed during monitoring: {format_version(monitor_version)}")
+                results["new_version"] = True
+            else:
+                if monitor_version:
+                    print(
+                        f"[INFO] Monitor saw version {format_version(monitor_version)}, "
+                        f"expected build={args.expected_build}, waiting for correct version..."
+                    )
+                results["new_version"] = verify_new_version_after_reset(
+                    log_ser, args.expected_build, timeout=120
+                )
+        else:
+            print("[SKIP] --expected-build not specified, skipping version check")
+            results["new_version"] = True
+
+        print()
+        print("[STEP 6/6] Checking AWS OTA job status")
+        if ota_update_id:
+            job_result = verify_job_status(ota_update_id, args.region)
+            results["aws_status"] = job_result["status"] is not None
+        else:
+            results["aws_status"] = False
+    except (RuntimeError, SerialException) as exc:
+        print(f"[ERROR] Serial/monitor error: {exc}")
+        results["serial"] = False
+    except subprocess.CalledProcessError as exc:
+        print(f"[ERROR] AWS CLI error: {exc}")
+        if exc.stderr:
+            print(f"[DEBUG] stderr: {exc.stderr[:300]}")
+        results["aws_cli"] = False
+    except KeyboardInterrupt:
+        print("\n[INFO] Test interrupted by user")
+    finally:
+        if log_ser:
+            log_ser.close()
+            print(f"[INFO] Closed {args.log_port}")
+        if not args.skip_cleanup and ota_update_id:
+            print()
+            print("[CLEANUP]")
+            cleanup_s3(args.s3_bucket, s3_key)
+
+    if print_summary(results):
+        print("[PASS] OTA update test completed successfully")
+        return 0
+    print("[FAIL] OTA update test failed")
+    return 1
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="AWS IoT OTA Update Test for RX72N Envision Kit"
+    )
+    parser.add_argument(
+        "--mode",
+        choices=["full", "create-job", "monitor", "finalize"],
+        default="full",
+        help="Execution mode (default: full)",
+    )
+    parser.add_argument("--device-id",
+                        help="Device ID (loads config from device_config.json)")
+    parser.add_argument("--log-port", default=None,
+                        help="Log serial port (default: from device config or UART_PORT)")
+    parser.add_argument("--log-baud", type=int, default=None,
+                        help="Log serial baud rate (default: from device config or UART_BAUD_RATE)")
+    parser.add_argument("--cmd-port", default=None,
+                        help="Command serial port for reset (default: from device config or COMMAND_PORT)")
+    parser.add_argument("--cmd-baud", type=int, default=None,
+                        help="Command serial baud rate (default: from device config or COMMAND_BAUD_RATE)")
+    parser.add_argument("--rsu",
+                        help="Path to v2 .rsu file for OTA update")
+    parser.add_argument("--s3-bucket", default=os.environ.get("OTA_S3_BUCKET"),
+                        help="S3 bucket name (or env OTA_S3_BUCKET)")
+    parser.add_argument("--ota-role-arn", default=os.environ.get("OTA_ROLE_ARN"),
+                        help="OTA service role ARN (or env OTA_ROLE_ARN)")
+    parser.add_argument("--region", default=None,
+                        help="AWS region (default: from device_config.json or AWS_DEFAULT_REGION)")
+    parser.add_argument("--thing-name", default=None,
+                        help="AWS IoT Thing name (default: from device_config.json)")
+    parser.add_argument("--expected-build", type=int, default=None,
+                        help="Expected APP_VERSION_BUILD of v2 firmware")
+    parser.add_argument("--timeout", type=int, default=600,
+                        help="OTA download timeout in seconds (default: 600)")
+    parser.add_argument("--skip-upload", action="store_true",
+                        help="Skip S3 upload (use existing object)")
+    parser.add_argument("--skip-cleanup", action="store_true",
+                        help="Skip S3 cleanup after test")
+    parser.add_argument("--metadata-out", default=None,
+                        help="Write create-job metadata JSON to this path")
+    parser.add_argument("--metadata-in", default=None,
+                        help="Read create-job metadata JSON from this path")
+    parser.add_argument("--monitor-results-out", default=None,
+                        help="Write monitor results JSON to this path")
+    parser.add_argument("--monitor-results-in", default=None,
+                        help="Read monitor results JSON from this path")
+    parser.add_argument("--create-start-delay", type=int, default=0,
+                        help="Delay before create-job starts AWS upload (seconds)")
+    args = parser.parse_args()
+
+    args = load_device_defaults(args)
+
+    if args.mode == "full":
+        validate_serial_args(parser, args)
+        validate_create_args(parser, args)
+        return run_full_mode(args)
+    if args.mode == "create-job":
+        validate_create_args(parser, args)
+        return run_create_job_mode(args)
+    if args.mode == "monitor":
+        validate_serial_args(parser, args)
+        return run_monitor_mode(args)
+
+    validate_finalize_args(parser, args)
+    return run_finalize_mode(args)
+
+
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

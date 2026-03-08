@@ -2,6 +2,9 @@ stages:
   - build
   - flash
   - test
+  - ota_prepare
+  - ota_run
+  - ota_finalize
 
 # MR パイプライン (merge_request_event) を抑止。
 # rules: 付きジョブと rules: なしジョブが混在すると、MR パイプラインで
@@ -50,7 +53,8 @@ variables:
   # GitLab UI の「Run Pipeline」画面でオーバーライド可能。
   # RUN_AWS_TESTS:      AWS 接続テスト (provision, MQTT) を実行するか
   # RUN_SD_UPDATE_TEST: SD カードファームウェア更新テストを実行するか
-  # RUN_OTA_TEST:       OTA テスト (build_ota, flash_ota, test_ota) を実行するか
+  # RUN_OTA_TEST:       OTA テスト (build_ota, prepare_ota, ota_create_job,
+  #                     ota_monitor, ota_finalize) を実行するか
   # デフォルトはフルテスト（MR マージ前に全テスト通過を保証）。
   # ダミーブランチで個別テストを回す場合は変数をオーバーライドする。
   RUN_AWS_TESTS: "true"
@@ -58,7 +62,7 @@ variables:
   RUN_OTA_TEST: "true"
   # RUN_OTA_ONLY: OTA テストのみ実行するショートカットモード。
   # "true" にすると通常のビルド/フラッシュ/テストジョブをスキップし、
-  # build_ota → prepare_ota → test_ota のみ実行する。
+  # build_ota → prepare_ota → ota_create_job/ota_monitor → ota_finalize のみ実行する。
   # OTA デバッグ中のイテレーション高速化用。安定後は "false" に戻すこと。
   RUN_OTA_ONLY: "false"
 
@@ -87,9 +91,20 @@ variables:
   before_script:
     - . "$CI_PROJECT_DIR/tools/ci/activate_pi_python.sh" pyserial cryptography
 
-.pi_ota_tools_job:
+.windows_ota_aws_job:
+  tags:
+    - run_ishiguro_machine
+  environment:
+    # AWS credential variables can be environment-scoped to ota-aws-control so
+    # the Raspberry Pi runner never receives them.
+    name: ota-aws-control
   before_script:
-    - . "$CI_PROJECT_DIR/tools/ci/activate_pi_python.sh" pyserial cryptography awscli
+    - |
+      if (-not (Get-Command aws -ErrorAction SilentlyContinue)) {
+        Write-Host "ERROR: aws CLI not found on this runner."
+        exit 1
+      }
+      python -m pip install --quiet --user cryptography
 
 build:
   stage: build
@@ -642,24 +657,15 @@ build_ota:
     expire_in: 1 week
 
 prepare_ota:
-  stage: test
+  stage: ota_prepare
   extends:
     - .pi_flash_job
     - .pi_crypto_serial_job
   timeout: 5 minutes
   rules:
     - if: $RUN_OTA_TEST == "true"
-  needs:
-    # 通常テスト完了後に実行。optional: true により、スキップされたジョブへの依存は無視。
-    # RUN_OTA_ONLY=true 時は全テストジョブがスキップされるため、全て optional にする。
-    - job: test_sd_update
-      optional: true
-    - job: confirm_aws_mqtt
-      optional: true
-    - job: test_screen_navigation
-      optional: true
-    - job: build_ota
-      artifacts: true
+  dependencies:
+    - build_ota
   script:
     - |
       set -euo pipefail
@@ -706,29 +712,85 @@ prepare_ota:
       echo "Reset command sent. Waiting for OTA Agent startup..."
       sleep 10
 
-test_ota:
-  stage: test
+ota_create_job:
+  stage: ota_run
+  extends:
+    - .windows_ota_aws_job
+  timeout: 10 minutes
+  rules:
+    - if: $RUN_OTA_TEST == "true"
+  dependencies:
+    - build_ota
+  script:
+    - |
+      $v2 = [int]$env:CI_PIPELINE_IID * 2 + 1
+      Write-Host "=== AWS IoT OTA Create Job ==="
+      Write-Host "  Expected version build: $v2"
+      python -u "$env:CI_PROJECT_DIR\test_scripts\uart_test\test_ota.py" `
+        --mode create-job `
+        --device-id "$env:DEVICE_ID" `
+        --rsu "$env:CI_PROJECT_DIR\ota_v2.rsu" `
+        --s3-bucket "$env:OTA_S3_BUCKET" `
+        --ota-role-arn "$env:OTA_ROLE_ARN" `
+        --create-start-delay 15 `
+        --metadata-out "$env:CI_PROJECT_DIR\ota_job_metadata.json"
+  artifacts:
+    when: always
+    paths:
+      - ota_job_metadata.json
+    expire_in: 1 week
+
+ota_monitor:
+  stage: ota_run
   extends:
     - .pi_device_job
-    - .pi_ota_tools_job
+    - .pi_pyserial_job
   timeout: 15 minutes
   rules:
     - if: $RUN_OTA_TEST == "true"
-  needs:
-    - job: prepare_ota
-    - job: build_ota
-      artifacts: true
+  dependencies: []
   script:
     - |
       set -euo pipefail
       bash "$CI_PROJECT_DIR/tools/ci/validate_pi_serial_path.sh" UART_PORT
+      bash "$CI_PROJECT_DIR/tools/ci/validate_pi_serial_path.sh" COMMAND_PORT
       v2=$((CI_PIPELINE_IID * 2 + 1))
-      echo "=== AWS IoT OTA Update Test ==="
+      echo "=== AWS IoT OTA Monitor ==="
       echo "  Expected version build: $v2"
       python3 -u "$CI_PROJECT_DIR/test_scripts/uart_test/test_ota.py" \
+        --mode monitor \
         --device-id "$DEVICE_ID" \
-        --rsu "$CI_PROJECT_DIR/ota_v2.rsu" \
-        --s3-bucket "$OTA_S3_BUCKET" \
-        --ota-role-arn "$OTA_ROLE_ARN" \
         --expected-build "$v2" \
-        --timeout 600
+        --timeout 600 \
+        --monitor-results-out "$CI_PROJECT_DIR/ota_monitor_results.json" | tee "$CI_PROJECT_DIR/ota_monitor.log"
+  artifacts:
+    when: always
+    paths:
+      - ota_monitor_results.json
+      - ota_monitor.log
+    expire_in: 1 week
+
+ota_finalize:
+  stage: ota_finalize
+  extends:
+    - .windows_ota_aws_job
+  timeout: 10 minutes
+  when: always
+  rules:
+    - if: $RUN_OTA_TEST == "true"
+  dependencies:
+    - ota_create_job
+    - ota_monitor
+  script:
+    - |
+      python -u "$env:CI_PROJECT_DIR\test_scripts\uart_test\test_ota.py" `
+        --mode finalize `
+        --metadata-in "$env:CI_PROJECT_DIR\ota_job_metadata.json" `
+        --monitor-results-in "$env:CI_PROJECT_DIR\ota_monitor_results.json"
+  artifacts:
+    when: always
+    paths:
+      - ota_job_metadata.json
+      - ota_monitor_results.json
+      - ota_monitor.log
+    expire_in: 1 week

@@ -88,7 +88,7 @@ CI/CD Variables を変更すること。
 |------|-----------|------|
 | `RUN_AWS_TESTS` | `"true"` | AWS 接続テスト（provision, MQTT）を実行するか |
 | `RUN_SD_UPDATE_TEST` | `"true"` | SD カードファームウェア更新テストを実行するか |
-| `RUN_OTA_TEST` | `"true"` | OTA テスト（build_ota, prepare_ota, test_ota）を実行するか |
+| `RUN_OTA_TEST` | `"true"` | OTA テスト（build_ota, prepare_ota, ota_create_job, ota_monitor, ota_finalize）を実行するか |
 
 **実行パターン:**
 
@@ -105,7 +105,8 @@ CI/CD Variables を変更すること。
 
 **注意:**
 - `RUN_SD_UPDATE_TEST` は `RUN_AWS_TESTS == "true"` の場合のみ有効（AWS 接続が前提）
-- `RUN_OTA_TEST` は独立した OTA パイプライン（build_ota → prepare_ota → test_ota）を制御。`RUN_AWS_TESTS=false` でも OTA テスト可（`prepare_ota` 内で再プロビジョニング）
+- `RUN_OTA_TEST` は独立した OTA パイプライン（build_ota → prepare_ota → ota_create_job/ota_monitor → ota_finalize）を制御。`RUN_AWS_TESTS=false` でも OTA テスト可（`prepare_ota` 内で再プロビジョニング）
+- AWS credentials は Windows 側の `ota-aws-control` environment に scope できる。Pi runner 側 job は `awscli` 非依存とし、UART 監視のみに限定する。
 - デバイスアクセスジョブには `resource_group: rx72n-device` を設定。同一ブランチへの連続 push で複数パイプラインが起動した際、先行パイプラインのデバイスジョブが完了するまで後続パイプラインのデバイスジョブは待機する（FIFO）。`build` / `build_ota` はデバイス非依存のため `resource_group` 不要。
 
 ### テストファーム構想 / Test Farm Architecture
@@ -617,6 +618,20 @@ python test_scripts/uart_test/provision_aws.py \
 - テストスクリプトも 921600bps で接続
 
 ## Changelog / 変更履歴
+
+### 2026-03-09: Issue #6 OTA AWS 制御を Windows runner へ分離
+
+Split OTA execution into three jobs: `ota_create_job` (Windows), `ota_monitor` (Raspberry Pi),
+and `ota_finalize` (Windows). This removes the `awscli` dependency from the Pi runner and allows
+AWS credential variables to be scoped to the `ota-aws-control` environment on the Windows runner
+only. `test_scripts/uart_test/test_ota.py` now supports `create-job`, `monitor`, and `finalize`
+modes in addition to the original full mode.
+
+Issue #6 として、OTA 実行を `ota_create_job`（Windows）、`ota_monitor`（Raspberry Pi）、
+`ota_finalize`（Windows）の3ジョブに分割。Pi runner から `awscli` 依存を外し、
+AWS credential variables を Windows runner 側の `ota-aws-control` environment に
+scope できる構成にした。`test_scripts/uart_test/test_ota.py` には `create-job`、
+`monitor`、`finalize` mode を追加し、従来の full mode も維持。
 
 ### 2026-03-08: Issue #4 Raspberry Pi Runner への device stage 移植着手
 
