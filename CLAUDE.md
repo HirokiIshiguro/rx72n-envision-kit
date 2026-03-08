@@ -62,6 +62,53 @@ RX72N Envision Kit の全機能を試せるようにする。
 | - | BUTTON_03 タッチ問題: J-Link 実機デバッグで WM_NOTIFICATION_CLICKED 発火確認 | Planned |
 | - | Runner 分離: ビルド専用 (Windows) / 実機操作専用 (Raspberry Pi) に分けて並列度向上 | Planned |
 
+### Phase 8b precheck: ROM budget for MCUboot + latest FreeRTOS
+
+Issue: `#5`
+
+- RX72N は code flash 4MB を持つが、dual-bank 前提では片系の実行イメージとして
+  使える容量を **2MB/bank** とみなして評価する
+- `iot-reference-rx` 由来の最新 FreeRTOS 基盤を RX72N に移植するだけでなく、
+  将来的な boot loader は Renesas オリジナル実装から **MCUboot** へ置き換える前提で
+  容量検証を行う
+
+2026-03-08 時点の rough sizing（Motorola S-record の data byte 合計）:
+
+| Image | Source | Rough size |
+|------|--------|-----------:|
+| 現行 RX72N boot_loader | `rx72n-envision-kit` build artifact (`#380` / job `#1631`) | 54,235 B |
+| 現行 RX72N aws_demos | `rx72n-envision-kit` build artifact (`#380` / job `#1631`) | 1,078,627 B |
+| CK-RX65N boot loader | `iot-reference-rx` build artifact (`#423` / job `#1755`) | 32,057 B |
+| CK-RX65N userprog | `iot-reference-rx` build artifact (`#423` / job `#1755`) | 472,254 B |
+
+アドレス帯の rough 観測:
+
+- 現行 RX72N `aws_demos.mot` は主に `0xFFE00000` 帯へ約 1.00 MiB、
+  `0x00100000` 帯へ約 28 KiB を配置
+- 現行 RX72N `rx72n_boot_loader.mot` は主に `0xFFF00000` 帯へ約 51 KiB を配置
+- `iot-reference-rx` の `userprog.mot` は主に `0xFFF00000` 帯へ約 430 KiB、
+  `0xFFE00000` 帯へ約 31 KiB を配置
+
+MCUboot package の初期確認:
+
+- 公式 RX package: `rx-driver-package/source/rm_mcuboot`
+- `rm_mcuboot` v1.01 は RX72N Group を support 対象に含む
+- `rm_mcuboot_vx.xx_extend.mdf` の RX72N/RX72M 既定値は以下
+  - `RM_MCUBOOT_CFG_MCUBOOT_AREA_SIZE = 0x10000`
+  - `RM_MCUBOOT_CFG_APPLICATION_AREA_SIZE = 0x1F0000`
+  - `RM_MCUBOOT_CFG_SCRATCH_AREA_SIZE = 0x10000`（swap mode 時）
+- この設定から、Renesas の公式 package 自体は
+  **RX72N dual-bank を前提に MCUboot + 約 0x1F0000 の application slot**
+  を想定していると読める
+
+暫定判断:
+
+- 直ちに容量不足が確定している状態ではない
+- ただし `rm_mcuboot` は FIT module であり、実サイズ確認には
+  **RX72N 向け最小組み込みビルド** が必要
+- go/no-go は issue `#5` で
+  `MCUboot + latest FreeRTOS app + OTA metadata` の実測を取ってから判定する
+
 ### パイプライン変数 / Pipeline Variables
 
 GitLab UI の「Run Pipeline」画面でオーバーライド可能。
