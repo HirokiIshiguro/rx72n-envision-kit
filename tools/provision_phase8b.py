@@ -33,6 +33,7 @@ DEFAULT_CHAR_DELAY = 0.002
 DEFAULT_LINE_DELAY = 0.5
 DEFAULT_BOOT_WAIT = 3.0
 DEFAULT_CLI_TIMEOUT = 15.0
+DEFAULT_CLI_RETRY_INTERVAL = 1.0
 CLI_READY_MARKERS = ("Going to FreeRTOS-CLI", ">")
 
 
@@ -101,16 +102,24 @@ def wait_for_boot(ser, timeout):
     return collected
 
 
-def enter_cli_mode(ser, char_delay, line_delay, timeout):
+def enter_cli_mode(ser, char_delay, line_delay, timeout, retry_interval):
     print("Entering CLI mode...")
     ser.reset_input_buffer()
-    send_chars(ser, "CLI", char_delay)
-    ser.write(b"\r\n")
-    time.sleep(line_delay)
 
-    start = time.time()
+    start = time.monotonic()
     collected = ""
-    while time.time() - start < timeout:
+    next_retry = start
+    attempt = 0
+    while time.monotonic() - start < timeout:
+        now = time.monotonic()
+        if now >= next_retry:
+            attempt += 1
+            if attempt > 1:
+                print(f"  Retrying CLI wake-up ({attempt})...")
+            send_chars(ser, "CLI", char_delay)
+            ser.write(b"\r\n")
+            time.sleep(line_delay)
+            next_retry = now + retry_interval
         if ser.in_waiting:
             data = ser.read(ser.in_waiting).decode("ascii", errors="replace")
             collected += data
@@ -215,7 +224,13 @@ def provision(args):
         if not args.skip_boot_wait:
             wait_for_boot(ser, args.boot_wait)
 
-        if not enter_cli_mode(ser, args.char_delay, args.line_delay, args.cli_timeout):
+        if not enter_cli_mode(
+            ser,
+            args.char_delay,
+            args.line_delay,
+            args.cli_timeout,
+            args.cli_retry_interval,
+        ):
             print("ERROR: Failed to enter CLI mode")
             return 1
 
@@ -297,6 +312,8 @@ def main():
                         help=f"Seconds to wait for boot messages (default: {DEFAULT_BOOT_WAIT})")
     parser.add_argument("--cli-timeout", type=float, default=DEFAULT_CLI_TIMEOUT,
                         help=f"Seconds to wait for CLI prompt (default: {DEFAULT_CLI_TIMEOUT})")
+    parser.add_argument("--cli-retry-interval", type=float, default=DEFAULT_CLI_RETRY_INTERVAL,
+                        help=f"Seconds between repeated CLI wake-up sends (default: {DEFAULT_CLI_RETRY_INTERVAL})")
     parser.add_argument("--reset-cmd", help="External reset/run command executed before opening UART")
     parser.add_argument("--format", action="store_true", help="Format data flash before provisioning")
     parser.add_argument("--no-reset", action="store_true", help="Do not reset device after provisioning")

@@ -452,11 +452,12 @@ download_phase8b_app:
       # phase8b の CLI は app 初回起動直後の短時間だけ有効。
       # 外部 debugger reset で再現できないため、同一 job 内で provisioning と MQTT baseline まで進める。
       echo "=== phase8b Provisioning (inline after first boot) ==="
-      python3 "$CI_PROJECT_DIR/tools/provision_phase8b.py" \
+      python3 -u "$CI_PROJECT_DIR/tools/provision_phase8b.py" \
         --device-id "$DEVICE_ID" \
         --port "$UART_PORT" \
         --baud "$UART_BAUD_RATE" \
         --codesigner-cert "$CI_PROJECT_DIR/sample_keys/secp256r1.crt" \
+        --cli-timeout 40 \
         --no-reset
       echo "=== phase8b Software Reset via UART CLI ==="
       python3 "$CI_PROJECT_DIR/tools/ci/send_serial_command.py" \
@@ -465,7 +466,7 @@ download_phase8b_app:
         --command reset \
         --delay-after 1
       echo "=== phase8b MQTT baseline ==="
-      python3 "$CI_PROJECT_DIR/tools/test_phase8b_mqtt.py" \
+      python3 -u "$CI_PROJECT_DIR/tools/test_phase8b_mqtt.py" \
         --device-id "$DEVICE_ID" \
         --log-port "$UART_PORT" \
         --log-baud "$UART_BAUD_RATE" \
