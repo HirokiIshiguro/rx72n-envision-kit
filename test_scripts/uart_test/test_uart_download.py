@@ -40,6 +40,7 @@ Dependencies:
 
 import argparse
 import os
+import subprocess
 import sys
 import threading
 import time
@@ -85,7 +86,7 @@ class UartDownloader:
                  wait_for_ready=False, ready_timeout=60,
                  ready_message=DEFAULT_READY_MESSAGE,
                  success_message=DEFAULT_SUCCESS_MESSAGE,
-                 success_timeout=30):
+                 success_timeout=30, reset_cmd=None, reset_settle=0.2):
         self.port_name = port
         self.baud = baud
         self.timeout = timeout
@@ -96,6 +97,8 @@ class UartDownloader:
         self.ready_message = ready_message
         self.success_message = success_message
         self.success_timeout = success_timeout
+        self.reset_cmd = reset_cmd
+        self.reset_settle = reset_settle
         self.ser = None
         self.rx_buffer = ""
         self.messages = []
@@ -129,6 +132,27 @@ class UartDownloader:
         if self.ser and self.ser.is_open:
             self.ser.close()
             print(f"Port closed: {self.port_name}")
+
+    def trigger_reset(self):
+        """Reset the board after UART is opened so one-shot boot banners are captured."""
+        if not self.reset_cmd:
+            return
+        print(f"Triggering reset command: {self.reset_cmd}")
+        result = subprocess.run(
+            self.reset_cmd,
+            shell=True,
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        if result.stdout.strip():
+            print(result.stdout.strip())
+        if result.stderr.strip():
+            print(result.stderr.strip())
+        if result.returncode != 0:
+            raise RuntimeError(f"reset command failed with exit status {result.returncode}")
+        if self.reset_settle > 0:
+            time.sleep(self.reset_settle)
 
     def send_thread(self, rsu_data):
         """
@@ -208,6 +232,8 @@ class UartDownloader:
 
         self.open_port()
         self.start_time = time.time()
+
+        self.trigger_reset()
 
         # Brief pause to let boot_loader settle
         time.sleep(0.5)
@@ -411,6 +437,10 @@ def main():
                         help=f"Success marker expected after software reset (default: {DEFAULT_SUCCESS_MESSAGE})")
     parser.add_argument("--success-timeout", type=int, default=30,
                         help="Seconds to wait for success marker after software reset (default: 30)")
+    parser.add_argument("--reset-cmd",
+                        help="Command to execute after opening UART, before waiting for the ready message")
+    parser.add_argument("--reset-settle", type=float, default=0.2,
+                        help="Seconds to wait after reset command completes (default: 0.2)")
 
     args = parser.parse_args()
 
@@ -429,6 +459,8 @@ def main():
         ready_message=args.ready_message,
         success_message=args.success_message,
         success_timeout=args.success_timeout,
+        reset_cmd=args.reset_cmd,
+        reset_settle=args.reset_settle,
     )
 
     try:

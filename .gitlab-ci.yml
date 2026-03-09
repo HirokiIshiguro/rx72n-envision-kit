@@ -414,6 +414,7 @@ download_phase8b_app:
       mot="$CI_PROJECT_DIR/$PHASE8B_E2STUDIO_PROJECTS/aws_ether_rx72n_envision_kit/e2studio_ccrx/HardwareDebug/aws_ether_rx72n_envision_kit.mot"
       rsu="$CI_PROJECT_DIR/phase8b_userprog.rsu"
       key="$CI_PROJECT_DIR/sample_keys/secp256r1.privatekey"
+      reset_cmd="$RFP_CLI -device RX72x -tool e2l:${E2LITE_SERIAL} -if fine -run -noquery"
       if [[ ! -f "$mot" ]]; then
         echo "ERROR: phase8b app .mot not found: $mot"
         exit 1
@@ -421,12 +422,14 @@ download_phase8b_app:
       echo "=== Convert phase8b .mot to .rsu ==="
       echo "  MOT: $mot"
       echo "  RSU: $rsu"
+      echo "  Reset: $reset_cmd"
       python3 "$CI_PROJECT_DIR/tools/mcu-tool-rx/mot_to_rsu.py" \
         --mot "$mot" --key "$key" -o "$rsu" --seq-no "$RSU_SEQ_NO"
       echo "=== UART Download phase8b app ==="
       python3 "$CI_PROJECT_DIR/test_scripts/uart_test/test_uart_download.py" \
         --rsu "$rsu" --port "$UART_PORT" --baud "$UART_BAUD_RATE" \
         --timeout 300 --diag --wait-for-ready --ready-timeout 60 \
+        --reset-cmd "$reset_cmd" \
         --ready-message "send image(*.rsu) via UART." \
         --success-message "execute image ..." \
         --success-timeout 30
