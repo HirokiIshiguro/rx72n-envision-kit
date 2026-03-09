@@ -89,7 +89,16 @@ int32_t FWUP_CFG_USER_VERIFY_ECDSA_FUNCTION(uint8_t *p_hash, uint8_t *p_sig_type
 static int32_t wrap_extract_pubkey (uint8_t *p_buf);
 static C_CH_FAR s_keyheader[] = "-----BEGIN PUBLIC KEY-----";
 static C_CH_FAR s_keyfooter[] = "-----END PUBLIC KEY-----";
-static C_CH_FAR g_code_signer_public_key[] = CODE_SIGNER_PUBLIC_KEY_PEM;
+/*
+ * Keep the effective code-signer key here as well as in code_signer_public_key.h.
+ * The phase8b headless build was still linking the legacy key string, so pin the
+ * active boot-loader verification key to the sample_keys pair explicitly.
+ */
+static C_CH_FAR g_code_signer_public_key[] =
+    "-----BEGIN PUBLIC KEY-----"
+    "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEWiAlaCQGEgIKoP+qk7Uqc/ME/hjw"
+    "amq1v/z/LWx15CKig59Pd3+ar2RFOlMMOhIfkYgS+Ha7tH+w0ggnKDrUug=="
+    "-----END PUBLIC KEY-----";
 S_C_CH_FAR VERIFICATION_SCHEME_ECDSA[]  = "sig-sha256-ecdsa";
 #endif /* (FWUP_CFG_SIGNATURE_VERIFICATION == 0) */
 S_C_CH_FAR VERIFICATION_SCHEME_SHA[]  = "hash-sha256";
