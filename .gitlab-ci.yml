@@ -63,6 +63,8 @@ variables:
   # RUN_PHASE8B_BASELINE: phase8b の hardware baseline
   #                       (build_phase8b -> flash/download -> provision -> MQTT)
   #                       のみ実行するか
+  # RUN_PHASE8B_DIRECT_FLASH_DIAG: phase8b app を .mot 直接書き込みして
+  #                                CLI 起動可否を診断するか
   # デフォルトは SD カード更新テストを除く通常テスト。
   # フルテストを実施したい場合は RUN_SD_UPDATE_TEST=true を指定する。
   RUN_AWS_TESTS: "true"
@@ -71,6 +73,7 @@ variables:
   RUN_OTA_TEST: "true"
   RUN_PHASE8B_BUILD_ONLY: "false"
   RUN_PHASE8B_BASELINE: "false"
+  RUN_PHASE8B_DIRECT_FLASH_DIAG: "false"
   # Raspberry Pi runner 上でのプロジェクト横断デバイス排他ロック格納先。
   DEVICE_LOCK_ROOT: "/tmp/gitlab-device-locks"
   # RUN_OTA_ONLY: OTA テストのみ実行するショートカットモード。
@@ -305,6 +308,7 @@ build_phase8b:
   tags:
     - run_ishiguro_machine
   rules:
+    - if: $RUN_PHASE8B_DIRECT_FLASH_DIAG == "true"
     - if: $RUN_PHASE8B_BUILD_ONLY == "true"
     - if: $RUN_PHASE8B_BASELINE == "true"
     - changes:
@@ -477,6 +481,45 @@ download_phase8b_app:
     paths:
       - phase8b_userprog.rsu
     expire_in: 1 week
+
+diag_phase8b_direct_flash_cli:
+  stage: test
+  extends:
+    - .pi_flash_job
+    - .pi_pyserial_job
+  timeout: 5 minutes
+  rules:
+    - if: $RUN_PHASE8B_DIRECT_FLASH_DIAG == "true"
+    - when: never
+  needs:
+    - job: build_phase8b
+      artifacts: true
+  script:
+    - |
+      set -euo pipefail
+      source "$CI_PROJECT_DIR/tools/ci/acquire_pi_device_lock.sh" "$DEVICE_ID"
+      bash "$CI_PROJECT_DIR/tools/ci/validate_pi_serial_path.sh" UART_PORT
+      mot="$CI_PROJECT_DIR/$PHASE8B_E2STUDIO_PROJECTS/aws_ether_rx72n_envision_kit/e2studio_ccrx/HardwareDebug/aws_ether_rx72n_envision_kit.mot"
+      if [[ ! -f "$mot" ]]; then
+        echo "ERROR: phase8b app .mot not found: $mot"
+        exit 1
+      fi
+      echo "=== Direct flash phase8b app (.mot) ==="
+      echo "  MOT:    $mot"
+      echo "  Device: RX72x"
+      echo "  Tool:   E2 Lite (${E2LITE_SERIAL})"
+      "$RFP_CLI" -device RX72x -tool "e2l:${E2LITE_SERIAL}" -if fine -speed 1500K \
+        -auth id FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF -erase-chip -noquery
+      "$RFP_CLI" -device RX72x -tool "e2l:${E2LITE_SERIAL}" -if fine -speed 1500K \
+        -auth id FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF -p "$mot" -v -run -noquery
+      echo "=== phase8b CLI provisioning (direct-flashed app) ==="
+      python3 -u "$CI_PROJECT_DIR/tools/provision_phase8b.py" \
+        --device-id "$DEVICE_ID" \
+        --port "$UART_PORT" \
+        --baud "$UART_BAUD_RATE" \
+        --codesigner-cert "$CI_PROJECT_DIR/sample_keys/secp256r1.crt" \
+        --cli-timeout 40 \
+        --no-reset
 
 provision_phase8b_credentials:
   stage: health
