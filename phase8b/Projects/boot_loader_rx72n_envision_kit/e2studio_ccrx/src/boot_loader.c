@@ -49,6 +49,7 @@
  *********************************************************************************************************************/
 static const uint8_t MSG_UPDATE_MODE_STR[][32] = {"dual bank", "with buffer", "without buffer", "with ext-buffer"};
 
+static const char * fwup_err_to_str (e_fwup_err_t err);
 static void         sci_callback (void * pArgs);
 static void         sample_buffering (uint8_t rx_data);
 static e_fwup_err_t open_boot_loader (void);
@@ -63,6 +64,31 @@ static e_fwup_err_t sample_activate_img (void);
 static st_flash_buf_t s_flash_buf;
 static sci_hdl_t      s_hdl;
 static uint8_t        s_err_flg = 0;
+
+/**********************************************************************************************************************
+* Function Name: fwup_err_to_str
+**********************************************************************************************************************/
+static const char * fwup_err_to_str(e_fwup_err_t err)
+{
+    switch (err)
+    {
+        case FWUP_SUCCESS:
+            return "FWUP_SUCCESS";
+        case FWUP_PROGRESS:
+            return "FWUP_PROGRESS";
+        case FWUP_ERR_FLASH:
+            return "FWUP_ERR_FLASH";
+        case FWUP_ERR_VERIFY:
+            return "FWUP_ERR_VERIFY";
+        case FWUP_ERR_FAILURE:
+            return "FWUP_ERR_FAILURE";
+        default:
+            return "FWUP_ERR_UNKNOWN";
+    }
+}
+/**********************************************************************************************************************
+ End of function fwup_err_to_str
+ *********************************************************************************************************************/
 
 /**********************************************************************************************************************
 * Function Name: sci_callback
@@ -235,6 +261,10 @@ static e_fwup_err_t sample_write_image(e_fwup_area_t area)
     {
         ret_val = sample_verify_img(area);
     }
+    if (FWUP_SUCCESS != ret_val)
+    {
+        BL_LOG("sample_write_image failed: %s (%d)\r\n", fwup_err_to_str(ret_val), ret_val);
+    }
     return (ret_val);
 }
 /**********************************************************************************************************************
@@ -298,11 +328,13 @@ static void close_boot_loader(void)
 **********************************************************************************************************************/
 static e_fwup_err_t sample_verify_img(e_fwup_area_t area)
 {
-    if (FWUP_SUCCESS != R_FWUP_VerifyImage(area))
+    e_fwup_err_t ret_val = R_FWUP_VerifyImage(area);
+
+    if (FWUP_SUCCESS != ret_val)
     {
         /* Erase the main side */
         R_FWUP_EraseArea(area);
-        return (FWUP_ERR_FAILURE);
+        return (ret_val);
     }
     return (FWUP_SUCCESS);
 }

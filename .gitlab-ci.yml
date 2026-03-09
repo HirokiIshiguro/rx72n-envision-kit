@@ -446,9 +446,6 @@ download_phase8b_app:
         --timeout 300 --diag --wait-for-ready --ready-timeout 60 \
         --reset-cmd "$reset_cmd" \
         --ready-message "send image(*.rsu) via UART." \
-        --rtscts \
-        --send-chunk-size 64 \
-        --inter-chunk-delay 0.008 \
         --success-message "execute image ..." \
         --success-timeout 30
   artifacts:
