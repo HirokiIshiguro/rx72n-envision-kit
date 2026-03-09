@@ -759,7 +759,7 @@ static e_fwup_err_t write_image_prog(e_fwup_area_t area, uint8_t *p_buf, uint32_
             }
 
             ret_val = write_area(area_tmp, &p_buf_tmp, &buf_sz_tmp, area_offset, dc.fw[fw_cnt].size);
-            if (FWUP_SUCCESS != ret_val)
+            if ((FWUP_SUCCESS != ret_val) && (FWUP_PROGRESS != ret_val))
             {
                 FWUP_LOG_ERR(
                     "write_image_prog failed: fw_cnt=%u area=%u fw_addr=0x%08lx area_offset=0x%08lx segment_size=%lu ret=%d wrote=%lu bufsz=%lu\r\n",
