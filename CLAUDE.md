@@ -90,6 +90,7 @@ CI/CD Variables を変更すること。
 | `RUN_HW_HEALTHCHECK` | `"true"` | 実機の段階的ヘルスチェック（USB/serial 列挙、boot_loader バナー、aws_demos プロンプト）を実行するか |
 | `RUN_SD_UPDATE_TEST` | `"false"` | SD カードファームウェア更新テストを実行するか |
 | `RUN_OTA_TEST` | `"true"` | OTA テスト（build_ota, prepare_ota, ota_create_job, ota_monitor, ota_finalize）を実行するか |
+| `DEVICE_LOCK_ROOT` | `"/tmp/gitlab-device-locks"` | Raspberry Pi runner 上で `DEVICE_ID` 単位のクロスプロジェクト排他ロックを置くディレクトリ |
 
 **実行パターン:**
 
@@ -111,6 +112,7 @@ SD カード更新を含むフルテストを実施したい場合は `RUN_SD_UP
 - `RUN_OTA_TEST` は独立した OTA パイプライン（build_ota → prepare_ota → ota_create_job/ota_monitor → ota_finalize）を制御。`RUN_AWS_TESTS=false` でも OTA テスト可（`prepare_ota` 内で再プロビジョニング）
 - AWS credentials は Windows 側の `ota-aws-control` environment に scope できる。Pi runner 側 job は `awscli` 非依存とし、UART 監視のみに限定する。
 - デバイスアクセスジョブには `resource_group: rx72n-device` を設定。同一ブランチへの連続 push で複数パイプラインが起動した際、先行パイプラインのデバイスジョブが完了するまで後続パイプラインのデバイスジョブは待機する（FIFO）。`build` / `build_ota` はデバイス非依存のため `resource_group` 不要。
+- `resource_group` は同一プロジェクト内の直列化にしか効かない。別プロジェクトと Raspberry Pi runner を共有する場合は、Pi 上の `tools/ci/acquire_pi_device_lock.sh` により `/tmp/gitlab-device-locks/<DEVICE_ID>.lock` を `flock` してクロスプロジェクト排他を行う。
 
 ### テストファーム構想 / Test Farm Architecture
 
