@@ -449,6 +449,28 @@ download_phase8b_app:
         --ready-message "send image(*.rsu) via UART." \
         --success-message "execute image ..." \
         --success-timeout 30
+      # phase8b の CLI は app 初回起動直後の短時間だけ有効。
+      # 外部 debugger reset で再現できないため、同一 job 内で provisioning と MQTT baseline まで進める。
+      echo "=== phase8b Provisioning (inline after first boot) ==="
+      python3 "$CI_PROJECT_DIR/tools/provision_phase8b.py" \
+        --device-id "$DEVICE_ID" \
+        --port "$UART_PORT" \
+        --baud "$UART_BAUD_RATE" \
+        --codesigner-cert "$CI_PROJECT_DIR/sample_keys/secp256r1.crt" \
+        --no-reset
+      echo "=== phase8b Software Reset via UART CLI ==="
+      python3 "$CI_PROJECT_DIR/tools/ci/send_serial_command.py" \
+        --port "$UART_PORT" \
+        --baud "$UART_BAUD_RATE" \
+        --command reset \
+        --delay-after 1
+      echo "=== phase8b MQTT baseline ==="
+      python3 "$CI_PROJECT_DIR/tools/test_phase8b_mqtt.py" \
+        --device-id "$DEVICE_ID" \
+        --log-port "$UART_PORT" \
+        --log-baud "$UART_BAUD_RATE" \
+        --timeout 150 \
+        --no-reset
   artifacts:
     when: always
     paths:
@@ -462,11 +484,6 @@ provision_phase8b_credentials:
     - .pi_pyserial_job
   timeout: 5 minutes
   rules:
-    - if: $RUN_PHASE8B_BUILD_ONLY == "true"
-      when: never
-    - if: $RUN_OTA_ONLY == "true"
-      when: never
-    - if: $RUN_PHASE8B_BASELINE == "true"
     - when: never
   needs:
     - job: download_phase8b_app
@@ -494,11 +511,6 @@ confirm_phase8b_mqtt:
     - .pi_pyserial_job
   timeout: 5 minutes
   rules:
-    - if: $RUN_PHASE8B_BUILD_ONLY == "true"
-      when: never
-    - if: $RUN_OTA_ONLY == "true"
-      when: never
-    - if: $RUN_PHASE8B_BASELINE == "true"
     - when: never
   needs:
     - job: provision_phase8b_credentials
