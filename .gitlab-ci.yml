@@ -475,7 +475,7 @@ provision_phase8b_credentials:
       set -euo pipefail
       source "$CI_PROJECT_DIR/tools/ci/acquire_pi_device_lock.sh" "$DEVICE_ID"
       bash "$CI_PROJECT_DIR/tools/ci/validate_pi_serial_path.sh" COMMAND_PORT
-      reset_cmd="$RFP_CLI -device RX72x -tool e2l:${E2LITE_SERIAL} -if fine -run -noquery"
+      reset_cmd="$RFP_CLI -device RX72x -tool e2l:${E2LITE_SERIAL} -if fine -reset -noquery"
       echo "=== phase8b Provisioning ==="
       echo "  Device ID: $DEVICE_ID"
       echo "  Reset:     $reset_cmd"
@@ -504,7 +504,7 @@ confirm_phase8b_mqtt:
       set -euo pipefail
       source "$CI_PROJECT_DIR/tools/ci/acquire_pi_device_lock.sh" "$DEVICE_ID"
       bash "$CI_PROJECT_DIR/tools/ci/validate_pi_serial_path.sh" UART_PORT
-      reset_cmd="$RFP_CLI -device RX72x -tool e2l:${E2LITE_SERIAL} -if fine -run -noquery"
+      reset_cmd="$RFP_CLI -device RX72x -tool e2l:${E2LITE_SERIAL} -if fine -reset -noquery"
       echo "=== phase8b MQTT baseline ==="
       echo "  Device ID: $DEVICE_ID"
       echo "  Reset:     $reset_cmd"
