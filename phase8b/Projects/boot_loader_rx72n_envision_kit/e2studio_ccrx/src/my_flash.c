@@ -16,6 +16,7 @@
 #include "r_fwup_wrap_flash.h"
 
 #include "r_flash_rx_if.h"
+#include <stdio.h>
 
 /**********************************************************************************************************************
  Macro definitions
@@ -129,6 +130,7 @@ e_fwup_err_t my_flash_erase_function(uint32_t addr, uint32_t num_blocks)
     flash_err_t ret = R_FLASH_Erase((flash_block_address_t )blk_addr, num_blocks);
     if (FLASH_SUCCESS != ret)
     {
+        printf("my_flash_erase_function failed: addr=0x%08lx blocks=%lu ret=%d\r\n", blk_addr, num_blocks, ret);
         return (FWUP_ERR_FLASH);
     }
     /* WAIT_LOOP */
@@ -147,6 +149,7 @@ e_fwup_err_t my_flash_erase_function(uint32_t addr, uint32_t num_blocks)
     R_BSP_InterruptsEnable();
     if (FLASH_SUCCESS != ret)
     {
+        printf("my_flash_erase_function failed: addr=0x%08lx blocks=%lu ret=%d\r\n", blk_addr, num_blocks, ret);
         return (FWUP_ERR_FLASH);
     }
     return (FWUP_SUCCESS);
@@ -172,6 +175,11 @@ e_fwup_err_t my_flash_write_function(uint32_t src_addr, uint32_t dest_addr, uint
     flash_err_t ret = R_FLASH_Write(src_addr, dest_addr, num_bytes);
     if (FLASH_SUCCESS != ret)
     {
+        printf("my_flash_write_function failed: src=0x%08lx dest=0x%08lx size=%lu ret=%d\r\n",
+               src_addr,
+               dest_addr,
+               num_bytes,
+               ret);
         return (FWUP_ERR_FLASH);
     }
     /* WAIT_LOOP */
@@ -188,6 +196,11 @@ e_fwup_err_t my_flash_write_function(uint32_t src_addr, uint32_t dest_addr, uint
     R_BSP_InterruptsEnable();
     if (FLASH_SUCCESS != ret)
     {
+        printf("my_flash_write_function failed: src=0x%08lx dest=0x%08lx size=%lu ret=%d\r\n",
+               src_addr,
+               dest_addr,
+               num_bytes,
+               ret);
         return (FWUP_ERR_FLASH);
     }
     return (FWUP_SUCCESS);
