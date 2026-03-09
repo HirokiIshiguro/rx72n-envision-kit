@@ -198,6 +198,12 @@ static void sample_buffering(uint8_t rx_data)
         {
             s_file_size = image_size;
         }
+        BL_LOG(
+            "buffer full: cnt=%lu total=%lu image_size=%lu file_size=%lu\r\n",
+            s_flash_buf.cnt,
+            s_flash_buf.total,
+            image_size,
+            s_file_size);
         BL_UART_RTS   = 1;
     }
     else
@@ -245,6 +251,14 @@ static e_fwup_err_t sample_write_image(e_fwup_area_t area)
             /* update firmware */
             write_size = (BL_FLASH_BUF_SIZE < s_flash_buf.cnt) ? BL_FLASH_BUF_SIZE : s_flash_buf.cnt;
             ret_val    = R_FWUP_WriteImage(area, &s_flash_buf.buf[0], write_size);
+            BL_LOG(
+                "write result: total=%lu cnt=%lu write_size=%lu image_size=%lu ret=%s (%d)\r\n",
+                s_flash_buf.total,
+                s_flash_buf.cnt,
+                write_size,
+                R_FWUP_GetImageSize(),
+                fwup_err_to_str(ret_val),
+                ret_val);
 
             /* there are received data during RTS=ON */
             if (BL_FLASH_BUF_SIZE < s_flash_buf.cnt)

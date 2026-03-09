@@ -720,6 +720,12 @@ static e_fwup_err_t write_image_prog(e_fwup_area_t area, uint8_t *p_buf, uint32_
             }
             s_image_size += dc.fw[i].size;
         }
+        FWUP_LOG_INFO(
+            "descriptor parsed: n=%lu image_size=%lu first_addr=0x%08lx first_size=%lu\r\n",
+            dc.n,
+            s_image_size,
+            dc.fw[0].addr,
+            dc.fw[0].size);
 
         /* Write flag is on */
         s_prg_list_write_flg = 1;
@@ -778,6 +784,12 @@ static e_fwup_err_t write_image_prog(e_fwup_area_t area, uint8_t *p_buf, uint32_
             if (++fw_cnt >= dc.n)
             {
                 s_img_prog_write_flg = 1;
+                FWUP_LOG_INFO(
+                    "image write complete: fw_cnt=%u n=%lu image_size=%lu write_current=%lu\r\n",
+                    fw_cnt,
+                    dc.n,
+                    s_image_size,
+                    s_write_current_size);
                 break;
             }
 
