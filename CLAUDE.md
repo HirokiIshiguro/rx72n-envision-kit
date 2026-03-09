@@ -24,7 +24,7 @@ RX72N Envision Kit の全機能を試せるようにする。
 | 1 | Documentation cleanup: migrate Wiki to `docs/` | Done |
 | 2 | Set up Claude-assisted development environment | In progress |
 | 3 | Set up CI/CD pipeline | In progress (Phase 1-2 done) |
-| 4 | Replace FreeRTOS with latest Renesas IoT reference implementation ([iot-reference-rx](https://github.com/renesas/iot-reference-rx)) | In progress (Phase 8b-1 staging seed imported, Issue #7) |
+| 4 | Replace FreeRTOS with latest Renesas IoT reference implementation ([iot-reference-rx](https://github.com/renesas/iot-reference-rx)) | In progress (Phase 8b-2 boot loader headless build passed, Issue #8) |
 
 ## Repository Locations / リポジトリ
 
@@ -47,7 +47,7 @@ RX72N Envision Kit の全機能を試せるようにする。
 | 5 | e2studio 2024-01 / CC-RX v3.04 環境で既存機能の動作検証（AWS 接続、SD カードによるファームウェアアップデート、各種コマンドレスポンス） | Done (MR !20) |
 | 6 | e2studio 2025-12 / CC-RX v3.07 ツールチェーン更新 + 既存機能の動作検証 | Done (MR !21) |
 | 7 | AWS IoT OTA テスト自動化（S3 + OTA ジョブ → MQTT ダウンロード → 署名検証 → バンクスワップ → 自己テスト）（1台） | Done (MR !23) |
-| 8 | FreeRTOS LTS 最新版適用（[iot-reference-rx](https://github.com/renesas/iot-reference-rx) 最新リリースタグ）。作業リポジトリ: [iot-reference-rx (GitLab)](https://shelty2.servegame.com/oss/import/github/renesas/iot-reference-rx)。CK-RX65N V1 で先行構築（Phase 8a）→ RX72N に移植（Phase 8b）の2段階アプローチ。詳細計画は [iot-reference-rx の CLAUDE.md](https://shelty2.servegame.com/oss/import/github/renesas/iot-reference-rx/-/blob/main/CLAUDE.md) を参照 | In progress (Phase 8b-1 staging seed imported, Issue #7) |
+| 8 | FreeRTOS LTS 最新版適用（[iot-reference-rx](https://github.com/renesas/iot-reference-rx) 最新リリースタグ）。作業リポジトリ: [iot-reference-rx (GitLab)](https://shelty2.servegame.com/oss/import/github/renesas/iot-reference-rx)。CK-RX65N V1 で先行構築（Phase 8a）→ RX72N に移植（Phase 8b）の2段階アプローチ。詳細計画は [iot-reference-rx の CLAUDE.md](https://shelty2.servegame.com/oss/import/github/renesas/iot-reference-rx/-/blob/main/CLAUDE.md) を参照 | In progress (Phase 8b-2 boot loader headless build passed, Issue #8) |
 | 9 | AWS 接続を含む OTA テスト（1台、新 FW で再検証） | Planned |
 | 10 | AWS 接続を含むフリートプロビジョニング テスト（1台。iot-reference-rx の FP デモを活用） | Planned |
 | 11 | AWS 接続を含むセカンダリ MCU ファームウェアアップデート テスト（RX72N → FPB-RX140） | Planned |
@@ -97,6 +97,11 @@ Phase 8b は親 issue [#11](https://shelty2.servegame.com/oss/import/github/rene
 - Therefore Phase 8b-1 documents and prepares the migration first; it does not attempt a destructive top-level rename yet.
 
 Detailed notes are tracked in [`docs/phase8b-migration-plan.md`](docs/phase8b-migration-plan.md).
+
+**Current status / 現在の進捗:**
+- 8b-1 は完了。`phase8b/` staging root に `iot-reference-rx` baseline を取り込み済み。
+- 8b-2 は headless build gate を通過。`boot_loader_rx72n_envision_kit` は e2studio 2025-12 + CC-RX で `.mot` 生成まで確認。
+- 8b-2 の残課題は runtime 妥当性確認。`R_BSP_ClockReset_Bootloader()` は RX72N 側でまだ暫定 no-op のため、flash 実機確認前に本実装へ置き換える。
 
 ### パイプライン変数 / Pipeline Variables
 

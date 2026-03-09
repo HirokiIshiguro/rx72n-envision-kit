@@ -5,7 +5,7 @@
     <PlaceholderPrefix>${</PlaceholderPrefix>
     <PlaceholderPostfix>}</PlaceholderPostfix>
   </Placeholders>
-  <Project Name="boot_loader_ck_rx65n_v2" Type="Application">
+  <Project Name="boot_loader_rx72n_envision_kit" Type="Application">
     <Files>
       <Category Name="src">
         <Path>src\boot_loader.c</Path>
@@ -36,6 +36,13 @@
                 <Path>src\smc_gen\r_bsp\board\generic_rx65n\r_bsp.h</Path>
                 <Path>src\smc_gen\r_bsp\board\generic_rx65n\r_bsp_config_reference.h</Path>
                 <Path>src\smc_gen\r_bsp\board\generic_rx65n\r_bsp_interrupt_config_reference.h</Path>
+              </Category>
+              <Category Name="generic_rx72n">
+                <Path>src\smc_gen\r_bsp\board\generic_rx72n\hwsetup.c</Path>
+                <Path>src\smc_gen\r_bsp\board\generic_rx72n\hwsetup.h</Path>
+                <Path>src\smc_gen\r_bsp\board\generic_rx72n\r_bsp.h</Path>
+                <Path>src\smc_gen\r_bsp\board\generic_rx72n\r_bsp_config_reference.h</Path>
+                <Path>src\smc_gen\r_bsp\board\generic_rx72n\r_bsp_interrupt_config_reference.h</Path>
               </Category>
               <Category Name="user">
                 <Path>src\smc_gen\r_bsp\board\user\r_bsp.h</Path>
@@ -92,6 +99,28 @@
                   </Category>
                 </Category>
               </Category>
+              <Category Name="rx72n">
+                <Path>src\smc_gen\r_bsp\mcu\rx72n\mcu_clocks.c</Path>
+                <Path>src\smc_gen\r_bsp\mcu\rx72n\mcu_clocks.h</Path>
+                <Path>src\smc_gen\r_bsp\mcu\rx72n\mcu_info.h</Path>
+                <Path>src\smc_gen\r_bsp\mcu\rx72n\mcu_init.c</Path>
+                <Path>src\smc_gen\r_bsp\mcu\rx72n\mcu_init.h</Path>
+                <Path>src\smc_gen\r_bsp\mcu\rx72n\mcu_interrupts.c</Path>
+                <Path>src\smc_gen\r_bsp\mcu\rx72n\mcu_interrupts.h</Path>
+                <Path>src\smc_gen\r_bsp\mcu\rx72n\mcu_locks.h</Path>
+                <Path>src\smc_gen\r_bsp\mcu\rx72n\mcu_mapped_interrupts.c</Path>
+                <Path>src\smc_gen\r_bsp\mcu\rx72n\mcu_mapped_interrupts.h</Path>
+                <Path>src\smc_gen\r_bsp\mcu\rx72n\mcu_mapped_interrupts_private.h</Path>
+                <Path>src\smc_gen\r_bsp\mcu\rx72n\r_bsp_cpu.h</Path>
+                <Path>src\smc_gen\r_bsp\mcu\rx72n\r_bsp_locking.h</Path>
+                <Path>src\smc_gen\r_bsp\mcu\rx72n\vecttbl.c</Path>
+                <Path>src\smc_gen\r_bsp\mcu\rx72n\vecttbl.h</Path>
+                <Category Name="register_access">
+                  <Category Name="ccrx">
+                    <Path>src\smc_gen\r_bsp\mcu\rx72n\register_access\ccrx\iodefine.h</Path>
+                  </Category>
+                </Category>
+              </Category>
             </Category>
           </Category>
           <Category Name="r_byteq">
@@ -143,6 +172,9 @@
               <Category Name="targets">
                 <Category Name="rx65n">
                   <Path>src\smc_gen\r_flash_rx\src\targets\rx65n\r_flash_rx65n.h</Path>
+                </Category>
+                <Category Name="rx72n">
+                  <Path>src\smc_gen\r_flash_rx\src\targets\rx72n\r_flash_rx72n.h</Path>
                 </Category>
               </Category>
             </Category>
@@ -213,22 +245,27 @@
                   <Path>src\smc_gen\r_sci_rx\src\targets\rx65n\r_sci_rx65n_data.c</Path>
                   <Path>src\smc_gen\r_sci_rx\src\targets\rx65n\r_sci_rx65n_private.h</Path>
                 </Category>
+                <Category Name="rx72n">
+                  <Path>src\smc_gen\r_sci_rx\src\targets\rx72n\r_sci_rx72n.c</Path>
+                  <Path>src\smc_gen\r_sci_rx\src\targets\rx72n\r_sci_rx72n_data.c</Path>
+                  <Path>src\smc_gen\r_sci_rx\src\targets\rx72n\r_sci_rx72n_private.h</Path>
+                </Category>
               </Category>
             </Category>
           </Category>
         </Category>
       </Category>
     </Files>
-    <Device Category="com.renesas.cdt.managedbuild.renesas.ccrx.common.option.cpu.rx600" Series="RX">R5F565NEHxFB_DUAL</Device>
+    <Device Category="com.renesas.cdt.managedbuild.renesas.ccrx.common.option.cpu.rx600" Series="RX">R5F572NNHxFB_DUAL</Device>
     <BuildOptions Name="CC-RX" Version="v3.07.00">
       <BuildMode Active="True" Name="HardwareDebug">
         <GeneralOptions/>
         <CompileOptions>
-          <Option>-isa=rxv2</Option>
+          <Option>-isa=rxv3</Option>
           <Option>-fpu</Option>
+          <Option>-dpfpu</Option>
           <Option>-branch=32</Option>
           <Option>-include="${ProjDirPath}\src"</Option>
-          <Option>-include="${ProjDirPath}\src\tinycrypt\lib\include"</Option>
           <Option>-include="${ProjDirPath}\src\key"</Option>
           <Option>-include="${ProjDirPath}\src\smc_gen\general"</Option>
           <Option>-include="${ProjDirPath}\src\smc_gen\r_pincfg"</Option>
@@ -251,10 +288,12 @@
           <Option>-include="${ProjDirPath}\src\smc_gen\r_fwup\src"</Option>
           <Option>-include="${ProjDirPath}\src\smc_gen\r_fwup"</Option>
           <Option>-include="${ProjDirPath}\src\smc_gen\r_fwup\src\tinycrypt\include"</Option>
+          <Option>-asmopt=-bank</Option>
           <Option>-utf8</Option>
           <Option>-nomessage</Option>
           <Option>-debug</Option>
           <Option>-outcode=utf8</Option>
+          <Option>-tfu=intrinsic</Option>
           <Option>-nologo</Option>
           <Option>-lang=c99</Option>
           <Option>-lang=cpp</Option>
@@ -262,8 +301,9 @@
           <Option>-obj_path=${CONFIGDIR}</Option>
         </CompileOptions>
         <AssembleOptions>
-          <Option>-isa=rxv2</Option>
+          <Option>-isa=rxv3</Option>
           <Option>-fpu</Option>
+          <Option>-dpfpu</Option>
           <Option>-include="${ProjDirPath}\src\smc_gen\general"</Option>
           <Option>-include="${ProjDirPath}\src\smc_gen\r_pincfg"</Option>
           <Option>-include="${ProjDirPath}\src\smc_gen\r_config"</Option>
@@ -286,6 +326,7 @@
           <Option>-include="${ProjDirPath}\src\smc_gen\r_fwup"</Option>
           <Option>-include="${ProjDirPath}\src\smc_gen\r_fwup\src\tinycrypt\include"</Option>
           <Option>-utf8</Option>
+          <Option>-bank</Option>
           <Option>-debug</Option>
           <Option>-nologo</Option>
           <Option>-output=${CONFIGDIR}</Option>
@@ -297,9 +338,11 @@
           <Option>-vect=_undefined_interrupt_source_isr</Option>
           <Option>-list</Option>
           <Option>-nooptimize</Option>
-          <Option>-rom=DEXRAM=REXRAM,PFRAM2=RPFRAM2,DEXRAM_2=REXRAM_2,D=R,D_1=R_1,D_2=R_2,DEXRAM_1=REXRAM_1</Option>
+          <Option>-start=SU,SI,B_1,R_1,B_2,R_2,B,R,B_8,R_8,RPFRAM2\0,C_BOOTLOADER_KEY_STORAGE*\0100000,B_FRAME_BUFFER_1\0800000,C_BOOT_LOADER_MAGIC_CODE_1,PResetPRG,C_1,C_2,C,C_8,C$*,D*,W*,L,PIntPRG,P*\0FFFC0000,EXCEPTVECT\0FFFFFF80,RESETVECT\0FFFFFFFC</Option>
+          <Option>-rom=D=R,D_1=R_1,D_2=R_2,D_8=R_8,PFRAM2=RPFRAM2</Option>
+          <Option>-cpu=RAM=00000000-0007ffff,FIX=00080000-00083fff,FIX=00086000-00087fff,FIX=00088000-0009ffff,FIX=000a0000-000a3fff,RAM=000a4000-000a5fff,FIX=000a6000-000bffff,FIX=000c0000-000dffff,FIX=000e0000-000fffff,ROM=00100000-00107fff,FIX=007fc000-007fcfff,FIX=007fe000-007fffff,RAM=00800000-0087ffff,RAM=00ff8000-00ffffff,RAM=fe7f5d00-fe7f5d7f,RAM=fe7f7d70-fe7f7d9f,ROM=ffc00000-ffffffff</Option>
           <Option>-nologo</Option>
-          <Option>-start=SU,SI,B_1,R_1,B_2,R_2,B,R,RPFRAM2/04,BEXRAM_1,REXRAM_1,BEXRAM_2,REXRAM_2,BEXRAM,REXRAM/0800000,C_1,C_2,C,C$*,D*,W*,L,PResetPRG,P,PFRAM2/0FFFF0000,EXCEPTVECT/0FFFFFF80,RESETVECT/0FFFFFFFC</Option>
+          <Option>-start=SU,SI,B_1,R_1,B_2,R_2,B,R,B_8,R_8,RPFRAM2/0,C_BOOTLOADER_KEY_STORAGE*/0100000,B_FRAME_BUFFER_1/0800000,C_BOOT_LOADER_MAGIC_CODE_1,PResetPRG,C_1,C_2,C,C_8,C$*,D*,W*,L,PIntPRG,P*/0FFFC0000,EXCEPTVECT/0FFFFFF80,RESETVECT/0FFFFFFFC</Option>
           <Option>-end</Option>
           <Option>-output="${ProjName}.mot"</Option>
           <Option>-form=stype</Option>
@@ -310,8 +353,9 @@
           <PreLinker>Auto</PreLinker>
         </LinkOptions>
         <LibraryGenerateOptions>
-          <Option>-isa=rxv2</Option>
+          <Option>-isa=rxv3</Option>
           <Option>-fpu</Option>
+          <Option>-dpfpu</Option>
           <Option>-branch=32</Option>
           <Option>-lang=c99</Option>
           <Option>-head=runtime,stdio,stdlib,string,new</Option>
@@ -369,13 +413,20 @@
           <Path>HardwareDebug\r_sci_rx.obj</Path>
           <Path>HardwareDebug\r_sci_rx_dmaca.obj</Path>
           <Path>HardwareDebug\r_sci_rx_dtc.obj</Path>
-          <Path>HardwareDebug\r_sci_rx65n.obj</Path>
-          <Path>HardwareDebug\r_sci_rx65n_data.obj</Path>
-          <Path>HardwareDebug\boot_loader_ck_rx65n_v2.lib</Path>
+          <Path>HardwareDebug\r_sci_rx72n.obj</Path>
+          <Path>HardwareDebug\r_sci_rx72n_data.obj</Path>
+          <Path>HardwareDebug\boot_loader_rx72n_envision_kit.lib</Path>
         </LinkOrder>
+        <NoTargetFile Target="src\smc_gen\r_bsp\board\generic_rx65n\hwsetup.c"/>
+        <NoTargetFile Target="src\smc_gen\r_bsp\mcu\rx65n\mcu_clocks.c"/>
+        <NoTargetFile Target="src\smc_gen\r_bsp\mcu\rx65n\mcu_init.c"/>
+        <NoTargetFile Target="src\smc_gen\r_bsp\mcu\rx65n\mcu_interrupts.c"/>
+        <NoTargetFile Target="src\smc_gen\r_bsp\mcu\rx65n\mcu_mapped_interrupts.c"/>
+        <NoTargetFile Target="src\smc_gen\r_bsp\mcu\rx65n\vecttbl.c"/>
+        <NoTargetFile Target="src\smc_gen\r_sci_rx\src\targets\rx65n\r_sci_rx65n.c"/>
+        <NoTargetFile Target="src\smc_gen\r_sci_rx\src\targets\rx65n\r_sci_rx65n_data.c"/>
         <CommonOptions>
           <IncludePathForC>"${ProjDirPath}\src"</IncludePathForC>
-          <IncludePathForC>"${ProjDirPath}\src\tinycrypt\lib\include"</IncludePathForC>
           <IncludePathForC>"${ProjDirPath}\src\key"</IncludePathForC>
           <IncludePathForC>"${ProjDirPath}\src\smc_gen\general"</IncludePathForC>
           <IncludePathForC>"${ProjDirPath}\src\smc_gen\r_pincfg"</IncludePathForC>

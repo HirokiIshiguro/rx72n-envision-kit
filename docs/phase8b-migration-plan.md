@@ -125,5 +125,26 @@ validated upstream baseline there before RX72N-specific porting starts.
 - boot loader seed under `phase8b/Projects/boot_loader_rx72n_envision_kit/`
 - upstream inventory documented in `phase8b/UPSTREAM_BASELINE.md`
 
-These imported seeds are intentionally not treated as build-ready RX72N projects
-yet. The next step is to port the boot loader seed in Issue `#8`.
+These imported seeds are intentionally not treated as fully validated RX72N
+projects yet. Issue `#8` is the first porting gate and now has a passing
+headless boot loader build.
+
+## Phase 8b-2 Current Status
+
+Current result for Issue `#8`:
+- `phase8b/Projects/boot_loader_rx72n_envision_kit/e2studio_ccrx`
+  builds headless with e2studio 2025-12 + CC-RX and emits `.mot`
+- RX72N-specific BSP / flash / SCI / pin configuration was imported from the
+  legacy RX72N boot loader
+- project metadata was retargeted from RX65N to RX72N (`RXv3 + DPFPU`)
+- `r_fwup` area settings were aligned to the RX72N dual-bank layout
+
+Known limitations before hardware validation:
+- `R_BSP_ClockReset_Bootloader()` is temporarily treated as a no-op on RX72N
+  to unblock the first build gate
+- linker warnings still match the legacy RX72N boot loader section layout and
+  are not yet cleaned up because they were not build blockers
+
+Next step after Issue `#8`:
+- start Issue `#9` and port the `aws_ether_rx72n_envision_kit` seed until the
+  new baseline reaches `build -> flash -> provision -> MQTT`

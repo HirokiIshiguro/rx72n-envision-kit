@@ -25,18 +25,18 @@ Includes   <System Includes> , "Project Includes"
 /**********************************************************************************************************************
 Macro definitions
 **********************************************************************************************************************/
-#define BL_MCU_NAME                 "RX65N"
+#define BL_MCU_NAME                 "RX72N"
 
 #define BL_UART_RTS                 (PORTC.PODR.BIT.B0)
 #define BL_USER_SW_PORT             (PORTD.PIDR.BIT.B1)
 #define BL_USER_SW_ON               (0)
 #define BL_FLASH_BUF_SIZE           (FWUP_CFG_CF_W_UNIT_SIZE)
 
-#define BL_SCI_RATE                 (115200)
+#define BL_SCI_RATE                 (921600)
 #define BL_SCI_INT_PRIORITY         (15)
-#define BL_SCI_CH                   (SCI_CH5)
-#define BL_SCI_PIN_FUNC             (R_SCI_PinSet_SCI5)
-#define BL_SCI_TX_BUFSIZ            (SCI_CFG_CH5_TX_BUFSIZ)
+#define BL_SCI_CH                   (SCI_CH7)
+#define BL_SCI_PIN_FUNC             (R_SCI_PinSet_SCI7)
+#define BL_SCI_TX_BUFSIZ            (SCI_CFG_CH7_TX_BUFSIZ)
 
 /* Initial image program mode? */
 #define BL_UPDATE_MODE                      (0)  /* 0:Disable 1:Enable */
