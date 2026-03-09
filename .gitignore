@@ -16,6 +16,7 @@ RemoteSystemsTempFiles/*
 
 # Ignore top-level build dir
 /build*/
+**/HardwareDebug/
 
 # AWS IoT Core certificates and private keys (never commit secrets)
 /certs/
