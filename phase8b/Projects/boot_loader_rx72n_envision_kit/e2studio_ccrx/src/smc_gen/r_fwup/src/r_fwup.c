@@ -780,6 +780,11 @@ static e_fwup_err_t write_image_prog(e_fwup_area_t area, uint8_t *p_buf, uint32_
                 return (ret_val);
             }
 
+            if (FWUP_PROGRESS == ret_val)
+            {
+                return (FWUP_PROGRESS);
+            }
+
             /* Next part */
             if (++fw_cnt >= dc.n)
             {
