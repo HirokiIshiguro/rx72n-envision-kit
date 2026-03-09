@@ -200,6 +200,7 @@ e_fwup_err_t r_fwup_wrap_flash_erase(uint32_t addr, uint32_t num_blocks)
     r_fwup_wrap_enable_interrupt();
     if (FLASH_SUCCESS != ret)
     {
+        FWUP_LOG_ERR("flash erase failed: addr=0x%08lx blocks=%lu ret=%d\r\n", blk_addr, num_blocks, ret);
         return (FWUP_ERR_FLASH);
     }
     return (FWUP_SUCCESS);
@@ -228,6 +229,8 @@ e_fwup_err_t r_fwup_wrap_flash_write(uint32_t src_addr, uint32_t dest_addr, uint
     r_fwup_wrap_enable_interrupt();
     if (FLASH_SUCCESS != ret)
     {
+        FWUP_LOG_ERR("flash write failed: src=0x%08lx dest=0x%08lx size=%lu ret=%d\r\n",
+                     src_addr, dest_addr, num_bytes, ret);
         return (FWUP_ERR_FLASH);
     }
     return (FWUP_SUCCESS);
