@@ -74,15 +74,18 @@ MSG_CHECK_NG = "...NG"
 MSG_CONST_DATA = "installing const data"
 MSG_COMPLETED_CONST = "completed installing const data"
 MSG_SW_RESET = "software reset"
-MSG_JUMP_USER = "jump to user program"
-MSG_READY = "send \"userprog.rsu\" via UART."
+DEFAULT_SUCCESS_MESSAGE = "jump to user program"
+DEFAULT_READY_MESSAGE = "send \"userprog.rsu\" via UART."
 
 
 class UartDownloader:
     """Send .rsu firmware to boot loader via UART and monitor progress."""
 
     def __init__(self, port, baud, timeout, post_tx_wait=30, diag=False,
-                 wait_for_ready=False, ready_timeout=60):
+                 wait_for_ready=False, ready_timeout=60,
+                 ready_message=DEFAULT_READY_MESSAGE,
+                 success_message=DEFAULT_SUCCESS_MESSAGE,
+                 success_timeout=30):
         self.port_name = port
         self.baud = baud
         self.timeout = timeout
@@ -90,6 +93,9 @@ class UartDownloader:
         self.diag = diag
         self.wait_for_ready = wait_for_ready
         self.ready_timeout = ready_timeout
+        self.ready_message = ready_message
+        self.success_message = success_message
+        self.success_timeout = success_timeout
         self.ser = None
         self.rx_buffer = ""
         self.messages = []
@@ -224,12 +230,12 @@ class UartDownloader:
             print(f"Waiting for boot_loader ready signal (timeout={self.ready_timeout}s)...")
             ready_start = time.time()
             rx_buf = drain_data.decode('ascii', errors='replace') if drain_data else ""
-            ready_found = MSG_READY in rx_buf
+            ready_found = self.ready_message in rx_buf
             while not ready_found:
                 elapsed = time.time() - ready_start
                 if elapsed > self.ready_timeout:
                     print(f"TIMEOUT: boot_loader ready signal not detected after {self.ready_timeout}s")
-                    print(f"  Expected: '{MSG_READY}'")
+                    print(f"  Expected: '{self.ready_message}'")
                     print(f"  Received so far: {rx_buf[-200:]}")
                     self.close_port()
                     return 1
@@ -243,7 +249,7 @@ class UartDownloader:
                         line = line.strip('\r').strip()
                         if line:
                             print(f"  [{elapsed:.1f}s] {line}")
-                    if MSG_READY in rx_buf:
+                    if self.ready_message in rx_buf:
                         ready_found = True
                         print(f"  Boot_loader ready ({elapsed:.1f}s)")
                 time.sleep(0.05)
@@ -258,9 +264,9 @@ class UartDownloader:
         integrity_ok = False
         const_completed = False
         sw_reset = False
-        jump_user = False
+        success_message_seen = False
         last_progress_print = 0
-        post_reset_timeout = 30  # seconds to wait after sw reset for "jump to user program"
+        post_reset_timeout = self.success_timeout
         post_reset_start = None
 
         while True:
@@ -302,8 +308,8 @@ class UartDownloader:
                 elif MSG_SW_RESET in line:
                     sw_reset = True
                     post_reset_start = time.time()
-                elif MSG_JUMP_USER in line:
-                    jump_user = True
+                elif self.success_message in line:
+                    success_message_seen = True
 
             # Print send progress and detect TX completion
             with self._lock:
@@ -342,7 +348,7 @@ class UartDownloader:
 
             # Success condition: firmware installed + verified + data flash + reset
             if sw_reset:
-                if jump_user:
+                if success_message_seen:
                     # Full success — aws_demos is booting
                     elapsed = time.time() - self.start_time
                     print(f"\n=== Download Complete ===")
@@ -350,12 +356,12 @@ class UartDownloader:
                     print(f"  Integrity check:   {'PASS' if integrity_ok else 'UNKNOWN'}")
                     print(f"  Const data:        {'YES' if const_completed else 'NO'}")
                     print(f"  Software reset:    YES")
-                    print(f"  Jump to user:      YES")
+                    print(f"  Success marker:    YES ({self.success_message})")
                     print(f"  Total time:        {elapsed:.1f}s ({elapsed/60:.1f} min)")
                     self.close_port()
                     return 0
 
-                # After sw_reset, wait limited time for "jump to user program"
+                # After sw_reset, wait limited time for the configured success marker.
                 if post_reset_start and (time.time() - post_reset_start > post_reset_timeout):
                     # Timeout waiting for jump, but download itself succeeded
                     elapsed = time.time() - self.start_time
@@ -364,9 +370,9 @@ class UartDownloader:
                     print(f"  Integrity check:   {'PASS' if integrity_ok else 'UNKNOWN'}")
                     print(f"  Const data:        {'YES' if const_completed else 'NO'}")
                     print(f"  Software reset:    YES")
-                    print(f"  Jump to user:      NO (timeout after {post_reset_timeout}s)")
+                    print(f"  Success marker:    NO (timeout after {post_reset_timeout}s)")
                     print(f"  Total time:        {elapsed:.1f}s ({elapsed/60:.1f} min)")
-                    print(f"\nWARNING: 'jump to user program' not detected, but download completed.")
+                    print(f"\nWARNING: Success marker '{self.success_message}' not detected, but download completed.")
                     print(f"  This may be normal if the user program does not output to UART,")
                     print(f"  or if boot_loader does bank swap before printing this message.")
                     self.close_port()
@@ -399,6 +405,12 @@ def main():
                              "Required when boot_loader was just flashed in the same job.")
     parser.add_argument("--ready-timeout", type=int, default=60,
                         help="Timeout for boot_loader ready signal in seconds (default: 60)")
+    parser.add_argument("--ready-message", default=DEFAULT_READY_MESSAGE,
+                        help=f"Boot loader ready message to wait for (default: {DEFAULT_READY_MESSAGE})")
+    parser.add_argument("--success-message", default=DEFAULT_SUCCESS_MESSAGE,
+                        help=f"Success marker expected after software reset (default: {DEFAULT_SUCCESS_MESSAGE})")
+    parser.add_argument("--success-timeout", type=int, default=30,
+                        help="Seconds to wait for success marker after software reset (default: 30)")
 
     args = parser.parse_args()
 
@@ -414,6 +426,9 @@ def main():
         diag=args.diag,
         wait_for_ready=args.wait_for_ready,
         ready_timeout=args.ready_timeout,
+        ready_message=args.ready_message,
+        success_message=args.success_message,
+        success_timeout=args.success_timeout,
     )
 
     try:

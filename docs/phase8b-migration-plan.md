@@ -32,6 +32,7 @@ The migration therefore proceeds from headless baseline to user-facing features.
 | 8b-1 | #7 | Skeleton import and repo layout preparation |
 | 8b-2 | #8 | RX72N boot loader port |
 | 8b-3 | #9 | RX72N application port and MQTT baseline |
+| 8b-3b | #13 | phase8b hardware baseline CI hookup (`build -> flash -> provision -> MQTT`) |
 | 8b-4 | #10 | OTA recovery on the new stack |
 | 8b-5 | #12 | GUI / SD update / Envision Kit UX reintegration |
 
@@ -175,7 +176,10 @@ Known limitations before hardware baseline:
   is limited to the new Windows build-only gate until flash/provision/MQTT are
   re-pointed in the next step
 
-Next step after the current Issue `#9` milestone:
-- `build_phase8b` now imports `phase8b/Projects/*/e2studio_ccrx` directly and
-  can be run alone with `RUN_PHASE8B_BUILD_ONLY=true`
-- next, advance to `build -> flash -> provision -> MQTT` on the phase8b stack
+Current follow-up for Issue `#13`:
+- `RUN_PHASE8B_BASELINE=true` is the dedicated mode for phase8b hardware
+  baseline work
+- the intended path is
+  `build_phase8b -> flash_phase8b_boot_loader -> download_phase8b_app -> provision_phase8b_credentials -> confirm_phase8b_mqtt`
+- legacy `aws_demos` / GUI / OTA jobs are intentionally suppressed in this mode
+  so scarce hardware time is spent only on the new baseline
