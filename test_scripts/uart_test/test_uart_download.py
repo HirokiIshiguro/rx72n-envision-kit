@@ -79,6 +79,7 @@ MSG_SW_RESET = "software reset"
 MSG_ERROR = "error occurred"
 DEFAULT_SUCCESS_MESSAGE = "jump to user program"
 DEFAULT_READY_MESSAGE = "send \"userprog.rsu\" via UART."
+DEFAULT_WRITE_ACK_PREFIX = "W 0x"
 
 
 class UartDownloader:
@@ -90,7 +91,8 @@ class UartDownloader:
                  success_message=DEFAULT_SUCCESS_MESSAGE,
                  success_timeout=30, reset_cmd=None, reset_settle=0.2,
                  send_chunk_size=SEND_CHUNK_SIZE, inter_chunk_delay=DEFAULT_INTER_CHUNK_DELAY,
-                 rtscts=False):
+                 rtscts=False, ack_each_chunk=False,
+                 ack_prefix=DEFAULT_WRITE_ACK_PREFIX, ack_timeout=10.0):
         self.port_name = port
         self.baud = baud
         self.timeout = timeout
@@ -106,6 +108,9 @@ class UartDownloader:
         self.send_chunk_size = send_chunk_size
         self.inter_chunk_delay = inter_chunk_delay
         self.rtscts = rtscts
+        self.ack_each_chunk = ack_each_chunk
+        self.ack_prefix = ack_prefix
+        self.ack_timeout = ack_timeout
         self.ser = None
         self.rx_buffer = ""
         self.messages = []
@@ -113,6 +118,10 @@ class UartDownloader:
         self.send_error = None
         self.bytes_sent = 0
         self.total_bytes = 0
+        self.total_chunks = 0
+        self.chunks_sent = 0
+        self.write_ack_count = 0
+        self.pending_chunk_deadline = None
         self.start_time = 0
         self.tx_complete_time = None
         self._lock = threading.Lock()
@@ -203,6 +212,8 @@ class UartDownloader:
                     if line:
                         lines.append(line)
                         self.messages.append(line)
+                        if self.ack_each_chunk and line.startswith(self.ack_prefix):
+                            self.write_ack_count += 1
 
                 # Also check for \r-only lines (progress updates use \r)
                 if '\r' in self.rx_buffer and '\n' not in self.rx_buffer:
@@ -215,10 +226,29 @@ class UartDownloader:
                             # Don't add progress lines to messages (too many)
                             if MSG_INSTALLING_FW not in part and MSG_CONST_DATA not in part:
                                 self.messages.append(part)
+                            if self.ack_each_chunk and part.startswith(self.ack_prefix):
+                                self.write_ack_count += 1
                     self.rx_buffer = parts[-1]
         except serial.SerialException:
             pass
         return lines
+
+    def send_next_chunk(self, rsu_data):
+        """Send one chunk when per-chunk ACK pacing is enabled."""
+        if self.bytes_sent >= self.total_bytes:
+            return
+
+        chunk = rsu_data[self.bytes_sent:self.bytes_sent + self.send_chunk_size]
+        self.ser.write(chunk)
+        if self.inter_chunk_delay > 0:
+            time.sleep(self.inter_chunk_delay)
+
+        with self._lock:
+            self.bytes_sent += len(chunk)
+            self.chunks_sent += 1
+            if self.bytes_sent >= self.total_bytes:
+                self.send_complete = True
+            self.pending_chunk_deadline = time.time() + self.ack_timeout
 
     def download(self, rsu_path):
         """
@@ -231,6 +261,7 @@ class UartDownloader:
         # Read .rsu file
         rsu_data = rsu_path.read_bytes()
         self.total_bytes = len(rsu_data)
+        self.total_chunks = (self.total_bytes + self.send_chunk_size - 1) // self.send_chunk_size
         print(f"\n=== UART Download ===")
         print(f"  File:     {rsu_path}")
         print(f"  Size:     {self.total_bytes:,} bytes ({self.total_bytes/1024:.1f} KB)")
@@ -241,6 +272,7 @@ class UartDownloader:
         print(f"  Chunk:    {self.send_chunk_size} bytes")
         print(f"  Delay:    {self.inter_chunk_delay:.3f}s")
         print(f"  RTS/CTS:  {'ON' if self.rtscts else 'OFF'}")
+        print(f"  Ack mode: {'per-chunk' if self.ack_each_chunk else 'streaming'}")
         print()
 
         self.open_port()
@@ -295,8 +327,12 @@ class UartDownloader:
 
         # Start send thread
         print(f"Sending {self.total_bytes:,} bytes...")
-        sender = threading.Thread(target=self.send_thread, args=(rsu_data,), daemon=True)
-        sender.start()
+        sender = None
+        if self.ack_each_chunk:
+            self.send_next_chunk(rsu_data)
+        else:
+            sender = threading.Thread(target=self.send_thread, args=(rsu_data,), daemon=True)
+            sender.start()
 
         # Monitor loop
         fw_completed = False
@@ -305,6 +341,7 @@ class UartDownloader:
         sw_reset = False
         success_message_seen = False
         last_progress_print = 0
+        last_ack_report = 0
         post_reset_timeout = self.success_timeout
         post_reset_start = None
 
@@ -321,7 +358,9 @@ class UartDownloader:
             lines = self.read_uart()
             for line in lines:
                 # Print significant messages
-                if MSG_INSTALLING_FW in line:
+                if self.ack_each_chunk and line.startswith(self.ack_prefix):
+                    pass
+                elif MSG_INSTALLING_FW in line:
                     # Progress update — print periodically
                     if time.time() - last_progress_print > 5:
                         print(f"  [{elapsed:6.1f}s] {line}")
@@ -354,6 +393,18 @@ class UartDownloader:
                 elif self.success_message in line:
                     success_message_seen = True
 
+            if self.ack_each_chunk:
+                while not self.send_error and self.chunks_sent < self.total_chunks and self.write_ack_count >= self.chunks_sent:
+                    self.send_next_chunk(rsu_data)
+
+                if self.chunks_sent > self.write_ack_count and self.pending_chunk_deadline:
+                    if time.time() > self.pending_chunk_deadline:
+                        pending = self.chunks_sent - self.write_ack_count
+                        self.send_error = (
+                            f"Timed out waiting for write acknowledgement "
+                            f"({self.write_ack_count}/{self.total_chunks} ACK, {pending} chunk pending)"
+                        )
+
             # Print send progress and detect TX completion
             with self._lock:
                 sent = self.bytes_sent
@@ -362,10 +413,19 @@ class UartDownloader:
                 pct = sent * 100 / self.total_bytes
                 if self.diag and time.time() - last_progress_print > 10:
                     print(f"  [{elapsed:6.1f}s] TX: {sent:,}/{self.total_bytes:,} bytes ({pct:.0f}%)")
+                    if self.ack_each_chunk:
+                        print(f"  [{elapsed:6.1f}s] ACK: {self.write_ack_count}/{self.total_chunks} chunks")
+                    last_progress_print = time.time()
             elif tx_done and self.tx_complete_time is None and not self.send_error:
                 self.tx_complete_time = time.time()
                 print(f"  [{elapsed:6.1f}s] TX complete: {sent:,} bytes sent")
                 print(f"  [{elapsed:6.1f}s] Waiting up to {self.post_tx_wait}s for boot_loader response...")
+
+            if self.ack_each_chunk and self.diag and self.write_ack_count != last_ack_report:
+                if self.write_ack_count <= 4 or self.write_ack_count == self.total_chunks or self.write_ack_count % 256 == 0:
+                    pct = self.write_ack_count * 100 / self.total_chunks
+                    print(f"  [{elapsed:6.1f}s] ACK: {self.write_ack_count}/{self.total_chunks} chunks ({pct:.0f}%)")
+                    last_ack_report = self.write_ack_count
 
             # Check if send failed
             if self.send_error:
@@ -464,6 +524,12 @@ def main():
                         help=f"Delay after each UART TX chunk in seconds (default: {DEFAULT_INTER_CHUNK_DELAY})")
     parser.add_argument("--rtscts", action="store_true",
                         help="Enable hardware RTS/CTS flow control")
+    parser.add_argument("--ack-each-chunk", action="store_true",
+                        help="Send one chunk at a time and wait for a boot_loader write acknowledgement before sending the next chunk")
+    parser.add_argument("--ack-prefix", default=DEFAULT_WRITE_ACK_PREFIX,
+                        help=f"UART line prefix that acknowledges one write chunk (default: {DEFAULT_WRITE_ACK_PREFIX})")
+    parser.add_argument("--ack-timeout", type=float, default=10.0,
+                        help="Seconds to wait for the next write acknowledgement in --ack-each-chunk mode (default: 10.0)")
 
     args = parser.parse_args()
 
@@ -487,6 +553,9 @@ def main():
         send_chunk_size=args.send_chunk_size,
         inter_chunk_delay=args.inter_chunk_delay,
         rtscts=args.rtscts,
+        ack_each_chunk=args.ack_each_chunk,
+        ack_prefix=args.ack_prefix,
+        ack_timeout=args.ack_timeout,
     )
 
     try:
