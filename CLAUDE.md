@@ -62,6 +62,10 @@ RX72N Envision Kit の全機能を試せるようにする。
 | - | BUTTON_03 タッチ問題: J-Link 実機デバッグで WM_NOTIFICATION_CLICKED 発火確認 | Planned |
 | - | Runner 分離: ビルド専用 (Windows) / 実機操作専用 (Raspberry Pi) に分けて並列度向上 | In progress ([Issue #4](https://shelty2.servegame.com/oss/import/github/renesas/rx72n-envision-kit/-/issues/4)) |
 
+**OTA monitor 調査の引継ぎ先:**
+- 旧 FreeRTOS ベースの OTA monitor 調査ログと、最新 FreeRTOS 置換前の引継ぎは [MR !41](https://shelty2.servegame.com/oss/import/github/renesas/rx72n-envision-kit/-/merge_requests/41) を参照
+- 本件の深掘りは、可能であれば最新 FreeRTOS / `iot-reference-rx` 置換ブランチ側を優先する
+
 ### パイプライン変数 / Pipeline Variables
 
 GitLab UI の「Run Pipeline」画面でオーバーライド可能。
