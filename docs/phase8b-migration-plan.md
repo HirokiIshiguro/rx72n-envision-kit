@@ -171,9 +171,11 @@ Known limitations before hardware baseline:
   and `C_USER_APPLICATION_AREA`
 - there are non-blocking warning groups around generated RX72N mapped interrupt
   macros and SCI feature defines that should be cleaned up after the build gate
-- `.gitlab-ci.yml` still targets the legacy `aws_demos` project, so phase8b is
-  not wired into build-only CI yet
+- `.gitlab-ci.yml` legacy path still drives the hardware baseline, so phase8b
+  is limited to the new Windows build-only gate until flash/provision/MQTT are
+  re-pointed in the next step
 
 Next step after the current Issue `#9` milestone:
-- connect `aws_ether_rx72n_envision_kit` to a build-only CI path
-- then advance to `build -> flash -> provision -> MQTT` on the phase8b stack
+- `build_phase8b` now imports `phase8b/Projects/*/e2studio_ccrx` directly and
+  can be run alone with `RUN_PHASE8B_BUILD_ONLY=true`
+- next, advance to `build -> flash -> provision -> MQTT` on the phase8b stack
