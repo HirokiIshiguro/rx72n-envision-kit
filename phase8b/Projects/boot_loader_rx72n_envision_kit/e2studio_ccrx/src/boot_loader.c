@@ -29,6 +29,7 @@
 
 #define BL_ERASE_RETRY_MAX_BUFFER_AREA   (3)
 #define BL_LOG_ENABLE                    (1)
+#define BL_HEADER_ONLY_IMAGE_SIZE        (0x200U)
 
 #if (BL_LOG_ENABLE == 0)
 #define BL_LOG (...)
@@ -49,6 +50,7 @@
  *********************************************************************************************************************/
 static const uint8_t MSG_UPDATE_MODE_STR[][32] = {"dual bank", "with buffer", "without buffer", "with ext-buffer"};
 
+static const char * fwup_err_to_str (e_fwup_err_t err);
 static void         sci_callback (void * pArgs);
 static void         sample_buffering (uint8_t rx_data);
 static e_fwup_err_t open_boot_loader (void);
@@ -63,6 +65,31 @@ static e_fwup_err_t sample_activate_img (void);
 static st_flash_buf_t s_flash_buf;
 static sci_hdl_t      s_hdl;
 static uint8_t        s_err_flg = 0;
+
+/**********************************************************************************************************************
+* Function Name: fwup_err_to_str
+**********************************************************************************************************************/
+static const char * fwup_err_to_str(e_fwup_err_t err)
+{
+    switch (err)
+    {
+        case FWUP_SUCCESS:
+            return "FWUP_SUCCESS";
+        case FWUP_PROGRESS:
+            return "FWUP_PROGRESS";
+        case FWUP_ERR_FLASH:
+            return "FWUP_ERR_FLASH";
+        case FWUP_ERR_VERIFY:
+            return "FWUP_ERR_VERIFY";
+        case FWUP_ERR_FAILURE:
+            return "FWUP_ERR_FAILURE";
+        default:
+            return "FWUP_ERR_UNKNOWN";
+    }
+}
+/**********************************************************************************************************************
+ End of function fwup_err_to_str
+ *********************************************************************************************************************/
 
 /**********************************************************************************************************************
 * Function Name: sci_callback
@@ -159,7 +186,18 @@ static void sample_buffering(uint8_t rx_data)
     /* Buffer full? */
     if (BL_FLASH_BUF_SIZE == s_flash_buf.cnt)
     {
-        s_file_size   = R_FWUP_GetImageSize();
+        uint32_t image_size = R_FWUP_GetImageSize();
+
+        /*
+         * R_FWUP_GetImageSize() reports the header size first and updates to the
+         * full image size only after the descriptor has been written. With a
+         * 128-byte RX chunk, latching 0x200 here truncates the transfer after the
+         * header. Keep the previous size until the descriptor has been parsed.
+         */
+        if (image_size > BL_HEADER_ONLY_IMAGE_SIZE)
+        {
+            s_file_size = image_size;
+        }
         BL_UART_RTS   = 1;
     }
     else
@@ -207,6 +245,14 @@ static e_fwup_err_t sample_write_image(e_fwup_area_t area)
             /* update firmware */
             write_size = (BL_FLASH_BUF_SIZE < s_flash_buf.cnt) ? BL_FLASH_BUF_SIZE : s_flash_buf.cnt;
             ret_val    = R_FWUP_WriteImage(area, &s_flash_buf.buf[0], write_size);
+            BL_LOG(
+                "write result: total=%lu cnt=%lu write_size=%lu image_size=%lu ret=%s (%d)\r\n",
+                s_flash_buf.total,
+                s_flash_buf.cnt,
+                write_size,
+                R_FWUP_GetImageSize(),
+                fwup_err_to_str(ret_val),
+                ret_val);
 
             /* there are received data during RTS=ON */
             if (BL_FLASH_BUF_SIZE < s_flash_buf.cnt)
@@ -234,6 +280,10 @@ static e_fwup_err_t sample_write_image(e_fwup_area_t area)
     if (FWUP_SUCCESS == ret_val)
     {
         ret_val = sample_verify_img(area);
+    }
+    if (FWUP_SUCCESS != ret_val)
+    {
+        BL_LOG("sample_write_image failed: %s (%d)\r\n", fwup_err_to_str(ret_val), ret_val);
     }
     return (ret_val);
 }
@@ -298,11 +348,13 @@ static void close_boot_loader(void)
 **********************************************************************************************************************/
 static e_fwup_err_t sample_verify_img(e_fwup_area_t area)
 {
-    if (FWUP_SUCCESS != R_FWUP_VerifyImage(area))
+    e_fwup_err_t ret_val = R_FWUP_VerifyImage(area);
+
+    if (FWUP_SUCCESS != ret_val)
     {
         /* Erase the main side */
         R_FWUP_EraseArea(area);
-        return (FWUP_ERR_FAILURE);
+        return (ret_val);
     }
     return (FWUP_SUCCESS);
 }

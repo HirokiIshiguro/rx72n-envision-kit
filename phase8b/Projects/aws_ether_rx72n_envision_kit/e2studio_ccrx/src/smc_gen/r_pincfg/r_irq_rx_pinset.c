@@ -28,7 +28,7 @@ Global variables and functions
 * Return Value : none
 ***********************************************************************************************************************/
 
-void R_ICU_PinSet()
+void R_ICU_PinSet( void )
 {
     R_BSP_RegisterProtectDisable(BSP_REG_PROTECT_MPC);
     /* Set IRQ2 pin */

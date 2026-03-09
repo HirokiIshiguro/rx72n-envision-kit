@@ -60,6 +60,11 @@ variables:
   # RUN_OTA_TEST:       OTA テスト (build_ota, prepare_ota, ota_create_job,
   #                     ota_monitor, ota_finalize) を実行するか
   # RUN_PHASE8B_BUILD_ONLY: phase8b の build-only gate のみ実行するか
+  # RUN_PHASE8B_BASELINE: phase8b の hardware baseline
+  #                       (build_phase8b -> flash/download -> provision -> MQTT)
+  #                       のみ実行するか
+  # RUN_PHASE8B_DIRECT_FLASH_DIAG: phase8b app を .mot 直接書き込みして
+  #                                CLI 起動可否を診断するか
   # デフォルトは SD カード更新テストを除く通常テスト。
   # フルテストを実施したい場合は RUN_SD_UPDATE_TEST=true を指定する。
   RUN_AWS_TESTS: "true"
@@ -67,6 +72,8 @@ variables:
   RUN_SD_UPDATE_TEST: "false"
   RUN_OTA_TEST: "true"
   RUN_PHASE8B_BUILD_ONLY: "false"
+  RUN_PHASE8B_BASELINE: "false"
+  RUN_PHASE8B_DIRECT_FLASH_DIAG: "false"
   # Raspberry Pi runner 上でのプロジェクト横断デバイス排他ロック格納先。
   DEVICE_LOCK_ROOT: "/tmp/gitlab-device-locks"
   # RUN_OTA_ONLY: OTA テストのみ実行するショートカットモード。
@@ -121,6 +128,8 @@ build:
     - run_ishiguro_machine
   rules:
     - if: $RUN_PHASE8B_BUILD_ONLY == "true"
+      when: never
+    - if: $RUN_PHASE8B_BASELINE == "true"
       when: never
     - if: $RUN_OTA_ONLY == "true"
       when: never
@@ -299,12 +308,17 @@ build_phase8b:
   tags:
     - run_ishiguro_machine
   rules:
+    - if: $RUN_PHASE8B_DIRECT_FLASH_DIAG == "true"
     - if: $RUN_PHASE8B_BUILD_ONLY == "true"
+    - if: $RUN_PHASE8B_BASELINE == "true"
     - changes:
         - phase8b/**/*
         - docs/phase8b-migration-plan.md
         - CLAUDE.md
         - tools/ci/build_phase8b_headless.ps1
+        - tools/provision_phase8b.py
+        - tools/test_phase8b_mqtt.py
+        - test_scripts/uart_test/test_uart_download.py
         - .gitlab-ci.yml
   script:
     - |
@@ -323,6 +337,252 @@ build_phase8b:
       - phase8b/Projects/aws_ether_rx72n_envision_kit/e2studio_ccrx/HardwareDebug/*.x
     expire_in: 1 week
 
+flash_phase8b_boot_loader:
+  stage: flash
+  extends:
+    - .pi_flash_job
+    - .pi_pyserial_job
+  rules:
+    - if: $RUN_PHASE8B_BUILD_ONLY == "true"
+      when: never
+    - if: $RUN_OTA_ONLY == "true"
+      when: never
+    - if: $RUN_PHASE8B_BASELINE == "true"
+    - when: never
+  needs:
+    - job: build_phase8b
+      artifacts: true
+  script:
+    - |
+      set -euo pipefail
+      source "$CI_PROJECT_DIR/tools/ci/acquire_pi_device_lock.sh" "$DEVICE_ID"
+      mot="$CI_PROJECT_DIR/$PHASE8B_E2STUDIO_PROJECTS/boot_loader_rx72n_envision_kit/e2studio_ccrx/HardwareDebug/boot_loader_rx72n_envision_kit.mot"
+      if [[ ! -f "$mot" ]]; then
+        echo "ERROR: $mot not found"
+        exit 1
+      fi
+      if [[ -z "${E2LITE_SERIAL:-}" ]]; then
+        echo "ERROR: E2LITE_SERIAL not set"
+        exit 1
+      fi
+      echo "=== Flash phase8b boot_loader ==="
+      echo "  .mot:   $mot"
+      echo "  Device: RX72x"
+      echo "  Tool:   E2 Lite (${E2LITE_SERIAL})"
+      "$RFP_CLI" -device RX72x -tool "e2l:${E2LITE_SERIAL}" -if fine -speed 1500K \
+        -auth id FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF -erase-chip -noquery
+      "$RFP_CLI" -device RX72x -tool "e2l:${E2LITE_SERIAL}" -if fine -speed 1500K \
+        -auth id FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF -p "$mot" -v -run -noquery
+      if [[ "${RUN_HW_HEALTHCHECK}" == "true" ]]; then
+        bash "$CI_PROJECT_DIR/tools/ci/validate_pi_serial_path.sh" UART_PORT
+        if ! python3 "$CI_PROJECT_DIR/test_scripts/uart_test/check_device_health.py" \
+          boot-banner \
+          --port "$UART_PORT" \
+          --baud "$UART_BAUD_RATE" \
+          --expect "BootLoader" \
+          --expect "send image(*.rsu) via UART." \
+          --timeout 20 | tee "$CI_PROJECT_DIR/phase8b_boot_loader_health.log"; then
+          echo "[WARN] phase8b boot_loader banner health-check did not observe the one-shot UART banner."
+          echo "[WARN] Continue to download_phase8b_app, which performs the real ready-message gate."
+        fi
+      fi
+  artifacts:
+    when: always
+    paths:
+      - phase8b_boot_loader_health.log
+    expire_in: 1 week
+
+download_phase8b_app:
+  stage: flash
+  extends:
+    - .pi_flash_job
+    - .pi_crypto_serial_job
+  rules:
+    - if: $RUN_PHASE8B_BUILD_ONLY == "true"
+      when: never
+    - if: $RUN_OTA_ONLY == "true"
+      when: never
+    - if: $RUN_PHASE8B_BASELINE == "true"
+    - when: never
+  needs:
+    - job: build_phase8b
+      artifacts: true
+    - job: flash_phase8b_boot_loader
+  variables:
+    RSU_SEQ_NO: "1"
+  script:
+    - |
+      set -euo pipefail
+      source "$CI_PROJECT_DIR/tools/ci/acquire_pi_device_lock.sh" "$DEVICE_ID"
+      bash "$CI_PROJECT_DIR/tools/ci/validate_pi_serial_path.sh" UART_PORT
+      mot="$CI_PROJECT_DIR/$PHASE8B_E2STUDIO_PROJECTS/aws_ether_rx72n_envision_kit/e2studio_ccrx/HardwareDebug/aws_ether_rx72n_envision_kit.mot"
+      rsu_prefix="$CI_PROJECT_DIR/phase8b_userprog"
+      rsu="${rsu_prefix}.rsu"
+      key="$CI_PROJECT_DIR/sample_keys/secp256r1.privatekey"
+      prm="$CI_PROJECT_DIR/$PHASE8B_E2STUDIO_PROJECTS/boot_loader_rx72n_envision_kit/e2studio_ccrx/src/smc_gen/r_fwup/tool/RX72N_DualBank_ImageGenerator_PRM.csv"
+      builder="$CI_PROJECT_DIR/tools/build_fwup_v2_rsu.py"
+      reset_cmd="$RFP_CLI -device RX72x -tool e2l:${E2LITE_SERIAL} -if fine -run -noquery"
+      if [[ ! -f "$mot" ]]; then
+        echo "ERROR: phase8b app .mot not found: $mot"
+        exit 1
+      fi
+      if [[ ! -f "$builder" ]]; then
+        echo "ERROR: phase8b RSU builder not found: $builder"
+        exit 1
+      fi
+      if [[ ! -f "$prm" ]]; then
+        echo "ERROR: phase8b PRM file not found: $prm"
+        exit 1
+      fi
+      echo "=== Generate phase8b RSU (FWUP v2 / RELFWV2 format) ==="
+      echo "  MOT: $mot"
+      echo "  PRM: $prm"
+      echo "  RSU: $rsu"
+      echo "  Reset: $reset_cmd"
+      python3 "$builder" \
+        --mot "$mot" \
+        --prm "$prm" \
+        --key "$key" \
+        --output "$rsu"
+      echo "=== UART Download phase8b app ==="
+      python3 "$CI_PROJECT_DIR/test_scripts/uart_test/test_uart_download.py" \
+        --rsu "$rsu" --port "$UART_PORT" --baud "$UART_BAUD_RATE" \
+        --timeout 300 --diag --wait-for-ready --ready-timeout 60 \
+        --send-chunk-size 128 --ack-each-chunk --ack-timeout 20 \
+        --reset-cmd "$reset_cmd" \
+        --ready-message "send image(*.rsu) via UART." \
+        --success-message "execute image ..." \
+        --success-timeout 30
+      # phase8b の CLI は app 初回起動直後の短時間だけ有効。
+      # 外部 debugger reset で再現できないため、同一 job 内で provisioning と MQTT baseline まで進める。
+      echo "=== phase8b Provisioning (inline after first boot) ==="
+      python3 -u "$CI_PROJECT_DIR/tools/provision_phase8b.py" \
+        --device-id "$DEVICE_ID" \
+        --port "$UART_PORT" \
+        --baud "$UART_BAUD_RATE" \
+        --codesigner-cert "$CI_PROJECT_DIR/sample_keys/secp256r1.crt" \
+        --cli-timeout 40 \
+        --no-reset
+      echo "=== phase8b Software Reset via UART CLI ==="
+      python3 "$CI_PROJECT_DIR/tools/ci/send_serial_command.py" \
+        --port "$UART_PORT" \
+        --baud "$UART_BAUD_RATE" \
+        --command reset \
+        --delay-after 1
+      echo "=== phase8b MQTT baseline ==="
+      python3 -u "$CI_PROJECT_DIR/tools/test_phase8b_mqtt.py" \
+        --device-id "$DEVICE_ID" \
+        --log-port "$UART_PORT" \
+        --log-baud "$UART_BAUD_RATE" \
+        --timeout 150 \
+        --no-reset
+  artifacts:
+    when: always
+    paths:
+      - phase8b_userprog.rsu
+    expire_in: 1 week
+
+diag_phase8b_direct_flash_cli:
+  stage: test
+  extends:
+    - .pi_flash_job
+    - .pi_pyserial_job
+  timeout: 5 minutes
+  rules:
+    - if: $RUN_PHASE8B_DIRECT_FLASH_DIAG == "true"
+    - when: never
+  needs:
+    - job: build_phase8b
+      artifacts: true
+  script:
+    - |
+      set -euo pipefail
+      source "$CI_PROJECT_DIR/tools/ci/acquire_pi_device_lock.sh" "$DEVICE_ID"
+      bash "$CI_PROJECT_DIR/tools/ci/validate_pi_serial_path.sh" UART_PORT
+      boot_mot="$CI_PROJECT_DIR/$PHASE8B_E2STUDIO_PROJECTS/boot_loader_rx72n_envision_kit/e2studio_ccrx/HardwareDebug/boot_loader_rx72n_envision_kit.mot"
+      mot="$CI_PROJECT_DIR/$PHASE8B_E2STUDIO_PROJECTS/aws_ether_rx72n_envision_kit/e2studio_ccrx/HardwareDebug/aws_ether_rx72n_envision_kit.mot"
+      if [[ ! -f "$boot_mot" ]]; then
+        echo "ERROR: phase8b boot_loader .mot not found: $boot_mot"
+        exit 1
+      fi
+      if [[ ! -f "$mot" ]]; then
+        echo "ERROR: phase8b app .mot not found: $mot"
+        exit 1
+      fi
+      echo "=== Restore phase8b boot_loader/config area ==="
+      echo "  Boot MOT: $boot_mot"
+      echo "  Device:   RX72x"
+      echo "  Tool:     E2 Lite (${E2LITE_SERIAL})"
+      "$RFP_CLI" -device RX72x -tool "e2l:${E2LITE_SERIAL}" -if fine -speed 1500K \
+        -auth id FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF -erase-chip -noquery
+      "$RFP_CLI" -device RX72x -tool "e2l:${E2LITE_SERIAL}" -if fine -speed 1500K \
+        -auth id FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF -p "$boot_mot" -v -run -noquery
+      echo "=== Direct flash phase8b app (.mot) ==="
+      echo "  App MOT: $mot"
+      echo "  Device: RX72x"
+      echo "  Tool:   E2 Lite (${E2LITE_SERIAL})"
+      "$RFP_CLI" -device RX72x -tool "e2l:${E2LITE_SERIAL}" -if fine -speed 1500K \
+        -auth id FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF -p "$mot" -v -run -noquery
+      echo "=== phase8b CLI provisioning (direct-flashed app) ==="
+      python3 -u "$CI_PROJECT_DIR/tools/provision_phase8b.py" \
+        --device-id "$DEVICE_ID" \
+        --port "$UART_PORT" \
+        --baud "$UART_BAUD_RATE" \
+        --codesigner-cert "$CI_PROJECT_DIR/sample_keys/secp256r1.crt" \
+        --cli-timeout 40 \
+        --no-reset
+
+provision_phase8b_credentials:
+  stage: health
+  extends:
+    - .pi_device_job
+    - .pi_pyserial_job
+  timeout: 5 minutes
+  rules:
+    - when: never
+  needs:
+    - job: download_phase8b_app
+  script:
+    - |
+      set -euo pipefail
+      source "$CI_PROJECT_DIR/tools/ci/acquire_pi_device_lock.sh" "$DEVICE_ID"
+      bash "$CI_PROJECT_DIR/tools/ci/validate_pi_serial_path.sh" UART_PORT
+      reset_cmd="$RFP_CLI -device RX72x -tool e2l:${E2LITE_SERIAL} -if fine -reset -noquery"
+      echo "=== phase8b Provisioning ==="
+      echo "  Device ID: $DEVICE_ID"
+      echo "  Port:      $UART_PORT @ ${UART_BAUD_RATE}bps"
+      echo "  Reset:     $reset_cmd"
+      python3 "$CI_PROJECT_DIR/tools/provision_phase8b.py" \
+        --device-id "$DEVICE_ID" \
+        --port "$UART_PORT" \
+        --baud "$UART_BAUD_RATE" \
+        --codesigner-cert "$CI_PROJECT_DIR/sample_keys/secp256r1.crt" \
+        --reset-cmd "$reset_cmd"
+
+confirm_phase8b_mqtt:
+  stage: test
+  extends:
+    - .pi_device_job
+    - .pi_pyserial_job
+  timeout: 5 minutes
+  rules:
+    - when: never
+  needs:
+    - job: provision_phase8b_credentials
+  script:
+    - |
+      set -euo pipefail
+      source "$CI_PROJECT_DIR/tools/ci/acquire_pi_device_lock.sh" "$DEVICE_ID"
+      bash "$CI_PROJECT_DIR/tools/ci/validate_pi_serial_path.sh" UART_PORT
+      reset_cmd="$RFP_CLI -device RX72x -tool e2l:${E2LITE_SERIAL} -if fine -reset -noquery"
+      echo "=== phase8b MQTT baseline ==="
+      echo "  Device ID: $DEVICE_ID"
+      echo "  Reset:     $reset_cmd"
+      python3 "$CI_PROJECT_DIR/tools/test_phase8b_mqtt.py" \
+        --device-id "$DEVICE_ID" \
+        --timeout 150 \
+        --reset-cmd "$reset_cmd"
+
 flash_boot_loader:
   stage: flash
   extends:
@@ -330,6 +590,8 @@ flash_boot_loader:
     - .pi_pyserial_job
   rules:
     - if: $RUN_PHASE8B_BUILD_ONLY == "true"
+      when: never
+    - if: $RUN_PHASE8B_BASELINE == "true"
       when: never
     - if: $RUN_OTA_ONLY == "true"
       when: never
@@ -386,6 +648,8 @@ download_aws_demos:
   rules:
     - if: $RUN_PHASE8B_BUILD_ONLY == "true"
       when: never
+    - if: $RUN_PHASE8B_BASELINE == "true"
+      when: never
     - if: $RUN_OTA_ONLY == "true"
       when: never
     - when: always
@@ -435,6 +699,8 @@ health_aws_demos_startup:
   rules:
     - if: $RUN_PHASE8B_BUILD_ONLY == "true"
       when: never
+    - if: $RUN_PHASE8B_BASELINE == "true"
+      when: never
     - if: $RUN_OTA_ONLY == "true"
       when: never
     - if: $RUN_HW_HEALTHCHECK == "true"
@@ -473,6 +739,8 @@ test_commands:
   rules:
     - if: $RUN_PHASE8B_BUILD_ONLY == "true"
       when: never
+    - if: $RUN_PHASE8B_BASELINE == "true"
+      when: never
     - if: $RUN_OTA_ONLY == "true"
       when: never
     - when: always
@@ -507,6 +775,8 @@ test_screen_navigation:
   rules:
     - if: $RUN_PHASE8B_BUILD_ONLY == "true"
       when: never
+    - if: $RUN_PHASE8B_BASELINE == "true"
+      when: never
     - if: $RUN_OTA_ONLY == "true"
       when: never
     - when: always
@@ -531,6 +801,8 @@ provision_aws_credentials:
   timeout: 3 minutes
   rules:
     - if: $RUN_PHASE8B_BUILD_ONLY == "true"
+      when: never
+    - if: $RUN_PHASE8B_BASELINE == "true"
       when: never
     - if: $RUN_OTA_ONLY == "true"
       when: never
@@ -559,6 +831,8 @@ confirm_aws_mqtt:
   rules:
     - if: $RUN_PHASE8B_BUILD_ONLY == "true"
       when: never
+    - if: $RUN_PHASE8B_BASELINE == "true"
+      when: never
     - if: $RUN_OTA_ONLY == "true"
       when: never
     - if: $RUN_AWS_TESTS == "true"
@@ -585,6 +859,8 @@ test_sd_update:
   timeout: 10 minutes
   rules:
     - if: $RUN_PHASE8B_BUILD_ONLY == "true"
+      when: never
+    - if: $RUN_PHASE8B_BASELINE == "true"
       when: never
     - if: $RUN_OTA_ONLY == "true"
       when: never
@@ -620,6 +896,8 @@ build_ota:
     - run_ishiguro_machine
   rules:
     - if: $RUN_PHASE8B_BUILD_ONLY == "true"
+      when: never
+    - if: $RUN_PHASE8B_BASELINE == "true"
       when: never
     - if: $RUN_OTA_TEST == "true"
   script:
@@ -790,6 +1068,8 @@ prepare_ota:
   rules:
     - if: $RUN_PHASE8B_BUILD_ONLY == "true"
       when: never
+    - if: $RUN_PHASE8B_BASELINE == "true"
+      when: never
     - if: $RUN_OTA_TEST == "true"
   dependencies:
     - build_ota
@@ -848,6 +1128,8 @@ ota_create_job:
   rules:
     - if: $RUN_PHASE8B_BUILD_ONLY == "true"
       when: never
+    - if: $RUN_PHASE8B_BASELINE == "true"
+      when: never
     - if: $RUN_OTA_TEST == "true"
   dependencies:
     - build_ota
@@ -878,6 +1160,8 @@ ota_monitor:
   timeout: 15 minutes
   rules:
     - if: $RUN_PHASE8B_BUILD_ONLY == "true"
+      when: never
+    - if: $RUN_PHASE8B_BASELINE == "true"
       when: never
     - if: $RUN_OTA_TEST == "true"
   dependencies: []
@@ -911,6 +1195,8 @@ ota_finalize:
   when: always
   rules:
     - if: $RUN_PHASE8B_BUILD_ONLY == "true"
+      when: never
+    - if: $RUN_PHASE8B_BASELINE == "true"
       when: never
     - if: $RUN_OTA_TEST == "true"
   dependencies:

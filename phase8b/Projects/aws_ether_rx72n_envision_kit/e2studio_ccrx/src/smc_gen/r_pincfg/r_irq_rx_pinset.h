@@ -56,6 +56,6 @@ Global variables and functions
 #define IRQ_PORT_IRQ15_PORT     ('m')
 #define IRQ_PORT_IRQ15_BIT      ('n')
 
-void R_ICU_PinSet();
+void R_ICU_PinSet( void );
 
 #endif

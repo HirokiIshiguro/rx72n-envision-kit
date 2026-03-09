@@ -135,7 +135,7 @@ int32_t xprvGetValueLengthFromImpl( KVStoreKey_t keyIndex)
  * @param[in] KVStoreKey_t Key to lookup
  * @return length of the value stored in the KVStore or 0 if not found.
  */
-int32_t GetTotalLengthFromImpl()
+int32_t GetTotalLengthFromImpl( void )
 {
     size_t xLength = 0;
     struct lfs_info xFileInfo = { 0 };

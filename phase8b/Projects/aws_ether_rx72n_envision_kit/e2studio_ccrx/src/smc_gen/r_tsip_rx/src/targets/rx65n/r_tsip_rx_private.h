@@ -150,8 +150,8 @@ e_tsip_err_t R_TSIP_Aes128CtrInitPrivate(tsip_aes_key_index_t *key_index, uint32
 e_tsip_err_t R_TSIP_Aes256CtrInitPrivate(tsip_aes_key_index_t *key_index, uint32_t *InData_IV);
 e_tsip_err_t R_TSIP_Aes128CtrUpdatePrivate(uint32_t *InData_Text, uint32_t *OutData_Text, uint32_t MAX_CNT);
 e_tsip_err_t R_TSIP_Aes256CtrUpdatePrivate(uint32_t *InData_Text, uint32_t *OutData_Text, uint32_t MAX_CNT);
-e_tsip_err_t R_TSIP_Aes128CtrFinalPrivate();
-e_tsip_err_t R_TSIP_Aes256CtrFinalPrivate();
+e_tsip_err_t R_TSIP_Aes128CtrFinalPrivate( void );
+e_tsip_err_t R_TSIP_Aes256CtrFinalPrivate( void );
 
 e_tsip_err_t R_TSIP_Aes128GcmEncryptInitPrivate(tsip_aes_key_index_t *key_index, e_tsip_tls13_phase_t tls13_phase,
         e_tsip_tls13_mode_t tls13_mode, tsip_tls13_handle_t *tls13_handle, uint32_t *InData_IV);

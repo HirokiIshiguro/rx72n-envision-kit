@@ -121,7 +121,7 @@ typedef enum KVStoreKeytype
 } KVStoreValueType_t;
 
 int32_t xprvGetValueLengthFromImpl( KVStoreKey_t keyIndex);
-int32_t GetTotalLengthFromImpl();
+int32_t GetTotalLengthFromImpl( void );
 BaseType_t xprvWriteValueToImpl (KVStoreKey_t keyIndex, char *pucData, uint32_t ulDataSize);
 int32_t xprvReadValueFromImpl (KVStoreKey_t keyIndex,
         char **ppucData,

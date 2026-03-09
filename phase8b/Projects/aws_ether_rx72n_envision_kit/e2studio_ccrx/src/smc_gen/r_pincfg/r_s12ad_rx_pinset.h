@@ -23,6 +23,6 @@ Includes
 Global variables and functions
 ***********************************************************************************************************************/
 
-void R_ADC_PinSet_S12AD1();
+void R_ADC_PinSet_S12AD1( void );
 
 #endif

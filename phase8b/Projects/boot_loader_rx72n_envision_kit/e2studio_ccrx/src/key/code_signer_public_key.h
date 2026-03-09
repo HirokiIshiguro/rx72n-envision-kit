@@ -27,8 +27,8 @@
  */
 #define CODE_SIGNER_PUBLIC_KEY_PEM \
 "-----BEGIN PUBLIC KEY-----"\
-"MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEyTSaQbj/FMrWl5RaDdOdTOfqC6q2"\
-"yB1opyxazz+GUmWojga9+fFEGcWHlJS9fBns3Se5T7d7h9ao5duZNSin1g=="\
+"MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEWiAlaCQGEgIKoP+qk7Uqc/ME/hjw"\
+"amq1v/z/LWx15CKig59Pd3+ar2RFOlMMOhIfkYgS+Ha7tH+w0ggnKDrUug=="\
 "-----END PUBLIC KEY-----"
 
 #endif /* CODE_SIGNER_PUBLIC_KEY_H_ */

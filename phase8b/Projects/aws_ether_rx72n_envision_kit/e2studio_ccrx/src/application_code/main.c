@@ -388,7 +388,7 @@ End of function vApplicationGetTimerTaskMemory
  * Argument     :
  * Return Value : .
  *********************************************************************************************************************/
-void vApplicationMallocFailedHook()
+void vApplicationMallocFailedHook( void )
     {
         configPRINT_STRING(("ERROR: Malloc failed to allocate memory\r\n"));
         taskDISABLE_INTERRUPTS();

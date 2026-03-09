@@ -519,11 +519,11 @@
                 <Path>..\..\..\Middleware\FreeRTOS\FreeRTOS-Kernel\portable\MemMang\heap_4.c</Path>
               </Category>
               <Category Name="Renesas">
-                <Category Name="RX600v2">
-                  <Path>..\..\..\Middleware\FreeRTOS\FreeRTOS-Kernel\portable\Renesas\RX600v2\port.c</Path>
-                  <Path>..\..\..\Middleware\FreeRTOS\FreeRTOS-Kernel\portable\Renesas\RX600v2\port_asm.src</Path>
-                  <Path>..\..\..\Middleware\FreeRTOS\FreeRTOS-Kernel\portable\Renesas\RX600v2\portmacro.h</Path>
-                  <Path>..\..\..\Middleware\FreeRTOS\FreeRTOS-Kernel\portable\Renesas\RX600v2\readme.txt</Path>
+                <Category Name="RX700v3_DPFPU">
+                  <Path>..\..\..\Middleware\FreeRTOS\FreeRTOS-Kernel\portable\Renesas\RX700v3_DPFPU\port.c</Path>
+                  <Path>..\..\..\Middleware\FreeRTOS\FreeRTOS-Kernel\portable\Renesas\RX700v3_DPFPU\port_asm.src</Path>
+                  <Path>..\..\..\Middleware\FreeRTOS\FreeRTOS-Kernel\portable\Renesas\RX700v3_DPFPU\portmacro.h</Path>
+                  <Path>..\..\..\Middleware\FreeRTOS\FreeRTOS-Kernel\portable\Renesas\RX700v3_DPFPU\readme.txt</Path>
                 </Category>
               </Category>
             </Category>
@@ -1402,7 +1402,7 @@
         <CompileOptions>
           <Option>-isa=rxv3</Option>
           <Option>-fpu</Option>
-          <Option>-nodpfpu</Option>
+          <Option>-dpfpu</Option>
           <Option>-branch=32</Option>
           <Option>-include="${ProjDirPath}\src\smc_gen\r_bsp"</Option>
           <Option>-include="${ProjDirPath}\src\smc_gen\general"</Option>
@@ -1459,7 +1459,7 @@
           <Option>-include="C:\codex\tmp_rx72n_envision_kit_import_main\phase8b\Demos\include"</Option>
           <Option>-include="${ProjDirPath}\src\frtos_config"</Option>
           <Option>-include="${ProjDirPath}\src\frtos_startup"</Option>
-          <Option>-include="C:\codex\tmp_rx72n_envision_kit_import_main\phase8b\Middleware\FreeRTOS\FreeRTOS-Kernel\portable\Renesas\RX600v2"</Option>
+          <Option>-include="C:\codex\tmp_rx72n_envision_kit_import_main\phase8b\Middleware\FreeRTOS\FreeRTOS-Kernel\portable\Renesas\RX700v3_DPFPU"</Option>
           <Option>-include="C:\codex\tmp_rx72n_envision_kit_import_main\phase8b\Middleware\FreeRTOS\FreeRTOS-Plus-TCP\source\portable\Compiler\Renesas"</Option>
           <Option>-include="${ProjDirPath}\src\smc_gen"</Option>
           <Option>-include="${ProjDirPath}\src\smc_gen\r_ether_rx"</Option>
@@ -1498,7 +1498,7 @@
         <AssembleOptions>
           <Option>-isa=rxv3</Option>
           <Option>-fpu</Option>
-          <Option>-nodpfpu</Option>
+          <Option>-dpfpu</Option>
           <Option>-include="${ProjDirPath}\src\smc_gen\r_flash_rx"</Option>
           <Option>-include="${ProjDirPath}\src\smc_gen\r_flash_rx\src\flash_type_1"</Option>
           <Option>-include="${ProjDirPath}\src\smc_gen\general"</Option>
@@ -1541,12 +1541,12 @@
           <Option>-list</Option>
           <Option>-show=symbol</Option>
           <Option>-samesize=1E</Option>
-          <Option>-start=SU,SI,R_1,B_2,R,RPFRAM2\04,C_LITTLEFS_MANAGEMENT_AREA,C_FIRMWARE_UPDATE_CONTROL_BLOCK,C_FIRMWARE_UPDATE_CONTROL_BLOCK_MIRROR\0100000,C_USER_APPLICATION_AREA\0102300,B_ETHERNET_BUFFERS*,B_RX_DESC*,B_TX_DESC*,B,B_1,R_2,B_8,R_8,BEXRAM_1,REXRAM_1,BEXRAM_2,REXRAM_2,BEXRAM,REXRAM,BEXRAM_8,REXRAM_8\0800000,PResetPRG,C_1,C_2,C,C_8,C$*,D*,W*,L,P,PFRAM2\0FFF00300,EXCEPTVECT\0FFFEFF80,RESETVECT\0FFFEFFFC</Option>
+          <Option>-start=SU,SI,R_1,B_2,R,RPFRAM2\04,C_LITTLEFS_MANAGEMENT_AREA,C_FIRMWARE_UPDATE_CONTROL_BLOCK,C_FIRMWARE_UPDATE_CONTROL_BLOCK_MIRROR\0100000,C_USER_APPLICATION_AREA\0102300,B_ETHERNET_BUFFERS*,B_RX_DESC*,B_TX_DESC*,B,B_1,R_2,B_8,R_8,BEXRAM_1,REXRAM_1,BEXRAM_2,REXRAM_2,BEXRAM,REXRAM,BEXRAM_8,REXRAM_8\0800000,PResetPRG,C_1,C_2,C,C_8,C$*,D*,W*,L,P,PFRAM2\0FFE00300,EXCEPTVECT\0FFFBFF80,RESETVECT\0FFFBFFFC</Option>
           <Option>-rom=DEXRAM=REXRAM,PFRAM2=RPFRAM2,DEXRAM_2=REXRAM_2,D=R,D_1=R_1,D_2=R_2,D_8=R_8,DEXRAM_1=REXRAM_1,DEXRAM_8=REXRAM_8</Option>
           <Option>-cpu=RAM=00000000-0007ffff,FIX=00080000-00083fff,FIX=00086000-00087fff,FIX=00088000-0009ffff,FIX=000a0000-000a3fff,RAM=000a4000-000a5fff,FIX=000a6000-000bffff,FIX=000c0000-000dffff,FIX=000e0000-000fffff,ROM=00100000-00107fff,FIX=007fc000-007fcfff,FIX=007fe000-007fffff,RAM=00800000-0087ffff,RAM=00ff8000-00ffffff,RAM=fe7f5d00-fe7f5d7f,RAM=fe7f7d70-fe7f7d9f,ROM=ffc00000-ffffffff</Option>
           <Option>-nologo</Option>
           <Option>-change_message=information=2220</Option>
-          <Option>-start=SU,SI,R_1,B_2,R,RPFRAM2/04,C_LITTLEFS_MANAGEMENT_AREA,C_FIRMWARE_UPDATE_CONTROL_BLOCK,C_FIRMWARE_UPDATE_CONTROL_BLOCK_MIRROR/0100000,C_USER_APPLICATION_AREA/0102300,B_ETHERNET_BUFFERS*,B_RX_DESC*,B_TX_DESC*,B,B_1,R_2,B_8,R_8,BEXRAM_1,REXRAM_1,BEXRAM_2,REXRAM_2,BEXRAM,REXRAM,BEXRAM_8,REXRAM_8/0800000,PResetPRG,C_1,C_2,C,C_8,C$*,D*,W*,L,P,PFRAM2/0FFF00300,EXCEPTVECT/0FFFEFF80,RESETVECT/0FFFEFFFC</Option>
+          <Option>-start=SU,SI,R_1,B_2,R,RPFRAM2/04,C_LITTLEFS_MANAGEMENT_AREA,C_FIRMWARE_UPDATE_CONTROL_BLOCK,C_FIRMWARE_UPDATE_CONTROL_BLOCK_MIRROR/0100000,C_USER_APPLICATION_AREA/0102300,B_ETHERNET_BUFFERS*,B_RX_DESC*,B_TX_DESC*,B,B_1,R_2,B_8,R_8,BEXRAM_1,REXRAM_1,BEXRAM_2,REXRAM_2,BEXRAM,REXRAM,BEXRAM_8,REXRAM_8/0800000,PResetPRG,C_1,C_2,C,C_8,C$*,D*,W*,L,P,PFRAM2/0FFE00300,EXCEPTVECT/0FFFBFF80,RESETVECT/0FFFBFFFC</Option>
           <Option>-end</Option>
           <Option>-output="${ProjName}.mot"</Option>
           <Option>-form=stype</Option>
@@ -1560,7 +1560,7 @@
         <LibraryGenerateOptions>
           <Option>-isa=rxv3</Option>
           <Option>-fpu</Option>
-          <Option>-nodpfpu</Option>
+          <Option>-dpfpu</Option>
           <Option>-branch=32</Option>
           <Option>-lang=c99</Option>
           <Option>-head=runtime,ctype,math,mathf,stdarg,stdio,stdlib,string,new,fenv,inttypes,wchar,wctype</Option>
@@ -2184,7 +2184,7 @@
           <IncludePathForC>"C:\codex\tmp_rx72n_envision_kit_import_main\phase8b\Demos\include"</IncludePathForC>
           <IncludePathForC>"${ProjDirPath}\src\frtos_config"</IncludePathForC>
           <IncludePathForC>"${ProjDirPath}\src\frtos_startup"</IncludePathForC>
-          <IncludePathForC>"C:\codex\tmp_rx72n_envision_kit_import_main\phase8b\Middleware\FreeRTOS\FreeRTOS-Kernel\portable\Renesas\RX600v2"</IncludePathForC>
+          <IncludePathForC>"C:\codex\tmp_rx72n_envision_kit_import_main\phase8b\Middleware\FreeRTOS\FreeRTOS-Kernel\portable\Renesas\RX700v3_DPFPU"</IncludePathForC>
           <IncludePathForC>"C:\codex\tmp_rx72n_envision_kit_import_main\phase8b\Middleware\FreeRTOS\FreeRTOS-Plus-TCP\source\portable\Compiler\Renesas"</IncludePathForC>
           <IncludePathForC>"${ProjDirPath}\src\smc_gen"</IncludePathForC>
           <IncludePathForC>"${ProjDirPath}\src\smc_gen\r_ether_rx"</IncludePathForC>
