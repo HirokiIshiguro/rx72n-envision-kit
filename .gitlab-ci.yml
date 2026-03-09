@@ -499,17 +499,28 @@ diag_phase8b_direct_flash_cli:
       set -euo pipefail
       source "$CI_PROJECT_DIR/tools/ci/acquire_pi_device_lock.sh" "$DEVICE_ID"
       bash "$CI_PROJECT_DIR/tools/ci/validate_pi_serial_path.sh" UART_PORT
+      boot_mot="$CI_PROJECT_DIR/$PHASE8B_E2STUDIO_PROJECTS/boot_loader_rx72n_envision_kit/e2studio_ccrx/HardwareDebug/boot_loader_rx72n_envision_kit.mot"
       mot="$CI_PROJECT_DIR/$PHASE8B_E2STUDIO_PROJECTS/aws_ether_rx72n_envision_kit/e2studio_ccrx/HardwareDebug/aws_ether_rx72n_envision_kit.mot"
+      if [[ ! -f "$boot_mot" ]]; then
+        echo "ERROR: phase8b boot_loader .mot not found: $boot_mot"
+        exit 1
+      fi
       if [[ ! -f "$mot" ]]; then
         echo "ERROR: phase8b app .mot not found: $mot"
         exit 1
       fi
-      echo "=== Direct flash phase8b app (.mot) ==="
-      echo "  MOT:    $mot"
-      echo "  Device: RX72x"
-      echo "  Tool:   E2 Lite (${E2LITE_SERIAL})"
+      echo "=== Restore phase8b boot_loader/config area ==="
+      echo "  Boot MOT: $boot_mot"
+      echo "  Device:   RX72x"
+      echo "  Tool:     E2 Lite (${E2LITE_SERIAL})"
       "$RFP_CLI" -device RX72x -tool "e2l:${E2LITE_SERIAL}" -if fine -speed 1500K \
         -auth id FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF -erase-chip -noquery
+      "$RFP_CLI" -device RX72x -tool "e2l:${E2LITE_SERIAL}" -if fine -speed 1500K \
+        -auth id FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF -p "$boot_mot" -v -run -noquery
+      echo "=== Direct flash phase8b app (.mot) ==="
+      echo "  App MOT: $mot"
+      echo "  Device: RX72x"
+      echo "  Tool:   E2 Lite (${E2LITE_SERIAL})"
       "$RFP_CLI" -device RX72x -tool "e2l:${E2LITE_SERIAL}" -if fine -speed 1500K \
         -auth id FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF -p "$mot" -v -run -noquery
       echo "=== phase8b CLI provisioning (direct-flashed app) ==="
