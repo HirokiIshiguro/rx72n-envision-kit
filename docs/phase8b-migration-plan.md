@@ -54,6 +54,21 @@ Target tree aligned with `iot-reference-rx`:
 Important: this is not just a directory rename. Project contents, middleware
 references, and Smart Configurator outputs also change.
 
+## Phase 8b-1 Staging Root
+
+Because this repository is currently handled on Windows with `core.ignorecase=true`,
+the initial landing zone is created under `phase8b/` instead of the top level.
+
+The first staging layout is:
+- `phase8b/Common/`
+- `phase8b/Configuration/`
+- `phase8b/Middleware/`
+- `phase8b/Projects/`
+- `phase8b/Test/`
+
+This allows the new skeleton to be assembled without colliding with the existing
+top-level `projects/`, `vendors/`, `libraries/`, and `freertos_kernel/` trees.
+
 ## Initial Project Targets
 
 The first new projects should be based on the validated `iot-reference-rx`
