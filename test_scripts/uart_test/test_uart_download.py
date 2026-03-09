@@ -89,7 +89,8 @@ class UartDownloader:
                  ready_message=DEFAULT_READY_MESSAGE,
                  success_message=DEFAULT_SUCCESS_MESSAGE,
                  success_timeout=30, reset_cmd=None, reset_settle=0.2,
-                 send_chunk_size=SEND_CHUNK_SIZE, inter_chunk_delay=DEFAULT_INTER_CHUNK_DELAY):
+                 send_chunk_size=SEND_CHUNK_SIZE, inter_chunk_delay=DEFAULT_INTER_CHUNK_DELAY,
+                 rtscts=False):
         self.port_name = port
         self.baud = baud
         self.timeout = timeout
@@ -104,6 +105,7 @@ class UartDownloader:
         self.reset_settle = reset_settle
         self.send_chunk_size = send_chunk_size
         self.inter_chunk_delay = inter_chunk_delay
+        self.rtscts = rtscts
         self.ser = None
         self.rx_buffer = ""
         self.messages = []
@@ -126,6 +128,7 @@ class UartDownloader:
             stopbits=serial.STOPBITS_ONE,
             timeout=0.1,  # read timeout for non-blocking reads
             write_timeout=10,
+            rtscts=self.rtscts,
         )
         # Flush any stale data
         self.ser.reset_input_buffer()
@@ -237,6 +240,7 @@ class UartDownloader:
         print(f"  Timeout:  {self.timeout}s")
         print(f"  Chunk:    {self.send_chunk_size} bytes")
         print(f"  Delay:    {self.inter_chunk_delay:.3f}s")
+        print(f"  RTS/CTS:  {'ON' if self.rtscts else 'OFF'}")
         print()
 
         self.open_port()
@@ -458,6 +462,8 @@ def main():
                         help=f"UART TX chunk size in bytes (default: {SEND_CHUNK_SIZE})")
     parser.add_argument("--inter-chunk-delay", type=float, default=DEFAULT_INTER_CHUNK_DELAY,
                         help=f"Delay after each UART TX chunk in seconds (default: {DEFAULT_INTER_CHUNK_DELAY})")
+    parser.add_argument("--rtscts", action="store_true",
+                        help="Enable hardware RTS/CTS flow control")
 
     args = parser.parse_args()
 
@@ -480,6 +486,7 @@ def main():
         reset_settle=args.reset_settle,
         send_chunk_size=args.send_chunk_size,
         inter_chunk_delay=args.inter_chunk_delay,
+        rtscts=args.rtscts,
     )
 
     try:
