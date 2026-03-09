@@ -104,6 +104,10 @@ variables:
   before_script:
     - . "$CI_PROJECT_DIR/tools/ci/activate_pi_python.sh" pyserial cryptography
 
+.pi_imagegen_serial_job:
+  before_script:
+    - . "$CI_PROJECT_DIR/tools/ci/activate_pi_python.sh" pyserial pycryptodome
+
 .windows_ota_aws_job:
   tags:
     - run_ishiguro_machine
@@ -392,7 +396,7 @@ download_phase8b_app:
   stage: flash
   extends:
     - .pi_flash_job
-    - .pi_crypto_serial_job
+    - .pi_imagegen_serial_job
   rules:
     - if: $RUN_PHASE8B_BUILD_ONLY == "true"
       when: never
@@ -412,19 +416,36 @@ download_phase8b_app:
       source "$CI_PROJECT_DIR/tools/ci/acquire_pi_device_lock.sh" "$DEVICE_ID"
       bash "$CI_PROJECT_DIR/tools/ci/validate_pi_serial_path.sh" UART_PORT
       mot="$CI_PROJECT_DIR/$PHASE8B_E2STUDIO_PROJECTS/aws_ether_rx72n_envision_kit/e2studio_ccrx/HardwareDebug/aws_ether_rx72n_envision_kit.mot"
-      rsu="$CI_PROJECT_DIR/phase8b_userprog.rsu"
+      rsu_prefix="$CI_PROJECT_DIR/phase8b_userprog"
+      rsu="${rsu_prefix}.rsu"
       key="$CI_PROJECT_DIR/sample_keys/secp256r1.privatekey"
+      image_gen="$CI_PROJECT_DIR/$PHASE8B_E2STUDIO_PROJECTS/boot_loader_rx72n_envision_kit/e2studio_ccrx/src/smc_gen/r_fwup/tool/image-gen.py"
+      prm="$CI_PROJECT_DIR/$PHASE8B_E2STUDIO_PROJECTS/boot_loader_rx72n_envision_kit/e2studio_ccrx/src/smc_gen/r_fwup/tool/RX72N_DualBank_ImageGenerator_PRM.csv"
       reset_cmd="$RFP_CLI -device RX72x -tool e2l:${E2LITE_SERIAL} -if fine -run -noquery"
       if [[ ! -f "$mot" ]]; then
         echo "ERROR: phase8b app .mot not found: $mot"
         exit 1
       fi
-      echo "=== Convert phase8b .mot to .rsu ==="
+      if [[ ! -f "$image_gen" ]]; then
+        echo "ERROR: phase8b image generator not found: $image_gen"
+        exit 1
+      fi
+      if [[ ! -f "$prm" ]]; then
+        echo "ERROR: phase8b PRM file not found: $prm"
+        exit 1
+      fi
+      echo "=== Generate phase8b RSU (FWUP v2 / BareMetal format) ==="
       echo "  MOT: $mot"
+      echo "  PRM: $prm"
       echo "  RSU: $rsu"
       echo "  Reset: $reset_cmd"
-      python3 "$CI_PROJECT_DIR/tools/mcu-tool-rx/mot_to_rsu.py" \
-        --mot "$mot" --key "$key" -o "$rsu" --seq-no "$RSU_SEQ_NO"
+      python3 "$image_gen" \
+        -iup "$mot" \
+        -ip "$prm" \
+        -o "$rsu_prefix" \
+        -key "$key" \
+        -vt ecdsa \
+        -ff BareMetal
       echo "=== UART Download phase8b app ==="
       python3 "$CI_PROJECT_DIR/test_scripts/uart_test/test_uart_download.py" \
         --rsu "$rsu" --port "$UART_PORT" --baud "$UART_BAUD_RATE" \

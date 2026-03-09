@@ -75,6 +75,7 @@ MSG_CHECK_NG = "...NG"
 MSG_CONST_DATA = "installing const data"
 MSG_COMPLETED_CONST = "completed installing const data"
 MSG_SW_RESET = "software reset"
+MSG_ERROR = "error occurred"
 DEFAULT_SUCCESS_MESSAGE = "jump to user program"
 DEFAULT_READY_MESSAGE = "send \"userprog.rsu\" via UART."
 
@@ -327,6 +328,10 @@ class UartDownloader:
                     integrity_ok = True
                 elif MSG_CHECK_NG in line and MSG_INTEGRITY_CHECK in '\n'.join(self.messages[-5:]):
                     print(f"\nERROR: Firmware integrity check FAILED")
+                    self.close_port()
+                    return 1
+                elif MSG_ERROR in line.lower():
+                    print(f"\nERROR: Boot loader reported failure: {line}")
                     self.close_port()
                     return 1
                 elif MSG_COMPLETED_CONST in line:

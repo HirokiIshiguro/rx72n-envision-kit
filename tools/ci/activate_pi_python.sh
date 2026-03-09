@@ -23,6 +23,9 @@ check_system_requirement() {
     cryptography)
       python3 -c "import cryptography" >/dev/null 2>&1
       ;;
+    pycryptodome)
+      python3 -c "from Crypto.Hash import SHA256" >/dev/null 2>&1
+      ;;
     awscli)
       command -v aws >/dev/null 2>&1
       ;;
