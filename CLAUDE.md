@@ -86,7 +86,7 @@ Phase 8b は親 issue [#11](https://shelty2.servegame.com/oss/import/github/rene
 
 **Repo layout target / 目標構成:**
 - Current repo still uses the legacy lower-case tree (`projects/`, `vendors/`, `libraries/`, `freertos_kernel/`).
-- Target layout follows `iot-reference-rx`: `Common/`, `Configuration/`, `Middleware/`, `Projects/`, `Test/`.
+- Target layout follows `iot-reference-rx`: `Common/`, `Configuration/`, `Demos/`, `Middleware/`, `Projects/`, `Test/`.
 - Initial RX72N project names are expected to be `aws_ether_rx72n_envision_kit` and `boot_loader_rx72n_envision_kit`.
 - Phase 8b-1 uses `phase8b/` as a staging root so the new layout can be prepared without breaking the current tree on Windows.
 

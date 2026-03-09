@@ -47,6 +47,7 @@ Current legacy tree:
 Target tree aligned with `iot-reference-rx`:
 - `Common/`
 - `Configuration/`
+- `Demos/`
 - `Middleware/`
 - `Projects/`
 - `Test/`
@@ -62,6 +63,7 @@ the initial landing zone is created under `phase8b/` instead of the top level.
 The first staging layout is:
 - `phase8b/Common/`
 - `phase8b/Configuration/`
+- `phase8b/Demos/`
 - `phase8b/Middleware/`
 - `phase8b/Projects/`
 - `phase8b/Test/`
@@ -121,6 +123,7 @@ validated upstream baseline there before RX72N-specific porting starts.
 
 - `phase8b/Common/`, `Configuration/`, `Middleware/`, and `Test/` seeded from
   `iot-reference-rx`
+- `phase8b/Demos/` seeded from `iot-reference-rx`
 - app seed under `phase8b/Projects/aws_ether_rx72n_envision_kit/`
 - boot loader seed under `phase8b/Projects/boot_loader_rx72n_envision_kit/`
 - upstream inventory documented in `phase8b/UPSTREAM_BASELINE.md`

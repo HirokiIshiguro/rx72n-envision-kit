@@ -14,10 +14,12 @@ Once the migrated baseline is stable, the final top-level consolidation can be h
 as a separate change.
 
 Current state:
-- shared `Common/`, `Configuration/`, `Middleware/`, and `Test/` content has been
+- shared `Common/`, `Configuration/`, `Demos/`, `Middleware/`, and `Test/` content has been
   imported from `iot-reference-rx`
 - seed `e2studio_ccrx` projects for app and boot loader have been copied under the
   RX72N target names
+- app seed is now buildable again as an RX65N-oriented baseline after restoring
+  `phase8b/Demos/`; the next step is RX72N retargeting
 - the imported seed still contains RX65N-oriented metadata and is not wired into the
   active pipeline yet
 

@@ -22,6 +22,15 @@ start from the same software baseline that already passed CI/CD in Phase 8a.
 - `phase8b/Configuration/`
   - top-level XML/MDF files
   - `samples/`
+- `phase8b/Demos/`
+  - `cli/`
+  - `common/`
+  - `dev_mode_key_provisioning/`
+  - `Fleet_Provisioning_With_CSR_Demo/`
+  - `include/`
+  - `mqtt_agent/`
+  - `OtaOverMqtt/`
+  - `SimplePubSub/`
 - `phase8b/Middleware/`
   - `3rdparty/`
   - `AWS/`
