@@ -26,8 +26,9 @@ from provisioning.security import mask_sensitive_output
 from device_config_loader import load_device_config, get_cert_env_var_name, get_key_env_var_name
 
 
-DEFAULT_PORT = os.environ.get("COMMAND_PORT", "COM10")
-DEFAULT_BAUD = int(os.environ.get("COMMAND_BAUD_RATE", "115200"))
+# phase8b app の短時間 CLI は SCI7 / CN6 のログ UART と共用される。
+DEFAULT_PORT = os.environ.get("UART_PORT", "COM7")
+DEFAULT_BAUD = int(os.environ.get("UART_BAUD_RATE", "921600"))
 DEFAULT_CHAR_DELAY = 0.002
 DEFAULT_LINE_DELAY = 0.5
 DEFAULT_BOOT_WAIT = 3.0
@@ -130,9 +131,9 @@ def resolve_device_args(args, parser):
         print(f"Loaded config for device: {args.device_id}")
 
         if args.port == DEFAULT_PORT:
-            args.port = device["command_port"]
+            args.port = device["log_port"]
         if args.baud == DEFAULT_BAUD:
-            args.baud = device["command_baud"]
+            args.baud = device["log_baud"]
         if not args.endpoint:
             args.endpoint = device["aws_endpoint"]
         if not args.thing_name:
