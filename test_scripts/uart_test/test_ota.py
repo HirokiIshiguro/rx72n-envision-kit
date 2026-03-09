@@ -407,6 +407,134 @@ def get_aws_account_id():
     return result.stdout.strip()
 
 
+def run_aws_cli_json(cmd, error_label):
+    """AWS CLI を実行し、JSON 応答を返す。"""
+    result = subprocess.run(cmd, capture_output=True, text=True)
+    if result.returncode != 0:
+        stderr = (result.stderr or "").strip()
+        raise RuntimeError(f"{error_label}: {stderr[:300]}")
+    stdout = (result.stdout or "").strip()
+    if not stdout:
+        return {}
+    return json.loads(stdout)
+
+
+def iter_ota_update_summaries(region, max_pages=5):
+    """list-ota-updates の結果をページングして列挙する。"""
+    summaries = []
+    next_token = None
+
+    for _ in range(max_pages):
+        cmd = [
+            "aws", "iot", "list-ota-updates",
+            "--region", region,
+            "--max-results", "100",
+        ]
+        if next_token:
+            cmd.extend(["--next-token", next_token])
+        response = run_aws_cli_json(cmd, "list-ota-updates failed")
+        summaries.extend(response.get("otaUpdates", []))
+        next_token = response.get("nextToken")
+        if not next_token:
+            break
+
+    return summaries
+
+
+def get_ota_update_info(ota_update_id, region):
+    """get-ota-update の otaUpdateInfo を返す。"""
+    response = run_aws_cli_json(
+        [
+            "aws", "iot", "get-ota-update",
+            "--ota-update-id", ota_update_id,
+            "--region", region,
+        ],
+        f"get-ota-update failed for {ota_update_id}",
+    )
+    return response.get("otaUpdateInfo", {})
+
+
+def matches_thing_target(targets, thing_name, region=None):
+    """OTA update の target ARN 群に対象 Thing が含まれるか判定する。"""
+    if not targets:
+        return False
+
+    expected_suffix = f":thing/{thing_name}"
+    expected_slash = f"/thing/{thing_name}"
+
+    for target in targets:
+        if target == thing_name:
+            return True
+        if target.endswith(expected_suffix) or target.endswith(expected_slash):
+            return True
+        if region and f":{region}:" in target and expected_suffix in target:
+            return True
+
+    return False
+
+
+def delete_ota_update(ota_update_id, region):
+    """OTA update と対応する IoT Job/stream を削除する。"""
+    print(f"[CLEANUP] Deleting OTA update: {ota_update_id}")
+    subprocess.run(
+        [
+            "aws", "iot", "delete-ota-update",
+            "--ota-update-id", ota_update_id,
+            "--delete-stream",
+            "--force-delete-aws-job",
+            "--region", region,
+        ],
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+
+
+def cleanup_stale_ota_updates(thing_name, region, keep_ota_update_id=None):
+    """対象 Thing 向けの古い OTA update を削除する。"""
+    prefixes = ("rx72n-ota-",)
+    summaries = iter_ota_update_summaries(region)
+    matched = []
+    deleted = []
+
+    print(f"[CLEANUP] Looking for stale OTA updates for thing: {thing_name}")
+    print(f"[CLEANUP]   Listed OTA updates: {len(summaries)}")
+
+    for summary in summaries:
+        ota_update_id = summary.get("otaUpdateId")
+        if not ota_update_id:
+            continue
+        if keep_ota_update_id and ota_update_id == keep_ota_update_id:
+            continue
+        if not ota_update_id.startswith(prefixes):
+            continue
+
+        ota_info = get_ota_update_info(ota_update_id, region)
+        targets = ota_info.get("targets", [])
+        if not matches_thing_target(targets, thing_name, region):
+            continue
+
+        status = ota_info.get("otaUpdateStatus", "unknown")
+        aws_job_id = ota_info.get("awsIotJobId")
+        matched.append(
+            {
+                "ota_update_id": ota_update_id,
+                "status": status,
+                "aws_job_id": aws_job_id,
+            }
+        )
+        print(f"[CLEANUP]   Match: {ota_update_id} (status={status}, job={aws_job_id})")
+        delete_ota_update(ota_update_id, region)
+        deleted.append(ota_update_id)
+
+    print(f"[CLEANUP] Deleted stale OTA updates: {len(deleted)}")
+    return {
+        "listed_count": len(summaries),
+        "matched": matched,
+        "deleted": deleted,
+    }
+
+
 def create_ota_job(thing_name, s3_bucket, s3_key, s3_version_id,
                    ota_role_arn, region, account_id, rsu_path):
     """AWS IoT OTA ジョブを作成する。
@@ -833,7 +961,7 @@ def legacy_main():
     try:
         # --- Step 1: OTA Agent 起動確認 ---
         print()
-        print("[STEP 1/6] Confirming OTA Agent is running")
+        print("[STEP 1/8] Confirming OTA Agent is running")
 
         # ログポートを先に開いてからリセットすることで、起動メッセージを確実に捕捉する。
         # prepare_ota → test_ota の間にデバイスが起動完了しアイドル状態になると、
@@ -1072,6 +1200,7 @@ def confirm_ota_agent(log_ser):
 def run_create_job_mode(args):
     """S3 upload + OTA job 作成のみを実行する。"""
     results = {
+        "stale_ota_cleanup": False,
         "s3_upload": False,
         "ota_job_created": False,
         "ota_job_ready": False,
@@ -1104,7 +1233,16 @@ def run_create_job_mode(args):
             time.sleep(args.create_start_delay)
 
         print()
-        print("[STEP 1/3] Uploading firmware to S3")
+        print("[STEP 1/4] Cleaning stale OTA updates")
+        if args.skip_ota_update_cleanup:
+            print("[SKIP] OTA update cleanup skipped (--skip-ota-update-cleanup)")
+            metadata["stale_ota_cleanup"] = {"skipped": True}
+        else:
+            metadata["stale_ota_cleanup"] = cleanup_stale_ota_updates(args.thing_name, args.region)
+        results["stale_ota_cleanup"] = True
+
+        print()
+        print("[STEP 2/4] Uploading firmware to S3")
         if args.skip_upload:
             print("[SKIP] S3 upload skipped (--skip-upload)")
             s3_version_id = ""
@@ -1114,7 +1252,7 @@ def run_create_job_mode(args):
         results["s3_upload"] = True
 
         print()
-        print("[STEP 2/3] Creating OTA update job")
+        print("[STEP 3/4] Creating OTA update job")
         account_id = get_aws_account_id()
         metadata["account_id"] = account_id
         ota_update_id = create_ota_job(
@@ -1125,7 +1263,7 @@ def run_create_job_mode(args):
         results["ota_job_created"] = True
 
         print()
-        print("[STEP 3/3] Waiting for OTA job to leave CREATE_PENDING")
+        print("[STEP 4/4] Waiting for OTA job to leave CREATE_PENDING")
         job_result = wait_for_ota_job_ready(ota_update_id, args.region, timeout=60)
         metadata["job_ready_status"] = job_result["status"]
         metadata["job_ready_error_info"] = job_result["error_info"]
@@ -1286,6 +1424,20 @@ def run_finalize_mode(args):
         if exc.stderr:
             print(f"[DEBUG] stderr: {exc.stderr[:300]}")
     finally:
+        if ota_update_id and not args.skip_ota_update_cleanup:
+            print()
+            print("[CLEANUP] Deleting current OTA update")
+            try:
+                delete_ota_update(ota_update_id, region)
+            except subprocess.CalledProcessError as exc:
+                print(f"[WARN] OTA update cleanup failed: {exc}")
+                if exc.stderr:
+                    print(f"[DEBUG] stderr: {exc.stderr[:300]}")
+            except Exception as exc:  # pragma: no cover - cleanup best effort
+                print(f"[WARN] OTA update cleanup failed: {exc}")
+        elif ota_update_id:
+            print("[SKIP] OTA update cleanup skipped (--skip-ota-update-cleanup)")
+
         if not args.skip_cleanup and s3_bucket and s3_key:
             print()
             print("[STEP 2/2] Cleaning up S3 object")
@@ -1332,7 +1484,15 @@ def run_full_mode(args):
             print(f"[INFO] Current firmware version: {format_version(current_version)}")
 
         print()
-        print("[STEP 2/6] Uploading firmware to S3")
+        print("[STEP 2/8] Cleaning stale OTA updates")
+        if args.skip_ota_update_cleanup:
+            print("[SKIP] OTA update cleanup skipped (--skip-ota-update-cleanup)")
+        else:
+            cleanup_stale_ota_updates(args.thing_name, args.region)
+        results["stale_ota_cleanup"] = True
+
+        print()
+        print("[STEP 3/8] Uploading firmware to S3")
         if args.skip_upload:
             print("[SKIP] S3 upload skipped (--skip-upload)")
             s3_version_id = ""
@@ -1341,7 +1501,7 @@ def run_full_mode(args):
         results["s3_upload"] = True
 
         print()
-        print("[STEP 3/6] Creating OTA update job")
+        print("[STEP 4/8] Creating OTA update job")
         account_id = get_aws_account_id()
         ota_update_id = create_ota_job(
             args.thing_name, args.s3_bucket, s3_key, s3_version_id,
@@ -1350,7 +1510,7 @@ def run_full_mode(args):
         results["ota_job_created"] = True
 
         print()
-        print("[STEP 3.5/6] Waiting for OTA job to leave CREATE_PENDING")
+        print("[STEP 5/8] Waiting for OTA job to leave CREATE_PENDING")
         job_result = wait_for_ota_job_ready(ota_update_id, args.region, timeout=60)
         if job_result["status"] == "CREATE_FAILED":
             print("[FAIL] OTA job CREATE_FAILED - aborting (skip device wait)")
@@ -1362,7 +1522,7 @@ def run_full_mode(args):
         results["ota_job_ready"] = True
 
         print()
-        print("[STEP 4/6] Monitoring OTA progress")
+        print("[STEP 6/8] Monitoring OTA progress")
         milestones, monitor_version = monitor_ota_progress(
             log_ser, timeout=args.timeout, port_label=os.path.basename(args.log_port)
         )
@@ -1377,7 +1537,7 @@ def run_full_mode(args):
             results["ota_download"] = True
 
         print()
-        print("[STEP 5/6] Verifying new version after reset")
+        print("[STEP 7/8] Verifying new version after reset")
         if args.expected_build:
             if monitor_version and monitor_version[2] == args.expected_build:
                 print(f"[PASS] New version already confirmed during monitoring: {format_version(monitor_version)}")
@@ -1396,7 +1556,7 @@ def run_full_mode(args):
             results["new_version"] = True
 
         print()
-        print("[STEP 6/6] Checking AWS OTA job status")
+        print("[STEP 8/8] Checking AWS OTA job status")
         if ota_update_id:
             job_result = verify_job_status(ota_update_id, args.region)
             results["aws_status"] = job_result["status"] is not None
@@ -1416,6 +1576,17 @@ def run_full_mode(args):
         if log_ser:
             log_ser.close()
             print(f"[INFO] Closed {args.log_port}")
+        if not args.skip_ota_update_cleanup and ota_update_id:
+            print()
+            print("[CLEANUP] Deleting current OTA update")
+            try:
+                delete_ota_update(ota_update_id, args.region)
+            except subprocess.CalledProcessError as exc:
+                print(f"[WARN] OTA update cleanup failed: {exc}")
+                if exc.stderr:
+                    print(f"[DEBUG] stderr: {exc.stderr[:300]}")
+            except Exception as exc:  # pragma: no cover - cleanup best effort
+                print(f"[WARN] OTA update cleanup failed: {exc}")
         if not args.skip_cleanup and ota_update_id:
             print()
             print("[CLEANUP]")
@@ -1466,6 +1637,8 @@ def main():
                         help="Skip S3 upload (use existing object)")
     parser.add_argument("--skip-cleanup", action="store_true",
                         help="Skip S3 cleanup after test")
+    parser.add_argument("--skip-ota-update-cleanup", action="store_true",
+                        help="Skip AWS IoT OTA update cleanup before/after the test")
     parser.add_argument("--metadata-out", default=None,
                         help="Write create-job metadata JSON to this path")
     parser.add_argument("--metadata-in", default=None,
