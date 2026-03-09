@@ -23,7 +23,7 @@ Includes
 Global variables and functions
 ***********************************************************************************************************************/
 
-void R_SCI_PinSet_SCI2();
-void R_SCI_PinSet_SCI7();
+void R_SCI_PinSet_SCI2( void );
+void R_SCI_PinSet_SCI7( void );
 
 #endif

@@ -28,7 +28,7 @@ Global variables and functions
 * Arguments    : none
 * Return Value : none
 ***********************************************************************************************************************/
-void R_ADC_PinSet_S12AD1()
+void R_ADC_PinSet_S12AD1( void )
 {
     R_BSP_RegisterProtectDisable(BSP_REG_PROTECT_MPC);
 
