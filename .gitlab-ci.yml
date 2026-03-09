@@ -325,6 +325,8 @@ flash_boot_loader:
           boot-banner \
           --port "$UART_PORT" \
           --baud "$UART_BAUD_RATE" \
+          --expect "RX72N secure boot program" \
+          --expect "send \"userprog.rsu\" via UART." \
           --timeout 20 | tee "$CI_PROJECT_DIR/boot_loader_health.log"
       else
         echo "  Boot loader health-check skipped (RUN_HW_HEALTHCHECK=false)."

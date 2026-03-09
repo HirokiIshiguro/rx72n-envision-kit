@@ -36,12 +36,14 @@ def list_ports() -> None:
 
 
 def run_boot_banner(args: argparse.Namespace) -> int:
+    expected_tokens = args.expect or ["RX72N secure boot program"]
+
     print("=" * 60)
     print("[INFO] Boot Loader Health Check")
     print(f"[INFO]   Port      : {args.port}")
     print(f"[INFO]   Baud      : {args.baud}")
     print(f"[INFO]   Timeout   : {args.timeout}s")
-    print(f"[INFO]   Expect    : {args.expect}")
+    print(f"[INFO]   Expect    : {expected_tokens}")
     print("=" * 60)
 
     list_ports()
@@ -61,14 +63,16 @@ def run_boot_banner(args: argparse.Namespace) -> int:
                 if waiting:
                     chunk = ser.read(waiting)
                     received.extend(chunk)
+                    decoded = received.decode("utf-8", errors="replace")
                     text = chunk.decode("utf-8", errors="replace")
                     for line in text.replace("\r", "\n").split("\n"):
                         line = line.strip()
                         if line:
                             print(f"[RECV] {line}")
-                    if args.expect in received.decode("utf-8", errors="replace"):
-                        print(f"[PASS] Found expected banner: {args.expect}")
-                        return 0
+                    for token in expected_tokens:
+                        if token in decoded:
+                            print(f"[PASS] Found expected boot_loader output: {token}")
+                            return 0
                 else:
                     time.sleep(0.05)
     except serial.SerialException as exc:
@@ -137,7 +141,7 @@ def build_parser() -> argparse.ArgumentParser:
     banner.add_argument("--port", default=DEFAULT_UART_PORT)
     banner.add_argument("--baud", type=int, default=DEFAULT_UART_BAUD)
     banner.add_argument("--timeout", type=int, default=20)
-    banner.add_argument("--expect", default="RX72N secure boot program")
+    banner.add_argument("--expect", action="append")
     banner.add_argument("--reset-input-buffer", action="store_true")
 
     prompt = subparsers.add_parser("command-prompt", help="Check aws_demos command prompt")
