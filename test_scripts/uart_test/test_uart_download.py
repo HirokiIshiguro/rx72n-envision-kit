@@ -62,6 +62,7 @@ DEFAULT_TIMEOUT = 300  # 5 minutes (1.8MB at 921600 = ~20s + flash write time)
 # UART send chunk size (bytes)
 # Large enough for efficiency, small enough to allow progress monitoring
 SEND_CHUNK_SIZE = 4096
+DEFAULT_INTER_CHUNK_DELAY = 0.0
 
 # Key messages from boot_loader
 MSG_INSTALLING_FW = "installing firmware"
@@ -87,7 +88,8 @@ class UartDownloader:
                  wait_for_ready=False, ready_timeout=60,
                  ready_message=DEFAULT_READY_MESSAGE,
                  success_message=DEFAULT_SUCCESS_MESSAGE,
-                 success_timeout=30, reset_cmd=None, reset_settle=0.2):
+                 success_timeout=30, reset_cmd=None, reset_settle=0.2,
+                 send_chunk_size=SEND_CHUNK_SIZE, inter_chunk_delay=DEFAULT_INTER_CHUNK_DELAY):
         self.port_name = port
         self.baud = baud
         self.timeout = timeout
@@ -100,6 +102,8 @@ class UartDownloader:
         self.success_timeout = success_timeout
         self.reset_cmd = reset_cmd
         self.reset_settle = reset_settle
+        self.send_chunk_size = send_chunk_size
+        self.inter_chunk_delay = inter_chunk_delay
         self.ser = None
         self.rx_buffer = ""
         self.messages = []
@@ -163,9 +167,11 @@ class UartDownloader:
         try:
             offset = 0
             while offset < len(rsu_data):
-                chunk = rsu_data[offset:offset + SEND_CHUNK_SIZE]
+                chunk = rsu_data[offset:offset + self.send_chunk_size]
                 self.ser.write(chunk)
                 offset += len(chunk)
+                if self.inter_chunk_delay > 0:
+                    time.sleep(self.inter_chunk_delay)
                 with self._lock:
                     self.bytes_sent = offset
         except Exception as e:
@@ -229,6 +235,8 @@ class UartDownloader:
         estimated_sec = self.total_bytes * 10 / self.baud
         print(f"  Est time: {estimated_sec:.0f}s ({estimated_sec/60:.1f} min) for transfer")
         print(f"  Timeout:  {self.timeout}s")
+        print(f"  Chunk:    {self.send_chunk_size} bytes")
+        print(f"  Delay:    {self.inter_chunk_delay:.3f}s")
         print()
 
         self.open_port()
@@ -446,6 +454,10 @@ def main():
                         help="Command to execute after opening UART, before waiting for the ready message")
     parser.add_argument("--reset-settle", type=float, default=0.2,
                         help="Seconds to wait after reset command completes (default: 0.2)")
+    parser.add_argument("--send-chunk-size", type=int, default=SEND_CHUNK_SIZE,
+                        help=f"UART TX chunk size in bytes (default: {SEND_CHUNK_SIZE})")
+    parser.add_argument("--inter-chunk-delay", type=float, default=DEFAULT_INTER_CHUNK_DELAY,
+                        help=f"Delay after each UART TX chunk in seconds (default: {DEFAULT_INTER_CHUNK_DELAY})")
 
     args = parser.parse_args()
 
@@ -466,6 +478,8 @@ def main():
         success_timeout=args.success_timeout,
         reset_cmd=args.reset_cmd,
         reset_settle=args.reset_settle,
+        send_chunk_size=args.send_chunk_size,
+        inter_chunk_delay=args.inter_chunk_delay,
     )
 
     try:
