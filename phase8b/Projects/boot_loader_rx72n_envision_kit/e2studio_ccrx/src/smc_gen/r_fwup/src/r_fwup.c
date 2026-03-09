@@ -761,6 +761,16 @@ static e_fwup_err_t write_image_prog(e_fwup_area_t area, uint8_t *p_buf, uint32_
             ret_val = write_area(area_tmp, &p_buf_tmp, &buf_sz_tmp, area_offset, dc.fw[fw_cnt].size);
             if (FWUP_SUCCESS != ret_val)
             {
+                FWUP_LOG_ERR(
+                    "write_image_prog failed: fw_cnt=%u area=%u fw_addr=0x%08lx area_offset=0x%08lx segment_size=%lu ret=%d wrote=%lu bufsz=%lu\r\n",
+                    fw_cnt,
+                    area_tmp,
+                    dc.fw[fw_cnt].addr,
+                    area_offset,
+                    dc.fw[fw_cnt].size,
+                    ret_val,
+                    s_wrote_counter,
+                    buf_sz_tmp);
                 return (ret_val);
             }
 
@@ -1144,6 +1154,15 @@ static e_fwup_err_t write_area(e_fwup_area_t area, uint8_t **p_buf,
     /* Write firmware */
     if (FWUP_SUCCESS != pfunc((uint32_t)*p_buf, start_addr + s_wrote_counter, write_size_tmp))
     {
+        FWUP_LOG_ERR(
+            "write_area failed: area=%u src=0x%08lx dest=0x%08lx size=%lu offset=0x%08lx wrote=%lu total=%lu\r\n",
+            area,
+            (uint32_t)*p_buf,
+            start_addr + s_wrote_counter,
+            write_size_tmp,
+            offset,
+            s_wrote_counter,
+            size);
         return (FWUP_ERR_FLASH);
     }
     FWUP_LOG_DBG(MSG_WRITE_OK, start_addr + s_wrote_counter, write_size_tmp);
