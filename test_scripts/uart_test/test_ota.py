@@ -226,6 +226,14 @@ def parse_version_from_log(line):
     return None
 
 
+def parse_version_from_command_response(text):
+    """コマンド応答からバージョン番号を抽出する。"""
+    m = re.search(r"v?(\d+)\.(\d+)\.(\d+)", text)
+    if m:
+        return (int(m.group(1)), int(m.group(2)), int(m.group(3)))
+    return None
+
+
 def raw_rs_to_der(signature):
     """raw r||s (64 bytes) を DER エンコード ECDSA 署名に変換する。
 
@@ -1206,6 +1214,70 @@ def confirm_ota_agent(log_ser):
     return agent_detected, detected_version
 
 
+def confirm_ota_agent_via_command_port(args):
+    """COMMAND_PORT の prompt/probe で OTA Agent 生存を代替確認する。"""
+    if not args.cmd_port:
+        return False, None
+
+    print(f"[INFO] Falling back to command-port health probe via {args.cmd_port}")
+    try:
+        with serial.Serial(args.cmd_port, args.cmd_baud, timeout=0) as cmd_ser:
+            time.sleep(0.2)
+            cmd_ser.reset_input_buffer()
+
+            prompt_seen = False
+            response = ""
+            for attempt in range(1, 4):
+                cmd_ser.write(b"\r\n")
+                cmd_ser.flush()
+                buf = b""
+                poll_start = time.time()
+                while (time.time() - poll_start) < 1.5:
+                    n = cmd_ser.in_waiting
+                    if n > 0:
+                        buf += cmd_ser.read(n)
+                        decoded = buf.decode("utf-8", errors="replace")
+                        if "$" in decoded:
+                            prompt_seen = True
+                            response = decoded
+                            break
+                    else:
+                        time.sleep(0.05)
+                if prompt_seen:
+                    break
+
+            if not prompt_seen:
+                print("[WARN] Command-port fallback could not detect prompt")
+                return False, None
+
+            cmd_ser.reset_input_buffer()
+            cmd_ser.write(b"version\r\n")
+            cmd_ser.flush()
+            buf = b""
+            poll_start = time.time()
+            while (time.time() - poll_start) < 3.0:
+                n = cmd_ser.in_waiting
+                if n > 0:
+                    buf += cmd_ser.read(n)
+                    decoded = buf.decode("utf-8", errors="replace")
+                    if "$" in decoded:
+                        response = decoded
+                        break
+                else:
+                    time.sleep(0.05)
+
+            version = parse_version_from_command_response(response)
+            if version:
+                print(f"[WARN] OTA banner missing, but command port is healthy: version {format_version(version)}")
+                return True, version
+
+            print(f"[WARN] Command-port fallback got prompt but no parseable version: {response[:200]!r}")
+            return True, None
+    except SerialException as exc:
+        print(f"[WARN] Command-port fallback failed: {exc}")
+        return False, None
+
+
 def run_create_job_mode(args):
     """S3 upload + OTA job 作成のみを実行する。"""
     results = {
@@ -1328,6 +1400,8 @@ def run_monitor_mode(args):
         print("[STEP 1/3] Confirming OTA Agent is running")
         log_ser = open_log_port(args)
         agent_detected, current_version = confirm_ota_agent(log_ser)
+        if not agent_detected:
+            agent_detected, current_version = confirm_ota_agent_via_command_port(args)
         results["agent_ready"] = agent_detected
         monitor_payload["current_version"] = format_version(current_version)
         if not agent_detected:
