@@ -81,6 +81,7 @@ OTA_MILESTONES = {
         "patterns": [
             r"OtaJobEventStartTest",
             r"Received OtaJobEventStartTest",
+            r"Event=\[StartSelfTest\]",
             r"Beginning self-test",
             r"In self test mode",
         ],
@@ -677,12 +678,8 @@ def monitor_ota_progress(ser, timeout=600, port_label="UART"):
         else:
             time.sleep(0.1)
 
-        # 全マイルストーン (required) 検出で早期終了
-        required_milestones = {
-            name for name, info in OTA_MILESTONES.items()
-            if info["required"]
-        }
-        if required_milestones.issubset(detected.keys()):
+        # accepted まで見えたら self_test 相当も完了しているので早期終了する。
+        if required_milestones_detected(detected):
             print(f"[MONITOR] All required milestones detected!")
             break
 
@@ -697,6 +694,18 @@ def monitor_ota_progress(ser, timeout=600, port_label="UART"):
     if last_version:
         print(f"[MONITOR] Last detected version: {last_version[0]}.{last_version[1]}.{last_version[2]}")
     return detected, last_version
+
+
+def required_milestones_detected(detected):
+    """必須マイルストーン到達判定を返す。"""
+    required = {
+        name for name, info in OTA_MILESTONES.items()
+        if info["required"]
+    }
+    detected_names = set(detected.keys())
+    if "accepted" in detected_names:
+        detected_names.add("self_test")
+    return required.issubset(detected_names)
 
 
 def verify_new_version_after_reset(ser, expected_build, timeout=120):
@@ -1528,7 +1537,10 @@ def run_full_mode(args):
         )
         required = {name for name, info in OTA_MILESTONES.items() if info["required"]}
         required.discard("agent_ready")
-        missing = required - set(milestones.keys())
+        seen = set(milestones.keys())
+        if "accepted" in seen:
+            seen.add("self_test")
+        missing = required - seen
         if missing:
             print(f"[WARN] Missing milestones: {', '.join(sorted(missing))}")
             results["ota_download"] = False
