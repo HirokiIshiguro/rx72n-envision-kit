@@ -20,6 +20,8 @@ variables:
   E2STUDIO: "C:\\Renesas\\e2_studio_2025_12\\eclipse\\e2studioc.exe"
   WORKSPACE: "C:\\workspace_rx72n"
   E2STUDIO_PROJECTS: "projects/renesas/rx72n_envision_kit/e2studio"
+  PHASE8B_WORKSPACE: "C:\\workspace_rx72n_phase8b"
+  PHASE8B_E2STUDIO_PROJECTS: "phase8b/Projects"
   # Renesas Flash Programmer CLI on Raspberry Pi
   RFP_CLI: "rfp-cli"
   # --- ハードウェア依存変数（hardware-config リポジトリの CI/CD Variables から取得） ---
@@ -57,12 +59,14 @@ variables:
   # RUN_SD_UPDATE_TEST: SD カードファームウェア更新テストを実行するか
   # RUN_OTA_TEST:       OTA テスト (build_ota, prepare_ota, ota_create_job,
   #                     ota_monitor, ota_finalize) を実行するか
+  # RUN_PHASE8B_BUILD_ONLY: phase8b の build-only gate のみ実行するか
   # デフォルトは SD カード更新テストを除く通常テスト。
   # フルテストを実施したい場合は RUN_SD_UPDATE_TEST=true を指定する。
   RUN_AWS_TESTS: "true"
   RUN_HW_HEALTHCHECK: "true"
   RUN_SD_UPDATE_TEST: "false"
   RUN_OTA_TEST: "true"
+  RUN_PHASE8B_BUILD_ONLY: "false"
   # Raspberry Pi runner 上でのプロジェクト横断デバイス排他ロック格納先。
   DEVICE_LOCK_ROOT: "/tmp/gitlab-device-locks"
   # RUN_OTA_ONLY: OTA テストのみ実行するショートカットモード。
@@ -116,6 +120,8 @@ build:
   tags:
     - run_ishiguro_machine
   rules:
+    - if: $RUN_PHASE8B_BUILD_ONLY == "true"
+      when: never
     - if: $RUN_OTA_ONLY == "true"
       when: never
     - when: always
@@ -288,12 +294,43 @@ build:
       - projects/renesas/rx72n_envision_kit/e2studio/segger_emwin_demos/HardwareDebug/*.mot
     expire_in: 1 week
 
+build_phase8b:
+  stage: build
+  tags:
+    - run_ishiguro_machine
+  rules:
+    - if: $RUN_PHASE8B_BUILD_ONLY == "true"
+    - changes:
+        - phase8b/**/*
+        - docs/phase8b-migration-plan.md
+        - CLAUDE.md
+        - tools/ci/build_phase8b_headless.ps1
+        - .gitlab-ci.yml
+  script:
+    - |
+      & "$env:CI_PROJECT_DIR\tools\ci\build_phase8b_headless.ps1" `
+        -ProjectRoot "$env:CI_PROJECT_DIR" `
+        -E2Studio "$env:E2STUDIO" `
+        -Workspace "$env:PHASE8B_WORKSPACE" `
+        -LogFile "$env:CI_PROJECT_DIR\phase8b_e2studio_build.log"
+  artifacts:
+    when: always
+    paths:
+      - phase8b_e2studio_build.log
+      - phase8b/Projects/boot_loader_rx72n_envision_kit/e2studio_ccrx/HardwareDebug/*.mot
+      - phase8b/Projects/aws_ether_rx72n_envision_kit/e2studio_ccrx/HardwareDebug/*.mot
+      - phase8b/Projects/aws_ether_rx72n_envision_kit/e2studio_ccrx/HardwareDebug/*.abs
+      - phase8b/Projects/aws_ether_rx72n_envision_kit/e2studio_ccrx/HardwareDebug/*.x
+    expire_in: 1 week
+
 flash_boot_loader:
   stage: flash
   extends:
     - .pi_flash_job
     - .pi_pyserial_job
   rules:
+    - if: $RUN_PHASE8B_BUILD_ONLY == "true"
+      when: never
     - if: $RUN_OTA_ONLY == "true"
       when: never
     - when: always
@@ -347,6 +384,8 @@ download_aws_demos:
     - .pi_flash_job
     - .pi_crypto_serial_job
   rules:
+    - if: $RUN_PHASE8B_BUILD_ONLY == "true"
+      when: never
     - if: $RUN_OTA_ONLY == "true"
       when: never
     - when: always
@@ -394,6 +433,8 @@ health_aws_demos_startup:
     - .pi_pyserial_job
   timeout: 4 minutes
   rules:
+    - if: $RUN_PHASE8B_BUILD_ONLY == "true"
+      when: never
     - if: $RUN_OTA_ONLY == "true"
       when: never
     - if: $RUN_HW_HEALTHCHECK == "true"
@@ -430,6 +471,8 @@ test_commands:
     - .pi_pyserial_job
   timeout: 5 minutes
   rules:
+    - if: $RUN_PHASE8B_BUILD_ONLY == "true"
+      when: never
     - if: $RUN_OTA_ONLY == "true"
       when: never
     - when: always
@@ -462,6 +505,8 @@ test_screen_navigation:
     - .pi_pyserial_job
   timeout: 3 minutes
   rules:
+    - if: $RUN_PHASE8B_BUILD_ONLY == "true"
+      when: never
     - if: $RUN_OTA_ONLY == "true"
       when: never
     - when: always
@@ -485,6 +530,8 @@ provision_aws_credentials:
     - .pi_pyserial_job
   timeout: 3 minutes
   rules:
+    - if: $RUN_PHASE8B_BUILD_ONLY == "true"
+      when: never
     - if: $RUN_OTA_ONLY == "true"
       when: never
     - if: $RUN_AWS_TESTS == "true"
@@ -510,6 +557,8 @@ confirm_aws_mqtt:
     - .pi_pyserial_job
   timeout: 5 minutes
   rules:
+    - if: $RUN_PHASE8B_BUILD_ONLY == "true"
+      when: never
     - if: $RUN_OTA_ONLY == "true"
       when: never
     - if: $RUN_AWS_TESTS == "true"
@@ -535,6 +584,8 @@ test_sd_update:
     - .pi_pyserial_job
   timeout: 10 minutes
   rules:
+    - if: $RUN_PHASE8B_BUILD_ONLY == "true"
+      when: never
     - if: $RUN_OTA_ONLY == "true"
       when: never
     - if: $RUN_AWS_TESTS == "true" && $RUN_SD_UPDATE_TEST == "true"
@@ -568,6 +619,8 @@ build_ota:
   tags:
     - run_ishiguro_machine
   rules:
+    - if: $RUN_PHASE8B_BUILD_ONLY == "true"
+      when: never
     - if: $RUN_OTA_TEST == "true"
   script:
     # MAC アドレス書き換え（build ジョブと同じ）
@@ -735,6 +788,8 @@ prepare_ota:
     - .pi_crypto_serial_job
   timeout: 5 minutes
   rules:
+    - if: $RUN_PHASE8B_BUILD_ONLY == "true"
+      when: never
     - if: $RUN_OTA_TEST == "true"
   dependencies:
     - build_ota
@@ -791,6 +846,8 @@ ota_create_job:
     - .windows_ota_aws_job
   timeout: 10 minutes
   rules:
+    - if: $RUN_PHASE8B_BUILD_ONLY == "true"
+      when: never
     - if: $RUN_OTA_TEST == "true"
   dependencies:
     - build_ota
@@ -820,6 +877,8 @@ ota_monitor:
     - .pi_pyserial_job
   timeout: 15 minutes
   rules:
+    - if: $RUN_PHASE8B_BUILD_ONLY == "true"
+      when: never
     - if: $RUN_OTA_TEST == "true"
   dependencies: []
   script:
@@ -851,6 +910,8 @@ ota_finalize:
   timeout: 10 minutes
   when: always
   rules:
+    - if: $RUN_PHASE8B_BUILD_ONLY == "true"
+      when: never
     - if: $RUN_OTA_TEST == "true"
   dependencies:
     - ota_create_job

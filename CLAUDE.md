@@ -24,7 +24,7 @@ RX72N Envision Kit の全機能を試せるようにする。
 | 1 | Documentation cleanup: migrate Wiki to `docs/` | Done |
 | 2 | Set up Claude-assisted development environment | In progress |
 | 3 | Set up CI/CD pipeline | In progress (Phase 1-2 done) |
-| 4 | Replace FreeRTOS with latest Renesas IoT reference implementation ([iot-reference-rx](https://github.com/renesas/iot-reference-rx)) | In progress (Phase 8b-2 boot loader headless build passed, Issue #8) |
+| 4 | Replace FreeRTOS with latest Renesas IoT reference implementation ([iot-reference-rx](https://github.com/renesas/iot-reference-rx)) | In progress (Phase 8b-3 build-only CI wired, Issue #9) |
 
 ## Repository Locations / リポジトリ
 
@@ -47,7 +47,7 @@ RX72N Envision Kit の全機能を試せるようにする。
 | 5 | e2studio 2024-01 / CC-RX v3.04 環境で既存機能の動作検証（AWS 接続、SD カードによるファームウェアアップデート、各種コマンドレスポンス） | Done (MR !20) |
 | 6 | e2studio 2025-12 / CC-RX v3.07 ツールチェーン更新 + 既存機能の動作検証 | Done (MR !21) |
 | 7 | AWS IoT OTA テスト自動化（S3 + OTA ジョブ → MQTT ダウンロード → 署名検証 → バンクスワップ → 自己テスト）（1台） | Done (MR !23) |
-| 8 | FreeRTOS LTS 最新版適用（[iot-reference-rx](https://github.com/renesas/iot-reference-rx) 最新リリースタグ）。作業リポジトリ: [iot-reference-rx (GitLab)](https://shelty2.servegame.com/oss/import/github/renesas/iot-reference-rx)。CK-RX65N V1 で先行構築（Phase 8a）→ RX72N に移植（Phase 8b）の2段階アプローチ。詳細計画は [iot-reference-rx の CLAUDE.md](https://shelty2.servegame.com/oss/import/github/renesas/iot-reference-rx/-/blob/main/CLAUDE.md) を参照 | In progress (Phase 8b-2 boot loader headless build passed, Issue #8) |
+| 8 | FreeRTOS LTS 最新版適用（[iot-reference-rx](https://github.com/renesas/iot-reference-rx) 最新リリースタグ）。作業リポジトリ: [iot-reference-rx (GitLab)](https://shelty2.servegame.com/oss/import/github/renesas/iot-reference-rx)。CK-RX65N V1 で先行構築（Phase 8a）→ RX72N に移植（Phase 8b）の2段階アプローチ。詳細計画は [iot-reference-rx の CLAUDE.md](https://shelty2.servegame.com/oss/import/github/renesas/iot-reference-rx/-/blob/main/CLAUDE.md) を参照 | In progress (Phase 8b-3 build-only CI wired, Issue #9) |
 | 9 | AWS 接続を含む OTA テスト（1台、新 FW で再検証） | Planned |
 | 10 | AWS 接続を含むフリートプロビジョニング テスト（1台。iot-reference-rx の FP デモを活用） | Planned |
 | 11 | AWS 接続を含むセカンダリ MCU ファームウェアアップデート テスト（RX72N → FPB-RX140） | Planned |
@@ -103,7 +103,8 @@ Detailed notes are tracked in [`docs/phase8b-migration-plan.md`](docs/phase8b-mi
 - 8b-2 は headless build gate を通過。`boot_loader_rx72n_envision_kit` は e2studio 2025-12 + CC-RX で `.mot` 生成まで確認。
 - 8b-2 の残課題は runtime 妥当性確認。`R_BSP_ClockReset_Bootloader()` は RX72N 側でまだ暫定 no-op のため、flash 実機確認前に本実装へ置き換える。
 - 8b-3 は headless build gate を通過。`aws_ether_rx72n_envision_kit` は e2studio 2025-12 + CC-RX で `.abs` / `.mot` / `.x` 生成まで確認。
-- 8b-3 の残課題は warning cleanup と CI 配線。`r_tsip_rx` の RX72N 正式化、`C_LITTLEFS_*` / `C_USER_APPLICATION_AREA` section warning の整理、build-only job への接続を次段で進める。
+- 8b-3 では `build_phase8b` job と `RUN_PHASE8B_BUILD_ONLY` モードを追加し、`phase8b/` のみを対象にした Windows build-only gate を CI へ接続済み。
+- 8b-3 の残課題は warning cleanup と hardware baseline への遷移。`r_tsip_rx` の RX72N 正式化、`C_LITTLEFS_*` / `C_USER_APPLICATION_AREA` section warning の整理、`build -> flash -> provision -> MQTT` を次段で進める。
 
 ### パイプライン変数 / Pipeline Variables
 
@@ -133,6 +134,7 @@ CI/CD Variables を変更すること。
 | `RUN_HW_HEALTHCHECK` | `"true"` | 実機の段階的ヘルスチェック（USB/serial 列挙、boot_loader バナー、aws_demos プロンプト）を実行するか |
 | `RUN_SD_UPDATE_TEST` | `"false"` | SD カードファームウェア更新テストを実行するか |
 | `RUN_OTA_TEST` | `"true"` | OTA テスト（build_ota, prepare_ota, ota_create_job, ota_monitor, ota_finalize）を実行するか |
+| `RUN_PHASE8B_BUILD_ONLY` | `"false"` | `phase8b/` の build-only gate (`build_phase8b`) のみを実行するか |
 | `DEVICE_LOCK_ROOT` | `"/tmp/gitlab-device-locks"` | Raspberry Pi runner 上で `DEVICE_ID` 単位のクロスプロジェクト排他ロックを置くディレクトリ |
 
 **実行パターン:**
@@ -148,6 +150,10 @@ SD カード更新を含むフルテストを実施したい場合は `RUN_SD_UP
 | ビルド+起動テスト | **false** | **false** | **false** |
 | SD カード更新テスト | true | true | **false** |
 | OTA テスト | true | **false** | true |
+
+`RUN_PHASE8B_BUILD_ONLY=true` を指定すると、legacy `aws_demos` / OTA / 実機ジョブをすべて止め、
+Windows runner 上の `build_phase8b` だけを実行する。`phase8b/` 配下の retarget 作業を
+scarce な実機資源を消費せずに回すためのモード。
 
 **注意:**
 - `RUN_SD_UPDATE_TEST` は `RUN_AWS_TESTS == "true"` の場合のみ有効（AWS 接続が前提）
@@ -706,6 +712,30 @@ e2studio 2025-12 + CC-RX の headless build で
 特に `r_tsip_rx` の RX72N target 正式化、`C_LITTLEFS_*` /
 `C_USER_APPLICATION_AREA` linker warning の扱い、phase8b build-only
 job の追加を次に進める。
+
+### 2026-03-09: Phase 8b build-only CI を追加
+
+Added `tools/ci/build_phase8b_headless.ps1` and wired a new `build_phase8b`
+job into `.gitlab-ci.yml`. The new job imports
+`boot_loader_rx72n_envision_kit` and `aws_ether_rx72n_envision_kit` directly
+from `phase8b/Projects/`, runs a clean headless e2studio build, and publishes
+the resulting `.mot` / `.abs` / `.x` artifacts.
+
+Also introduced `RUN_PHASE8B_BUILD_ONLY=true`, which suppresses the legacy
+`aws_demos` / hardware / OTA jobs and leaves only the phase8b Windows build
+gate active. This keeps scarce RX72N/Pi resources free while the FreeRTOS
+migration is still in build-only mode.
+
+`tools/ci/build_phase8b_headless.ps1` を追加し、`.gitlab-ci.yml` に
+`build_phase8b` job を配線した。新 job は `phase8b/Projects/` 配下の
+`boot_loader_rx72n_envision_kit` / `aws_ether_rx72n_envision_kit` を直接
+import し、e2studio headless clean build を実行して `.mot` / `.abs` / `.x`
+artifact を保存する。
+
+あわせて `RUN_PHASE8B_BUILD_ONLY=true` を導入し、legacy `aws_demos` /
+実機 / OTA job を止めて、phase8b 向けの Windows build gate だけを残せる
+ようにした。これにより、FreeRTOS 移行が build-only 段階にある間は scarce
+な RX72N/Pi 実機資源を消費せずに反復できる。
 
 ### 2026-03-09: Phase 8b started — skeleton import planning and issue split
 
