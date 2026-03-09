@@ -1,9 +1,15 @@
 # boot_loader_rx72n_envision_kit
 
-Planned RX72N boot loader project on top of the `iot-reference-rx` boot loader baseline.
+RX72N boot loader seed project on top of the `iot-reference-rx` boot loader baseline.
 
-Primary seed:
-- `iot-reference-rx/Projects/boot_loader_ck_rx65n_v2/e2studio_ccrx/`
+Imported seed:
+- source project: `iot-reference-rx/Projects/boot_loader_ck_rx65n_v2/e2studio_ccrx/`
+- extra reference file: `bootloader_information.md`
+
+Current status:
+- directory name is already the RX72N target name
+- internal project metadata still contains RX65N-oriented names and settings
+- no RX72N build claim is made in this step
 
 Expected RX72N-specific adaptation areas:
 - dual-bank memory layout

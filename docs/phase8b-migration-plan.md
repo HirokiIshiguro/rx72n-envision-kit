@@ -114,4 +114,16 @@ When top-level migration starts for real, use one of these approaches:
 - perform the rename in a case-sensitive environment
 - keep the old tree until the new tree is stable, then remove it in a later change
 
-This is why Phase 8b-1 is primarily a planning and landing-zone issue.
+This is why Phase 8b-1 first uses a `phase8b/` landing zone and imports the
+validated upstream baseline there before RX72N-specific porting starts.
+
+## Phase 8b-1 Current Deliverables
+
+- `phase8b/Common/`, `Configuration/`, `Middleware/`, and `Test/` seeded from
+  `iot-reference-rx`
+- app seed under `phase8b/Projects/aws_ether_rx72n_envision_kit/`
+- boot loader seed under `phase8b/Projects/boot_loader_rx72n_envision_kit/`
+- upstream inventory documented in `phase8b/UPSTREAM_BASELINE.md`
+
+These imported seeds are intentionally not treated as build-ready RX72N projects
+yet. The next step is to port the boot loader seed in Issue `#8`.

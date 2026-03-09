@@ -24,7 +24,7 @@ RX72N Envision Kit の全機能を試せるようにする。
 | 1 | Documentation cleanup: migrate Wiki to `docs/` | Done |
 | 2 | Set up Claude-assisted development environment | In progress |
 | 3 | Set up CI/CD pipeline | In progress (Phase 1-2 done) |
-| 4 | Replace FreeRTOS with latest Renesas IoT reference implementation ([iot-reference-rx](https://github.com/renesas/iot-reference-rx)) | In progress (Phase 8b-1 started, Issue #7) |
+| 4 | Replace FreeRTOS with latest Renesas IoT reference implementation ([iot-reference-rx](https://github.com/renesas/iot-reference-rx)) | In progress (Phase 8b-1 staging seed imported, Issue #7) |
 
 ## Repository Locations / リポジトリ
 
@@ -47,7 +47,7 @@ RX72N Envision Kit の全機能を試せるようにする。
 | 5 | e2studio 2024-01 / CC-RX v3.04 環境で既存機能の動作検証（AWS 接続、SD カードによるファームウェアアップデート、各種コマンドレスポンス） | Done (MR !20) |
 | 6 | e2studio 2025-12 / CC-RX v3.07 ツールチェーン更新 + 既存機能の動作検証 | Done (MR !21) |
 | 7 | AWS IoT OTA テスト自動化（S3 + OTA ジョブ → MQTT ダウンロード → 署名検証 → バンクスワップ → 自己テスト）（1台） | Done (MR !23) |
-| 8 | FreeRTOS LTS 最新版適用（[iot-reference-rx](https://github.com/renesas/iot-reference-rx) 最新リリースタグ）。作業リポジトリ: [iot-reference-rx (GitLab)](https://shelty2.servegame.com/oss/import/github/renesas/iot-reference-rx)。CK-RX65N V1 で先行構築（Phase 8a）→ RX72N に移植（Phase 8b）の2段階アプローチ。詳細計画は [iot-reference-rx の CLAUDE.md](https://shelty2.servegame.com/oss/import/github/renesas/iot-reference-rx/-/blob/main/CLAUDE.md) を参照 | In progress (Phase 8b-1, Issue #7) |
+| 8 | FreeRTOS LTS 最新版適用（[iot-reference-rx](https://github.com/renesas/iot-reference-rx) 最新リリースタグ）。作業リポジトリ: [iot-reference-rx (GitLab)](https://shelty2.servegame.com/oss/import/github/renesas/iot-reference-rx)。CK-RX65N V1 で先行構築（Phase 8a）→ RX72N に移植（Phase 8b）の2段階アプローチ。詳細計画は [iot-reference-rx の CLAUDE.md](https://shelty2.servegame.com/oss/import/github/renesas/iot-reference-rx/-/blob/main/CLAUDE.md) を参照 | In progress (Phase 8b-1 staging seed imported, Issue #7) |
 | 9 | AWS 接続を含む OTA テスト（1台、新 FW で再検証） | Planned |
 | 10 | AWS 接続を含むフリートプロビジョニング テスト（1台。iot-reference-rx の FP デモを活用） | Planned |
 | 11 | AWS 接続を含むセカンダリ MCU ファームウェアアップデート テスト（RX72N → FPB-RX140） | Planned |
@@ -73,7 +73,7 @@ Phase 8b は親 issue [#11](https://shelty2.servegame.com/oss/import/github/rene
 
 | Step | Issue | Goal |
 |------|-------|------|
-| 8b-1 | [#7](https://shelty2.servegame.com/oss/import/github/renesas/rx72n-envision-kit/-/issues/7) | `iot-reference-rx` skeleton の取り込み方針と repo layout を確定 |
+| 8b-1 | [#7](https://shelty2.servegame.com/oss/import/github/renesas/rx72n-envision-kit/-/issues/7) | `phase8b/` に upstream baseline と seed project を取り込み、RX72N port の着地点を固定 |
 | 8b-2 | [#8](https://shelty2.servegame.com/oss/import/github/renesas/rx72n-envision-kit/-/issues/8) | RX72N boot loader を新 baseline 上で build 可能にする |
 | 8b-3 | [#9](https://shelty2.servegame.com/oss/import/github/renesas/rx72n-envision-kit/-/issues/9) | RX72N app を新 baseline へ移植し MQTT baseline を回復 |
 | 8b-4 | [#10](https://shelty2.servegame.com/oss/import/github/renesas/rx72n-envision-kit/-/issues/10) | OTA を新 baseline 上で再検証 |
@@ -654,6 +654,27 @@ python test_scripts/uart_test/provision_aws.py \
 - テストスクリプトも 921600bps で接続
 
 ## Changelog / 変更履歴
+
+### 2026-03-09: Phase 8b-1 seed import into `phase8b/`
+
+Imported the shared `iot-reference-rx` baseline into `phase8b/` so RX72N porting
+can start from the same `Common/`, `Configuration/`, `Middleware/`, and `Test/`
+software stack that already passed Phase 8a. Also copied seed `e2studio_ccrx`
+projects for the RX72N app and boot loader under the target directory names.
+
+`phase8b/UPSTREAM_BASELINE.md` now records the exact upstream source commit and
+the imported directory inventory. The imported projects are still RX65N-oriented
+seeds and are not yet claimed to build on RX72N; the next step is Issue `#8`
+for boot loader porting.
+
+`iot-reference-rx` の共通基盤を `phase8b/` に取り込み、RX72N 移植を
+Phase 8a で実績のある `Common/` / `Configuration/` / `Middleware/` / `Test/`
+構成から開始できる状態にした。あわせて、RX72N アプリと boot loader の
+seed `e2studio_ccrx` project を目標ディレクトリ名で配置した。
+
+`phase8b/UPSTREAM_BASELINE.md` に upstream commit と取り込み対象一覧を記録。
+この段階の project はまだ RX65N 指向の seed であり、RX72N build 通過は未主張。
+次の作業は Issue `#8` の boot loader port。
 
 ### 2026-03-09: Phase 8b started — skeleton import planning and issue split
 

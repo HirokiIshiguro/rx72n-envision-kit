@@ -13,6 +13,17 @@ During Phase 8b-1, the new layout is prepared under `phase8b/`.
 Once the migrated baseline is stable, the final top-level consolidation can be handled
 as a separate change.
 
+Current state:
+- shared `Common/`, `Configuration/`, `Middleware/`, and `Test/` content has been
+  imported from `iot-reference-rx`
+- seed `e2studio_ccrx` projects for app and boot loader have been copied under the
+  RX72N target names
+- the imported seed still contains RX65N-oriented metadata and is not wired into the
+  active pipeline yet
+
+Reference:
+- imported baseline inventory: [`UPSTREAM_BASELINE.md`](./UPSTREAM_BASELINE.md)
+
 Related issues:
 - Parent: #11
 - Current step: #7
