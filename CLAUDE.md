@@ -622,6 +622,11 @@ python test_scripts/uart_test/provision_aws.py \
 - `r_bsp_config.h` の `MY_BSP_CFG_AFR_TERM_SCI_BITRATE` = `921600`（boot_loader と統一）
 - テストスクリプトも 921600bps で接続
 
+**CI の post-provision health-check:**
+- `provision_aws_credentials` 後に `health_after_provision` を挟み、`COMMAND_PORT` の prompt と `version` probe を再確認する
+- 目的は、証明書書き込み直後に `aws_demos` CLI が別状態へ落ちていないかを `confirm_aws_mqtt` 前に切り分けること
+- `confirm_aws_mqtt` が `Hello World` など想定外応答を返した場合、この health-check artifact で直前状態を確認する
+
 ## Changelog / 変更履歴
 
 ### 2026-03-09: Issue #6 OTA AWS 制御を Windows runner へ分離

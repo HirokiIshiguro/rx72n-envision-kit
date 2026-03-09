@@ -503,6 +503,42 @@ provision_aws_credentials:
         --device-id "$DEVICE_ID" \
         --codesigner-cert "$CI_PROJECT_DIR/sample_keys/secp256r1.crt"
 
+health_after_provision:
+  stage: test
+  extends:
+    - .pi_device_job
+    - .pi_pyserial_job
+  timeout: 3 minutes
+  rules:
+    - if: $RUN_OTA_ONLY == "true"
+      when: never
+    - if: $RUN_AWS_TESTS == "true"
+  needs:
+    - job: provision_aws_credentials
+    - job: test_screen_navigation
+  script:
+    - |
+      set -euo pipefail
+      source "$CI_PROJECT_DIR/tools/ci/acquire_pi_device_lock.sh" "$DEVICE_ID"
+      bash "$CI_PROJECT_DIR/tools/ci/validate_pi_serial_path.sh" COMMAND_PORT
+      bash "$CI_PROJECT_DIR/tools/ci/print_pi_hardware_state.sh" COMMAND_PORT | tee "$CI_PROJECT_DIR/aws_post_provision_hardware_state.log"
+      echo "=== aws_demos Post-Provision Health Check ==="
+      python3 "$CI_PROJECT_DIR/test_scripts/uart_test/check_device_health.py" \
+        command-prompt \
+        --port "$COMMAND_PORT" \
+        --baud "$COMMAND_BAUD_RATE" \
+        --initial-wait 1 \
+        --prompt-timeout 30 \
+        --command-timeout 10 \
+        --probe-command version \
+        --probe-expect v | tee "$CI_PROJECT_DIR/aws_post_provision_health.log"
+  artifacts:
+    when: always
+    paths:
+      - aws_post_provision_hardware_state.log
+      - aws_post_provision_health.log
+    expire_in: 1 week
+
 confirm_aws_mqtt:
   stage: test
   extends:
@@ -514,7 +550,7 @@ confirm_aws_mqtt:
       when: never
     - if: $RUN_AWS_TESTS == "true"
   needs:
-    - job: test_screen_navigation
+    - job: health_after_provision
   retry:
     max: 1
     when: script_failure
