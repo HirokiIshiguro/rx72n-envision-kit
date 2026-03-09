@@ -29,6 +29,7 @@
 
 #define BL_ERASE_RETRY_MAX_BUFFER_AREA   (3)
 #define BL_LOG_ENABLE                    (1)
+#define BL_HEADER_ONLY_IMAGE_SIZE        (0x200U)
 
 #if (BL_LOG_ENABLE == 0)
 #define BL_LOG (...)
@@ -185,7 +186,18 @@ static void sample_buffering(uint8_t rx_data)
     /* Buffer full? */
     if (BL_FLASH_BUF_SIZE == s_flash_buf.cnt)
     {
-        s_file_size   = R_FWUP_GetImageSize();
+        uint32_t image_size = R_FWUP_GetImageSize();
+
+        /*
+         * R_FWUP_GetImageSize() reports the header size first and updates to the
+         * full image size only after the descriptor has been written. With a
+         * 128-byte RX chunk, latching 0x200 here truncates the transfer after the
+         * header. Keep the previous size until the descriptor has been parsed.
+         */
+        if (image_size > BL_HEADER_ONLY_IMAGE_SIZE)
+        {
+            s_file_size = image_size;
+        }
         BL_UART_RTS   = 1;
     }
     else
