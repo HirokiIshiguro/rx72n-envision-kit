@@ -926,6 +926,15 @@ static e_fwup_err_t write_image_offset_prog(e_fwup_area_t area, uint8_t *p_buf, 
             ret_val = write_area_offset(area_tmp, &p_buf_tmp, &buf_sz_tmp, area_offset, dc.fw[fw_cnt].size, &write_offset, &write_size);
             if (FWUP_ERR_FLASH == ret_val)
             {
+                FWUP_LOG_ERR(
+                    "write_image_offset_prog failed: fw_cnt=%u area=%u write_address=0x%08lx area_offset=0x%08lx write_offset=0x%08lx chunk=%lu total=%lu\r\n",
+                    fw_cnt,
+                    area_tmp,
+                    write_address,
+                    area_offset,
+                    write_offset,
+                    write_size,
+                    dc.fw[fw_cnt].size);
                 return (ret_val);
             }
             if ((FWUP_SUCCESS == ret_val) || (FWUP_PROGRESS == ret_val))
@@ -1024,6 +1033,16 @@ static e_fwup_err_t write_image_offset_prog(e_fwup_area_t area, uint8_t *p_buf, 
             }
             else
             {
+                FWUP_LOG_ERR(
+                    "write_image_offset_prog failed: fw_cnt=%u area=%u write_address=0x%08lx area_offset=0x%08lx write_offset=0x%08lx chunk=%lu total=%lu ret=%d\r\n",
+                    fw_cnt,
+                    area_tmp,
+                    write_address,
+                    area_offset,
+                    write_offset,
+                    write_size,
+                    dc.fw[fw_cnt].size,
+                    ret_val);
                 return (ret_val);
             }
             area_tmp = area_tmp_bak;
