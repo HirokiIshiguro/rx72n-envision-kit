@@ -87,6 +87,7 @@ CI/CD Variables を変更すること。
 | 変数 | デフォルト | 説明 |
 |------|-----------|------|
 | `RUN_AWS_TESTS` | `"true"` | AWS 接続テスト（provision, MQTT）を実行するか |
+| `RUN_HW_HEALTHCHECK` | `"true"` | 実機の段階的ヘルスチェック（USB/serial 列挙、boot_loader バナー、aws_demos プロンプト）を実行するか |
 | `RUN_SD_UPDATE_TEST` | `"false"` | SD カードファームウェア更新テストを実行するか |
 | `RUN_OTA_TEST` | `"true"` | OTA テスト（build_ota, prepare_ota, ota_create_job, ota_monitor, ota_finalize）を実行するか |
 
@@ -106,6 +107,7 @@ SD カード更新を含むフルテストを実施したい場合は `RUN_SD_UP
 
 **注意:**
 - `RUN_SD_UPDATE_TEST` は `RUN_AWS_TESTS == "true"` の場合のみ有効（AWS 接続が前提）
+- `RUN_HW_HEALTHCHECK=true` の場合、`flash_boot_loader` で boot_loader バナー確認、`download_aws_demos` 後に aws_demos の prompt/probe 確認を実行する
 - `RUN_OTA_TEST` は独立した OTA パイプライン（build_ota → prepare_ota → ota_create_job/ota_monitor → ota_finalize）を制御。`RUN_AWS_TESTS=false` でも OTA テスト可（`prepare_ota` 内で再プロビジョニング）
 - AWS credentials は Windows 側の `ota-aws-control` environment に scope できる。Pi runner 側 job は `awscli` 非依存とし、UART 監視のみに限定する。
 - デバイスアクセスジョブには `resource_group: rx72n-device` を設定。同一ブランチへの連続 push で複数パイプラインが起動した際、先行パイプラインのデバイスジョブが完了するまで後続パイプラインのデバイスジョブは待機する（FIFO）。`build` / `build_ota` はデバイス非依存のため `resource_group` 不要。

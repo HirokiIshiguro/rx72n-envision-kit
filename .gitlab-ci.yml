@@ -1,6 +1,7 @@
 stages:
   - build
   - flash
+  - health
   - test
   - ota_prepare
   - ota_run
@@ -52,12 +53,14 @@ variables:
   # --- パイプライン条件分岐 ---
   # GitLab UI の「Run Pipeline」画面でオーバーライド可能。
   # RUN_AWS_TESTS:      AWS 接続テスト (provision, MQTT) を実行するか
+  # RUN_HW_HEALTHCHECK: 実機の段階的ヘルスチェックを実行するか
   # RUN_SD_UPDATE_TEST: SD カードファームウェア更新テストを実行するか
   # RUN_OTA_TEST:       OTA テスト (build_ota, prepare_ota, ota_create_job,
   #                     ota_monitor, ota_finalize) を実行するか
   # デフォルトは SD カード更新テストを除く通常テスト。
   # フルテストを実施したい場合は RUN_SD_UPDATE_TEST=true を指定する。
   RUN_AWS_TESTS: "true"
+  RUN_HW_HEALTHCHECK: "true"
   RUN_SD_UPDATE_TEST: "false"
   RUN_OTA_TEST: "true"
   # RUN_OTA_ONLY: OTA テストのみ実行するショートカットモード。
@@ -285,7 +288,9 @@ build:
 
 flash_boot_loader:
   stage: flash
-  extends: .pi_flash_job
+  extends:
+    - .pi_flash_job
+    - .pi_pyserial_job
   rules:
     - if: $RUN_OTA_ONLY == "true"
       when: never
@@ -313,7 +318,23 @@ flash_boot_loader:
       "$RFP_CLI" -device RX72x -tool "e2l:${E2LITE_SERIAL}" -if fine -speed 1500K \
         -auth id FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF -p "$mot" -v -run -noquery
       echo "Flash completed successfully. Boot loader is running."
-      echo "  UART verification deferred to download_aws_demos step."
+      if [[ "${RUN_HW_HEALTHCHECK}" == "true" ]]; then
+        bash "$CI_PROJECT_DIR/tools/ci/validate_pi_serial_path.sh" UART_PORT
+        bash "$CI_PROJECT_DIR/tools/ci/print_pi_hardware_state.sh" UART_PORT | tee "$CI_PROJECT_DIR/boot_loader_hardware_state.log"
+        python3 "$CI_PROJECT_DIR/test_scripts/uart_test/check_device_health.py" \
+          boot-banner \
+          --port "$UART_PORT" \
+          --baud "$UART_BAUD_RATE" \
+          --timeout 20 | tee "$CI_PROJECT_DIR/boot_loader_health.log"
+      else
+        echo "  Boot loader health-check skipped (RUN_HW_HEALTHCHECK=false)."
+      fi
+  artifacts:
+    when: always
+    paths:
+      - boot_loader_hardware_state.log
+      - boot_loader_health.log
+    expire_in: 1 week
 
 download_aws_demos:
   stage: flash
@@ -360,6 +381,41 @@ download_aws_demos:
       - userprog.rsu
     expire_in: 1 week
 
+health_aws_demos_startup:
+  stage: health
+  extends:
+    - .pi_device_job
+    - .pi_pyserial_job
+  timeout: 4 minutes
+  rules:
+    - if: $RUN_OTA_ONLY == "true"
+      when: never
+    - if: $RUN_HW_HEALTHCHECK == "true"
+    - when: never
+  needs:
+    - job: download_aws_demos
+  script:
+    - |
+      set -euo pipefail
+      bash "$CI_PROJECT_DIR/tools/ci/validate_pi_serial_path.sh" UART_PORT COMMAND_PORT
+      bash "$CI_PROJECT_DIR/tools/ci/print_pi_hardware_state.sh" UART_PORT COMMAND_PORT | tee "$CI_PROJECT_DIR/aws_demos_hardware_state.log"
+      echo "=== aws_demos Startup Health Check ==="
+      python3 "$CI_PROJECT_DIR/test_scripts/uart_test/check_device_health.py" \
+        command-prompt \
+        --port "$COMMAND_PORT" \
+        --baud "$COMMAND_BAUD_RATE" \
+        --initial-wait 3 \
+        --prompt-timeout 60 \
+        --command-timeout 10 \
+        --probe-command version \
+        --probe-expect v | tee "$CI_PROJECT_DIR/aws_demos_health.log"
+  artifacts:
+    when: always
+    paths:
+      - aws_demos_hardware_state.log
+      - aws_demos_health.log
+    expire_in: 1 week
+
 test_commands:
   stage: test
   extends:
@@ -372,6 +428,8 @@ test_commands:
     - when: always
   needs:
     - job: download_aws_demos
+    - job: health_aws_demos_startup
+      optional: true
     # provision_aws_credentials も COMMAND_PORT を使用するため、同時実行を防止。
     # RUN_AWS_TESTS=false 時は provision がスキップされるため optional: true。
     - job: provision_aws_credentials
@@ -412,7 +470,7 @@ test_screen_navigation:
         --timeout 30 --prompt-timeout 30 --initial-wait 1
 
 provision_aws_credentials:
-  stage: flash
+  stage: health
   extends:
     - .pi_device_job
     - .pi_pyserial_job
@@ -423,6 +481,8 @@ provision_aws_credentials:
     - if: $RUN_AWS_TESTS == "true"
   needs:
     - job: download_aws_demos
+    - job: health_aws_demos_startup
+      optional: true
   script:
     - |
       set -euo pipefail
