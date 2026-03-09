@@ -148,6 +148,32 @@ Known limitations before hardware validation:
 - linker warnings still match the legacy RX72N boot loader section layout and
   are not yet cleaned up because they were not build blockers
 
-Next step after Issue `#8`:
-- start Issue `#9` and port the `aws_ether_rx72n_envision_kit` seed until the
-  new baseline reaches `build -> flash -> provision -> MQTT`
+## Phase 8b-3 Current Status
+
+Current result for Issue `#9`:
+- `phase8b/Projects/aws_ether_rx72n_envision_kit/e2studio_ccrx`
+  builds headless with e2studio 2025-12 + CC-RX and emits `.abs`, `.mot`, and `.x`
+- project metadata was retargeted from RX65N to RX72N (`RXv3 + DPFPU`)
+- RX72N-specific BSP / Ethernet / flash / S12AD / SCI / pin configuration was
+  imported into the new baseline project
+- `BSP_CFG_MCU_PART_FUNCTION`, PPLL clock settings, expansion RAM handling, and
+  `BSP_MCU_TFU_VERSION` were aligned to the RX72N environment
+- littlefs headers were adjusted so the imported FSP-style interfaces build in
+  the RX FIT-based tree
+- linker settings were extended for `D_8/R_8` and `DEXRAM_8/REXRAM_8`, which
+  removed the previous expansion RAM build blocker
+
+Known limitations before hardware baseline:
+- `r_tsip_rx` is still using the imported RX65N target tree and needs formal
+  RX72N alignment before the port can be called complete
+- linker warnings remain for `C_LITTLEFS_MANAGEMENT_AREA`,
+  `C_FIRMWARE_UPDATE_CONTROL_BLOCK`, `C_FIRMWARE_UPDATE_CONTROL_BLOCK_MIRROR`,
+  and `C_USER_APPLICATION_AREA`
+- there are non-blocking warning groups around generated RX72N mapped interrupt
+  macros and SCI feature defines that should be cleaned up after the build gate
+- `.gitlab-ci.yml` still targets the legacy `aws_demos` project, so phase8b is
+  not wired into build-only CI yet
+
+Next step after the current Issue `#9` milestone:
+- connect `aws_ether_rx72n_envision_kit` to a build-only CI path
+- then advance to `build -> flash -> provision -> MQTT` on the phase8b stack

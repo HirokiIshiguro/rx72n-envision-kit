@@ -239,7 +239,13 @@ bool R_BSP_SoftwareDelay(uint32_t delay, bsp_delay_units_t units)
  */
 void R_BSP_ClockReset_Bootloader(void)
 {
+    #if defined(BSP_MCU_RX72N)
+    /* TODO: Port the full reset-state clock unwind for RX72N. For the first Phase 8b build gate,
+       keep the helper callable so the project links while the runtime sequence is verified on hardware. */
+    R_BSP_NOP();
+    #else
     bsp_mcu_clock_reset_bootloader();
+    #endif
 } /* End of function R_BSP_ClockReset_Bootloader() */
   #endif /* BSP_CFG_BOOTLOADER_PROJECT == 1 */
 #endif /* defined(BSP_CFG_BOOTLOADER_PROJECT) */

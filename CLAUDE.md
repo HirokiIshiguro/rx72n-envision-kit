@@ -102,6 +102,8 @@ Detailed notes are tracked in [`docs/phase8b-migration-plan.md`](docs/phase8b-mi
 - 8b-1 は完了。`phase8b/` staging root に `iot-reference-rx` baseline を取り込み済み。
 - 8b-2 は headless build gate を通過。`boot_loader_rx72n_envision_kit` は e2studio 2025-12 + CC-RX で `.mot` 生成まで確認。
 - 8b-2 の残課題は runtime 妥当性確認。`R_BSP_ClockReset_Bootloader()` は RX72N 側でまだ暫定 no-op のため、flash 実機確認前に本実装へ置き換える。
+- 8b-3 は headless build gate を通過。`aws_ether_rx72n_envision_kit` は e2studio 2025-12 + CC-RX で `.abs` / `.mot` / `.x` 生成まで確認。
+- 8b-3 の残課題は warning cleanup と CI 配線。`r_tsip_rx` の RX72N 正式化、`C_LITTLEFS_*` / `C_USER_APPLICATION_AREA` section warning の整理、build-only job への接続を次段で進める。
 
 ### パイプライン変数 / Pipeline Variables
 
@@ -680,6 +682,25 @@ seed `e2studio_ccrx` project を目標ディレクトリ名で配置した。
 `phase8b/UPSTREAM_BASELINE.md` に upstream commit と取り込み対象一覧を記録。
 この段階の project はまだ RX65N 指向の seed であり、RX72N build 通過は未主張。
 次の作業は Issue `#8` の boot loader port。
+
+### 2026-03-09: Phase 8b-3 RX72N app が headless build を通過
+
+`aws_ether_rx72n_envision_kit` seed project を RX72N 向けに retarget し、
+project metadata, BSP/ETHERNET/FLASH/S12AD/SCI target, pin config, `r_fwup`
+設定、clock/PPLL 設定、expansion RAM 定義を移植した。
+
+あわせて littlefs 側に不足していた FSP compatibility include を補い、
+RX72N の DPFPU 前提に合わせて linker の `D_8/R_8` と
+`DEXRAM_8/REXRAM_8` section を有効化した。
+
+e2studio 2025-12 + CC-RX の headless build で
+`aws_ether_rx72n_envision_kit/HardwareDebug` が `0 errors, 55 warnings`
+で完走し、`.abs` / `.mot` / `.x` の生成を確認した。
+
+残課題は build blocker ではない warning の整理と CI 配線。
+特に `r_tsip_rx` の RX72N target 正式化、`C_LITTLEFS_*` /
+`C_USER_APPLICATION_AREA` linker warning の扱い、phase8b build-only
+job の追加を次に進める。
 
 ### 2026-03-09: Phase 8b started — skeleton import planning and issue split
 

@@ -7,7 +7,7 @@
 /***********************************************************************************************************************
 * File Name        : Pin.c
 * Version          : 1.0.2
-* Device(s)        : R5F565NEHxFB
+* Device(s)        : R5F572NNHxFB
 * Description      : This file implements SMC pin code generation.
 ***********************************************************************************************************************/
 
@@ -101,15 +101,23 @@ void R_Pins_Create(void)
     MPC.PB4PFS.BYTE = 0x12U;
     PORTB.PMR.BYTE |= 0x10U;
 
-    /* Set RXD5 pin */
-    MPC.PC2PFS.BYTE = 0x0AU;
-    PORTC.PMR.BYTE |= 0x04U;
+    /* Set RXD2 pin */
+    MPC.P12PFS.BYTE = 0x0AU;
+    PORT1.PMR.BYTE |= 0x04U;
 
-    /* Set TXD5 pin */
-    PORTC.PODR.BYTE |= 0x08U;
-    MPC.PC3PFS.BYTE = 0x0AU;
-    PORTC.PDR.BYTE |= 0x08U;
-    // PORTC.PMR.BIT.B3 = 1U; // Please set the PMR bit after TE bit is set to 1.
+    /* Set RXD7 pin */
+    MPC.P92PFS.BYTE = 0x0AU;
+    PORT9.PMR.BYTE |= 0x04U;
+
+    /* Set TXD2 pin */
+    PORT1.PODR.BYTE |= 0x08U;
+    MPC.P13PFS.BYTE = 0x0AU;
+    PORT1.PDR.BYTE |= 0x08U;
+
+    /* Set TXD7 pin */
+    PORT9.PODR.BYTE |= 0x01U;
+    MPC.P90PFS.BYTE = 0x0AU;
+    PORT9.PDR.BYTE |= 0x01U;
 
     R_BSP_RegisterProtectEnable(BSP_REG_PROTECT_MPC);
 }

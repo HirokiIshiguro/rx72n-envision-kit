@@ -5,7 +5,7 @@
     <PlaceholderPrefix>${</PlaceholderPrefix>
     <PlaceholderPostfix>}</PlaceholderPostfix>
   </Placeholders>
-  <Project Name="aws_ether_ck_rx65n_v2" Type="Application">
+  <Project Name="aws_ether_rx72n_envision_kit" Type="Application">
     <Files>
       <Category Name="Common">
         <Category Name="FreeRTOS_common">
@@ -845,16 +845,15 @@
                 <Path>src\smc_gen\r_bsp\board\generic_rx65n\r_bsp_config_reference.h</Path>
                 <Path>src\smc_gen\r_bsp\board\generic_rx65n\r_bsp_interrupt_config_reference.h</Path>
               </Category>
+              <Category Name="generic_rx72n">
+                <Path>src\smc_gen\r_bsp\board\generic_rx72n\hwsetup.c</Path>
+                <Path>src\smc_gen\r_bsp\board\generic_rx72n\hwsetup.h</Path>
+                <Path>src\smc_gen\r_bsp\board\generic_rx72n\r_bsp.h</Path>
+                <Path>src\smc_gen\r_bsp\board\generic_rx72n\r_bsp_config_reference.h</Path>
+                <Path>src\smc_gen\r_bsp\board\generic_rx72n\r_bsp_interrupt_config_reference.h</Path>
+              </Category>
               <Category Name="user">
                 <Path>src\smc_gen\r_bsp\board\user\r_bsp.h</Path>
-              </Category>
-            </Category>
-            <Category Name="doc">
-              <Category Name="en">
-                <Path>src\smc_gen\r_bsp\doc\en\r01an1685ej0752-rx-bsp.pdf</Path>
-              </Category>
-              <Category Name="ja">
-                <Path>src\smc_gen\r_bsp\doc\ja\r01an1685jj0752-rx-bsp.pdf</Path>
               </Category>
             </Category>
             <Category Name="mcu">
@@ -908,19 +907,33 @@
                   </Category>
                 </Category>
               </Category>
+              <Category Name="rx72n">
+                <Path>src\smc_gen\r_bsp\mcu\rx72n\mcu_clocks.c</Path>
+                <Path>src\smc_gen\r_bsp\mcu\rx72n\mcu_clocks.h</Path>
+                <Path>src\smc_gen\r_bsp\mcu\rx72n\mcu_info.h</Path>
+                <Path>src\smc_gen\r_bsp\mcu\rx72n\mcu_init.c</Path>
+                <Path>src\smc_gen\r_bsp\mcu\rx72n\mcu_init.h</Path>
+                <Path>src\smc_gen\r_bsp\mcu\rx72n\mcu_interrupts.c</Path>
+                <Path>src\smc_gen\r_bsp\mcu\rx72n\mcu_interrupts.h</Path>
+                <Path>src\smc_gen\r_bsp\mcu\rx72n\mcu_locks.h</Path>
+                <Path>src\smc_gen\r_bsp\mcu\rx72n\mcu_mapped_interrupts.c</Path>
+                <Path>src\smc_gen\r_bsp\mcu\rx72n\mcu_mapped_interrupts.h</Path>
+                <Path>src\smc_gen\r_bsp\mcu\rx72n\mcu_mapped_interrupts_private.h</Path>
+                <Path>src\smc_gen\r_bsp\mcu\rx72n\r_bsp_cpu.h</Path>
+                <Path>src\smc_gen\r_bsp\mcu\rx72n\r_bsp_locking.h</Path>
+                <Path>src\smc_gen\r_bsp\mcu\rx72n\vecttbl.c</Path>
+                <Path>src\smc_gen\r_bsp\mcu\rx72n\vecttbl.h</Path>
+                <Category Name="register_access">
+                  <Category Name="ccrx">
+                    <Path>src\smc_gen\r_bsp\mcu\rx72n\register_access\ccrx\iodefine.h</Path>
+                  </Category>
+                </Category>
+              </Category>
             </Category>
           </Category>
           <Category Name="r_byteq">
             <Path>src\smc_gen\r_byteq\r_byteq_if.h</Path>
             <Path>src\smc_gen\r_byteq\readme.txt</Path>
-            <Category Name="doc">
-              <Category Name="en">
-                <Path>src\smc_gen\r_byteq\doc\en\r01an1683ej0210-rx-apl.pdf</Path>
-              </Category>
-              <Category Name="ja">
-                <Path>src\smc_gen\r_byteq\doc\ja\r01an1683jj0210-rx-apl.pdf</Path>
-              </Category>
-            </Category>
             <Category Name="src">
               <Path>src\smc_gen\r_byteq\src\r_byteq.c</Path>
               <Path>src\smc_gen\r_byteq\src\r_byteq_private.h</Path>
@@ -942,14 +955,6 @@
           <Category Name="r_ether_rx">
             <Path>src\smc_gen\r_ether_rx\r_ether_rx_if.h</Path>
             <Path>src\smc_gen\r_ether_rx\readme.txt</Path>
-            <Category Name="doc">
-              <Category Name="en">
-                <Path>src\smc_gen\r_ether_rx\doc\en\r01an2009ej0123-rx-ether.pdf</Path>
-              </Category>
-              <Category Name="ja">
-                <Path>src\smc_gen\r_ether_rx\doc\ja\r01an2009jj0123-rx-ether.pdf</Path>
-              </Category>
-            </Category>
             <Category Name="src">
               <Path>src\smc_gen\r_ether_rx\src\r_ether_rx.c</Path>
               <Path>src\smc_gen\r_ether_rx\src\r_ether_rx_private.h</Path>
@@ -961,20 +966,15 @@
                 <Category Name="rx65n">
                   <Path>src\smc_gen\r_ether_rx\src\targets\rx65n\r_ether_setting_rx65n.c</Path>
                 </Category>
+                <Category Name="rx72n">
+                  <Path>src\smc_gen\r_ether_rx\src\targets\rx72n\r_ether_setting_rx72n.c</Path>
+                </Category>
               </Category>
             </Category>
           </Category>
           <Category Name="r_flash_rx">
             <Path>src\smc_gen\r_flash_rx\r_flash_rx_if.h</Path>
             <Path>src\smc_gen\r_flash_rx\readme.txt</Path>
-            <Category Name="doc">
-              <Category Name="en">
-                <Path>src\smc_gen\r_flash_rx\doc\en\r01an2184ej0521-rx-flash.pdf</Path>
-              </Category>
-              <Category Name="ja">
-                <Path>src\smc_gen\r_flash_rx\doc\ja\r01an2184jj0521-rx-flash.pdf</Path>
-              </Category>
-            </Category>
             <Category Name="src">
               <Path>src\smc_gen\r_flash_rx\src\r_flash_fcu.c</Path>
               <Path>src\smc_gen\r_flash_rx\src\r_flash_fcu.h</Path>
@@ -1005,19 +1005,14 @@
                 <Category Name="rx65n">
                   <Path>src\smc_gen\r_flash_rx\src\targets\rx65n\r_flash_rx65n.h</Path>
                 </Category>
+                <Category Name="rx72n">
+                  <Path>src\smc_gen\r_flash_rx\src\targets\rx72n\r_flash_rx72n.h</Path>
+                </Category>
               </Category>
             </Category>
           </Category>
           <Category Name="r_fwup">
             <Path>src\smc_gen\r_fwup\r_fwup_if.h</Path>
-            <Category Name="doc">
-              <Category Name="en">
-                <Path>src\smc_gen\r_fwup\doc\en\r01an6850ej0204-rx-fwup.pdf</Path>
-              </Category>
-              <Category Name="ja">
-                <Path>src\smc_gen\r_fwup\doc\ja\r01an6850jj0204-rx-fwup.pdf</Path>
-              </Category>
-            </Category>
             <Category Name="ref">
               <Path>src\smc_gen\r_fwup\ref\boot_loader_reference_c.txt</Path>
               <Path>src\smc_gen\r_fwup\ref\boot_loader_reference_h.txt</Path>
@@ -1061,14 +1056,6 @@
           <Category Name="r_irq_rx">
             <Path>src\smc_gen\r_irq_rx\r_irq_rx_if.h</Path>
             <Path>src\smc_gen\r_irq_rx\readme.txt</Path>
-            <Category Name="doc">
-              <Category Name="en">
-                <Path>src\smc_gen\r_irq_rx\doc\en\r01an1668ej0480-rx-int.pdf</Path>
-              </Category>
-              <Category Name="ja">
-                <Path>src\smc_gen\r_irq_rx\doc\ja\r01an1668jj0480-rx-int.pdf</Path>
-              </Category>
-            </Category>
             <Category Name="src">
               <Path>src\smc_gen\r_irq_rx\src\r_irq_rx.c</Path>
               <Path>src\smc_gen\r_irq_rx\src\r_irq_rx_private.h</Path>
@@ -1090,14 +1077,6 @@
           <Category Name="r_s12ad_rx">
             <Path>src\smc_gen\r_s12ad_rx\r_s12ad_rx_if.h</Path>
             <Path>src\smc_gen\r_s12ad_rx\readme.txt</Path>
-            <Category Name="doc">
-              <Category Name="en">
-                <Path>src\smc_gen\r_s12ad_rx\doc\en\r01an1666ej0540-rx-adc.pdf</Path>
-              </Category>
-              <Category Name="ja">
-                <Path>src\smc_gen\r_s12ad_rx\doc\ja\r01an1666jj0540-rx-adc.pdf</Path>
-              </Category>
-            </Category>
             <Category Name="src">
               <Path>src\smc_gen\r_s12ad_rx\src\r_s12ad_rx.c</Path>
               <Path>src\smc_gen\r_s12ad_rx\src\r_s12ad_rx_private.h</Path>
@@ -1106,20 +1085,16 @@
                   <Path>src\smc_gen\r_s12ad_rx\src\targets\rx65n\r_s12ad_rx65n.c</Path>
                   <Path>src\smc_gen\r_s12ad_rx\src\targets\rx65n\r_s12ad_rx65n_if.h</Path>
                 </Category>
+                <Category Name="rx72n">
+                  <Path>src\smc_gen\r_s12ad_rx\src\targets\rx72n\r_s12ad_rx72n.c</Path>
+                  <Path>src\smc_gen\r_s12ad_rx\src\targets\rx72n\r_s12ad_rx72n_if.h</Path>
+                </Category>
               </Category>
             </Category>
           </Category>
           <Category Name="r_sci_rx">
             <Path>src\smc_gen\r_sci_rx\r_sci_rx_if.h</Path>
             <Path>src\smc_gen\r_sci_rx\readme.txt</Path>
-            <Category Name="doc">
-              <Category Name="en">
-                <Path>src\smc_gen\r_sci_rx\doc\en\r01an1815ej0540-rx-serial.pdf</Path>
-              </Category>
-              <Category Name="ja">
-                <Path>src\smc_gen\r_sci_rx\doc\ja\r01an1815jj0540-rx-serial.pdf</Path>
-              </Category>
-            </Category>
             <Category Name="src">
               <Path>src\smc_gen\r_sci_rx\src\r_sci_rx.c</Path>
               <Path>src\smc_gen\r_sci_rx\src\r_sci_rx_dmaca.c</Path>
@@ -1134,20 +1109,17 @@
                   <Path>src\smc_gen\r_sci_rx\src\targets\rx65n\r_sci_rx65n_data.c</Path>
                   <Path>src\smc_gen\r_sci_rx\src\targets\rx65n\r_sci_rx65n_private.h</Path>
                 </Category>
+                <Category Name="rx72n">
+                  <Path>src\smc_gen\r_sci_rx\src\targets\rx72n\r_sci_rx72n.c</Path>
+                  <Path>src\smc_gen\r_sci_rx\src\targets\rx72n\r_sci_rx72n_data.c</Path>
+                  <Path>src\smc_gen\r_sci_rx\src\targets\rx72n\r_sci_rx72n_private.h</Path>
+                </Category>
               </Category>
             </Category>
           </Category>
           <Category Name="r_tsip_rx">
             <Path>src\smc_gen\r_tsip_rx\r_tsip_rx_if.h</Path>
             <Path>src\smc_gen\r_tsip_rx\readme.txt</Path>
-            <Category Name="doc">
-              <Category Name="en">
-                <Path>src\smc_gen\r_tsip_rx\doc\en\r20an0371ej0121-rx-tsip-security.pdf</Path>
-              </Category>
-              <Category Name="ja">
-                <Path>src\smc_gen\r_tsip_rx\doc\ja\r20an0371jj0121-rx-tsip-security.pdf</Path>
-              </Category>
-            </Category>
             <Category Name="src">
               <Category Name="targets">
                 <Category Name="rx65n">
@@ -1423,13 +1395,14 @@
         </Category>
       </Category>
     </Files>
-    <Device Category="com.renesas.cdt.managedbuild.renesas.ccrx.common.option.cpu.rx600" Series="RX">R5F565NEHxFB_DUAL</Device>
+    <Device Category="com.renesas.cdt.managedbuild.renesas.ccrx.common.option.cpu.rx600" Series="RX">R5F572NNHxFB_DUAL</Device>
     <BuildOptions Name="CC-RX" Version="v3.07.00">
       <BuildMode Active="True" Name="HardwareDebug">
         <GeneralOptions/>
         <CompileOptions>
-          <Option>-isa=rxv2</Option>
+          <Option>-isa=rxv3</Option>
           <Option>-fpu</Option>
+          <Option>-nodpfpu</Option>
           <Option>-branch=32</Option>
           <Option>-include="${ProjDirPath}\src\smc_gen\r_bsp"</Option>
           <Option>-include="${ProjDirPath}\src\smc_gen\general"</Option>
@@ -1449,58 +1422,58 @@
           <Option>-include="${ProjDirPath}\src\smc_gen\r_flash_rx\src\flash_type_5"</Option>
           <Option>-include="${ProjDirPath}\src\smc_gen\r_flash_rx\src\targets"</Option>
           <Option>-include="${ProjDirPath}\src\smc_gen\r_tsip_rx"</Option>
-          <Option>-include="C:\Claude\iot-reference-rx\Common\FreeRTOS_common"</Option>
-          <Option>-include="C:\Claude\iot-reference-rx\Common\FreeRTOS_common\compiler_support\ccrx"</Option>
-          <Option>-include="C:\Claude\iot-reference-rx\Common\littlefs_common"</Option>
-          <Option>-include="C:\Claude\iot-reference-rx\Common\littlefs_common\rm_littlefs_df\targets\rx65n"</Option>
-          <Option>-include="C:\Claude\iot-reference-rx\Common\common_api"</Option>
-          <Option>-include="C:\Claude\iot-reference-rx\Demos\cli"</Option>
-          <Option>-include="C:\Claude\iot-reference-rx\Demos\mqtt_agent"</Option>
-          <Option>-include="C:\Claude\iot-reference-rx\Demos\Fleet_Provisioning_With_CSR_Demo"</Option>
-          <Option>-include="C:\Claude\iot-reference-rx\Demos\common\pkcs11_helpers"</Option>
-          <Option>-include="C:\Claude\iot-reference-rx\Demos\dev_mode_key_provisioning\include"</Option>
-          <Option>-include="C:\Claude\iot-reference-rx\Demos\common\mqtt-agent-interface\include"</Option>
-          <Option>-include="C:\Claude\iot-reference-rx\Demos\common\mqtt-agent-interface"</Option>
-          <Option>-include="C:\Claude\iot-reference-rx\Demos\common\Mqtt_Demo_Helpers"</Option>
-          <Option>-include="C:\Claude\iot-reference-rx\Middleware\freertos_plus\standard\crypto\include"</Option>
-          <Option>-include="C:\Claude\iot-reference-rx\Middleware\logging\include"</Option>
-          <Option>-include="C:\Claude\iot-reference-rx\Middleware\FreeRTOS\FreeRTOS-Kernel\include"</Option>
-          <Option>-include="C:\Claude\iot-reference-rx\Middleware\FreeRTOS\FreeRTOS-Plus-TCP\source\include"</Option>
-          <Option>-include="C:\Claude\iot-reference-rx\Middleware\FreeRTOS-Plus-CLI"</Option>
-          <Option>-include="C:\Claude\iot-reference-rx\Middleware\FreeRTOS\coreMQTT\source\include"</Option>
-          <Option>-include="C:\Claude\iot-reference-rx\Middleware\FreeRTOS\coreMQTT\source\interface"</Option>
-          <Option>-include="C:\Claude\iot-reference-rx\Middleware\FreeRTOS\coreMQTT-Agent\source\include"</Option>
-          <Option>-include="C:\Claude\iot-reference-rx\Middleware\FreeRTOS\backoffAlgorithm\source\include"</Option>
-          <Option>-include="C:\Claude\iot-reference-rx\Middleware\network_transport\using_mbedtls_pkcs11"</Option>
-          <Option>-include="C:\Claude\iot-reference-rx\Middleware\FreeRTOS\corePKCS11\source\dependency\3rdparty\pkcs11\published\2-40-errata-1"</Option>
-          <Option>-include="C:\Claude\iot-reference-rx\Middleware\FreeRTOS\corePKCS11\source\include"</Option>
-          <Option>-include="C:\Claude\iot-reference-rx\Middleware\FreeRTOS\corePKCS11\source\dependency\3rdparty\mbedtls_utils"</Option>
-          <Option>-include="C:\Claude\iot-reference-rx\Middleware\3rdparty\littlefs"</Option>
-          <Option>-include="C:\Claude\iot-reference-rx\Middleware\3rdparty\mbedtls_utils"</Option>
-          <Option>-include="C:\Claude\iot-reference-rx\Middleware\3rdparty\mbedtls\include\mbedtls"</Option>
-          <Option>-include="C:\Claude\iot-reference-rx\Middleware\3rdparty\mbedtls\include"</Option>
-          <Option>-include="C:\Claude\iot-reference-rx\Middleware\3rdparty\mbedtls\library"</Option>
-          <Option>-include="C:\Claude\iot-reference-rx\Middleware\3rdparty\mbedtls_config"</Option>
-          <Option>-include="C:\Claude\iot-reference-rx\Middleware\network_transport\sockets_wrapper\include"</Option>
+          <Option>-include="C:\codex\tmp_rx72n_envision_kit_import_main\phase8b\Common\FreeRTOS_common"</Option>
+          <Option>-include="C:\codex\tmp_rx72n_envision_kit_import_main\phase8b\Common\FreeRTOS_common\compiler_support\ccrx"</Option>
+          <Option>-include="C:\codex\tmp_rx72n_envision_kit_import_main\phase8b\Common\littlefs_common"</Option>
+          <Option>-include="C:\codex\tmp_rx72n_envision_kit_import_main\phase8b\Common\littlefs_common\rm_littlefs_df\targets\rx65n"</Option>
+          <Option>-include="C:\codex\tmp_rx72n_envision_kit_import_main\phase8b\Common\common_api"</Option>
+          <Option>-include="C:\codex\tmp_rx72n_envision_kit_import_main\phase8b\Demos\cli"</Option>
+          <Option>-include="C:\codex\tmp_rx72n_envision_kit_import_main\phase8b\Demos\mqtt_agent"</Option>
+          <Option>-include="C:\codex\tmp_rx72n_envision_kit_import_main\phase8b\Demos\Fleet_Provisioning_With_CSR_Demo"</Option>
+          <Option>-include="C:\codex\tmp_rx72n_envision_kit_import_main\phase8b\Demos\common\pkcs11_helpers"</Option>
+          <Option>-include="C:\codex\tmp_rx72n_envision_kit_import_main\phase8b\Demos\dev_mode_key_provisioning\include"</Option>
+          <Option>-include="C:\codex\tmp_rx72n_envision_kit_import_main\phase8b\Demos\common\mqtt-agent-interface\include"</Option>
+          <Option>-include="C:\codex\tmp_rx72n_envision_kit_import_main\phase8b\Demos\common\mqtt-agent-interface"</Option>
+          <Option>-include="C:\codex\tmp_rx72n_envision_kit_import_main\phase8b\Demos\common\Mqtt_Demo_Helpers"</Option>
+          <Option>-include="C:\codex\tmp_rx72n_envision_kit_import_main\phase8b\Middleware\freertos_plus\standard\crypto\include"</Option>
+          <Option>-include="C:\codex\tmp_rx72n_envision_kit_import_main\phase8b\Middleware\logging\include"</Option>
+          <Option>-include="C:\codex\tmp_rx72n_envision_kit_import_main\phase8b\Middleware\FreeRTOS\FreeRTOS-Kernel\include"</Option>
+          <Option>-include="C:\codex\tmp_rx72n_envision_kit_import_main\phase8b\Middleware\FreeRTOS\FreeRTOS-Plus-TCP\source\include"</Option>
+          <Option>-include="C:\codex\tmp_rx72n_envision_kit_import_main\phase8b\Middleware\FreeRTOS-Plus-CLI"</Option>
+          <Option>-include="C:\codex\tmp_rx72n_envision_kit_import_main\phase8b\Middleware\FreeRTOS\coreMQTT\source\include"</Option>
+          <Option>-include="C:\codex\tmp_rx72n_envision_kit_import_main\phase8b\Middleware\FreeRTOS\coreMQTT\source\interface"</Option>
+          <Option>-include="C:\codex\tmp_rx72n_envision_kit_import_main\phase8b\Middleware\FreeRTOS\coreMQTT-Agent\source\include"</Option>
+          <Option>-include="C:\codex\tmp_rx72n_envision_kit_import_main\phase8b\Middleware\FreeRTOS\backoffAlgorithm\source\include"</Option>
+          <Option>-include="C:\codex\tmp_rx72n_envision_kit_import_main\phase8b\Middleware\network_transport\using_mbedtls_pkcs11"</Option>
+          <Option>-include="C:\codex\tmp_rx72n_envision_kit_import_main\phase8b\Middleware\FreeRTOS\corePKCS11\source\dependency\3rdparty\pkcs11\published\2-40-errata-1"</Option>
+          <Option>-include="C:\codex\tmp_rx72n_envision_kit_import_main\phase8b\Middleware\FreeRTOS\corePKCS11\source\include"</Option>
+          <Option>-include="C:\codex\tmp_rx72n_envision_kit_import_main\phase8b\Middleware\FreeRTOS\corePKCS11\source\dependency\3rdparty\mbedtls_utils"</Option>
+          <Option>-include="C:\codex\tmp_rx72n_envision_kit_import_main\phase8b\Middleware\3rdparty\littlefs"</Option>
+          <Option>-include="C:\codex\tmp_rx72n_envision_kit_import_main\phase8b\Middleware\3rdparty\mbedtls_utils"</Option>
+          <Option>-include="C:\codex\tmp_rx72n_envision_kit_import_main\phase8b\Middleware\3rdparty\mbedtls\include\mbedtls"</Option>
+          <Option>-include="C:\codex\tmp_rx72n_envision_kit_import_main\phase8b\Middleware\3rdparty\mbedtls\include"</Option>
+          <Option>-include="C:\codex\tmp_rx72n_envision_kit_import_main\phase8b\Middleware\3rdparty\mbedtls\library"</Option>
+          <Option>-include="C:\codex\tmp_rx72n_envision_kit_import_main\phase8b\Middleware\3rdparty\mbedtls_config"</Option>
+          <Option>-include="C:\codex\tmp_rx72n_envision_kit_import_main\phase8b\Middleware\network_transport\sockets_wrapper\include"</Option>
           <Option>-include="${ProjDirPath}\src\application_code"</Option>
-          <Option>-include="C:\Claude\iot-reference-rx\Demos\include"</Option>
+          <Option>-include="C:\codex\tmp_rx72n_envision_kit_import_main\phase8b\Demos\include"</Option>
           <Option>-include="${ProjDirPath}\src\frtos_config"</Option>
           <Option>-include="${ProjDirPath}\src\frtos_startup"</Option>
-          <Option>-include="C:\Claude\iot-reference-rx\Middleware\FreeRTOS\FreeRTOS-Kernel\portable\Renesas\RX600v2"</Option>
-          <Option>-include="C:\Claude\iot-reference-rx\Middleware\FreeRTOS\FreeRTOS-Plus-TCP\source\portable\Compiler\Renesas"</Option>
+          <Option>-include="C:\codex\tmp_rx72n_envision_kit_import_main\phase8b\Middleware\FreeRTOS\FreeRTOS-Kernel\portable\Renesas\RX600v2"</Option>
+          <Option>-include="C:\codex\tmp_rx72n_envision_kit_import_main\phase8b\Middleware\FreeRTOS\FreeRTOS-Plus-TCP\source\portable\Compiler\Renesas"</Option>
           <Option>-include="${ProjDirPath}\src\smc_gen"</Option>
           <Option>-include="${ProjDirPath}\src\smc_gen\r_ether_rx"</Option>
-          <Option>-include="C:\Claude\iot-reference-rx\Demos\OtaOverMqtt"</Option>
-          <Option>-include="C:\Claude\iot-reference-rx\Demos\common\mqtt-wrapper"</Option>
-          <Option>-include="C:\Claude\iot-reference-rx\Common\patches\Jobs-for-AWS-IoT-embedded-sdk\source\include"</Option>
-          <Option>-include="C:\Claude\iot-reference-rx\Middleware\AWS\Jobs-for-AWS-IoT-embedded-sdk\source\otaJobParser\include"</Option>
-          <Option>-include="C:\Claude\iot-reference-rx\Middleware\AWS\aws-iot-core-mqtt-file-streams-embedded-c\source\include"</Option>
-          <Option>-include="C:\Claude\iot-reference-rx\Middleware\3rdparty\tinycbor\src"</Option>
-          <Option>-include="C:\Claude\iot-reference-rx\Middleware\FreeRTOS\coreJSON\source\include"</Option>
+          <Option>-include="C:\codex\tmp_rx72n_envision_kit_import_main\phase8b\Demos\OtaOverMqtt"</Option>
+          <Option>-include="C:\codex\tmp_rx72n_envision_kit_import_main\phase8b\Demos\common\mqtt-wrapper"</Option>
+          <Option>-include="C:\codex\tmp_rx72n_envision_kit_import_main\phase8b\Common\patches\Jobs-for-AWS-IoT-embedded-sdk\source\include"</Option>
+          <Option>-include="C:\codex\tmp_rx72n_envision_kit_import_main\phase8b\Middleware\AWS\Jobs-for-AWS-IoT-embedded-sdk\source\otaJobParser\include"</Option>
+          <Option>-include="C:\codex\tmp_rx72n_envision_kit_import_main\phase8b\Middleware\AWS\aws-iot-core-mqtt-file-streams-embedded-c\source\include"</Option>
+          <Option>-include="C:\codex\tmp_rx72n_envision_kit_import_main\phase8b\Middleware\3rdparty\tinycbor\src"</Option>
+          <Option>-include="C:\codex\tmp_rx72n_envision_kit_import_main\phase8b\Middleware\FreeRTOS\coreJSON\source\include"</Option>
           <Option>-include="${ProjDirPath}\src\application_code\ota_fwup_wrap_code"</Option>
-          <Option>-include="C:\Claude\iot-reference-rx\Demos\OtaOverMqtt\ota_os"</Option>
-          <Option>-include="C:\Claude\iot-reference-rx\Common\ports\ota_pal"</Option>
-          <Option>-include="C:\Claude\iot-reference-rx\Common\FreeRTOS_common\network_support"</Option>
+          <Option>-include="C:\codex\tmp_rx72n_envision_kit_import_main\phase8b\Demos\OtaOverMqtt\ota_os"</Option>
+          <Option>-include="C:\codex\tmp_rx72n_envision_kit_import_main\phase8b\Common\ports\ota_pal"</Option>
+          <Option>-include="C:\codex\tmp_rx72n_envision_kit_import_main\phase8b\Common\FreeRTOS_common\network_support"</Option>
           <Option>-include="${ProjDirPath}\src\smc_gen\r_fwup\src\tinycrypt\source"</Option>
           <Option>-include="${ProjDirPath}\src\smc_gen\r_fwup\src\base64"</Option>
           <Option>-include="${ProjDirPath}\src\smc_gen\r_fwup\src\tinycrypt\include"</Option>
@@ -1509,12 +1482,13 @@
           <Option>-include="${ProjDirPath}\src\smc_gen\r_irq_rx\src"</Option>
           <Option>-include="${ProjDirPath}\src\smc_gen\r_irq_rx"</Option>
           <Option>-define=MBEDTLS_CONFIG_FILE=&lt;"aws_mbedtls_config.h"&gt;,CONFIG_FREERTOS_ASSERT_FAIL_ABORT,CONFIG_MEDTLS_USE_AFR_MEMORY,MBEDTLS_ERROR_C,MBEDTLS_ALLOW_PRIVATE_ACCESS,__LITTLE_ENDIAN__</Option>
+          <Option>-asmopt=-bank</Option>
           <Option>-utf8</Option>
           <Option>-nomessage=11174,21644,20010,23034,23035,20177,23033</Option>
           <Option>-debug</Option>
           <Option>-outcode=utf8</Option>
           <Option>-goptimize</Option>
-          <Option>-optimize=2</Option>
+          <Option>-tfu=intrinsic</Option>
           <Option>-nologo</Option>
           <Option>-lang=c99</Option>
           <Option>-lang=cpp</Option>
@@ -1522,8 +1496,9 @@
           <Option>-obj_path=${CONFIGDIR}</Option>
         </CompileOptions>
         <AssembleOptions>
-          <Option>-isa=rxv2</Option>
+          <Option>-isa=rxv3</Option>
           <Option>-fpu</Option>
+          <Option>-nodpfpu</Option>
           <Option>-include="${ProjDirPath}\src\smc_gen\r_flash_rx"</Option>
           <Option>-include="${ProjDirPath}\src\smc_gen\r_flash_rx\src\flash_type_1"</Option>
           <Option>-include="${ProjDirPath}\src\smc_gen\general"</Option>
@@ -1552,6 +1527,7 @@
           <Option>-include="${ProjDirPath}\src\smc_gen\r_irq_rx\src"</Option>
           <Option>-include="${ProjDirPath}\src\smc_gen\r_irq_rx"</Option>
           <Option>-utf8</Option>
+          <Option>-bank</Option>
           <Option>-debug</Option>
           <Option>-goptimize</Option>
           <Option>-nologo</Option>
@@ -1565,12 +1541,12 @@
           <Option>-list</Option>
           <Option>-show=symbol</Option>
           <Option>-samesize=1E</Option>
-          <Option>-start=SU,SI,R_1,B_2,R,RPFRAM2\04,C_LITTLEFS_MANAGEMENT_AREA,C_FIRMWARE_UPDATE_CONTROL_BLOCK,C_FIRMWARE_UPDATE_CONTROL_BLOCK_MIRROR\0100000,C_USER_APPLICATION_AREA\0102300,B_ETHERNET_BUFFERS*,B_RX_DESC*,B_TX_DESC*,B,B_1,R_2,BEXRAM_1,REXRAM_1,BEXRAM_2,REXRAM_2,BEXRAM,REXRAM\0800000,PResetPRG,C_1,C_2,C,C$*,D*,W*,L,P,PFRAM2\0FFF00300,EXCEPTVECT\0FFFFFF80,RESETVECT\0FFFFFFFC</Option>
-          <Option>-rom=DEXRAM=REXRAM,PFRAM2=RPFRAM2,DEXRAM_2=REXRAM_2,D=R,D_1=R_1,D_2=R_2,DEXRAM_1=REXRAM_1</Option>
-          <Option>-cpu=RAM=00000000-0003ffff,FIX=00080000-00083fff,FIX=00086000-00087fff,FIX=00088000-0009ffff,FIX=000a0000-000a3fff,RAM=000a4000-000a5fff,FIX=000a6000-000bffff,FIX=000c0000-000dffff,FIX=000e0000-000fffff,ROM=00100000-00107fff,FIX=007fc000-007fcfff,FIX=007fe000-007fffff,RAM=00800000-0085ffff,RAM=fe7f5d00-fe7f5d7f,RAM=fe7f7d70-fe7f7d9f,ROM=ffe00000-ffffffff</Option>
+          <Option>-start=SU,SI,R_1,B_2,R,RPFRAM2\04,C_LITTLEFS_MANAGEMENT_AREA,C_FIRMWARE_UPDATE_CONTROL_BLOCK,C_FIRMWARE_UPDATE_CONTROL_BLOCK_MIRROR\0100000,C_USER_APPLICATION_AREA\0102300,B_ETHERNET_BUFFERS*,B_RX_DESC*,B_TX_DESC*,B,B_1,R_2,B_8,R_8,BEXRAM_1,REXRAM_1,BEXRAM_2,REXRAM_2,BEXRAM,REXRAM,BEXRAM_8,REXRAM_8\0800000,PResetPRG,C_1,C_2,C,C_8,C$*,D*,W*,L,P,PFRAM2\0FFF00300,EXCEPTVECT\0FFFEFF80,RESETVECT\0FFFEFFFC</Option>
+          <Option>-rom=DEXRAM=REXRAM,PFRAM2=RPFRAM2,DEXRAM_2=REXRAM_2,D=R,D_1=R_1,D_2=R_2,D_8=R_8,DEXRAM_1=REXRAM_1,DEXRAM_8=REXRAM_8</Option>
+          <Option>-cpu=RAM=00000000-0007ffff,FIX=00080000-00083fff,FIX=00086000-00087fff,FIX=00088000-0009ffff,FIX=000a0000-000a3fff,RAM=000a4000-000a5fff,FIX=000a6000-000bffff,FIX=000c0000-000dffff,FIX=000e0000-000fffff,ROM=00100000-00107fff,FIX=007fc000-007fcfff,FIX=007fe000-007fffff,RAM=00800000-0087ffff,RAM=00ff8000-00ffffff,RAM=fe7f5d00-fe7f5d7f,RAM=fe7f7d70-fe7f7d9f,ROM=ffc00000-ffffffff</Option>
           <Option>-nologo</Option>
           <Option>-change_message=information=2220</Option>
-          <Option>-start=SU,SI,R_1,B_2,R,RPFRAM2/04,C_LITTLEFS_MANAGEMENT_AREA,C_FIRMWARE_UPDATE_CONTROL_BLOCK,C_FIRMWARE_UPDATE_CONTROL_BLOCK_MIRROR/0100000,C_USER_APPLICATION_AREA/0102300,B_ETHERNET_BUFFERS*,B_RX_DESC*,B_TX_DESC*,B,B_1,R_2,BEXRAM_1,REXRAM_1,BEXRAM_2,REXRAM_2,BEXRAM,REXRAM/0800000,PResetPRG,C_1,C_2,C,C$*,D*,W*,L,P,PFRAM2/0FFF00300,EXCEPTVECT/0FFFFFF80,RESETVECT/0FFFFFFFC</Option>
+          <Option>-start=SU,SI,R_1,B_2,R,RPFRAM2/04,C_LITTLEFS_MANAGEMENT_AREA,C_FIRMWARE_UPDATE_CONTROL_BLOCK,C_FIRMWARE_UPDATE_CONTROL_BLOCK_MIRROR/0100000,C_USER_APPLICATION_AREA/0102300,B_ETHERNET_BUFFERS*,B_RX_DESC*,B_TX_DESC*,B,B_1,R_2,B_8,R_8,BEXRAM_1,REXRAM_1,BEXRAM_2,REXRAM_2,BEXRAM,REXRAM,BEXRAM_8,REXRAM_8/0800000,PResetPRG,C_1,C_2,C,C_8,C$*,D*,W*,L,P,PFRAM2/0FFF00300,EXCEPTVECT/0FFFEFF80,RESETVECT/0FFFEFFFC</Option>
           <Option>-end</Option>
           <Option>-output="${ProjName}.mot"</Option>
           <Option>-form=stype</Option>
@@ -1582,8 +1558,9 @@
           <PreLinker>Auto</PreLinker>
         </LinkOptions>
         <LibraryGenerateOptions>
-          <Option>-isa=rxv2</Option>
+          <Option>-isa=rxv3</Option>
           <Option>-fpu</Option>
+          <Option>-nodpfpu</Option>
           <Option>-branch=32</Option>
           <Option>-lang=c99</Option>
           <Option>-head=runtime,ctype,math,mathf,stdarg,stdio,stdlib,string,new,fenv,inttypes,wchar,wctype</Option>
@@ -1594,7 +1571,7 @@
         </LibraryGenerateOptions>
         <LinkOrder>
           <Path>HardwareDebug\resetprg.obj</Path>
-          <Path>HardwareDebug\aws_ether_ck_rx65n_v2.lib</Path>
+          <Path>HardwareDebug\aws_ether_rx72n_envision_kit.lib</Path>
           <Path>HardwareDebug\port_asm.obj</Path>
           <Path>HardwareDebug\exit.obj</Path>
           <Path>HardwareDebug\strnlen.obj</Path>
@@ -1813,7 +1790,7 @@
           <Path>HardwareDebug\r_byteq.obj</Path>
           <Path>HardwareDebug\phy.obj</Path>
           <Path>HardwareDebug\r_ether_rx.obj</Path>
-          <Path>HardwareDebug\r_ether_setting_rx65n.obj</Path>
+          <Path>HardwareDebug\r_ether_setting_rx72n.obj</Path>
           <Path>HardwareDebug\r_flash_type1.obj</Path>
           <Path>HardwareDebug\r_flash_type3.obj</Path>
           <Path>HardwareDebug\r_flash_type4.obj</Path>
@@ -1827,12 +1804,12 @@
           <Path>HardwareDebug\r_s12ad_rx_pinset.obj</Path>
           <Path>HardwareDebug\r_sci_rx_pinset.obj</Path>
           <Path>HardwareDebug\r_s12ad_rx.obj</Path>
-          <Path>HardwareDebug\r_s12ad_rx65n.obj</Path>
+          <Path>HardwareDebug\r_s12ad_rx72n.obj</Path>
           <Path>HardwareDebug\r_sci_rx.obj</Path>
           <Path>HardwareDebug\r_sci_rx_dmaca.obj</Path>
           <Path>HardwareDebug\r_sci_rx_dtc.obj</Path>
-          <Path>HardwareDebug\r_sci_rx65n.obj</Path>
-          <Path>HardwareDebug\r_sci_rx65n_data.obj</Path>
+          <Path>HardwareDebug\r_sci_rx72n.obj</Path>
+          <Path>HardwareDebug\r_sci_rx72n_data.obj</Path>
           <Path>HardwareDebug\r_tsip_rx_function000.obj</Path>
           <Path>HardwareDebug\r_tsip_rx_function001.obj</Path>
           <Path>HardwareDebug\r_tsip_rx_function002.obj</Path>
@@ -2141,6 +2118,16 @@
           <Path>HardwareDebug\r_irq_rx.obj</Path>
           <Path>HardwareDebug\r_irq_rx_pinset.obj</Path>
         </LinkOrder>
+        <NoTargetFile Target="src\smc_gen\r_bsp\board\generic_rx65n\hwsetup.c"/>
+        <NoTargetFile Target="src\smc_gen\r_bsp\mcu\rx65n\mcu_clocks.c"/>
+        <NoTargetFile Target="src\smc_gen\r_bsp\mcu\rx65n\mcu_init.c"/>
+        <NoTargetFile Target="src\smc_gen\r_bsp\mcu\rx65n\mcu_interrupts.c"/>
+        <NoTargetFile Target="src\smc_gen\r_bsp\mcu\rx65n\mcu_mapped_interrupts.c"/>
+        <NoTargetFile Target="src\smc_gen\r_bsp\mcu\rx65n\vecttbl.c"/>
+        <NoTargetFile Target="src\smc_gen\r_ether_rx\src\targets\rx65n\r_ether_setting_rx65n.c"/>
+        <NoTargetFile Target="src\smc_gen\r_s12ad_rx\src\targets\rx65n\r_s12ad_rx65n.c"/>
+        <NoTargetFile Target="src\smc_gen\r_sci_rx\src\targets\rx65n\r_sci_rx65n.c"/>
+        <NoTargetFile Target="src\smc_gen\r_sci_rx\src\targets\rx65n\r_sci_rx65n_data.c"/>
         <CommonOptions>
           <IncludePathForC>"${ProjDirPath}\src\smc_gen\r_bsp"</IncludePathForC>
           <IncludePathForC>"${ProjDirPath}\src\smc_gen\general"</IncludePathForC>
@@ -2160,58 +2147,58 @@
           <IncludePathForC>"${ProjDirPath}\src\smc_gen\r_flash_rx\src\flash_type_5"</IncludePathForC>
           <IncludePathForC>"${ProjDirPath}\src\smc_gen\r_flash_rx\src\targets"</IncludePathForC>
           <IncludePathForC>"${ProjDirPath}\src\smc_gen\r_tsip_rx"</IncludePathForC>
-          <IncludePathForC>"C:\Claude\iot-reference-rx\Common\FreeRTOS_common"</IncludePathForC>
-          <IncludePathForC>"C:\Claude\iot-reference-rx\Common\FreeRTOS_common\compiler_support\ccrx"</IncludePathForC>
-          <IncludePathForC>"C:\Claude\iot-reference-rx\Common\littlefs_common"</IncludePathForC>
-          <IncludePathForC>"C:\Claude\iot-reference-rx\Common\littlefs_common\rm_littlefs_df\targets\rx65n"</IncludePathForC>
-          <IncludePathForC>"C:\Claude\iot-reference-rx\Common\common_api"</IncludePathForC>
-          <IncludePathForC>"C:\Claude\iot-reference-rx\Demos\cli"</IncludePathForC>
-          <IncludePathForC>"C:\Claude\iot-reference-rx\Demos\mqtt_agent"</IncludePathForC>
-          <IncludePathForC>"C:\Claude\iot-reference-rx\Demos\Fleet_Provisioning_With_CSR_Demo"</IncludePathForC>
-          <IncludePathForC>"C:\Claude\iot-reference-rx\Demos\common\pkcs11_helpers"</IncludePathForC>
-          <IncludePathForC>"C:\Claude\iot-reference-rx\Demos\dev_mode_key_provisioning\include"</IncludePathForC>
-          <IncludePathForC>"C:\Claude\iot-reference-rx\Demos\common\mqtt-agent-interface\include"</IncludePathForC>
-          <IncludePathForC>"C:\Claude\iot-reference-rx\Demos\common\mqtt-agent-interface"</IncludePathForC>
-          <IncludePathForC>"C:\Claude\iot-reference-rx\Demos\common\Mqtt_Demo_Helpers"</IncludePathForC>
-          <IncludePathForC>"C:\Claude\iot-reference-rx\Middleware\freertos_plus\standard\crypto\include"</IncludePathForC>
-          <IncludePathForC>"C:\Claude\iot-reference-rx\Middleware\logging\include"</IncludePathForC>
-          <IncludePathForC>"C:\Claude\iot-reference-rx\Middleware\FreeRTOS\FreeRTOS-Kernel\include"</IncludePathForC>
-          <IncludePathForC>"C:\Claude\iot-reference-rx\Middleware\FreeRTOS\FreeRTOS-Plus-TCP\source\include"</IncludePathForC>
-          <IncludePathForC>"C:\Claude\iot-reference-rx\Middleware\FreeRTOS-Plus-CLI"</IncludePathForC>
-          <IncludePathForC>"C:\Claude\iot-reference-rx\Middleware\FreeRTOS\coreMQTT\source\include"</IncludePathForC>
-          <IncludePathForC>"C:\Claude\iot-reference-rx\Middleware\FreeRTOS\coreMQTT\source\interface"</IncludePathForC>
-          <IncludePathForC>"C:\Claude\iot-reference-rx\Middleware\FreeRTOS\coreMQTT-Agent\source\include"</IncludePathForC>
-          <IncludePathForC>"C:\Claude\iot-reference-rx\Middleware\FreeRTOS\backoffAlgorithm\source\include"</IncludePathForC>
-          <IncludePathForC>"C:\Claude\iot-reference-rx\Middleware\network_transport\using_mbedtls_pkcs11"</IncludePathForC>
-          <IncludePathForC>"C:\Claude\iot-reference-rx\Middleware\FreeRTOS\corePKCS11\source\dependency\3rdparty\pkcs11\published\2-40-errata-1"</IncludePathForC>
-          <IncludePathForC>"C:\Claude\iot-reference-rx\Middleware\FreeRTOS\corePKCS11\source\include"</IncludePathForC>
-          <IncludePathForC>"C:\Claude\iot-reference-rx\Middleware\FreeRTOS\corePKCS11\source\dependency\3rdparty\mbedtls_utils"</IncludePathForC>
-          <IncludePathForC>"C:\Claude\iot-reference-rx\Middleware\3rdparty\littlefs"</IncludePathForC>
-          <IncludePathForC>"C:\Claude\iot-reference-rx\Middleware\3rdparty\mbedtls_utils"</IncludePathForC>
-          <IncludePathForC>"C:\Claude\iot-reference-rx\Middleware\3rdparty\mbedtls\include\mbedtls"</IncludePathForC>
-          <IncludePathForC>"C:\Claude\iot-reference-rx\Middleware\3rdparty\mbedtls\include"</IncludePathForC>
-          <IncludePathForC>"C:\Claude\iot-reference-rx\Middleware\3rdparty\mbedtls\library"</IncludePathForC>
-          <IncludePathForC>"C:\Claude\iot-reference-rx\Middleware\3rdparty\mbedtls_config"</IncludePathForC>
-          <IncludePathForC>"C:\Claude\iot-reference-rx\Middleware\network_transport\sockets_wrapper\include"</IncludePathForC>
+          <IncludePathForC>"C:\codex\tmp_rx72n_envision_kit_import_main\phase8b\Common\FreeRTOS_common"</IncludePathForC>
+          <IncludePathForC>"C:\codex\tmp_rx72n_envision_kit_import_main\phase8b\Common\FreeRTOS_common\compiler_support\ccrx"</IncludePathForC>
+          <IncludePathForC>"C:\codex\tmp_rx72n_envision_kit_import_main\phase8b\Common\littlefs_common"</IncludePathForC>
+          <IncludePathForC>"C:\codex\tmp_rx72n_envision_kit_import_main\phase8b\Common\littlefs_common\rm_littlefs_df\targets\rx65n"</IncludePathForC>
+          <IncludePathForC>"C:\codex\tmp_rx72n_envision_kit_import_main\phase8b\Common\common_api"</IncludePathForC>
+          <IncludePathForC>"C:\codex\tmp_rx72n_envision_kit_import_main\phase8b\Demos\cli"</IncludePathForC>
+          <IncludePathForC>"C:\codex\tmp_rx72n_envision_kit_import_main\phase8b\Demos\mqtt_agent"</IncludePathForC>
+          <IncludePathForC>"C:\codex\tmp_rx72n_envision_kit_import_main\phase8b\Demos\Fleet_Provisioning_With_CSR_Demo"</IncludePathForC>
+          <IncludePathForC>"C:\codex\tmp_rx72n_envision_kit_import_main\phase8b\Demos\common\pkcs11_helpers"</IncludePathForC>
+          <IncludePathForC>"C:\codex\tmp_rx72n_envision_kit_import_main\phase8b\Demos\dev_mode_key_provisioning\include"</IncludePathForC>
+          <IncludePathForC>"C:\codex\tmp_rx72n_envision_kit_import_main\phase8b\Demos\common\mqtt-agent-interface\include"</IncludePathForC>
+          <IncludePathForC>"C:\codex\tmp_rx72n_envision_kit_import_main\phase8b\Demos\common\mqtt-agent-interface"</IncludePathForC>
+          <IncludePathForC>"C:\codex\tmp_rx72n_envision_kit_import_main\phase8b\Demos\common\Mqtt_Demo_Helpers"</IncludePathForC>
+          <IncludePathForC>"C:\codex\tmp_rx72n_envision_kit_import_main\phase8b\Middleware\freertos_plus\standard\crypto\include"</IncludePathForC>
+          <IncludePathForC>"C:\codex\tmp_rx72n_envision_kit_import_main\phase8b\Middleware\logging\include"</IncludePathForC>
+          <IncludePathForC>"C:\codex\tmp_rx72n_envision_kit_import_main\phase8b\Middleware\FreeRTOS\FreeRTOS-Kernel\include"</IncludePathForC>
+          <IncludePathForC>"C:\codex\tmp_rx72n_envision_kit_import_main\phase8b\Middleware\FreeRTOS\FreeRTOS-Plus-TCP\source\include"</IncludePathForC>
+          <IncludePathForC>"C:\codex\tmp_rx72n_envision_kit_import_main\phase8b\Middleware\FreeRTOS-Plus-CLI"</IncludePathForC>
+          <IncludePathForC>"C:\codex\tmp_rx72n_envision_kit_import_main\phase8b\Middleware\FreeRTOS\coreMQTT\source\include"</IncludePathForC>
+          <IncludePathForC>"C:\codex\tmp_rx72n_envision_kit_import_main\phase8b\Middleware\FreeRTOS\coreMQTT\source\interface"</IncludePathForC>
+          <IncludePathForC>"C:\codex\tmp_rx72n_envision_kit_import_main\phase8b\Middleware\FreeRTOS\coreMQTT-Agent\source\include"</IncludePathForC>
+          <IncludePathForC>"C:\codex\tmp_rx72n_envision_kit_import_main\phase8b\Middleware\FreeRTOS\backoffAlgorithm\source\include"</IncludePathForC>
+          <IncludePathForC>"C:\codex\tmp_rx72n_envision_kit_import_main\phase8b\Middleware\network_transport\using_mbedtls_pkcs11"</IncludePathForC>
+          <IncludePathForC>"C:\codex\tmp_rx72n_envision_kit_import_main\phase8b\Middleware\FreeRTOS\corePKCS11\source\dependency\3rdparty\pkcs11\published\2-40-errata-1"</IncludePathForC>
+          <IncludePathForC>"C:\codex\tmp_rx72n_envision_kit_import_main\phase8b\Middleware\FreeRTOS\corePKCS11\source\include"</IncludePathForC>
+          <IncludePathForC>"C:\codex\tmp_rx72n_envision_kit_import_main\phase8b\Middleware\FreeRTOS\corePKCS11\source\dependency\3rdparty\mbedtls_utils"</IncludePathForC>
+          <IncludePathForC>"C:\codex\tmp_rx72n_envision_kit_import_main\phase8b\Middleware\3rdparty\littlefs"</IncludePathForC>
+          <IncludePathForC>"C:\codex\tmp_rx72n_envision_kit_import_main\phase8b\Middleware\3rdparty\mbedtls_utils"</IncludePathForC>
+          <IncludePathForC>"C:\codex\tmp_rx72n_envision_kit_import_main\phase8b\Middleware\3rdparty\mbedtls\include\mbedtls"</IncludePathForC>
+          <IncludePathForC>"C:\codex\tmp_rx72n_envision_kit_import_main\phase8b\Middleware\3rdparty\mbedtls\include"</IncludePathForC>
+          <IncludePathForC>"C:\codex\tmp_rx72n_envision_kit_import_main\phase8b\Middleware\3rdparty\mbedtls\library"</IncludePathForC>
+          <IncludePathForC>"C:\codex\tmp_rx72n_envision_kit_import_main\phase8b\Middleware\3rdparty\mbedtls_config"</IncludePathForC>
+          <IncludePathForC>"C:\codex\tmp_rx72n_envision_kit_import_main\phase8b\Middleware\network_transport\sockets_wrapper\include"</IncludePathForC>
           <IncludePathForC>"${ProjDirPath}\src\application_code"</IncludePathForC>
-          <IncludePathForC>"C:\Claude\iot-reference-rx\Demos\include"</IncludePathForC>
+          <IncludePathForC>"C:\codex\tmp_rx72n_envision_kit_import_main\phase8b\Demos\include"</IncludePathForC>
           <IncludePathForC>"${ProjDirPath}\src\frtos_config"</IncludePathForC>
           <IncludePathForC>"${ProjDirPath}\src\frtos_startup"</IncludePathForC>
-          <IncludePathForC>"C:\Claude\iot-reference-rx\Middleware\FreeRTOS\FreeRTOS-Kernel\portable\Renesas\RX600v2"</IncludePathForC>
-          <IncludePathForC>"C:\Claude\iot-reference-rx\Middleware\FreeRTOS\FreeRTOS-Plus-TCP\source\portable\Compiler\Renesas"</IncludePathForC>
+          <IncludePathForC>"C:\codex\tmp_rx72n_envision_kit_import_main\phase8b\Middleware\FreeRTOS\FreeRTOS-Kernel\portable\Renesas\RX600v2"</IncludePathForC>
+          <IncludePathForC>"C:\codex\tmp_rx72n_envision_kit_import_main\phase8b\Middleware\FreeRTOS\FreeRTOS-Plus-TCP\source\portable\Compiler\Renesas"</IncludePathForC>
           <IncludePathForC>"${ProjDirPath}\src\smc_gen"</IncludePathForC>
           <IncludePathForC>"${ProjDirPath}\src\smc_gen\r_ether_rx"</IncludePathForC>
-          <IncludePathForC>"C:\Claude\iot-reference-rx\Demos\OtaOverMqtt"</IncludePathForC>
-          <IncludePathForC>"C:\Claude\iot-reference-rx\Demos\common\mqtt-wrapper"</IncludePathForC>
-          <IncludePathForC>"C:\Claude\iot-reference-rx\Common\patches\Jobs-for-AWS-IoT-embedded-sdk\source\include"</IncludePathForC>
-          <IncludePathForC>"C:\Claude\iot-reference-rx\Middleware\AWS\Jobs-for-AWS-IoT-embedded-sdk\source\otaJobParser\include"</IncludePathForC>
-          <IncludePathForC>"C:\Claude\iot-reference-rx\Middleware\AWS\aws-iot-core-mqtt-file-streams-embedded-c\source\include"</IncludePathForC>
-          <IncludePathForC>"C:\Claude\iot-reference-rx\Middleware\3rdparty\tinycbor\src"</IncludePathForC>
-          <IncludePathForC>"C:\Claude\iot-reference-rx\Middleware\FreeRTOS\coreJSON\source\include"</IncludePathForC>
+          <IncludePathForC>"C:\codex\tmp_rx72n_envision_kit_import_main\phase8b\Demos\OtaOverMqtt"</IncludePathForC>
+          <IncludePathForC>"C:\codex\tmp_rx72n_envision_kit_import_main\phase8b\Demos\common\mqtt-wrapper"</IncludePathForC>
+          <IncludePathForC>"C:\codex\tmp_rx72n_envision_kit_import_main\phase8b\Common\patches\Jobs-for-AWS-IoT-embedded-sdk\source\include"</IncludePathForC>
+          <IncludePathForC>"C:\codex\tmp_rx72n_envision_kit_import_main\phase8b\Middleware\AWS\Jobs-for-AWS-IoT-embedded-sdk\source\otaJobParser\include"</IncludePathForC>
+          <IncludePathForC>"C:\codex\tmp_rx72n_envision_kit_import_main\phase8b\Middleware\AWS\aws-iot-core-mqtt-file-streams-embedded-c\source\include"</IncludePathForC>
+          <IncludePathForC>"C:\codex\tmp_rx72n_envision_kit_import_main\phase8b\Middleware\3rdparty\tinycbor\src"</IncludePathForC>
+          <IncludePathForC>"C:\codex\tmp_rx72n_envision_kit_import_main\phase8b\Middleware\FreeRTOS\coreJSON\source\include"</IncludePathForC>
           <IncludePathForC>"${ProjDirPath}\src\application_code\ota_fwup_wrap_code"</IncludePathForC>
-          <IncludePathForC>"C:\Claude\iot-reference-rx\Demos\OtaOverMqtt\ota_os"</IncludePathForC>
-          <IncludePathForC>"C:\Claude\iot-reference-rx\Common\ports\ota_pal"</IncludePathForC>
-          <IncludePathForC>"C:\Claude\iot-reference-rx\Common\FreeRTOS_common\network_support"</IncludePathForC>
+          <IncludePathForC>"C:\codex\tmp_rx72n_envision_kit_import_main\phase8b\Demos\OtaOverMqtt\ota_os"</IncludePathForC>
+          <IncludePathForC>"C:\codex\tmp_rx72n_envision_kit_import_main\phase8b\Common\ports\ota_pal"</IncludePathForC>
+          <IncludePathForC>"C:\codex\tmp_rx72n_envision_kit_import_main\phase8b\Common\FreeRTOS_common\network_support"</IncludePathForC>
           <IncludePathForC>"${ProjDirPath}\src\smc_gen\r_fwup\src\tinycrypt\source"</IncludePathForC>
           <IncludePathForC>"${ProjDirPath}\src\smc_gen\r_fwup\src\base64"</IncludePathForC>
           <IncludePathForC>"${ProjDirPath}\src\smc_gen\r_fwup\src\tinycrypt\include"</IncludePathForC>

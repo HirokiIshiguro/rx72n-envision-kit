@@ -12,7 +12,7 @@
                 <option id="com.renesas.smc.toolchain.option.dual" key="com.renesas.smc.toolchain.option.dual.true"/>
             </toolchain>
         </configuration>
-        <platform id="R5F565NEHxFB"/>
+        <platform id="R5F572NNHxFB"/>
         <option id="board" value="CK-RX65N (V1.03)"/>
     </general>
     <tool id="Clock">
@@ -302,8 +302,8 @@
         <Item currentVect="59" id="SCI0_TXI0" priority="15" usedState="未使用"/>
         <Item currentVect="60" id="SCI1_RXI1" priority="15" usedState="未使用"/>
         <Item currentVect="61" id="SCI1_TXI1" priority="15" usedState="未使用"/>
-        <Item currentVect="62" id="SCI2_RXI2" priority="15" usedState="未使用"/>
-        <Item currentVect="63" id="SCI2_TXI2" priority="15" usedState="未使用"/>
+        <Item currentVect="62" id="SCI2_RXI2" priority="3" usedState="使用中"/>
+        <Item currentVect="63" id="SCI2_TXI2" priority="3" usedState="使用中"/>
         <Item currentVect="64" id="ICU_IRQ0" priority="15" usedState="未使用"/>
         <Item currentVect="65" id="ICU_IRQ1" priority="15" usedState="未使用"/>
         <Item currentVect="66" id="ICU_IRQ2" priority="15" usedState="未使用"/>
@@ -324,8 +324,8 @@
         <Item currentVect="81" id="SCI3_TXI3" priority="15" usedState="未使用"/>
         <Item currentVect="82" id="SCI4_RXI4" priority="15" usedState="未使用"/>
         <Item currentVect="83" id="SCI4_TXI4" priority="15" usedState="未使用"/>
-        <Item currentVect="84" id="SCI5_RXI5" priority="3" usedState="使用中"/>
-        <Item currentVect="85" id="SCI5_TXI5" priority="3" usedState="使用中"/>
+        <Item currentVect="84" id="SCI5_RXI5" priority="15" usedState="未使用"/>
+        <Item currentVect="85" id="SCI5_TXI5" priority="15" usedState="未使用"/>
         <Item currentVect="86" id="SCI6_RXI6" priority="15" usedState="未使用"/>
         <Item currentVect="87" id="SCI6_TXI6" priority="15" usedState="未使用"/>
         <Item currentVect="88" id="LVD1_LVD1" priority="15" usedState="未使用"/>
@@ -336,8 +336,8 @@
         <Item currentVect="95" id="IWDT_IWUNI" priority="15" usedState="未使用"/>
         <Item currentVect="96" id="WDT_WUNI" priority="15" usedState="未使用"/>
         <Item currentVect="97" id="PDC_PCDFI" priority="15" usedState="未使用"/>
-        <Item currentVect="98" id="SCI7_RXI7" priority="15" usedState="未使用"/>
-        <Item currentVect="99" id="SCI7_TXI7" priority="15" usedState="未使用"/>
+        <Item currentVect="98" id="SCI7_RXI7" priority="3" usedState="使用中"/>
+        <Item currentVect="99" id="SCI7_TXI7" priority="3" usedState="使用中"/>
         <Item currentVect="100" id="SCI8_RXI8" priority="15" usedState="未使用"/>
         <Item currentVect="101" id="SCI8_TXI8" priority="15" usedState="未使用"/>
         <Item currentVect="102" id="SCI9_RXI9" priority="15" usedState="未使用"/>
@@ -986,7 +986,7 @@
                 <gridItem id="RXD2/SMISO2/SSCL2" selectedIndex="0"/>
                 <gridItem id="TXD2/SMOSI2/SSDA2" selectedIndex="0"/>
                 <gridItem id="CTS2#/RTS2#/SS2#" selectedIndex="0"/>
-                <gridItem id="SCI2" selectedIndex="0"/>
+                <gridItem id="SCI2" selectedIndex="1"/>
                 <gridItem id="SCK3" selectedIndex="0"/>
                 <gridItem id="RXD3/SMISO3/SSCL3" selectedIndex="0"/>
                 <gridItem id="TXD3/SMOSI3/SSDA3" selectedIndex="0"/>
@@ -1001,7 +1001,7 @@
                 <gridItem id="RXD5/SMISO5/SSCL5" selectedIndex="1"/>
                 <gridItem id="TXD5/SMOSI5/SSDA5" selectedIndex="1"/>
                 <gridItem id="CTS5#/RTS5#/SS5#" selectedIndex="0"/>
-                <gridItem id="SCI5" selectedIndex="1"/>
+                <gridItem id="SCI5" selectedIndex="0"/>
                 <gridItem id="SCK6" selectedIndex="0"/>
                 <gridItem id="RXD6/SMISO6/SSCL6" selectedIndex="0"/>
                 <gridItem id="TXD6/SMOSI6/SSDA6" selectedIndex="0"/>
@@ -1011,7 +1011,7 @@
                 <gridItem id="RXD7/SMISO7/SSCL7" selectedIndex="0"/>
                 <gridItem id="TXD7/SMOSI7/SSDA7" selectedIndex="0"/>
                 <gridItem id="CTS7#/RTS7#/SS7#" selectedIndex="0"/>
-                <gridItem id="SCI7" selectedIndex="0"/>
+                <gridItem id="SCI7" selectedIndex="1"/>
                 <gridItem id="SCK8" selectedIndex="0"/>
                 <gridItem id="RXD8/SMISO8/SSCL8" selectedIndex="0"/>
                 <gridItem id="TXD8/SMOSI8/SSDA8" selectedIndex="0"/>
@@ -1255,9 +1255,9 @@
             <component description="依存モジュール: r_flash_rx バージョン 4.80, 4.91, 5.10, 5.20&#10;This module is a software library for implementing the firmware update function in user applications." detailDescription="FWUP Library" display="r_fwup" id="r_fwup2.04" version="2.04">
                 <gridItem id="FWUP_CFG_UPDATE_MODE" selectedIndex="0"/>
                 <gridItem id="FWUP_CFG_FUNCTION_MODE" selectedIndex="1"/>
-                <gridItem id="FWUP_CFG_MAIN_AREA_ADDR_L" selectedIndex="0xFFF00000U"/>
-                <gridItem id="FWUP_CFG_BUF_AREA_ADDR_L" selectedIndex="0xFFE00000U"/>
-                <gridItem id="FWUP_CFG_AREA_SIZE" selectedIndex="0xF0000U"/>
+                <gridItem id="FWUP_CFG_MAIN_AREA_ADDR_L" selectedIndex="0xFFE00000U"/>
+                <gridItem id="FWUP_CFG_BUF_AREA_ADDR_L" selectedIndex="0xFFC00000U"/>
+                <gridItem id="FWUP_CFG_AREA_SIZE" selectedIndex="0x1F0000U"/>
                 <gridItem id="FWUP_CFG_CF_BLK_SIZE" selectedIndex="0x8000U"/>
                 <gridItem id="FWUP_CFG_CF_W_UNIT_SIZE" selectedIndex="128U"/>
                 <gridItem id="FWUP_CFG_EXT_BUF_AREA_ADDR_L" selectedIndex="0x00000U"/>

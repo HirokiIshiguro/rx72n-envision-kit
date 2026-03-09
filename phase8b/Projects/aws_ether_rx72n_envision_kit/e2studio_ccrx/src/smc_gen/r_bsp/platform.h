@@ -160,7 +160,7 @@ DEFINE YOUR SYSTEM - UNCOMMENT THE INCLUDE PATH FOR THE PLATFORM YOU ARE USING.
 //#include "./board/generic_rx64m/r_bsp.h"
 
 /* GENERIC_RX65N */
-#include "./board/generic_rx65n/r_bsp.h"
+//#include "./board/generic_rx65n/r_bsp.h"
 
 /* GENERIC_RX660 */
 //#include "./board/generic_rx660/r_bsp.h"
@@ -181,7 +181,7 @@ DEFINE YOUR SYSTEM - UNCOMMENT THE INCLUDE PATH FOR THE PLATFORM YOU ARE USING.
 //#include "./board/generic_rx72m/r_bsp.h"
 
 /* GENERIC_RX72N */
-//#include "./board/generic_rx72n/r_bsp.h"
+#include "./board/generic_rx72n/r_bsp.h"
 
 /* GENERIC_RX72T */
 //#include "./board/generic_rx72t/r_bsp.h"

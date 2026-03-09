@@ -288,7 +288,7 @@
  * current value is given as an example. Please update for your specific
  * hardware platform.
  */
-#define democonfigHARDWARE_PLATFORM_NAME    "CK-RX65N"
+#define democonfigHARDWARE_PLATFORM_NAME    "RX72N Envision Kit"
 
 /**
  * @brief The MQTT metrics string expected by AWS IoT.

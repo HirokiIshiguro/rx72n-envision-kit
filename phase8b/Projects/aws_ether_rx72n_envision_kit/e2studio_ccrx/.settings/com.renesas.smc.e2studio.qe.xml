@@ -27,9 +27,9 @@
     </Segment>
     <Segment id="Device">
         <Setting id="Series" value="RX600"/>
-        <Setting id="Group" value="RX65N"/>
-        <Setting id="Board" value="CK-RX65N"/>
-        <Setting id="PartNo" value="R5F565NEHxFB"/>
+        <Setting id="Group" value="RX72N"/>
+        <Setting id="Board" value="GENERIC_RX72N"/>
+        <Setting id="PartNo" value="R5F572NNHxFB"/>
         <Setting id="PinCount" value="144"/>
     </Segment>
     <Segment id="Clock">
@@ -138,7 +138,7 @@
             <Setting id="FWUP_CFG_USER_SHA256_UPDATE_FUNCTION" value="ota_sha256_update_function"/>
             <Setting id="FWUP_CFG_USER_SHA256_FINAL_ENABLED" value="1"/>
             <Setting id="FWUP_CFG_EXT_BUF_AREA_ADDR_L" value="0x00000U"/>
-            <Setting id="FWUP_CFG_BUF_AREA_ADDR_L" value="0xFFE00000U"/>
+            <Setting id="FWUP_CFG_BUF_AREA_ADDR_L" value="0xFFC00000U"/>
             <Setting id="FWUP_CFG_USER_FLASH_OPEN_ENABLED" value="1"/>
             <Setting id="FWUP_CFG_USER_DISABLE_INTERRUPT_FUNCTION" value="my_disable_interrupt_function"/>
             <Setting id="FWUP_CFG_USER_SOFTWARE_RESET_ENABLED" value="0"/>
@@ -158,13 +158,13 @@
             <Setting id="FWUP_CFG_USER_FLASH_WRITE_ENABLED" value="1"/>
             <Setting id="FWUP_CFG_CF_W_UNIT_SIZE" value="128U"/>
             <Setting id="FWUP_CFG_USER_GET_CRYPT_CONTEXT_FUNCTION" value="ota_get_crypt_context_function"/>
-            <Setting id="FWUP_CFG_MAIN_AREA_ADDR_L" value="0xFFF00000U"/>
-            <Setting id="FWUP_CFG_AREA_SIZE" value="0xF0000U"/>
+            <Setting id="FWUP_CFG_MAIN_AREA_ADDR_L" value="0xFFE00000U"/>
+            <Setting id="FWUP_CFG_AREA_SIZE" value="0x1F0000U"/>
             <Setting id="FWUP_CFG_USER_SHA256_UPDATE_ENABLED" value="1"/>
             <Setting id="FWUP_CFG_DF_ADDR_L" value="0x00100000"/>
             <Setting id="FWUP_CFG_USER_FLASH_ERASE_FUNCTION" value="ota_flash_erase_function"/>
         </Segment>
-        <Segment component="LittleFS202406.01-LTS-rx-1.1.1[aws_ether_ck_rx65n_v2]" id="LittleFS" source="com.renesas.smc.tools.swcomponent.rtosconfigurator.source"/>
+        <Segment component="LittleFS202406.01-LTS-rx-1.1.1[aws_ether_rx72n_envision_kit]" id="LittleFS" source="com.renesas.smc.tools.swcomponent.rtosconfigurator.source"/>
         <Segment component="r_sci_rx5.40" id="r_sci_rx" source="com.renesas.smc.tools.swcomponent.fit.source">
             <Setting id="SCI_CFG_CH9_FIFO_INCLUDED" value="0"/>
             <Setting id="SCI_CFG_CH4_INCLUDED" value="0"/>
@@ -459,8 +459,8 @@
             <Setting id="BYTEQ_CFG_PROTECT_QUEUE" value="0"/>
         </Segment>
         <Segment component="com.renesas.smc.tools.swcomponent.rtosconfigurator.freertos.objectfreertoslts202406.01-LTS-rx-1.1.1" id="FreeRTOS Object" source="com.renesas.smc.tools.swcomponent.rtosconfigurator.source"/>
-        <Segment component="FreeRTOS_IP202406.01-LTS-rx-1.1.1[aws_ether_ck_rx65n_v2]" id="FreeRTOS_IP" source="com.renesas.smc.tools.swcomponent.rtosconfigurator.source"/>
-        <Segment component="FreeRTOS_Kernel202406.01-LTS-rx-1.1.1[aws_ether_ck_rx65n_v2]" id="FreeRTOS_Kernel" source="com.renesas.smc.tools.swcomponent.rtosconfigurator.source"/>
+        <Segment component="FreeRTOS_IP202406.01-LTS-rx-1.1.1[aws_ether_rx72n_envision_kit]" id="FreeRTOS_IP" source="com.renesas.smc.tools.swcomponent.rtosconfigurator.source"/>
+        <Segment component="FreeRTOS_Kernel202406.01-LTS-rx-1.1.1[aws_ether_rx72n_envision_kit]" id="FreeRTOS_Kernel" source="com.renesas.smc.tools.swcomponent.rtosconfigurator.source"/>
         <Segment component="r_flash_rx5.21" id="r_flash_rx" source="com.renesas.smc.tools.swcomponent.fit.source">
             <Setting id="FLASH_CFG_PARAM_CHECKING_ENABLE" value="1"/>
             <Setting id="FLASH_CFG_DATA_FLASH_BGO" value="1"/>

@@ -199,6 +199,7 @@ bsp_int_err_t R_BSP_InterruptWrite(bsp_int_src_t vector,  bsp_int_cb_t callback)
     }
     else
     {
+        #if defined(BSP_INT_SRC_BUS_ERROR_ILLEGAL_ACCESS) && defined(BSP_INT_SRC_BUS_ERROR_TIMEOUT)
         if ((BSP_INT_SRC_BUS_ERROR_ILLEGAL_ACCESS == vector) || (BSP_INT_SRC_BUS_ERROR_TIMEOUT == vector) ||
             (BSP_INT_SRC_EMPTY <= vector))
         {
@@ -206,6 +207,7 @@ bsp_int_err_t R_BSP_InterruptWrite(bsp_int_src_t vector,  bsp_int_cb_t callback)
             err = BSP_INT_ERR_INVALID_ARG;
         }
         else
+        #endif
         {
             g_bsp_vectors[vector] = callback;
         }
