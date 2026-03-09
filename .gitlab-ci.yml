@@ -444,7 +444,7 @@ download_phase8b_app:
       python3 "$CI_PROJECT_DIR/test_scripts/uart_test/test_uart_download.py" \
         --rsu "$rsu" --port "$UART_PORT" --baud "$UART_BAUD_RATE" \
         --timeout 300 --diag --wait-for-ready --ready-timeout 60 \
-        --send-chunk-size 128 --ack-each-chunk --ack-timeout 10 \
+        --send-chunk-size 128 --ack-each-chunk --ack-timeout 20 \
         --reset-cmd "$reset_cmd" \
         --ready-message "send image(*.rsu) via UART." \
         --success-message "execute image ..." \

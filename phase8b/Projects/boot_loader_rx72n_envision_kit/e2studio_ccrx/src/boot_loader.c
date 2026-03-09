@@ -198,12 +198,6 @@ static void sample_buffering(uint8_t rx_data)
         {
             s_file_size = image_size;
         }
-        BL_LOG(
-            "buffer full: cnt=%lu total=%lu image_size=%lu file_size=%lu\r\n",
-            s_flash_buf.cnt,
-            s_flash_buf.total,
-            image_size,
-            s_file_size);
         BL_UART_RTS   = 1;
     }
     else
