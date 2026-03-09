@@ -1,6 +1,7 @@
 stages:
   - build
   - flash
+  - health
   - test
   - ota_prepare
   - ota_run
@@ -52,14 +53,18 @@ variables:
   # --- パイプライン条件分岐 ---
   # GitLab UI の「Run Pipeline」画面でオーバーライド可能。
   # RUN_AWS_TESTS:      AWS 接続テスト (provision, MQTT) を実行するか
+  # RUN_HW_HEALTHCHECK: 実機の段階的ヘルスチェックを実行するか
   # RUN_SD_UPDATE_TEST: SD カードファームウェア更新テストを実行するか
   # RUN_OTA_TEST:       OTA テスト (build_ota, prepare_ota, ota_create_job,
   #                     ota_monitor, ota_finalize) を実行するか
-  # デフォルトはフルテスト（MR マージ前に全テスト通過を保証）。
-  # ダミーブランチで個別テストを回す場合は変数をオーバーライドする。
+  # デフォルトは SD カード更新テストを除く通常テスト。
+  # フルテストを実施したい場合は RUN_SD_UPDATE_TEST=true を指定する。
   RUN_AWS_TESTS: "true"
-  RUN_SD_UPDATE_TEST: "true"
+  RUN_HW_HEALTHCHECK: "true"
+  RUN_SD_UPDATE_TEST: "false"
   RUN_OTA_TEST: "true"
+  # Raspberry Pi runner 上でのプロジェクト横断デバイス排他ロック格納先。
+  DEVICE_LOCK_ROOT: "/tmp/gitlab-device-locks"
   # RUN_OTA_ONLY: OTA テストのみ実行するショートカットモード。
   # "true" にすると通常のビルド/フラッシュ/テストジョブをスキップし、
   # build_ota → prepare_ota → ota_create_job/ota_monitor → ota_finalize のみ実行する。
@@ -285,7 +290,9 @@ build:
 
 flash_boot_loader:
   stage: flash
-  extends: .pi_flash_job
+  extends:
+    - .pi_flash_job
+    - .pi_pyserial_job
   rules:
     - if: $RUN_OTA_ONLY == "true"
       when: never
@@ -294,6 +301,7 @@ flash_boot_loader:
   script:
     - |
       set -euo pipefail
+      source "$CI_PROJECT_DIR/tools/ci/acquire_pi_device_lock.sh" "$DEVICE_ID"
       mot="$CI_PROJECT_DIR/$E2STUDIO_PROJECTS/boot_loader/HardwareDebug/rx72n_boot_loader.mot"
       if [[ ! -f "$mot" ]]; then
         echo "ERROR: $mot not found"
@@ -313,7 +321,25 @@ flash_boot_loader:
       "$RFP_CLI" -device RX72x -tool "e2l:${E2LITE_SERIAL}" -if fine -speed 1500K \
         -auth id FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF -p "$mot" -v -run -noquery
       echo "Flash completed successfully. Boot loader is running."
-      echo "  UART verification deferred to download_aws_demos step."
+      if [[ "${RUN_HW_HEALTHCHECK}" == "true" ]]; then
+        bash "$CI_PROJECT_DIR/tools/ci/validate_pi_serial_path.sh" UART_PORT
+        bash "$CI_PROJECT_DIR/tools/ci/print_pi_hardware_state.sh" UART_PORT | tee "$CI_PROJECT_DIR/boot_loader_hardware_state.log"
+        python3 "$CI_PROJECT_DIR/test_scripts/uart_test/check_device_health.py" \
+          boot-banner \
+          --port "$UART_PORT" \
+          --baud "$UART_BAUD_RATE" \
+          --expect "RX72N secure boot program" \
+          --expect "send \"userprog.rsu\" via UART." \
+          --timeout 20 | tee "$CI_PROJECT_DIR/boot_loader_health.log"
+      else
+        echo "  Boot loader health-check skipped (RUN_HW_HEALTHCHECK=false)."
+      fi
+  artifacts:
+    when: always
+    paths:
+      - boot_loader_hardware_state.log
+      - boot_loader_health.log
+    expire_in: 1 week
 
 download_aws_demos:
   stage: flash
@@ -334,6 +360,7 @@ download_aws_demos:
   script:
     - |
       set -euo pipefail
+      source "$CI_PROJECT_DIR/tools/ci/acquire_pi_device_lock.sh" "$DEVICE_ID"
       bash "$CI_PROJECT_DIR/tools/ci/validate_pi_serial_path.sh" UART_PORT
       mot="$CI_PROJECT_DIR/$E2STUDIO_PROJECTS/aws_demos/HardwareDebug/aws_demos.mot"
       rsu="$CI_PROJECT_DIR/userprog.rsu"
@@ -360,6 +387,42 @@ download_aws_demos:
       - userprog.rsu
     expire_in: 1 week
 
+health_aws_demos_startup:
+  stage: health
+  extends:
+    - .pi_device_job
+    - .pi_pyserial_job
+  timeout: 4 minutes
+  rules:
+    - if: $RUN_OTA_ONLY == "true"
+      when: never
+    - if: $RUN_HW_HEALTHCHECK == "true"
+    - when: never
+  needs:
+    - job: download_aws_demos
+  script:
+    - |
+      set -euo pipefail
+      source "$CI_PROJECT_DIR/tools/ci/acquire_pi_device_lock.sh" "$DEVICE_ID"
+      bash "$CI_PROJECT_DIR/tools/ci/validate_pi_serial_path.sh" UART_PORT COMMAND_PORT
+      bash "$CI_PROJECT_DIR/tools/ci/print_pi_hardware_state.sh" UART_PORT COMMAND_PORT | tee "$CI_PROJECT_DIR/aws_demos_hardware_state.log"
+      echo "=== aws_demos Startup Health Check ==="
+      python3 "$CI_PROJECT_DIR/test_scripts/uart_test/check_device_health.py" \
+        command-prompt \
+        --port "$COMMAND_PORT" \
+        --baud "$COMMAND_BAUD_RATE" \
+        --initial-wait 3 \
+        --prompt-timeout 60 \
+        --command-timeout 10 \
+        --probe-command version \
+        --probe-expect v | tee "$CI_PROJECT_DIR/aws_demos_health.log"
+  artifacts:
+    when: always
+    paths:
+      - aws_demos_hardware_state.log
+      - aws_demos_health.log
+    expire_in: 1 week
+
 test_commands:
   stage: test
   extends:
@@ -372,6 +435,8 @@ test_commands:
     - when: always
   needs:
     - job: download_aws_demos
+    - job: health_aws_demos_startup
+      optional: true
     # provision_aws_credentials も COMMAND_PORT を使用するため、同時実行を防止。
     # RUN_AWS_TESTS=false 時は provision がスキップされるため optional: true。
     - job: provision_aws_credentials
@@ -381,6 +446,7 @@ test_commands:
   script:
     - |
       set -euo pipefail
+      source "$CI_PROJECT_DIR/tools/ci/acquire_pi_device_lock.sh" "$DEVICE_ID"
       bash "$CI_PROJECT_DIR/tools/ci/validate_pi_serial_path.sh" COMMAND_PORT
       echo "=== UART Command-Response Test ==="
       echo "  Port: $COMMAND_PORT @ ${COMMAND_BAUD_RATE}bps"
@@ -404,6 +470,7 @@ test_screen_navigation:
   script:
     - |
       set -euo pipefail
+      source "$CI_PROJECT_DIR/tools/ci/acquire_pi_device_lock.sh" "$DEVICE_ID"
       bash "$CI_PROJECT_DIR/tools/ci/validate_pi_serial_path.sh" COMMAND_PORT
       echo "=== Screen Navigation Test ==="
       echo "  Port: $COMMAND_PORT @ ${COMMAND_BAUD_RATE}bps"
@@ -412,7 +479,7 @@ test_screen_navigation:
         --timeout 30 --prompt-timeout 30 --initial-wait 1
 
 provision_aws_credentials:
-  stage: flash
+  stage: health
   extends:
     - .pi_device_job
     - .pi_pyserial_job
@@ -423,9 +490,12 @@ provision_aws_credentials:
     - if: $RUN_AWS_TESTS == "true"
   needs:
     - job: download_aws_demos
+    - job: health_aws_demos_startup
+      optional: true
   script:
     - |
       set -euo pipefail
+      source "$CI_PROJECT_DIR/tools/ci/acquire_pi_device_lock.sh" "$DEVICE_ID"
       bash "$CI_PROJECT_DIR/tools/ci/validate_pi_serial_path.sh" COMMAND_PORT
       echo "=== AWS IoT Core Provisioning ==="
       echo "  Device ID: $DEVICE_ID"
@@ -451,6 +521,7 @@ confirm_aws_mqtt:
   script:
     - |
       set -euo pipefail
+      source "$CI_PROJECT_DIR/tools/ci/acquire_pi_device_lock.sh" "$DEVICE_ID"
       bash "$CI_PROJECT_DIR/tools/ci/validate_pi_serial_path.sh" COMMAND_PORT UART_PORT
       echo "=== AWS IoT Core MQTT Connectivity Test ==="
       echo "  Device ID: $DEVICE_ID"
@@ -474,6 +545,7 @@ test_sd_update:
   script:
     - |
       set -euo pipefail
+      source "$CI_PROJECT_DIR/tools/ci/acquire_pi_device_lock.sh" "$DEVICE_ID"
       bash "$CI_PROJECT_DIR/tools/ci/validate_pi_serial_path.sh" COMMAND_PORT UART_PORT
       echo "=== SD Card Firmware Update Test ==="
       echo "  Device ID: $DEVICE_ID"
@@ -669,6 +741,7 @@ prepare_ota:
   script:
     - |
       set -euo pipefail
+      source "$CI_PROJECT_DIR/tools/ci/acquire_pi_device_lock.sh" "$DEVICE_ID"
       mot="$CI_PROJECT_DIR/$E2STUDIO_PROJECTS/boot_loader/HardwareDebug/rx72n_boot_loader.mot"
       if [[ ! -f "$mot" ]]; then
         echo "ERROR: boot_loader.mot not found: $mot"
@@ -752,6 +825,7 @@ ota_monitor:
   script:
     - |
       set -euo pipefail
+      source "$CI_PROJECT_DIR/tools/ci/acquire_pi_device_lock.sh" "$DEVICE_ID"
       bash "$CI_PROJECT_DIR/tools/ci/validate_pi_serial_path.sh" UART_PORT
       bash "$CI_PROJECT_DIR/tools/ci/validate_pi_serial_path.sh" COMMAND_PORT
       v2=$((CI_PIPELINE_IID * 2 + 1))
