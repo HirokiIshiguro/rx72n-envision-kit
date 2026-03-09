@@ -519,11 +519,11 @@
                 <Path>..\..\..\Middleware\FreeRTOS\FreeRTOS-Kernel\portable\MemMang\heap_4.c</Path>
               </Category>
               <Category Name="Renesas">
-                <Category Name="RX600v2">
-                  <Path>..\..\..\Middleware\FreeRTOS\FreeRTOS-Kernel\portable\Renesas\RX600v2\port.c</Path>
-                  <Path>..\..\..\Middleware\FreeRTOS\FreeRTOS-Kernel\portable\Renesas\RX600v2\port_asm.src</Path>
-                  <Path>..\..\..\Middleware\FreeRTOS\FreeRTOS-Kernel\portable\Renesas\RX600v2\portmacro.h</Path>
-                  <Path>..\..\..\Middleware\FreeRTOS\FreeRTOS-Kernel\portable\Renesas\RX600v2\readme.txt</Path>
+                <Category Name="RX700v3_DPFPU">
+                  <Path>..\..\..\Middleware\FreeRTOS\FreeRTOS-Kernel\portable\Renesas\RX700v3_DPFPU\port.c</Path>
+                  <Path>..\..\..\Middleware\FreeRTOS\FreeRTOS-Kernel\portable\Renesas\RX700v3_DPFPU\port_asm.src</Path>
+                  <Path>..\..\..\Middleware\FreeRTOS\FreeRTOS-Kernel\portable\Renesas\RX700v3_DPFPU\portmacro.h</Path>
+                  <Path>..\..\..\Middleware\FreeRTOS\FreeRTOS-Kernel\portable\Renesas\RX700v3_DPFPU\readme.txt</Path>
                 </Category>
               </Category>
             </Category>
@@ -1402,7 +1402,7 @@
         <CompileOptions>
           <Option>-isa=rxv3</Option>
           <Option>-fpu</Option>
-          <Option>-nodpfpu</Option>
+          <Option>-dpfpu</Option>
           <Option>-branch=32</Option>
           <Option>-include="${ProjDirPath}\src\smc_gen\r_bsp"</Option>
           <Option>-include="${ProjDirPath}\src\smc_gen\general"</Option>
@@ -1459,7 +1459,7 @@
           <Option>-include="C:\codex\tmp_rx72n_envision_kit_import_main\phase8b\Demos\include"</Option>
           <Option>-include="${ProjDirPath}\src\frtos_config"</Option>
           <Option>-include="${ProjDirPath}\src\frtos_startup"</Option>
-          <Option>-include="C:\codex\tmp_rx72n_envision_kit_import_main\phase8b\Middleware\FreeRTOS\FreeRTOS-Kernel\portable\Renesas\RX600v2"</Option>
+          <Option>-include="C:\codex\tmp_rx72n_envision_kit_import_main\phase8b\Middleware\FreeRTOS\FreeRTOS-Kernel\portable\Renesas\RX700v3_DPFPU"</Option>
           <Option>-include="C:\codex\tmp_rx72n_envision_kit_import_main\phase8b\Middleware\FreeRTOS\FreeRTOS-Plus-TCP\source\portable\Compiler\Renesas"</Option>
           <Option>-include="${ProjDirPath}\src\smc_gen"</Option>
           <Option>-include="${ProjDirPath}\src\smc_gen\r_ether_rx"</Option>
@@ -1498,7 +1498,7 @@
         <AssembleOptions>
           <Option>-isa=rxv3</Option>
           <Option>-fpu</Option>
-          <Option>-nodpfpu</Option>
+          <Option>-dpfpu</Option>
           <Option>-include="${ProjDirPath}\src\smc_gen\r_flash_rx"</Option>
           <Option>-include="${ProjDirPath}\src\smc_gen\r_flash_rx\src\flash_type_1"</Option>
           <Option>-include="${ProjDirPath}\src\smc_gen\general"</Option>
@@ -1560,7 +1560,7 @@
         <LibraryGenerateOptions>
           <Option>-isa=rxv3</Option>
           <Option>-fpu</Option>
-          <Option>-nodpfpu</Option>
+          <Option>-dpfpu</Option>
           <Option>-branch=32</Option>
           <Option>-lang=c99</Option>
           <Option>-head=runtime,ctype,math,mathf,stdarg,stdio,stdlib,string,new,fenv,inttypes,wchar,wctype</Option>
@@ -2184,7 +2184,7 @@
           <IncludePathForC>"C:\codex\tmp_rx72n_envision_kit_import_main\phase8b\Demos\include"</IncludePathForC>
           <IncludePathForC>"${ProjDirPath}\src\frtos_config"</IncludePathForC>
           <IncludePathForC>"${ProjDirPath}\src\frtos_startup"</IncludePathForC>
-          <IncludePathForC>"C:\codex\tmp_rx72n_envision_kit_import_main\phase8b\Middleware\FreeRTOS\FreeRTOS-Kernel\portable\Renesas\RX600v2"</IncludePathForC>
+          <IncludePathForC>"C:\codex\tmp_rx72n_envision_kit_import_main\phase8b\Middleware\FreeRTOS\FreeRTOS-Kernel\portable\Renesas\RX700v3_DPFPU"</IncludePathForC>
           <IncludePathForC>"C:\codex\tmp_rx72n_envision_kit_import_main\phase8b\Middleware\FreeRTOS\FreeRTOS-Plus-TCP\source\portable\Compiler\Renesas"</IncludePathForC>
           <IncludePathForC>"${ProjDirPath}\src\smc_gen"</IncludePathForC>
           <IncludePathForC>"${ProjDirPath}\src\smc_gen\r_ether_rx"</IncludePathForC>

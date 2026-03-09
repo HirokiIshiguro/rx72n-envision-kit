@@ -32,6 +32,7 @@ DEFAULT_CHAR_DELAY = 0.002
 DEFAULT_LINE_DELAY = 0.5
 DEFAULT_BOOT_WAIT = 3.0
 DEFAULT_CLI_TIMEOUT = 15.0
+CLI_READY_MARKERS = ("Going to FreeRTOS-CLI", ">")
 
 
 def send_chars(ser, text, char_delay):
@@ -40,7 +41,7 @@ def send_chars(ser, text, char_delay):
         time.sleep(char_delay)
 
 
-def send_command(ser, command, char_delay, line_delay, expect_ok=True):
+def send_command(ser, command, char_delay, line_delay, expect_ok=True, required_tokens=None):
     ser.reset_input_buffer()
     send_chars(ser, command, char_delay)
     ser.write(b"\r\n")
@@ -49,6 +50,10 @@ def send_command(ser, command, char_delay, line_delay, expect_ok=True):
 
     if expect_ok and "Error" in response:
         print(f"  ERROR in response: {mask_sensitive_output(response.strip())}")
+        return None
+
+    if required_tokens and not any(token in response for token in required_tokens):
+        print(f"  ERROR: expected one of {required_tokens}, got: {mask_sensitive_output(response.strip()) or 'No response'}")
         return None
 
     return response
@@ -77,8 +82,8 @@ def send_pem_command(ser, key_name, pem_path, char_delay, line_delay):
         print(f"  ERROR: {mask_sensitive_output(response.strip())}")
         return False
 
-    print(f"  Response: {mask_sensitive_output(response.strip())}")
-    return True
+    print(f"  ERROR: unexpected response: {mask_sensitive_output(response.strip()) or 'No response'}")
+    return False
 
 
 def wait_for_boot(ser, timeout):
@@ -110,13 +115,13 @@ def enter_cli_mode(ser, char_delay, line_delay, timeout):
             collected += data
             sys.stdout.write(mask_sensitive_output(data))
             sys.stdout.flush()
-            if ">" in collected or "Going to FreeRTOS-CLI" in collected:
+            if any(marker in collected for marker in CLI_READY_MARKERS):
                 print("\nCLI mode entered successfully")
                 return True
         time.sleep(0.1)
 
-    print("\nWARNING: CLI prompt not detected, continuing anyway...")
-    return True
+    print("\nERROR: CLI prompt not detected")
+    return False
 
 
 def resolve_device_args(args, parser):
@@ -215,18 +220,21 @@ def provision(args):
 
         if args.format:
             print("\n--- Format data flash ---")
-            resp = send_command(ser, "format", args.char_delay, args.line_delay * 2)
+            resp = send_command(ser, "format", args.char_delay, args.line_delay * 2,
+                                required_tokens=("OK",))
             if resp and "OK" in str(resp):
                 print("  Format OK")
             else:
                 print(f"  Format response: {mask_sensitive_output(str(resp).strip()) if resp else 'No response'}")
 
         print(f"\n--- Set thing name: {args.thing_name} ---")
-        if send_command(ser, f"conf set thingname {args.thing_name}", args.char_delay, args.line_delay) is None:
+        if send_command(ser, f"conf set thingname {args.thing_name}",
+                        args.char_delay, args.line_delay, required_tokens=("OK",)) is None:
             return 1
 
         print(f"\n--- Set endpoint: {args.endpoint} ---")
-        if send_command(ser, f"conf set endpoint {args.endpoint}", args.char_delay, args.line_delay) is None:
+        if send_command(ser, f"conf set endpoint {args.endpoint}",
+                        args.char_delay, args.line_delay, required_tokens=("OK",)) is None:
             return 1
 
         print("\n--- Set device certificate ---")
@@ -245,7 +253,8 @@ def provision(args):
             print("\nWARNING: No code signing certificate provided; OTA signature verification will fail")
 
         print("\n--- Commit to data flash ---")
-        resp = send_command(ser, "conf commit", args.char_delay, args.line_delay * 3)
+        resp = send_command(ser, "conf commit", args.char_delay, args.line_delay * 3,
+                            required_tokens=("OK",))
         if resp is None:
             return 1
         print(f"  {mask_sensitive_output(resp.strip()) if resp else 'No response'}")
