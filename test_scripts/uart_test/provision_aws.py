@@ -215,9 +215,9 @@ def main():
 
         # CLI 引数が未指定ならコンフィグの値を使用
         if args.port == DEFAULT_PORT:
-            args.port = device["command_port"]
+            args.port = device.get("command_port") or os.environ.get("COMMAND_PORT") or DEFAULT_PORT
         if args.baud == DEFAULT_BAUD:
-            args.baud = device["command_baud"]
+            args.baud = int(device.get("command_baud") or os.environ.get("COMMAND_BAUD_RATE") or DEFAULT_BAUD)
         if not args.endpoint:
             args.endpoint = device["aws_endpoint"]
         if not args.thing_name:

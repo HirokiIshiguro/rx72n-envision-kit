@@ -234,9 +234,9 @@ def main():
         device = load_device_config(args.device_id)
         print(f"Loaded config for device: {args.device_id}")
         if args.log_port == DEFAULT_LOG_PORT:
-            args.log_port = device["log_port"]
+            args.log_port = device.get("log_port") or os.environ.get("UART_PORT") or DEFAULT_LOG_PORT
         if args.log_baud == DEFAULT_LOG_BAUD:
-            args.log_baud = device["log_baud"]
+            args.log_baud = int(device.get("log_baud") or os.environ.get("UART_BAUD_RATE") or DEFAULT_LOG_BAUD)
 
     if not args.no_reset and not args.reset_cmd:
         parser.error("--reset-cmd is required unless --no-reset is specified")

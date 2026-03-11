@@ -140,9 +140,9 @@ def resolve_device_args(args, parser):
         print(f"Loaded config for device: {args.device_id}")
 
         if args.port == DEFAULT_PORT:
-            args.port = device["log_port"]
+            args.port = device.get("log_port") or os.environ.get("UART_PORT") or DEFAULT_PORT
         if args.baud == DEFAULT_BAUD:
-            args.baud = device["log_baud"]
+            args.baud = int(device.get("log_baud") or os.environ.get("UART_BAUD_RATE") or DEFAULT_BAUD)
         if not args.endpoint:
             args.endpoint = device["aws_endpoint"]
         if not args.thing_name:

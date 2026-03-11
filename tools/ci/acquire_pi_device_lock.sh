@@ -3,14 +3,19 @@
 
 set -euo pipefail
 
+script_return_or_exit() {
+  local code="$1"
+  return "$code" 2>/dev/null || exit "$code"
+}
+
 if [[ "${DEVICE_LOCK_HELD:-0}" == "1" ]]; then
-  exit 0
+  script_return_or_exit 0
 fi
 
 device_id="${1:-${DEVICE_ID:-}}"
 if [[ -z "$device_id" ]]; then
   echo "ERROR: device_id is required (arg1 or DEVICE_ID env var)." >&2
-  exit 1
+  script_return_or_exit 1
 fi
 
 lock_root="${DEVICE_LOCK_ROOT:-/tmp/gitlab-device-locks}"

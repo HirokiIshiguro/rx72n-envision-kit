@@ -56,7 +56,7 @@ def load_device_config(device_id, config_path=None):
     }
     for key, env_var in env_overrides.items():
         val = os.environ.get(env_var)
-        if val and key in device:
+        if val:
             device[key] = val
 
     return device

@@ -96,6 +96,9 @@ OTA_MILESTONES = {
     },
 }
 
+LEGACY_RSU_MAGIC = b"Renesas"
+FWUP_V2_RSU_MAGIC = b"RELFWV2"
+
 
 def require_serial_support():
     """pyserial が必要なモードで import 可否を確認する。"""
@@ -286,8 +289,15 @@ def extract_signature_from_rsu(rsu_path):
 
     # マジックコード検証
     magic = data[0:7]
-    if magic != b"Renesas":
-        raise ValueError(f"Invalid RSU magic: {magic!r} (expected b'Renesas')")
+    if magic == LEGACY_RSU_MAGIC:
+        rsu_format = "legacy"
+    elif magic == FWUP_V2_RSU_MAGIC:
+        rsu_format = "fwup-v2"
+    else:
+        raise ValueError(
+            f"Invalid RSU magic: {magic!r} "
+            f"(expected {LEGACY_RSU_MAGIC!r}* or {FWUP_V2_RSU_MAGIC!r})"
+        )
 
     # 署名サイズ (offset 0x028, uint32 LE)
     sig_size = struct.unpack_from('<I', data, 0x28)[0]
@@ -308,7 +318,7 @@ def extract_signature_from_rsu(rsu_path):
     # Step 3: AWS CLI v2 の blob 自動デコード対策 (二重 base64)
     sig_b64_for_cli = base64.b64encode(sig_b64.encode('utf-8')).decode('utf-8')
 
-    print(f"[RSU] Extracted signature from {os.path.basename(rsu_path)}")
+    print(f"[RSU] Extracted signature from {os.path.basename(rsu_path)} ({rsu_format})")
     print(f"[RSU]   Raw r||s: {sig_size} bytes")
     print(f"[RSU]   DER:      {len(der_sig)} bytes")
     print(f"[RSU]   Base64 (device): {sig_b64[:40]}... ({len(sig_b64)} chars)")
@@ -339,19 +349,51 @@ def extract_ota_payload(rsu_path):
     with open(rsu_path, 'rb') as f:
         rsu_data = f.read()
 
-    # Descriptor から code flash のアドレス範囲を読む
+    descriptor_offset = 0x200
+    descriptor_size = 256
+    magic = rsu_data[0:7]
+
+    if magic == FWUP_V2_RSU_MAGIC:
+        file_size = struct.unpack_from('<I', rsu_data, 0x6C)[0]
+        if file_size < descriptor_offset + descriptor_size:
+            raise ValueError(
+                f"Invalid FWUP v2 file size in RSU header: {file_size} "
+                f"(need at least {descriptor_offset + descriptor_size})"
+            )
+        if len(rsu_data) < file_size:
+            raise ValueError(
+                f"RSU file too small: header says {file_size} bytes, "
+                f"but only {len(rsu_data)} available"
+            )
+
+        payload = rsu_data[descriptor_offset:file_size]
+        segment_count = struct.unpack_from('<I', rsu_data, descriptor_offset)[0]
+        payload_size = len(payload)
+        print(f"[RSU] Extracted OTA payload from {os.path.basename(rsu_path)} (fwup-v2)")
+        print(f"[RSU]   RSU file size:    {len(rsu_data)} bytes")
+        print(f"[RSU]   Header file size: {file_size} bytes")
+        print(f"[RSU]   Segment count:     {segment_count}")
+        print(f"[RSU]   Payload size:      {payload_size} bytes")
+        print(f"[RSU]   Stripped:          header {descriptor_offset}B")
+        return payload
+
+    if magic != LEGACY_RSU_MAGIC:
+        raise ValueError(
+            f"Invalid RSU magic: {magic!r} "
+            f"(expected {LEGACY_RSU_MAGIC!r}* or {FWUP_V2_RSU_MAGIC!r})"
+        )
+
+    # Legacy RSU の descriptor から code flash のアドレス範囲を読む
     # Descriptor は RSU offset 0x200:
     #   0x200-0x203: sequence_number (uint32 LE)
     #   0x204-0x207: start_address   (uint32 LE)
     #   0x208-0x20B: end_address     (uint32 LE)
-    DESCRIPTOR_OFFSET = 0x200
-    start_addr = struct.unpack_from('<I', rsu_data, DESCRIPTOR_OFFSET + 4)[0]
-    end_addr = struct.unpack_from('<I', rsu_data, DESCRIPTOR_OFFSET + 8)[0]
+    start_addr = struct.unpack_from('<I', rsu_data, descriptor_offset + 4)[0]
+    end_addr = struct.unpack_from('<I', rsu_data, descriptor_offset + 8)[0]
     code_size = end_addr - start_addr + 1
-    descriptor_size = 256
     payload_size = descriptor_size + code_size
 
-    payload = rsu_data[DESCRIPTOR_OFFSET:DESCRIPTOR_OFFSET + payload_size]
+    payload = rsu_data[descriptor_offset:descriptor_offset + payload_size]
 
     if len(payload) != payload_size:
         raise ValueError(
@@ -359,11 +401,11 @@ def extract_ota_payload(rsu_path):
             f"but only {len(payload)} available"
         )
 
-    print(f"[RSU] Extracted OTA payload from {os.path.basename(rsu_path)}")
+    print(f"[RSU] Extracted OTA payload from {os.path.basename(rsu_path)} (legacy)")
     print(f"[RSU]   RSU file size:    {len(rsu_data)} bytes")
     print(f"[RSU]   Code range:       0x{start_addr:08X}-0x{end_addr:08X} ({code_size} bytes)")
     print(f"[RSU]   Payload size:     {payload_size} bytes (descriptor {descriptor_size} + code {code_size})")
-    print(f"[RSU]   Stripped:         header {DESCRIPTOR_OFFSET}B + data flash {len(rsu_data) - DESCRIPTOR_OFFSET - payload_size}B")
+    print(f"[RSU]   Stripped:         header {descriptor_offset}B + data flash {len(rsu_data) - descriptor_offset - payload_size}B")
 
     return payload
 
@@ -914,13 +956,15 @@ def legacy_main():
         device = load_device_config(args.device_id)
         print(f"[INFO] Loaded config for device: {args.device_id}")
         if args.log_port == "COM7":
-            args.log_port = device["log_port"]
+            args.log_port = device.get("log_port") or os.environ.get("UART_PORT") or "COM7"
         if args.log_baud == 921600:
-            args.log_baud = device["log_baud"]
+            args.log_baud = int(device.get("log_baud") or os.environ.get("UART_BAUD_RATE") or 921600)
         if not args.cmd_port:
             args.cmd_port = device.get("command_port")
-        if args.cmd_baud == 115200 and "command_baud" in device:
-            args.cmd_baud = device["command_baud"]
+        if not args.cmd_port:
+            args.cmd_port = os.environ.get("COMMAND_PORT")
+        if args.cmd_baud == 115200:
+            args.cmd_baud = int(device.get("command_baud") or os.environ.get("COMMAND_BAUD_RATE") or 115200)
         if not args.region:
             args.region = device.get("aws_region", "ap-northeast-1")
         if not args.thing_name:
