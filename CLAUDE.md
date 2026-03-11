@@ -112,6 +112,106 @@ Detailed notes are tracked in [`docs/phase8b-migration-plan.md`](docs/phase8b-mi
 - 8b-3b は Issue [#13](https://shelty2.servegame.com/oss/import/github/renesas/rx72n-envision-kit/-/issues/13) で追跡する。`RUN_PHASE8B_BASELINE` と phase8b 専用 helper / job を追加し、`build_phase8b -> flash/download -> provision -> MQTT` の hardware baseline を CI へ再接続する。
 - 8b-3 の残課題は warning cleanup と hardware baseline の安定化。`r_tsip_rx` の RX72N 正式化、`C_LITTLEFS_*` / `C_USER_APPLICATION_AREA` section warning の整理を次段で進める。
 
+### Phase 8b precheck: ROM budget for MCUboot + latest FreeRTOS
+
+Issue: `#5`
+
+MCUboot 移行に関する OTA 観点の整理は、OTA プロジェクトの
+[CLAUDE.md](https://shelty2.servegame.com/oss/experiment/embedded/mcu/elemental/ota/-/blob/main/CLAUDE.md)
+へ集約する。本節は RX72N Envision Kit 側の project-local な sizing
+メモと判断根拠を残す位置づけとする。
+
+- RX72N は code flash 4MB を持つが、dual-bank 前提では片系の実行イメージとして
+  使える容量を **2MB/bank** とみなして評価する
+- `iot-reference-rx` 由来の最新 FreeRTOS 基盤を RX72N に移植するだけでなく、
+  将来的な boot loader は Renesas オリジナル実装から **MCUboot** へ置き換える前提で
+  容量検証を行う
+
+2026-03-08 時点の rough sizing（Motorola S-record の data byte 合計）:
+
+| Image | Source | Rough size |
+|------|--------|-----------:|
+| 現行 RX72N boot_loader | `rx72n-envision-kit` build artifact (`#380` / job `#1631`) | 54,235 B |
+| 現行 RX72N aws_demos | `rx72n-envision-kit` build artifact (`#380` / job `#1631`) | 1,078,627 B |
+| CK-RX65N boot loader | `iot-reference-rx` build artifact (`#423` / job `#1755`) | 32,057 B |
+| CK-RX65N userprog | `iot-reference-rx` build artifact (`#423` / job `#1755`) | 472,254 B |
+
+アドレス帯の rough 観測:
+
+- 現行 RX72N `aws_demos.mot` は主に `0xFFE00000` 帯へ約 1.00 MiB、
+  `0x00100000` 帯へ約 28 KiB を配置
+- 現行 RX72N `rx72n_boot_loader.mot` は主に `0xFFF00000` 帯へ約 51 KiB を配置
+- `iot-reference-rx` の `userprog.mot` は主に `0xFFF00000` 帯へ約 430 KiB、
+  `0xFFE00000` 帯へ約 31 KiB を配置
+
+MCUboot package の初期確認:
+
+- 公式 RX package: `rx-driver-package/source/rm_mcuboot`
+- `rm_mcuboot` v1.01 は RX72N Group を support 対象に含む
+- `rm_mcuboot_vx.xx_extend.mdf` の RX72N/RX72M 既定値は以下
+  - `RM_MCUBOOT_CFG_MCUBOOT_AREA_SIZE = 0x10000`
+  - `RM_MCUBOOT_CFG_APPLICATION_AREA_SIZE = 0x1F0000`
+  - `RM_MCUBOOT_CFG_SCRATCH_AREA_SIZE = 0x10000`（swap mode 時）
+- 既定 config は `overwrite only` + `validate primary slot` 有効 +
+  `ECDSA P-256` 署名検証 + encryption 無効
+- この設定から、Renesas の公式 package 自体は
+  **RX72N dual-bank を前提に MCUboot + 約 0x1F0000 の application slot**
+  を想定していると読める
+
+2026-03-08 ローカル headless build の `.map` 実測
+（`tools/analyze_ccrx_map.py` で再現可能）:
+
+| Image | ROMDATA | PROGRAM | Flash-like total | Budget | Headroom |
+|------|--------:|--------:|-----------------:|-------:|---------:|
+| 現行 RX72N boot_loader | 10,367 B | 43,868 B | 54,235 B | `0x10000` (65,536 B) | 11,301 B |
+| 現行 RX72N aws_demos | 352,493 B | 727,062 B | 1,079,555 B | `0x1F0000` (2,031,616 B) | 952,061 B |
+| RX72N MCUboot lower-bound scratch build | 4,526 B | 25,883 B | 30,409 B | `0x10000` (65,536 B) | 35,127 B |
+
+2026-03-11 追記: MCUboot lower-bound scratch build の前提
+
+- isolated scratch project で RX72N BSP/flash driver + MCUboot `bootutil` / `flash_map` / `tlv` / `swap_scratch`
+  だけを組み合わせ、headless build で `.map` を採取
+- build 前提は `overwrite only`、unsigned、logging off、`tinycrypt` SHA-256 のみ
+- `abort()` / SCI low-level char I/O は stub 実装
+- 現行 boot_loader 固有の GUI / UART command / key storage / magic code section、
+  および `rm_mcuboot` の TSIP/RSIP・署名検証・encryption は未含有
+- したがって 30,409 B は production 相当サイズではなく、
+  **RX72N 上で MCUboot core がどの程度の下限で収まるか** を見るための lower-bound
+
+補足:
+
+- app slot 側は、現行 `aws_demos` 基準でも **約 952 KiB の headroom**
+  があり、2MB/bank 全体では現時点で逼迫していない
+- 一方、boot area `0x10000` は現行 Renesas boot loader 基準で
+  **余白が 11,301 B** しかないため、
+  MCUboot fit 判定は boot side の実ビルドで取るべき
+- 仮に MCUboot 導入で boot area を `0x20000` (128 KiB) に増やしても、
+  app slot は `0x1E0000` となり、現行 `aws_demos` 比で
+  **886,525 B の headroom** が残る
+- 現行 `aws_demos` の flash-heavy 要素は主に
+  emWin 画像/フォント資産、PKCS11/mbedTLS、OTA/coreMQTT であり、
+  FreeRTOS kernel 自体は主に RAM (`heap_4`) 側に効いている
+- `RM_MCUBOOT_CFG_SIGN = RSA 2048` や image encryption 有効化は
+  boot size を押し上げる候補なので、worst-case 別計測が必要
+- 2026-03-11 の lower-bound scratch build では
+  **MCUboot core 単体は `0x10000` に対して約 35 KiB の headroom**
+  を残しており、issue `#5` の主不確実性は
+  「MCUboot core が入るか」よりも
+  「RX72N 向け実構成差分がどこまで headroom を削るか」に移っている
+
+暫定判断:
+
+- **application slot 容量は現時点で no-go には見えない**
+- ただし `rm_mcuboot` は FIT module であり、実サイズ確認には
+  **RX72N 向け最小組み込みビルド** が必要
+- 2026-03-11 の lower-bound では
+  **MCUboot core は boot area `0x10000` に収まる**
+- 残る最優先の不確実性は、
+  **RX72N 向け `rm_mcuboot` 実構成（ECDSA/TSIP/RSIP/metadata/section 配置込み）でも
+  `0x10000` を維持できるか** である
+- go/no-go は issue `#5` で
+  `MCUboot + latest FreeRTOS app + OTA metadata` の実測を取ってから判定する
+
 ### パイプライン変数 / Pipeline Variables
 
 GitLab UI の「Run Pipeline」画面でオーバーライド可能。
@@ -685,6 +785,12 @@ python test_scripts/uart_test/provision_aws.py \
 - テストスクリプトも 921600bps で接続
 
 ## Changelog / 変更履歴
+
+### 2026-03-11: MCUboot ROM budget note を OTA knowledge base に集約
+
+Moved the OTA-facing MCUboot sizing summary to the OTA knowledge base and left a reference here. This CLAUDE.md keeps the RX72N Envision Kit-specific measurements and go/no-go notes for Phase 8b.
+
+MCUboot の OTA 観点サマリを OTA knowledge base 側へ集約し、この CLAUDE.md には参照を追加した。こちらには引き続き、Phase 8b の RX72N Envision Kit 固有の実測値と go/no-go 判断メモを残す。
 
 ### 2026-03-09: Phase 8b-1 seed import into `phase8b/`
 
