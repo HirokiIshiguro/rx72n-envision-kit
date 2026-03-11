@@ -808,6 +808,24 @@ python test_scripts/uart_test/provision_aws.py \
 
 ## Changelog / 変更履歴
 
+### 2026-03-11: phase8b app CLI failure は OTA handoff ではなく app 側無応答で再現
+
+After runner-tag cleanup, set #1 (`ef-saffti-001-rpi-001-rx72nek`) became usable for controlled reruns. Pipeline `#639` first showed a separate Pi hygiene issue: orphaned `/tmp/gitlab-device-locks/rx72n-01.lock` waiters from old shell jobs were blocking `prepare_phase8b_ota`, and once those were removed the job advanced into UART download before ending with `job_token_expired`. That run was enough to confirm the runner affinity fix and the new `reset-after-open` flow on real hardware.
+
+The decisive repro came from pipelines `#643` and `#644`. `#643` (`prepare_phase8b_ota`) completed the RSU transfer on SCI7 with `verify install area buffer [sig-sha256-ecdsa]...OK` and `activating image ... OK`, then issued an explicit `rfp-cli ... -reset -noquery` after reopening the UART, but still ended in `ERROR: CLI prompt not detected`. `#644` repeated the failure even after direct-flashing the phase8b app `.mot`, proving the missing CLI prompt is not specific to the OTA handoff path.
+
+Manual SSH capture on set #1 matched the pipeline result: after direct-flashing the phase8b app, opening CN6/FTDI (`SCI7`, `921600bps`) before an external reset and sending `CLI\r\n` produced `0` received bytes over 15 seconds. A control capture on CN8 (`COMMAND_PORT`, `115200bps`) emitted repeated `Hello World`, but that string is not present in the current phase8b build artifacts (`.mot/.abs/.x`), so it should not be treated as a valid phase8b CLI banner.
+
+Generated phase8b config still says the intended CLI terminal is `BSP_CFG_SCI_UART_TERMINAL_CHANNEL = 7` and `BSP_CFG_SCI_UART_TERMINAL_BITRATE = 921600`, so there is no repo-side justification yet to switch provisioning from `UART_PORT` to `COMMAND_PORT`. The current blocker is narrower: phase8b app CLI is not observably coming up on SCI7 on real hardware, even when the app is flashed directly and reset under capture.
+
+runner tag 修正後、set #1 (`ef-saffti-001-rpi-001-rx72nek`) で controlled rerun ができるようになった。pipeline `#639` ではまず別件として、古い shell job 由来の orphaned `/tmp/gitlab-device-locks/rx72n-01.lock` waiter が `prepare_phase8b_ota` を止めていることが分かった。これを掃除すると job は UART download まで進み、その後 `job_token_expired` で終わったが、runner affinity 修正と `reset-after-open` 導線自体が実機で動くことは確認できた。
+
+本質の再現は pipeline `#643` と `#644` で取れた。`#643` (`prepare_phase8b_ota`) は SCI7 上の RSU 転送を `verify install area buffer [sig-sha256-ecdsa]...OK`、`activating image ... OK` まで完了し、UART 再open後の `rfp-cli ... -reset -noquery` も実行したが、その後は `ERROR: CLI prompt not detected` で止まった。さらに `#644` では phase8b app `.mot` を直接 flash したあとでも同じ失敗になり、CLI 不達は OTA handoff 固有ではなく app 側無応答であることが確認できた。
+
+set #1 に対する manual SSH capture も pipeline と一致した。phase8b app を direct-flash した状態で、CN6/FTDI (`SCI7`, `921600bps`) を reset 前に open して `CLI\r\n` を送っても、15 秒間の受信は `0 bytes` だった。一方 CN8 (`COMMAND_PORT`, `115200bps`) では `Hello World` が繰り返し見えたが、この文字列は現行 phase8b build artifacts (`.mot/.abs/.x`) に含まれていないため、phase8b CLI banner とみなすべきではない。
+
+phase8b の生成済み設定は引き続き `BSP_CFG_SCI_UART_TERMINAL_CHANNEL = 7`、`BSP_CFG_SCI_UART_TERMINAL_BITRATE = 921600` を指している。したがって、現時点で repo 側から `UART_PORT` を `COMMAND_PORT` へ切り替える根拠はない。残 blocker はより絞られており、「phase8b app CLI が実機上で SCI7 に立ち上がっていない」ことである。
+
 ### 2026-03-11: phase8b provisioning を `reset-after-open` 化し、boot_loader 誤捕捉を可視化
 
 Pipeline `#633` showed that `prepare_phase8b_ota` can finish the UART RSU transfer with `verify install area buffer ... OK` and `activating image ... OK`, but still hand off to provisioning without any observed `software reset` or app boot log. In that state, `provision_phase8b.py --no-reset` was racing a 10-second CLI window with no reliable proof that the phase8b app had actually started.
