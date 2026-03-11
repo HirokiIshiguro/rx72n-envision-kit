@@ -119,6 +119,7 @@ Detailed notes are tracked in [`docs/phase8b-migration-plan.md`](docs/phase8b-mi
 - 2026-03-11 の pipeline `#594` では、`prepare_phase8b_ota` が今度は 1 block 目を越えたものの、2 block 目開始時に `/tmp/gitlab-device-locks/rx72n-01.lock` の再取得待ちで停滞した。GitLab shell 実行形態では block 間で lock 状態を素直に引き回せない前提と見なし、`prepare_phase8b_ota` は `flash -> UART download -> provisioning -> reset` を 1 つの script block に統合した。
 - `.pi_device_job` の `resource_group` は現状 `rx72n-device` 固定で、3 セット runner を導入しても job は device 全体で直列化される。並列度を上げるには、hardware-config 側で runner ごとの device 変数束と lock/resource の分離が必要。
 - 2026-03-11 時点で repo 側は `DEVICE_RUNNER_TAG` / `DEVICE_RESOURCE_GROUP` override と `rx72n-02` / `rx72n-03` の `device_id` を受けられる形へ更新した。つまり CI 側は set 固定実行の受け皿を持ったが、実運用には runner 側の set 別 tag 付与と、hardware-config / CI Variables への set #2 / #3 個体値登録がまだ必要。
+- さらに `rfp-cli -d RX72x -lt` が接続中 E2 Lite の serial を返さず tool 種別一覧だけを返すことが分かったため、repo 側は `RFP_TOOL=e2l` を既定にして serial 未指定でも 1 Pi = 1 E2 Lite 構成で書き込みできるように更新した。これで phase8b OTA の残 blocker はほぼ `runner tag / UART path / MAC 設定` へ絞り込めた。
 - 8b-3/8b-4 共通の残課題は warning cleanup と OTA 実行安定化。`r_tsip_rx` の RX72N 正式化、`C_LITTLEFS_*` / `C_USER_APPLICATION_AREA` section warning の整理、phase8b 上での OTA monitor 再現性確認を次段で進める。
 
 ### Phase 8b precheck: ROM budget for MCUboot + latest FreeRTOS
@@ -253,11 +254,12 @@ CI/CD Variables を変更すること。
 | `RUN_PHASE8B_BASELINE` | `"false"` | `phase8b/` の hardware baseline (`build_phase8b -> flash/download -> provision -> MQTT`) のみを実行するか |
 | `RUN_PHASE8B_OTA` | `"false"` | `phase8b/` の OTA 再検証 (`build_phase8b_ota -> prepare_phase8b_ota -> phase8b_ota_create_job/monitor/finalize`) のみを実行するか |
 | `DEVICE_ID` | `"rx72n-01"` | `device_config.json` / AWS 証明書変数名に対応する論理デバイス ID。3 セット運用時は `rx72n-02` / `rx72n-03` へ切り替える |
+| `RFP_TOOL` | `"e2l"` | `rfp-cli -tool` に渡す値。1 Pi = 1 E2 Lite 構成では generic `e2l` を使い、必要時のみ `e2l:<serial>` へ override する |
 | `DEVICE_RUNNER_TAG` | `"dev-rx72n"` | Raspberry Pi runner 固定用 tag。set 固定実行時は `dev-rx72n-01` / `-02` / `-03` のような個別 tag を指定する |
 | `DEVICE_RESOURCE_GROUP` | `"rx72n-device"` | GitLab 内の device 直列化単位。set 固定実行時は `rx72n-device-01` / `-02` / `-03` のように分ける |
 | `DEVICE_LOCK_ROOT` | `"/tmp/gitlab-device-locks"` | Raspberry Pi runner 上で `DEVICE_ID` 単位のクロスプロジェクト排他ロックを置くディレクトリ |
 
-3 セットを安全に使い分けるときは、`DEVICE_ID` / `DEVICE_RUNNER_TAG` / `DEVICE_RESOURCE_GROUP` / `E2LITE_SERIAL` / `UART_PORT` / `COMMAND_PORT` / `MAC_ADDR` を同じ set の値へまとめて切り替える。
+3 セットを安全に使い分けるときは、`DEVICE_ID` / `DEVICE_RUNNER_TAG` / `DEVICE_RESOURCE_GROUP` / `RFP_TOOL` / `UART_PORT` / `COMMAND_PORT` / `MAC_ADDR` を同じ set の値へまとめて切り替える。
 
 **実行パターン:**
 
@@ -805,6 +807,16 @@ python test_scripts/uart_test/provision_aws.py \
 - テストスクリプトも 921600bps で接続
 
 ## Changelog / 変更履歴
+
+### 2026-03-11: `RFP_TOOL=e2l` を既定化し、E2 Lite serial 依存を外した
+
+Follow-up probing on `ef-saffti-001-rpi-002-rx72nek` / `003` showed that `rfp-cli -d RX72x -lt` only reports supported tool classes (`e2`, `e2l`) and does not enumerate the attached E2 Lite serial. Because the runner topology is 1 Raspberry Pi to 1 RX72N set, pinning by runner tag is already enough to identify the programmer.
+
+Updated `.gitlab-ci.yml` so Raspberry Pi jobs now use `RFP_TOOL=e2l` by default and only need an explicit serial when a future runner hosts multiple E2 Lite devices. This removes `E2LITE_SERIAL` as a mandatory blocker for phase8b OTA reruns and keeps the remaining work focused on per-set runner tags plus UART/MAC variables.
+
+`ef-saffti-001-rpi-002-rx72nek` / `003` での追加確認から、`rfp-cli -d RX72x -lt` は接続中 E2 Lite の serial を列挙せず、対応 tool class (`e2`, `e2l`) だけを返すことが分かった。runner 構成は 1 Raspberry Pi : 1 RX72N set なので、programmer の識別は runner tag 固定だけで十分である。
+
+このため `.gitlab-ci.yml` は Raspberry Pi job の既定を `RFP_TOOL=e2l` へ変更し、将来 1 runner に複数 E2 Lite を挿す場合だけ明示 serial を override する設計へ寄せた。これで phase8b OTA rerun における必須 blocker から `E2LITE_SERIAL` を外し、残作業を set 別 runner tag と UART/MAC 変数へ集中できるようにした。
 
 ### 2026-03-11: 3-set runner affinity 用の device 固定変数と multi-device config を追加
 

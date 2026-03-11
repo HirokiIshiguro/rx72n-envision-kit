@@ -42,6 +42,9 @@ variables:
   MAC_ADDR: "${MAC_ADDR_ENVISION_KIT_RX72N}"
   # デバイス ID（device_config.json で定義、複数デバイス時に切り替え）
   DEVICE_ID: "rx72n-01"
+  # Raspberry Pi runner は 1 Pi = 1 E2 Lite 構成を前提とし、既定では generic `e2l`
+  # を使う。必要なら set 固有の `e2l:<serial>` で override する。
+  RFP_TOOL: "e2l"
   # Runner 固定用タグ / resource_group。3 セット運用時は pipeline 変数または
   # project/group CI/CD Variables で set ごとの値へ上書きする。
   DEVICE_RUNNER_TAG: "dev-rx72n"
@@ -405,17 +408,13 @@ flash_phase8b_boot_loader:
         echo "ERROR: $mot not found"
         exit 1
       fi
-      if [[ -z "${E2LITE_SERIAL:-}" ]]; then
-        echo "ERROR: E2LITE_SERIAL not set"
-        exit 1
-      fi
       echo "=== Flash phase8b boot_loader ==="
       echo "  .mot:   $mot"
       echo "  Device: RX72x"
-      echo "  Tool:   E2 Lite (${E2LITE_SERIAL})"
-      "$RFP_CLI" -device RX72x -tool "e2l:${E2LITE_SERIAL}" -if fine -speed 1500K \
+      echo "  Tool:   $RFP_TOOL"
+      "$RFP_CLI" -device RX72x -tool "$RFP_TOOL" -if fine -speed 1500K \
         -auth id FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF -erase-chip -noquery
-      "$RFP_CLI" -device RX72x -tool "e2l:${E2LITE_SERIAL}" -if fine -speed 1500K \
+      "$RFP_CLI" -device RX72x -tool "$RFP_TOOL" -if fine -speed 1500K \
         -auth id FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF -p "$mot" -v -run -noquery
       if [[ "${RUN_HW_HEALTHCHECK}" == "true" ]]; then
         bash "$CI_PROJECT_DIR/tools/ci/validate_pi_serial_path.sh" UART_PORT
@@ -467,7 +466,7 @@ download_phase8b_app:
       key="$CI_PROJECT_DIR/sample_keys/secp256r1.privatekey"
       prm="$CI_PROJECT_DIR/$PHASE8B_E2STUDIO_PROJECTS/boot_loader_rx72n_envision_kit/e2studio_ccrx/src/smc_gen/r_fwup/tool/RX72N_DualBank_ImageGenerator_PRM.csv"
       builder="$CI_PROJECT_DIR/tools/build_fwup_v2_rsu.py"
-      reset_cmd="$RFP_CLI -device RX72x -tool e2l:${E2LITE_SERIAL} -if fine -run -noquery"
+      reset_cmd="$RFP_CLI -device RX72x -tool ${RFP_TOOL} -if fine -run -noquery"
       if [[ ! -f "$mot" ]]; then
         echo "ERROR: phase8b app .mot not found: $mot"
         exit 1
@@ -558,16 +557,16 @@ diag_phase8b_direct_flash_cli:
       echo "=== Restore phase8b boot_loader/config area ==="
       echo "  Boot MOT: $boot_mot"
       echo "  Device:   RX72x"
-      echo "  Tool:     E2 Lite (${E2LITE_SERIAL})"
-      "$RFP_CLI" -device RX72x -tool "e2l:${E2LITE_SERIAL}" -if fine -speed 1500K \
+      echo "  Tool:     $RFP_TOOL"
+      "$RFP_CLI" -device RX72x -tool "$RFP_TOOL" -if fine -speed 1500K \
         -auth id FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF -erase-chip -noquery
-      "$RFP_CLI" -device RX72x -tool "e2l:${E2LITE_SERIAL}" -if fine -speed 1500K \
+      "$RFP_CLI" -device RX72x -tool "$RFP_TOOL" -if fine -speed 1500K \
         -auth id FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF -p "$boot_mot" -v -run -noquery
       echo "=== Direct flash phase8b app (.mot) ==="
       echo "  App MOT: $mot"
       echo "  Device: RX72x"
-      echo "  Tool:   E2 Lite (${E2LITE_SERIAL})"
-      "$RFP_CLI" -device RX72x -tool "e2l:${E2LITE_SERIAL}" -if fine -speed 1500K \
+      echo "  Tool:   $RFP_TOOL"
+      "$RFP_CLI" -device RX72x -tool "$RFP_TOOL" -if fine -speed 1500K \
         -auth id FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF -p "$mot" -v -run -noquery
       echo "=== phase8b CLI provisioning (direct-flashed app) ==="
       python3 -u "$CI_PROJECT_DIR/tools/provision_phase8b.py" \
@@ -593,7 +592,7 @@ provision_phase8b_credentials:
       set -euo pipefail
       source "$CI_PROJECT_DIR/tools/ci/acquire_pi_device_lock.sh" "$DEVICE_ID"
       bash "$CI_PROJECT_DIR/tools/ci/validate_pi_serial_path.sh" UART_PORT
-      reset_cmd="$RFP_CLI -device RX72x -tool e2l:${E2LITE_SERIAL} -if fine -reset -noquery"
+      reset_cmd="$RFP_CLI -device RX72x -tool ${RFP_TOOL} -if fine -reset -noquery"
       echo "=== phase8b Provisioning ==="
       echo "  Device ID: $DEVICE_ID"
       echo "  Port:      $UART_PORT @ ${UART_BAUD_RATE}bps"
@@ -620,7 +619,7 @@ confirm_phase8b_mqtt:
       set -euo pipefail
       source "$CI_PROJECT_DIR/tools/ci/acquire_pi_device_lock.sh" "$DEVICE_ID"
       bash "$CI_PROJECT_DIR/tools/ci/validate_pi_serial_path.sh" UART_PORT
-      reset_cmd="$RFP_CLI -device RX72x -tool e2l:${E2LITE_SERIAL} -if fine -reset -noquery"
+      reset_cmd="$RFP_CLI -device RX72x -tool ${RFP_TOOL} -if fine -reset -noquery"
       echo "=== phase8b MQTT baseline ==="
       echo "  Device ID: $DEVICE_ID"
       echo "  Reset:     $reset_cmd"
@@ -654,18 +653,14 @@ flash_boot_loader:
         echo "ERROR: $mot not found"
         exit 1
       fi
-      if [[ -z "${E2LITE_SERIAL:-}" ]]; then
-        echo "ERROR: E2LITE_SERIAL not set"
-        exit 1
-      fi
       echo "=== Flash boot_loader ==="
       echo "  .mot:    $mot"
       echo "  Device:  RX72x"
-      echo "  Tool:    E2 Lite (${E2LITE_SERIAL})"
+      echo "  Tool:    $RFP_TOOL"
       echo "  I/F:     FINE"
-      "$RFP_CLI" -device RX72x -tool "e2l:${E2LITE_SERIAL}" -if fine -speed 1500K \
+      "$RFP_CLI" -device RX72x -tool "$RFP_TOOL" -if fine -speed 1500K \
         -auth id FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF -erase-chip -noquery
-      "$RFP_CLI" -device RX72x -tool "e2l:${E2LITE_SERIAL}" -if fine -speed 1500K \
+      "$RFP_CLI" -device RX72x -tool "$RFP_TOOL" -if fine -speed 1500K \
         -auth id FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF -p "$mot" -v -run -noquery
       echo "Flash completed successfully. Boot loader is running."
       if [[ "${RUN_HW_HEALTHCHECK}" == "true" ]]; then
@@ -1149,9 +1144,9 @@ prepare_ota:
         exit 1
       fi
       echo "=== Flash boot_loader (OTA) ==="
-      "$RFP_CLI" -device RX72x -tool "e2l:${E2LITE_SERIAL}" -if fine -speed 1500K \
+      "$RFP_CLI" -device RX72x -tool "$RFP_TOOL" -if fine -speed 1500K \
         -auth id FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF -erase-chip -noquery
-      "$RFP_CLI" -device RX72x -tool "e2l:${E2LITE_SERIAL}" -if fine -speed 1500K \
+      "$RFP_CLI" -device RX72x -tool "$RFP_TOOL" -if fine -speed 1500K \
         -auth id FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF -p "$mot" -v -run -noquery
       echo "Boot loader flashed successfully."
     - |
@@ -1203,11 +1198,7 @@ prepare_phase8b_ota:
       source "$CI_PROJECT_DIR/tools/ci/acquire_pi_device_lock.sh" "$DEVICE_ID"
       mot="$CI_PROJECT_DIR/$PHASE8B_E2STUDIO_PROJECTS/boot_loader_rx72n_envision_kit/e2studio_ccrx/HardwareDebug/boot_loader_rx72n_envision_kit.mot"
       rsu="$CI_PROJECT_DIR/phase8b_ota_v1.rsu"
-      reset_cmd="$RFP_CLI -device RX72x -tool e2l:${E2LITE_SERIAL} -if fine -run -noquery"
-      if [[ -z "${E2LITE_SERIAL:-}" ]]; then
-        echo "ERROR: E2LITE_SERIAL not set"
-        exit 1
-      fi
+      reset_cmd="$RFP_CLI -device RX72x -tool ${RFP_TOOL} -if fine -run -noquery"
       if [[ ! -f "$mot" ]]; then
         echo "ERROR: phase8b boot_loader.mot not found: $mot"
         exit 1
@@ -1218,10 +1209,10 @@ prepare_phase8b_ota:
       fi
       echo "=== Flash phase8b boot_loader (OTA) ==="
       echo "  Device ID: $DEVICE_ID"
-      echo "  Tool:      E2 Lite (${E2LITE_SERIAL})"
-      "$RFP_CLI" -device RX72x -tool "e2l:${E2LITE_SERIAL}" -if fine -speed 1500K \
+      echo "  Tool:      $RFP_TOOL"
+      "$RFP_CLI" -device RX72x -tool "$RFP_TOOL" -if fine -speed 1500K \
         -auth id FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF -erase-chip -noquery
-      "$RFP_CLI" -device RX72x -tool "e2l:${E2LITE_SERIAL}" -if fine -speed 1500K \
+      "$RFP_CLI" -device RX72x -tool "$RFP_TOOL" -if fine -speed 1500K \
         -auth id FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF -p "$mot" -v -run -noquery
       echo "Phase8b boot loader flashed successfully."
       bash "$CI_PROJECT_DIR/tools/ci/validate_pi_serial_path.sh" UART_PORT
