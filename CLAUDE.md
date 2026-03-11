@@ -66,6 +66,11 @@ RX72N Envision Kit の全機能を試せるようにする。
 
 Issue: `#5`
 
+MCUboot 移行に関する OTA 観点の整理は、OTA プロジェクトの
+[CLAUDE.md](https://shelty2.servegame.com/oss/experiment/embedded/mcu/elemental/ota/-/blob/main/CLAUDE.md)
+へ集約する。本節は RX72N Envision Kit 側の project-local な sizing
+メモと判断根拠を残す位置づけとする。
+
 - RX72N は code flash 4MB を持つが、dual-bank 前提では片系の実行イメージとして
   使える容量を **2MB/bank** とみなして評価する
 - `iot-reference-rx` 由来の最新 FreeRTOS 基盤を RX72N に移植するだけでなく、
@@ -708,6 +713,12 @@ python test_scripts/uart_test/provision_aws.py \
 - テストスクリプトも 921600bps で接続
 
 ## Changelog / 変更履歴
+
+### 2026-03-11: MCUboot ROM budget note を OTA knowledge base に集約
+
+Moved the OTA-facing MCUboot sizing summary to the OTA knowledge base and left a reference here. This CLAUDE.md keeps the RX72N Envision Kit-specific measurements and go/no-go notes for Phase 8b.
+
+MCUboot の OTA 観点サマリを OTA knowledge base 側へ集約し、この CLAUDE.md には参照を追加した。こちらには引き続き、Phase 8b の RX72N Envision Kit 固有の実測値と go/no-go 判断メモを残す。
 
 ### 2026-03-03: Phase 8-14 順序変更 — iot-reference-rx 移行を先行
 
