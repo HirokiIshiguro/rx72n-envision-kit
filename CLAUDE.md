@@ -111,6 +111,8 @@ Detailed notes are tracked in [`docs/phase8b-migration-plan.md`](docs/phase8b-mi
 - 8b-3 では `build_phase8b` job と `RUN_PHASE8B_BUILD_ONLY` モードを追加し、`phase8b/` のみを対象にした Windows build-only gate を CI へ接続済み。
 - 8b-3b は完了。Issue [#13](https://shelty2.servegame.com/oss/import/github/renesas/rx72n-envision-kit/-/issues/13) を閉じ、`RUN_PHASE8B_BASELINE` と phase8b 専用 helper / job により `build_phase8b -> flash/download -> provision -> MQTT` の hardware baseline を CI へ再接続した。
 - 8b-4 は Issue [#10](https://shelty2.servegame.com/oss/import/github/renesas/rx72n-envision-kit/-/issues/10) で進める。次段の主タスクは `RUN_PHASE8B_OTA` による phase8b 専用 OTA pipeline（`build_phase8b_ota -> prepare_phase8b_ota -> phase8b_ota_create_job/monitor/finalize`）の導線整備。
+- 2026-03-11 の pipeline `#588` で `build_phase8b_ota` は成功し v1/v2 RSU 生成まで確認した。一方 `prepare_phase8b_ota` は Raspberry Pi runner `ef-saffti-001-rpi-003-rx72nek` 上で `E3000201: Cannot find the specified tool.` により失敗し、現行 CI 変数束（`DEVICE_ID=rx72n-01`, `E2LITE_SERIAL/UART_PORT/COMMAND_PORT` の単一セット）が 3 セット構成をまだ表現できていないことが分かった。
+- `.pi_device_job` の `resource_group` は現状 `rx72n-device` 固定で、3 セット runner を導入しても job は device 全体で直列化される。並列度を上げるには、hardware-config 側で runner ごとの device 変数束と lock/resource の分離が必要。
 - 8b-3/8b-4 共通の残課題は warning cleanup と OTA 実行安定化。`r_tsip_rx` の RX72N 正式化、`C_LITTLEFS_*` / `C_USER_APPLICATION_AREA` section warning の整理、phase8b 上での OTA monitor 再現性確認を次段で進める。
 
 ### Phase 8b precheck: ROM budget for MCUboot + latest FreeRTOS
@@ -792,6 +794,16 @@ python test_scripts/uart_test/provision_aws.py \
 - テストスクリプトも 921600bps で接続
 
 ## Changelog / 変更履歴
+
+### 2026-03-11: Phase 8b OTA pipeline #588 で 3-set hardware mismatch を確認
+
+Ran branch pipeline `#588` with `RUN_PHASE8B_OTA=true`. `build_phase8b_ota` succeeded and produced phase8b OTA v1/v2 RSU artifacts, but `prepare_phase8b_ota` failed on Raspberry Pi runner `ef-saffti-001-rpi-003-rx72nek` with `E3000201: Cannot find the specified tool.` The log also showed the runner still locking `rx72n-01`, indicating that the current CI variable bundle and device lock/resource settings still assume a single hardware set.
+
+To reduce noisy secondary failures while this hardware mapping is being corrected, OTA finalize jobs now no-op with placeholder artifacts when create/monitor metadata is absent instead of failing on missing files.
+
+branch pipeline `#588` を `RUN_PHASE8B_OTA=true` で実行した。`build_phase8b_ota` は成功し、phase8b OTA v1/v2 RSU artifact を生成できたが、`prepare_phase8b_ota` は Raspberry Pi runner `ef-saffti-001-rpi-003-rx72nek` 上で `E3000201: Cannot find the specified tool.` により失敗した。log 上は runner が依然として `rx72n-01` の lock を取得しており、現行 CI 変数束と device lock/resource 設定がまだ単一ハードウェア前提であることが確認できた。
+
+hardware mapping 修正中の二次障害を減らすため、OTA finalize job は create/monitor metadata が無い場合に missing file で失敗せず、placeholder artifact を残して no-op 終了するようにした。
 
 ### 2026-03-11: Phase 8b-4 OTA revalidation の CI 導線に着手
 
