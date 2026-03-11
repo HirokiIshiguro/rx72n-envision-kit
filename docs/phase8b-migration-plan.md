@@ -56,6 +56,11 @@ Target tree aligned with `iot-reference-rx`:
 Important: this is not just a directory rename. Project contents, middleware
 references, and Smart Configurator outputs also change.
 
+## Related Follow-Up
+
+Observability planning for the three-device PoC is tracked separately in
+[`docs/phase8b-observability-plan.md`](phase8b-observability-plan.md).
+
 ## Phase 8b-1 Staging Root
 
 Because this repository is currently handled on Windows with `core.ignorecase=true`,

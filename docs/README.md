@@ -6,3 +6,8 @@ This documentation was migrated from the [GitHub Wiki](https://github.com/renesa
 
 - [English](en/README.md)
 - [日本語](ja/README.md)
+
+## Project Notes
+
+- [Phase 8b Migration Plan](phase8b-migration-plan.md)
+- [Phase 8b Observability Plan](phase8b-observability-plan.md)
