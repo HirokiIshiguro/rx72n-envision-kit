@@ -1310,6 +1310,8 @@ ota_monitor:
   script:
     - |
       set -euo pipefail
+      printf '{}\n' > "$CI_PROJECT_DIR/ota_monitor_results.json"
+      printf 'monitor started\n' > "$CI_PROJECT_DIR/ota_monitor.log"
       source "$CI_PROJECT_DIR/tools/ci/acquire_pi_device_lock.sh" "$DEVICE_ID"
       bash "$CI_PROJECT_DIR/tools/ci/validate_pi_serial_path.sh" UART_PORT
       bash "$CI_PROJECT_DIR/tools/ci/validate_pi_serial_path.sh" COMMAND_PORT
@@ -1412,6 +1414,8 @@ phase8b_ota_monitor:
   script:
     - |
       set -euo pipefail
+      printf '{}\n' > "$CI_PROJECT_DIR/phase8b_ota_monitor_results.json"
+      printf 'monitor started\n' > "$CI_PROJECT_DIR/phase8b_ota_monitor.log"
       source "$CI_PROJECT_DIR/tools/ci/acquire_pi_device_lock.sh" "$DEVICE_ID"
       bash "$CI_PROJECT_DIR/tools/ci/validate_pi_serial_path.sh" UART_PORT
       v2=$((CI_PIPELINE_IID * 2 + 1))

@@ -112,6 +112,8 @@ Detailed notes are tracked in [`docs/phase8b-migration-plan.md`](docs/phase8b-mi
 - 8b-3b は完了。Issue [#13](https://shelty2.servegame.com/oss/import/github/renesas/rx72n-envision-kit/-/issues/13) を閉じ、`RUN_PHASE8B_BASELINE` と phase8b 専用 helper / job により `build_phase8b -> flash/download -> provision -> MQTT` の hardware baseline を CI へ再接続した。
 - 8b-4 は Issue [#10](https://shelty2.servegame.com/oss/import/github/renesas/rx72n-envision-kit/-/issues/10) で進める。次段の主タスクは `RUN_PHASE8B_OTA` による phase8b 専用 OTA pipeline（`build_phase8b_ota -> prepare_phase8b_ota -> phase8b_ota_create_job/monitor/finalize`）の導線整備。
 - 2026-03-11 の pipeline `#588` で `build_phase8b_ota` は成功し v1/v2 RSU 生成まで確認した。一方 `prepare_phase8b_ota` は Raspberry Pi runner `ef-saffti-001-rpi-003-rx72nek` 上で `E3000201: Cannot find the specified tool.` により失敗し、現行 CI 変数束（`DEVICE_ID=rx72n-01`, `E2LITE_SERIAL/UART_PORT/COMMAND_PORT` の単一セット）が 3 セット構成をまだ表現できていないことが分かった。
+- 2026-03-11 の pipeline `#590` では `prepare_phase8b_ota` が `rpi-001` で成功した一方、`phase8b_ota_monitor` は `rpi-002` にスケジュールされて `UART_PORT` mismatch で失敗した。generic tag のみでは OTA prepare/run が同じ実機に stick せず、runner/device affinity の導入が必要。
+- 同じ `#590` で `phase8b_ota_create_job` は旧 RSU parser が `RELFWV2` を理解できず失敗したため、`test_ota.py` を legacy `Renesas` / phase8b `RELFWV2` の両形式対応へ更新した。ローカル再現で phase8b RSU の payload/signature 抽出までは確認済み。
 - `.pi_device_job` の `resource_group` は現状 `rx72n-device` 固定で、3 セット runner を導入しても job は device 全体で直列化される。並列度を上げるには、hardware-config 側で runner ごとの device 変数束と lock/resource の分離が必要。
 - 8b-3/8b-4 共通の残課題は warning cleanup と OTA 実行安定化。`r_tsip_rx` の RX72N 正式化、`C_LITTLEFS_*` / `C_USER_APPLICATION_AREA` section warning の整理、phase8b 上での OTA monitor 再現性確認を次段で進める。
 
@@ -794,6 +796,16 @@ python test_scripts/uart_test/provision_aws.py \
 - テストスクリプトも 921600bps で接続
 
 ## Changelog / 変更履歴
+
+### 2026-03-11: Phase 8b OTA pipeline #590 で runner affinity 問題を特定し、RELFWV2 parser を追加
+
+Ran branch pipeline `#590` after hardening diagnostics. `prepare_phase8b_ota` succeeded on `ef-saffti-001-rpi-001-rx72nek`, but `phase8b_ota_monitor` was scheduled onto `ef-saffti-001-rpi-002-rx72nek` and failed because the shared `UART_PORT` variable pointed at a different FTDI device. This confirmed that the current generic runner tags do not preserve device affinity across OTA stages.
+
+In the same run, `phase8b_ota_create_job` exposed a second issue: the OTA helper still assumed the legacy `Renesas` RSU layout and could not parse phase8b `RELFWV2` images. Updated `test_ota.py` to recognize both legacy and FWUP v2 RSU formats, and verified locally that phase8b payload/signature extraction now succeeds. Monitor jobs were also updated to pre-create placeholder artifacts so failure logs remain available without secondary artifact-upload noise.
+
+診断強化後の branch pipeline `#590` を実行した。`prepare_phase8b_ota` は `ef-saffti-001-rpi-001-rx72nek` で成功したが、`phase8b_ota_monitor` は `ef-saffti-001-rpi-002-rx72nek` にスケジュールされ、共有 `UART_PORT` 変数が別の FTDI device を指していたため失敗した。これにより、現行の generic runner tag だけでは OTA の前後 stage で device affinity を維持できないことが確認できた。
+
+同じ run では `phase8b_ota_create_job` から、OTA helper がまだ旧 `Renesas` RSU layout 前提で、phase8b の `RELFWV2` image を解釈できないことも判明した。`test_ota.py` を legacy / FWUP v2 の両 RSU 形式対応へ更新し、ローカルで phase8b payload/signature 抽出が成功することを確認した。あわせて monitor job は placeholder artifact を先に作るようにし、失敗時も artifact upload ノイズなしで log を残せるようにした。
 
 ### 2026-03-11: Phase 8b OTA pipeline #588 で 3-set hardware mismatch を確認
 
