@@ -131,9 +131,11 @@ SD カード更新を含むフルテストを実施したい場合は `RUN_SD_UP
 ```
 
 **調達済みハードウェア:**
-- RX72N Envision Kit × 3台（1台既存 + 2台追加購入）
+- Raspberry Pi 4 Model B × 3台（RX72N Envision Kit 各セットに 1:1 対応）
+- RX72N Envision Kit × 3台（3セット運用中）
 - FPB-RX140 × 6台（セカンダリ MCU、各 RX72N に2台ずつ接続）
 - USB ハブ + USB ケーブル多数
+- 個別 runner / board の識別子は `hardware-config` リポジトリの台帳を正本とする
 
 **Runner 分離方針:**
 - **ビルド専用 Runner (Windows):** e2studio ヘッドレスビルド。実機不要、重い処理を分離
