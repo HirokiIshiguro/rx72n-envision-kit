@@ -116,6 +116,7 @@ Detailed notes are tracked in [`docs/phase8b-migration-plan.md`](docs/phase8b-mi
 - 同じ `#590` で `phase8b_ota_create_job` は旧 RSU parser が `RELFWV2` を理解できず失敗したため、`test_ota.py` を legacy `Renesas` / phase8b `RELFWV2` の両形式対応へ更新した。ローカル再現で phase8b RSU の payload/signature 抽出までは確認済み。
 - 2026-03-11 の pipeline `#592` では `prepare_phase8b_ota` / `phase8b_ota_monitor` が同じ `rpi-001` で実行され、`phase8b_ota_create_job` も成功した。残る失敗は OTA monitor のみだが、trace を追うと `prepare_phase8b_ota` が実際には flash 後で止まっており、`UART download -> provisioning -> reset` まで到達していなかった。
 - 原因は `tools/ci/acquire_pi_device_lock.sh` を同一 job 内で再度 `source` したとき、`DEVICE_LOCK_HELD=1` 分岐で `exit 0` し outer shell ごと終了していたこと。helper を `return` 優先に修正し、同一 job 内で lock helper を再利用しても後続 step が継続するようにした。
+- 2026-03-11 の pipeline `#594` では、`prepare_phase8b_ota` が今度は 1 block 目を越えたものの、2 block 目開始時に `/tmp/gitlab-device-locks/rx72n-01.lock` の再取得待ちで停滞した。GitLab shell 実行形態では block 間で lock 状態を素直に引き回せない前提と見なし、`prepare_phase8b_ota` は `flash -> UART download -> provisioning -> reset` を 1 つの script block に統合した。
 - `.pi_device_job` の `resource_group` は現状 `rx72n-device` 固定で、3 セット runner を導入しても job は device 全体で直列化される。並列度を上げるには、hardware-config 側で runner ごとの device 変数束と lock/resource の分離が必要。
 - 8b-3/8b-4 共通の残課題は warning cleanup と OTA 実行安定化。`r_tsip_rx` の RX72N 正式化、`C_LITTLEFS_*` / `C_USER_APPLICATION_AREA` section warning の整理、phase8b 上での OTA monitor 再現性確認を次段で進める。
 
@@ -798,6 +799,16 @@ python test_scripts/uart_test/provision_aws.py \
 - テストスクリプトも 921600bps で接続
 
 ## Changelog / 変更履歴
+
+### 2026-03-11: `prepare_phase8b_ota` を single-block 化して block 間 lock 再取得待ちを回避
+
+Pipeline `#594` confirmed that fixing the lock helper alone was not enough: when `prepare_phase8b_ota` advanced into its next script item, it stalled waiting on `/tmp/gitlab-device-locks/rx72n-01.lock` again. The practical issue is that the OTA prepare sequence needs device exclusivity across flash, UART download, provisioning, and reset, but GitLab's per-item execution model made the multi-block structure fragile.
+
+Collapsed `prepare_phase8b_ota` into a single script block so the full sequence now runs under one lock acquisition and one shell context. This removes the inter-block lock hand-off entirely and makes the next rerun focus on the real phase8b OTA runtime behavior.
+
+pipeline `#594` で、lock helper 修正だけでは不十分なことが分かった。`prepare_phase8b_ota` は次の script item へ進んだ時点で `/tmp/gitlab-device-locks/rx72n-01.lock` の再取得待ちに入り、停滞した。phase8b OTA の prepare は flash / UART download / provisioning / reset を通しで同一実機占有する必要があるが、GitLab の item ごとの実行形態では multi-block 構成が脆かった。
+
+このため `prepare_phase8b_ota` を single script block に畳み、全シーケンスを 1 回の lock 取得・1 つの shell context で実行する形へ変更した。これで block 間の lock 引き継ぎ問題を消し、次の rerun では phase8b OTA の実ランタイム挙動そのものに集中できる。
 
 ### 2026-03-11: `acquire_pi_device_lock.sh` の `source` 再利用バグを修正
 

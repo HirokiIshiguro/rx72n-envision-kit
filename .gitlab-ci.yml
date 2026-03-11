@@ -1198,12 +1198,18 @@ prepare_phase8b_ota:
       set -euo pipefail
       source "$CI_PROJECT_DIR/tools/ci/acquire_pi_device_lock.sh" "$DEVICE_ID"
       mot="$CI_PROJECT_DIR/$PHASE8B_E2STUDIO_PROJECTS/boot_loader_rx72n_envision_kit/e2studio_ccrx/HardwareDebug/boot_loader_rx72n_envision_kit.mot"
+      rsu="$CI_PROJECT_DIR/phase8b_ota_v1.rsu"
+      reset_cmd="$RFP_CLI -device RX72x -tool e2l:${E2LITE_SERIAL} -if fine -run -noquery"
       if [[ -z "${E2LITE_SERIAL:-}" ]]; then
         echo "ERROR: E2LITE_SERIAL not set"
         exit 1
       fi
       if [[ ! -f "$mot" ]]; then
         echo "ERROR: phase8b boot_loader.mot not found: $mot"
+        exit 1
+      fi
+      if [[ ! -f "$rsu" ]]; then
+        echo "ERROR: phase8b_ota_v1.rsu not found"
         exit 1
       fi
       echo "=== Flash phase8b boot_loader (OTA) ==="
@@ -1214,16 +1220,7 @@ prepare_phase8b_ota:
       "$RFP_CLI" -device RX72x -tool "e2l:${E2LITE_SERIAL}" -if fine -speed 1500K \
         -auth id FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF -p "$mot" -v -run -noquery
       echo "Phase8b boot loader flashed successfully."
-    - |
-      set -euo pipefail
-      source "$CI_PROJECT_DIR/tools/ci/acquire_pi_device_lock.sh" "$DEVICE_ID"
       bash "$CI_PROJECT_DIR/tools/ci/validate_pi_serial_path.sh" UART_PORT
-      rsu="$CI_PROJECT_DIR/phase8b_ota_v1.rsu"
-      reset_cmd="$RFP_CLI -device RX72x -tool e2l:${E2LITE_SERIAL} -if fine -run -noquery"
-      if [[ ! -f "$rsu" ]]; then
-        echo "ERROR: phase8b_ota_v1.rsu not found"
-        exit 1
-      fi
       echo "=== UART Download phase8b OTA v1 ==="
       python3 "$CI_PROJECT_DIR/test_scripts/uart_test/test_uart_download.py" \
         --rsu "$rsu" --port "$UART_PORT" --baud "$UART_BAUD_RATE" \
@@ -1233,10 +1230,6 @@ prepare_phase8b_ota:
         --ready-message "send image(*.rsu) via UART." \
         --success-message "execute image ..." \
         --success-timeout 30
-    - |
-      set -euo pipefail
-      source "$CI_PROJECT_DIR/tools/ci/acquire_pi_device_lock.sh" "$DEVICE_ID"
-      bash "$CI_PROJECT_DIR/tools/ci/validate_pi_serial_path.sh" UART_PORT
       echo "=== phase8b Provisioning for OTA ==="
       python3 -u "$CI_PROJECT_DIR/tools/provision_phase8b.py" \
         --device-id "$DEVICE_ID" \
@@ -1245,10 +1238,6 @@ prepare_phase8b_ota:
         --codesigner-cert "$CI_PROJECT_DIR/sample_keys/secp256r1.crt" \
         --cli-timeout 40 \
         --no-reset
-    - |
-      set -euo pipefail
-      source "$CI_PROJECT_DIR/tools/ci/acquire_pi_device_lock.sh" "$DEVICE_ID"
-      bash "$CI_PROJECT_DIR/tools/ci/validate_pi_serial_path.sh" UART_PORT
       echo "=== phase8b Resetting device for OTA Agent startup ==="
       python3 "$CI_PROJECT_DIR/tools/ci/send_serial_command.py" \
         --port "$UART_PORT" \
