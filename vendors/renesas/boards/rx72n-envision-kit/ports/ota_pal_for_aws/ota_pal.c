@@ -52,6 +52,14 @@
 /* RX72N Envision Kit system header include */
 #include "rx72n_envision_kit_system.h"
 
+static void logHeapState( const char * pTag )
+{
+    LogInfo( ( "Heap[%s]: current=%u lowest=%u",
+               pTag,
+               ( unsigned int ) xPortGetFreeHeapSize(),
+               ( unsigned int ) xPortGetMinimumEverFreeHeapSize() ) );
+}
+
 /* Specify the OTA signature algorithm we support on this platform. */
 const char OTA_JsonFileSignatureKey[ OTA_FILE_SIG_KEY_STR_MAX_LENGTH ] = "sig-sha256-ecdsa";
 
@@ -306,7 +314,9 @@ OtaPalStatus_t otaPal_CreateFileForRx( OtaFileContext_t * const pFileContext )
                 load_firmware_control_block.OtaFileContext = pFileContext;
                 load_firmware_control_block.total_image_length = 0;
                 load_firmware_control_block.eSavedAgentState = OtaImageStateUnknown;
+                logHeapState( "ota_pal_create_file_before" );
                 LogInfo( ( "Receive file created." ) );
+                logHeapState( "ota_pal_create_file_after" );
                 pFileContext->pFile = ( uint8_t * ) &load_firmware_control_block;
                 eResult = OtaPalSuccess;
             }
