@@ -4,7 +4,8 @@ Provision phase8b credentials to RX72N Envision Kit over the short-lived CLI.
 
 This is the RX72N-specific variant of the iot-reference-rx provisioning flow.
 The phase8b firmware exposes the FreeRTOS CLI for roughly 10 seconds after boot,
-so CI should reset the device immediately before opening the command port.
+so CI sometimes needs to open the UART first and then reset the device to catch
+the short-lived CLI window.
 """
 
 import argparse
@@ -35,6 +36,10 @@ DEFAULT_BOOT_WAIT = 3.0
 DEFAULT_CLI_TIMEOUT = 15.0
 DEFAULT_CLI_RETRY_INTERVAL = 1.0
 CLI_READY_MARKERS = ("Going to FreeRTOS-CLI", ">")
+BOOTLOADER_MARKERS = (
+    "send image(*.rsu) via UART.",
+    "error occurred. please reset your board.",
+)
 
 
 def send_chars(ser, text, char_delay):
@@ -102,6 +107,15 @@ def wait_for_boot(ser, timeout):
     return collected
 
 
+def run_reset_command(reset_cmd, description):
+    print(description)
+    result = subprocess.run(reset_cmd, shell=True)
+    if result.returncode != 0:
+        print(f"ERROR: reset command failed with exit code {result.returncode}")
+        return False
+    return True
+
+
 def enter_cli_mode(ser, char_delay, line_delay, timeout, retry_interval):
     print("Entering CLI mode...")
     ser.reset_input_buffer()
@@ -128,6 +142,9 @@ def enter_cli_mode(ser, char_delay, line_delay, timeout, retry_interval):
             if any(marker in collected for marker in CLI_READY_MARKERS):
                 print("\nCLI mode entered successfully")
                 return True
+            if any(marker in collected for marker in BOOTLOADER_MARKERS):
+                print("\nERROR: boot_loader responded on the log UART; phase8b app CLI is not active")
+                return False
         time.sleep(0.1)
 
     print("\nERROR: CLI prompt not detected")
@@ -196,13 +213,12 @@ def provision(args):
         print(f"Code Sign:  {args.codesigner_cert}")
     if args.reset_cmd:
         print(f"Reset cmd:  {args.reset_cmd}")
+    if args.reset_after_open:
+        print("Reset mode: after opening serial")
     print("=" * 60)
 
-    if args.reset_cmd:
-        print("Running external reset command before opening serial...")
-        result = subprocess.run(args.reset_cmd, shell=True)
-        if result.returncode != 0:
-            print(f"ERROR: reset command failed with exit code {result.returncode}")
+    if args.reset_cmd and not args.reset_after_open:
+        if not run_reset_command(args.reset_cmd, "Running external reset command before opening serial..."):
             return 1
 
     try:
@@ -221,6 +237,12 @@ def provision(args):
     print(f"Serial port {args.port} opened")
 
     try:
+        if args.reset_cmd and args.reset_after_open:
+            ser.reset_input_buffer()
+            ser.reset_output_buffer()
+            if not run_reset_command(args.reset_cmd, "Running external reset command after opening serial..."):
+                return 1
+
         if not args.skip_boot_wait:
             wait_for_boot(ser, args.boot_wait)
 
@@ -314,7 +336,9 @@ def main():
                         help=f"Seconds to wait for CLI prompt (default: {DEFAULT_CLI_TIMEOUT})")
     parser.add_argument("--cli-retry-interval", type=float, default=DEFAULT_CLI_RETRY_INTERVAL,
                         help=f"Seconds between repeated CLI wake-up sends (default: {DEFAULT_CLI_RETRY_INTERVAL})")
-    parser.add_argument("--reset-cmd", help="External reset/run command executed before opening UART")
+    parser.add_argument("--reset-cmd", help="External reset/run command executed before or after opening UART")
+    parser.add_argument("--reset-after-open", action="store_true",
+                        help="Open UART first, then execute --reset-cmd to capture the short CLI window")
     parser.add_argument("--format", action="store_true", help="Format data flash before provisioning")
     parser.add_argument("--no-reset", action="store_true", help="Do not reset device after provisioning")
     parser.add_argument("--skip-boot-wait", action="store_true",

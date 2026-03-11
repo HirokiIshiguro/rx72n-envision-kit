@@ -467,6 +467,7 @@ download_phase8b_app:
       prm="$CI_PROJECT_DIR/$PHASE8B_E2STUDIO_PROJECTS/boot_loader_rx72n_envision_kit/e2studio_ccrx/src/smc_gen/r_fwup/tool/RX72N_DualBank_ImageGenerator_PRM.csv"
       builder="$CI_PROJECT_DIR/tools/build_fwup_v2_rsu.py"
       reset_cmd="$RFP_CLI -device RX72x -tool ${RFP_TOOL} -if fine -run -noquery"
+      provision_reset_cmd="$RFP_CLI -device RX72x -tool ${RFP_TOOL} -if fine -reset -noquery"
       if [[ ! -f "$mot" ]]; then
         echo "ERROR: phase8b app .mot not found: $mot"
         exit 1
@@ -498,8 +499,9 @@ download_phase8b_app:
         --ready-message "send image(*.rsu) via UART." \
         --success-message "execute image ..." \
         --success-timeout 30
-      # phase8b の CLI は app 初回起動直後の短時間だけ有効。
-      # 外部 debugger reset で再現できないため、同一 job 内で provisioning と MQTT baseline まで進める。
+      # phase8b の CLI は起動直後の短時間だけ有効。
+      # prepare->provision の切り替え時は UART を開いたまま明示 reset して
+      # CLI window を再捕捉する。
       echo "=== phase8b Provisioning (inline after first boot) ==="
       python3 -u "$CI_PROJECT_DIR/tools/provision_phase8b.py" \
         --device-id "$DEVICE_ID" \
@@ -507,6 +509,8 @@ download_phase8b_app:
         --baud "$UART_BAUD_RATE" \
         --codesigner-cert "$CI_PROJECT_DIR/sample_keys/secp256r1.crt" \
         --cli-timeout 40 \
+        --reset-cmd "$provision_reset_cmd" \
+        --reset-after-open \
         --no-reset
       echo "=== phase8b Software Reset via UART CLI ==="
       python3 "$CI_PROJECT_DIR/tools/ci/send_serial_command.py" \
@@ -569,12 +573,15 @@ diag_phase8b_direct_flash_cli:
       "$RFP_CLI" -device RX72x -tool "$RFP_TOOL" -if fine -speed 1500K \
         -auth id FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF -p "$mot" -v -run -noquery
       echo "=== phase8b CLI provisioning (direct-flashed app) ==="
+      provision_reset_cmd="$RFP_CLI -device RX72x -tool ${RFP_TOOL} -if fine -reset -noquery"
       python3 -u "$CI_PROJECT_DIR/tools/provision_phase8b.py" \
         --device-id "$DEVICE_ID" \
         --port "$UART_PORT" \
         --baud "$UART_BAUD_RATE" \
         --codesigner-cert "$CI_PROJECT_DIR/sample_keys/secp256r1.crt" \
         --cli-timeout 40 \
+        --reset-cmd "$provision_reset_cmd" \
+        --reset-after-open \
         --no-reset
 
 provision_phase8b_credentials:
@@ -602,7 +609,8 @@ provision_phase8b_credentials:
         --port "$UART_PORT" \
         --baud "$UART_BAUD_RATE" \
         --codesigner-cert "$CI_PROJECT_DIR/sample_keys/secp256r1.crt" \
-        --reset-cmd "$reset_cmd"
+        --reset-cmd "$reset_cmd" \
+        --reset-after-open
 
 confirm_phase8b_mqtt:
   stage: test
@@ -1199,6 +1207,7 @@ prepare_phase8b_ota:
       mot="$CI_PROJECT_DIR/$PHASE8B_E2STUDIO_PROJECTS/boot_loader_rx72n_envision_kit/e2studio_ccrx/HardwareDebug/boot_loader_rx72n_envision_kit.mot"
       rsu="$CI_PROJECT_DIR/phase8b_ota_v1.rsu"
       reset_cmd="$RFP_CLI -device RX72x -tool ${RFP_TOOL} -if fine -run -noquery"
+      provision_reset_cmd="$RFP_CLI -device RX72x -tool ${RFP_TOOL} -if fine -reset -noquery"
       if [[ ! -f "$mot" ]]; then
         echo "ERROR: phase8b boot_loader.mot not found: $mot"
         exit 1
@@ -1232,6 +1241,8 @@ prepare_phase8b_ota:
         --baud "$UART_BAUD_RATE" \
         --codesigner-cert "$CI_PROJECT_DIR/sample_keys/secp256r1.crt" \
         --cli-timeout 40 \
+        --reset-cmd "$provision_reset_cmd" \
+        --reset-after-open \
         --no-reset
       echo "=== phase8b Resetting device for OTA Agent startup ==="
       python3 "$CI_PROJECT_DIR/tools/ci/send_serial_command.py" \

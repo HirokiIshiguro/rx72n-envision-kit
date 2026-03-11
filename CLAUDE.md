@@ -808,6 +808,20 @@ python test_scripts/uart_test/provision_aws.py \
 
 ## Changelog / 変更履歴
 
+### 2026-03-11: phase8b provisioning を `reset-after-open` 化し、boot_loader 誤捕捉を可視化
+
+Pipeline `#633` showed that `prepare_phase8b_ota` can finish the UART RSU transfer with `verify install area buffer ... OK` and `activating image ... OK`, but still hand off to provisioning without any observed `software reset` or app boot log. In that state, `provision_phase8b.py --no-reset` was racing a 10-second CLI window with no reliable proof that the phase8b app had actually started.
+
+To isolate the state further, direct-flash diag pipeline `#634` was run with only `build_phase8b` and `diag_phase8b_direct_flash_cli`. Its trace showed the `CLI\r\n` wake-up bytes being consumed by the UART boot loader and eventually triggering `sample_write_image failed: FWUP_ERR_FAILURE (4)`, which made the wrong-state failure explicit: at least some "provisioning failed" cases were not app CLI failures but boot_loader still owning SCI7.
+
+Repo-side mitigation is now to open the FTDI port first and then issue an explicit external reset before attempting CLI entry. `tools/provision_phase8b.py` gained `--reset-after-open` plus an early boot_loader marker check, and the phase8b provisioning call sites now use `rfp-cli ... -reset -noquery` with that mode enabled so the short CLI window can be recaptured more deterministically.
+
+pipeline `#633` で、`prepare_phase8b_ota` は `verify install area buffer ... OK` と `activating image ... OK` まで進む一方、`software reset` や app 起動 log を観測しないまま provisioning へ移っていることが分かった。この状態で `provision_phase8b.py --no-reset` を呼ぶと、「phase8b app が本当に起動したか不明なまま」10 秒 CLI window を取りにいく形になっていた。
+
+状態をさらに切り分けるため、`build_phase8b` と `diag_phase8b_direct_flash_cli` だけを流す direct-flash diag pipeline `#634` を実行した。trace では `CLI\r\n` の wake-up bytes が UART boot_loader に食われ、最終的に `sample_write_image failed: FWUP_ERR_FAILURE (4)` を返した。つまり少なくとも一部の「provisioning 失敗」は app CLI 自体の不具合ではなく、SCI7 をまだ boot_loader が握っている wrong-state failure だった。
+
+repo 側の対策として、FTDI port を先に open してから明示 reset を掛け、その直後の CLI window を取り直す方式へ寄せた。`tools/provision_phase8b.py` には `--reset-after-open` と boot_loader marker の早期検出を追加し、phase8b provisioning 呼び出し側は `rfp-cli ... -reset -noquery` をそのモードで使うよう更新した。これで short-lived CLI window をより確実に再捕捉できる。
+
 ### 2026-03-11: `RFP_TOOL=e2l` を既定化し、E2 Lite serial 依存を外した
 
 Follow-up probing on `ef-saffti-001-rpi-002-rx72nek` / `003` showed that `rfp-cli -d RX72x -lt` only reports supported tool classes (`e2`, `e2l`) and does not enumerate the attached E2 Lite serial. Because the runner topology is 1 Raspberry Pi to 1 RX72N set, pinning by runner tag is already enough to identify the programmer.
