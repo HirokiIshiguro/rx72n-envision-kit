@@ -253,13 +253,13 @@ def main():
         print(f"[INFO] Loaded config for device: {args.device_id}")
 
         if args.cmd_port == DEFAULT_CMD_PORT:
-            args.cmd_port = device["command_port"]
+            args.cmd_port = device.get("command_port") or os.environ.get("COMMAND_PORT") or DEFAULT_CMD_PORT
         if args.cmd_baud == DEFAULT_CMD_BAUD:
-            args.cmd_baud = device["command_baud"]
+            args.cmd_baud = int(device.get("command_baud") or os.environ.get("COMMAND_BAUD_RATE") or DEFAULT_CMD_BAUD)
         if args.log_port == DEFAULT_LOG_PORT:
-            args.log_port = device["log_port"]
+            args.log_port = device.get("log_port") or os.environ.get("UART_PORT") or DEFAULT_LOG_PORT
         if args.log_baud == DEFAULT_LOG_BAUD:
-            args.log_baud = device["log_baud"]
+            args.log_baud = int(device.get("log_baud") or os.environ.get("UART_BAUD_RATE") or DEFAULT_LOG_BAUD)
 
     print("=" * 60)
     print("[INFO] AWS IoT Core Connectivity Test")

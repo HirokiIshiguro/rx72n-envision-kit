@@ -118,6 +118,7 @@ Detailed notes are tracked in [`docs/phase8b-migration-plan.md`](docs/phase8b-mi
 - 原因は `tools/ci/acquire_pi_device_lock.sh` を同一 job 内で再度 `source` したとき、`DEVICE_LOCK_HELD=1` 分岐で `exit 0` し outer shell ごと終了していたこと。helper を `return` 優先に修正し、同一 job 内で lock helper を再利用しても後続 step が継続するようにした。
 - 2026-03-11 の pipeline `#594` では、`prepare_phase8b_ota` が今度は 1 block 目を越えたものの、2 block 目開始時に `/tmp/gitlab-device-locks/rx72n-01.lock` の再取得待ちで停滞した。GitLab shell 実行形態では block 間で lock 状態を素直に引き回せない前提と見なし、`prepare_phase8b_ota` は `flash -> UART download -> provisioning -> reset` を 1 つの script block に統合した。
 - `.pi_device_job` の `resource_group` は現状 `rx72n-device` 固定で、3 セット runner を導入しても job は device 全体で直列化される。並列度を上げるには、hardware-config 側で runner ごとの device 変数束と lock/resource の分離が必要。
+- 2026-03-11 時点で repo 側は `DEVICE_RUNNER_TAG` / `DEVICE_RESOURCE_GROUP` override と `rx72n-02` / `rx72n-03` の `device_id` を受けられる形へ更新した。つまり CI 側は set 固定実行の受け皿を持ったが、実運用には runner 側の set 別 tag 付与と、hardware-config / CI Variables への set #2 / #3 個体値登録がまだ必要。
 - 8b-3/8b-4 共通の残課題は warning cleanup と OTA 実行安定化。`r_tsip_rx` の RX72N 正式化、`C_LITTLEFS_*` / `C_USER_APPLICATION_AREA` section warning の整理、phase8b 上での OTA monitor 再現性確認を次段で進める。
 
 ### Phase 8b precheck: ROM budget for MCUboot + latest FreeRTOS
@@ -251,7 +252,12 @@ CI/CD Variables を変更すること。
 | `RUN_PHASE8B_BUILD_ONLY` | `"false"` | `phase8b/` の build-only gate (`build_phase8b`) のみを実行するか |
 | `RUN_PHASE8B_BASELINE` | `"false"` | `phase8b/` の hardware baseline (`build_phase8b -> flash/download -> provision -> MQTT`) のみを実行するか |
 | `RUN_PHASE8B_OTA` | `"false"` | `phase8b/` の OTA 再検証 (`build_phase8b_ota -> prepare_phase8b_ota -> phase8b_ota_create_job/monitor/finalize`) のみを実行するか |
+| `DEVICE_ID` | `"rx72n-01"` | `device_config.json` / AWS 証明書変数名に対応する論理デバイス ID。3 セット運用時は `rx72n-02` / `rx72n-03` へ切り替える |
+| `DEVICE_RUNNER_TAG` | `"dev-rx72n"` | Raspberry Pi runner 固定用 tag。set 固定実行時は `dev-rx72n-01` / `-02` / `-03` のような個別 tag を指定する |
+| `DEVICE_RESOURCE_GROUP` | `"rx72n-device"` | GitLab 内の device 直列化単位。set 固定実行時は `rx72n-device-01` / `-02` / `-03` のように分ける |
 | `DEVICE_LOCK_ROOT` | `"/tmp/gitlab-device-locks"` | Raspberry Pi runner 上で `DEVICE_ID` 単位のクロスプロジェクト排他ロックを置くディレクトリ |
+
+3 セットを安全に使い分けるときは、`DEVICE_ID` / `DEVICE_RUNNER_TAG` / `DEVICE_RESOURCE_GROUP` / `E2LITE_SERIAL` / `UART_PORT` / `COMMAND_PORT` / `MAC_ADDR` を同じ set の値へまとめて切り替える。
 
 **実行パターン:**
 
@@ -799,6 +805,16 @@ python test_scripts/uart_test/provision_aws.py \
 - テストスクリプトも 921600bps で接続
 
 ## Changelog / 変更履歴
+
+### 2026-03-11: 3-set runner affinity 用の device 固定変数と multi-device config を追加
+
+To make the remaining phase8b OTA blocker actionable, the repo now accepts set-specific runner and lock selection without breaking the current single-bundle defaults. `.gitlab-ci.yml` gained `DEVICE_RUNNER_TAG` and `DEVICE_RESOURCE_GROUP`, both consumed by Raspberry Pi jobs via variable expansion, so OTA prepare / monitor can be pinned to the same RX72N set once runner-side tags are in place.
+
+Also extended `test_scripts/device_config.json` with `rx72n-02` / `rx72n-03` entries and relaxed the UART/AWS helper scripts to prefer environment overrides when a device entry omits local port fields. This keeps `device_id`-driven Thing/certificate naming usable for multi-set CI even before the new boards are fully documented in `hardware-config`.
+
+phase8b OTA の残 blocker を具体的に潰せるよう、repo 側に set 固定実行の受け皿を追加した。`.gitlab-ci.yml` へ `DEVICE_RUNNER_TAG` と `DEVICE_RESOURCE_GROUP` を導入し、Raspberry Pi job が変数展開経由で runner tag / GitLab lock を選べるようにした。runner 側に set 別 tag が付けば、OTA prepare / monitor を同じ RX72N set に pin できる。
+
+あわせて `test_scripts/device_config.json` に `rx72n-02` / `rx72n-03` を追加し、UART/AWS helper script 群は device entry にローカル port がなくても環境変数 override を優先して動くように緩めた。これで `hardware-config` に set #2 / #3 の個体値が揃う前でも、multi-set CI に必要な `device_id` ベースの Thing/cert 命名は先に使える。
 
 ### 2026-03-11: `prepare_phase8b_ota` を single-block 化して block 間 lock 再取得待ちを回避
 
