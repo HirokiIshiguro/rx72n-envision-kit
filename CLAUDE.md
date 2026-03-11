@@ -114,6 +114,8 @@ Detailed notes are tracked in [`docs/phase8b-migration-plan.md`](docs/phase8b-mi
 - 2026-03-11 の pipeline `#588` で `build_phase8b_ota` は成功し v1/v2 RSU 生成まで確認した。一方 `prepare_phase8b_ota` は Raspberry Pi runner `ef-saffti-001-rpi-003-rx72nek` 上で `E3000201: Cannot find the specified tool.` により失敗し、現行 CI 変数束（`DEVICE_ID=rx72n-01`, `E2LITE_SERIAL/UART_PORT/COMMAND_PORT` の単一セット）が 3 セット構成をまだ表現できていないことが分かった。
 - 2026-03-11 の pipeline `#590` では `prepare_phase8b_ota` が `rpi-001` で成功した一方、`phase8b_ota_monitor` は `rpi-002` にスケジュールされて `UART_PORT` mismatch で失敗した。generic tag のみでは OTA prepare/run が同じ実機に stick せず、runner/device affinity の導入が必要。
 - 同じ `#590` で `phase8b_ota_create_job` は旧 RSU parser が `RELFWV2` を理解できず失敗したため、`test_ota.py` を legacy `Renesas` / phase8b `RELFWV2` の両形式対応へ更新した。ローカル再現で phase8b RSU の payload/signature 抽出までは確認済み。
+- 2026-03-11 の pipeline `#592` では `prepare_phase8b_ota` / `phase8b_ota_monitor` が同じ `rpi-001` で実行され、`phase8b_ota_create_job` も成功した。残る失敗は OTA monitor のみだが、trace を追うと `prepare_phase8b_ota` が実際には flash 後で止まっており、`UART download -> provisioning -> reset` まで到達していなかった。
+- 原因は `tools/ci/acquire_pi_device_lock.sh` を同一 job 内で再度 `source` したとき、`DEVICE_LOCK_HELD=1` 分岐で `exit 0` し outer shell ごと終了していたこと。helper を `return` 優先に修正し、同一 job 内で lock helper を再利用しても後続 step が継続するようにした。
 - `.pi_device_job` の `resource_group` は現状 `rx72n-device` 固定で、3 セット runner を導入しても job は device 全体で直列化される。並列度を上げるには、hardware-config 側で runner ごとの device 変数束と lock/resource の分離が必要。
 - 8b-3/8b-4 共通の残課題は warning cleanup と OTA 実行安定化。`r_tsip_rx` の RX72N 正式化、`C_LITTLEFS_*` / `C_USER_APPLICATION_AREA` section warning の整理、phase8b 上での OTA monitor 再現性確認を次段で進める。
 
@@ -796,6 +798,16 @@ python test_scripts/uart_test/provision_aws.py \
 - テストスクリプトも 921600bps で接続
 
 ## Changelog / 変更履歴
+
+### 2026-03-11: `acquire_pi_device_lock.sh` の `source` 再利用バグを修正
+
+Pipeline `#592` showed that `phase8b_ota_create_job` now succeeds, but `phase8b_ota_monitor` still failed because `prepare_phase8b_ota` never actually progressed past the initial flash step. Root cause was the lock helper: `tools/ci/acquire_pi_device_lock.sh` was sourced multiple times inside the same job, and its `DEVICE_LOCK_HELD=1` fast path used `exit 0`, which terminated the outer shell before UART download / provisioning / reset steps could run.
+
+Updated the helper so it returns when sourced and only exits when executed as a standalone script. This keeps the device lock reusable across multiple script blocks in the same GitLab job while preserving existing failure behavior.
+
+pipeline `#592` では `phase8b_ota_create_job` が成功した一方、`phase8b_ota_monitor` は失敗した。trace を確認すると、`prepare_phase8b_ota` が初回 flash の後で実際には進んでおらず、`UART download / provisioning / reset` に到達していなかった。原因は lock helper にあり、`tools/ci/acquire_pi_device_lock.sh` を同一 job 内で複数回 `source` した際、`DEVICE_LOCK_HELD=1` の fast path が `exit 0` を実行して outer shell ごと終了させていた。
+
+helper は「source されたときは return、単独実行時のみ exit」するよう修正した。これで同一 GitLab job 内の複数 script block から device lock を再利用しても、後続 step が継続する。
 
 ### 2026-03-11: Phase 8b OTA pipeline #590 で runner affinity 問題を特定し、RELFWV2 parser を追加
 
