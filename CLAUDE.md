@@ -110,6 +110,18 @@ MCUboot package の初期確認:
 |------|--------:|--------:|-----------------:|-------:|---------:|
 | 現行 RX72N boot_loader | 10,367 B | 43,868 B | 54,235 B | `0x10000` (65,536 B) | 11,301 B |
 | 現行 RX72N aws_demos | 352,493 B | 727,062 B | 1,079,555 B | `0x1F0000` (2,031,616 B) | 952,061 B |
+| RX72N MCUboot lower-bound scratch build | 4,526 B | 25,883 B | 30,409 B | `0x10000` (65,536 B) | 35,127 B |
+
+2026-03-11 追記: MCUboot lower-bound scratch build の前提
+
+- isolated scratch project で RX72N BSP/flash driver + MCUboot `bootutil` / `flash_map` / `tlv` / `swap_scratch`
+  だけを組み合わせ、headless build で `.map` を採取
+- build 前提は `overwrite only`、unsigned、logging off、`tinycrypt` SHA-256 のみ
+- `abort()` / SCI low-level char I/O は stub 実装
+- 現行 boot_loader 固有の GUI / UART command / key storage / magic code section、
+  および `rm_mcuboot` の TSIP/RSIP・署名検証・encryption は未含有
+- したがって 30,409 B は production 相当サイズではなく、
+  **RX72N 上で MCUboot core がどの程度の下限で収まるか** を見るための lower-bound
 
 補足:
 
@@ -126,14 +138,22 @@ MCUboot package の初期確認:
   FreeRTOS kernel 自体は主に RAM (`heap_4`) 側に効いている
 - `RM_MCUBOOT_CFG_SIGN = RSA 2048` や image encryption 有効化は
   boot size を押し上げる候補なので、worst-case 別計測が必要
+- 2026-03-11 の lower-bound scratch build では
+  **MCUboot core 単体は `0x10000` に対して約 35 KiB の headroom**
+  を残しており、issue `#5` の主不確実性は
+  「MCUboot core が入るか」よりも
+  「RX72N 向け実構成差分がどこまで headroom を削るか」に移っている
 
 暫定判断:
 
 - **application slot 容量は現時点で no-go には見えない**
 - ただし `rm_mcuboot` は FIT module であり、実サイズ確認には
   **RX72N 向け最小組み込みビルド** が必要
-- 最優先で潰すべき不確実性は
-  **MCUboot が boot area `0x10000` に収まるか** である
+- 2026-03-11 の lower-bound では
+  **MCUboot core は boot area `0x10000` に収まる**
+- 残る最優先の不確実性は、
+  **RX72N 向け `rm_mcuboot` 実構成（ECDSA/TSIP/RSIP/metadata/section 配置込み）でも
+  `0x10000` を維持できるか** である
 - go/no-go は issue `#5` で
   `MCUboot + latest FreeRTOS app + OTA metadata` の実測を取ってから判定する
 
