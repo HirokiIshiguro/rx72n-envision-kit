@@ -85,6 +85,10 @@ class MilestoneMonitor:
         re.compile(r"System time has been initialized", re.IGNORECASE),
         re.compile(r"build timestamp", re.IGNORECASE),
         re.compile(r"DNS\s*Server\s*Address:", re.IGNORECASE),
+        re.compile(r"DNS query attempt", re.IGNORECASE),
+        re.compile(r"DNS recvfrom returned", re.IGNORECASE),
+        re.compile(r"DNS sendto failed", re.IGNORECASE),
+        re.compile(r"DNS reply received", re.IGNORECASE),
     ]
 
     def __init__(self):
@@ -445,6 +449,12 @@ def main():
             with monitor.lock:
                 for i, line in enumerate(monitor.all_lines[:10]):
                     print(f"  [{i+1}] {line.strip()[:100]}")
+        elif rx_total > 0:
+            print("[DIAG] Last lines received on COM7:")
+            with monitor.lock:
+                tail_lines = monitor.all_lines[-20:]
+            for i, line in enumerate(tail_lines, 1):
+                print(f"  [-{len(tail_lines) - i + 1}] {line.strip()[:120]}")
         sys.exit(1)
 
 
