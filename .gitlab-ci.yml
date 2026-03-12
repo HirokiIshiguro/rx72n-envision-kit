@@ -950,14 +950,29 @@ ota_finalize:
     - |
       $metadataFile = "$env:CI_PROJECT_DIR\ota_job_metadata_$env:DEVICE_ID.json"
       $monitorResultsFile = "$env:CI_PROJECT_DIR\ota_monitor_results_$env:DEVICE_ID.json"
+      $finalizeLogFile = "$env:CI_PROJECT_DIR\ota_finalize_$env:DEVICE_ID.log"
+      if (-not (Test-Path $metadataFile) -or -not (Test-Path $monitorResultsFile)) {
+        @(
+          "Skipping ota_finalize because prerequisite files are missing.",
+          "DEVICE_ID=$env:DEVICE_ID",
+          "metadata_exists=$([bool](Test-Path $metadataFile))",
+          "monitor_results_exists=$([bool](Test-Path $monitorResultsFile))"
+        ) | Set-Content -Encoding UTF8 $finalizeLogFile
+        Write-Host "Skipping ota_finalize because prerequisite files are missing."
+        Write-Host "  metadata: $metadataFile"
+        Write-Host "  monitor : $monitorResultsFile"
+        exit 0
+      }
+
       python -u "$env:CI_PROJECT_DIR\test_scripts\uart_test\test_ota.py" `
         --mode finalize `
         --metadata-in $metadataFile `
-        --monitor-results-in $monitorResultsFile
+        --monitor-results-in $monitorResultsFile 2>&1 | Tee-Object -FilePath $finalizeLogFile
   artifacts:
     when: always
     paths:
       - ota_job_metadata_*.json
       - ota_monitor_results_*.json
       - ota_monitor_*.log
+      - ota_finalize_*.log
     expire_in: 1 week
