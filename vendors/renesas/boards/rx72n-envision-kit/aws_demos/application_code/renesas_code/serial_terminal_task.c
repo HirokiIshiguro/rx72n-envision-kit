@@ -52,6 +52,7 @@
 
 /* for RX72N Envision Kit system common header */
 #include "rx72n_envision_kit_system.h"
+#include "FreeRTOS_IP.h"
 
 /**********************************************************************************************************************
 Typedef definitions
@@ -77,6 +78,7 @@ Typedef definitions
 #define COMMAND_DATAFLASH 5
 #define COMMAND_TOUCH 6
 #define COMMAND_SDCARD 7
+#define COMMAND_NETWORK 8
 
 #define DATA_FLASH_STORE_SUCCESS "stored data into dataflash correctly.\n"
 #define DATA_FLASH_STORE_FAIL "could not store data into dataflash.\n"
@@ -770,6 +772,59 @@ void serial_terminal_task( void * pvParameters )
                         }
                         break;
                     }
+                    case COMMAND_NETWORK:
+                    {
+                        if(!strcmp((const char *)arg1, "info"))
+                        {
+                            uint32_t ulIPAddress, ulNetMask, ulGatewayAddress, ulDNSServerAddress;
+                            char cBuffer[16];
+
+                            FreeRTOS_GetAddressConfiguration(
+                                &ulIPAddress,
+                                &ulNetMask,
+                                &ulGatewayAddress,
+                                &ulDNSServerAddress );
+
+                            FreeRTOS_inet_ntoa( ulIPAddress, cBuffer );
+                            sprintf(message_buffer, "IP Address: %s\r\n", cBuffer);
+                            serial_terminal_putstring(task_info->hWin_serial_terminal, sci_handle, message_buffer);
+
+                            FreeRTOS_inet_ntoa( ulNetMask, cBuffer );
+                            sprintf(message_buffer, "Subnet Mask: %s\r\n", cBuffer);
+                            serial_terminal_putstring(task_info->hWin_serial_terminal, sci_handle, message_buffer);
+
+                            FreeRTOS_inet_ntoa( ulGatewayAddress, cBuffer );
+                            sprintf(message_buffer, "Gateway Address: %s\r\n", cBuffer);
+                            serial_terminal_putstring(task_info->hWin_serial_terminal, sci_handle, message_buffer);
+
+                            FreeRTOS_inet_ntoa( ulDNSServerAddress, cBuffer );
+                            sprintf(message_buffer, "DNS Server Address: %s\r\n", cBuffer);
+                            serial_terminal_putstring(task_info->hWin_serial_terminal, sci_handle, message_buffer);
+                        }
+                        else if(!strcmp((const char *)arg1, "resolve"))
+                        {
+                            uint32_t ulResolvedAddress;
+                            char cBuffer[16];
+
+                            ulResolvedAddress = FreeRTOS_gethostbyname((const char *)arg2);
+
+                            if( ulResolvedAddress != 0 )
+                            {
+                                FreeRTOS_inet_ntoa( ulResolvedAddress, cBuffer );
+                                sprintf(message_buffer, "Resolved %s as %s\r\n", arg2, cBuffer);
+                            }
+                            else
+                            {
+                                sprintf(message_buffer, "DNS resolution failed: %s\r\n", arg2);
+                            }
+                            serial_terminal_putstring(task_info->hWin_serial_terminal, sci_handle, message_buffer);
+                        }
+                        else
+                        {
+                            serial_terminal_putstring(task_info->hWin_serial_terminal, sci_handle, "usage: network info | network resolve <host>\r\n");
+                        }
+                        break;
+                    }
                     default:
                         serial_terminal_putstring(task_info->hWin_serial_terminal, sci_handle, COMMAND_NOT_FOUND);
                         break;
@@ -828,6 +883,10 @@ static int32_t get_command_code(uint8_t *command)
     else if(!strcmp((char*)command, "sdcard"))
     {
         return_code = COMMAND_SDCARD;
+    }
+    else if(!strcmp((char*)command, "network"))
+    {
+        return_code = COMMAND_NETWORK;
     }
     else
     {
