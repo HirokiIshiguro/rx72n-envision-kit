@@ -389,6 +389,20 @@ void serial_terminal_task( void * pvParameters )
                                         serial_terminal_putstring(task_info->hWin_serial_terminal, sci_handle, message_buffer);
                                     }
                                 }
+                                else if((!strcmp((const char *)arg3, "macaddress")))
+                                {
+                                    /* +1 means '\0' as a string terminator */
+                                    if(SFD_HANDLE_INVALID != R_SFD_SaveObject((uint8_t *)mac_address_label, strlen(mac_address_label), (uint8_t *)arg4, strlen((const char *)arg4) + 1))
+                                    {
+                                        sprintf(message_buffer, DATA_FLASH_STORE_SUCCESS);
+                                        serial_terminal_putstring(task_info->hWin_serial_terminal, sci_handle, message_buffer);
+                                    }
+                                    else
+                                    {
+                                        sprintf(message_buffer, DATA_FLASH_STORE_FAIL);
+                                        serial_terminal_putstring(task_info->hWin_serial_terminal, sci_handle, message_buffer);
+                                    }
+                                }
                                 else
                                 {
                                     sprintf(message_buffer, "unknown argument3 = %s.\n", arg3);

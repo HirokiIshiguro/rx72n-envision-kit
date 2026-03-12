@@ -21,10 +21,12 @@ PEM ストリーミングプロトコル:
 環境変数:
   COMMAND_PORT      : シリアルポート (デフォルト: COM6)
   COMMAND_BAUD_RATE : ボーレート     (デフォルト: 115200)
+  MAC_ADDR          : dataflash に書き込む MAC アドレス (任意)
 """
 
 import argparse
 import os
+import re
 import sys
 import time
 
@@ -42,6 +44,7 @@ DEFAULT_TIMEOUT = 15
 PROMPT = "$ "
 STORE_SUCCESS = "stored data into dataflash correctly."
 STORE_FAIL = "could not store data into dataflash."
+MAC_ADDRESS_PATTERN = re.compile(r"^(?:[0-9A-Fa-f]{2}[:-]){5}[0-9A-Fa-f]{2}$")
 
 
 def wait_for_prompt(ser, timeout=30):
@@ -180,6 +183,20 @@ def send_pem_streaming(ser, cmd, pem_content, timeout=30):
     return False
 
 
+def normalize_mac_address(mac_address):
+    """Normalize a MAC address into uppercase colon-separated form."""
+    if not mac_address:
+        return None
+
+    if not MAC_ADDRESS_PATTERN.match(mac_address):
+        raise ValueError(
+            f"Invalid MAC address: {mac_address} "
+            "(expected AA:BB:CC:DD:EE:FF or AA-BB-CC-DD-EE-FF)"
+        )
+
+    return mac_address.replace("-", ":").upper()
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="AWS IoT Core device provisioning via UART"
@@ -202,6 +219,8 @@ def main():
                         help="Path to client private key PEM file")
     parser.add_argument("--codesigner-cert", default=None,
                         help="Path to code signer certificate PEM file (OTA)")
+    parser.add_argument("--mac-address", default=None,
+                        help="Ethernet MAC address to store in dataflash")
     args = parser.parse_args()
 
     # --device-id が指定された場合、device_config.json から設定を解決
@@ -244,6 +263,15 @@ def main():
             if os.path.isfile(candidate):
                 args.codesigner_cert = candidate
                 print(f"[INFO] Code signer cert from device_config: {candidate}")
+        if not args.mac_address:
+            args.mac_address = device.get("mac_address") or os.environ.get("MAC_ADDR")
+
+    if args.mac_address:
+        try:
+            args.mac_address = normalize_mac_address(args.mac_address)
+        except ValueError as exc:
+            print(f"[ERROR] {exc}")
+            sys.exit(1)
 
     # --device-id なしの場合、必須引数をチェック
     if not args.endpoint:
@@ -290,12 +318,18 @@ def main():
         print("[ERROR] Private key file does not contain RSA PEM header")
         sys.exit(1)
 
-    total_steps = 5 if codesigner_pem else 4
+    total_steps = 4
+    if args.mac_address:
+        total_steps += 1
+    if codesigner_pem:
+        total_steps += 1
     print("=" * 60)
     print("[INFO] AWS IoT Core Device Provisioning")
     print(f"[INFO]   Port      : {args.port} @ {args.baud}bps")
     print(f"[INFO]   Endpoint  : {args.endpoint}")
     print(f"[INFO]   Thing Name: {args.thing_name}")
+    if args.mac_address:
+        print(f"[INFO]   MAC       : {args.mac_address}")
     print(f"[INFO]   Cert      : {args.cert} ({len(cert_pem)} bytes)")
     print(f"[INFO]   Key       : {args.key} ({len(key_pem)} bytes)")
     if codesigner_pem:
@@ -347,11 +381,30 @@ def main():
         if ser.in_waiting > 0:
             ser.read(ser.in_waiting)
 
+        step_index = 3
+
+        if args.mac_address:
+            print()
+            print(f"[STEP {step_index}/{total_steps}] Setting Ethernet MAC address")
+            results["mac_address"] = send_simple_value(
+                ser, f"dataflash write aws macaddress {args.mac_address}", args.timeout
+            )
+            step_index += 1
+
+            time.sleep(0.5)
+            ser.reset_input_buffer()
+            ser.write(b"\r\n")
+            ser.flush()
+            time.sleep(0.5)
+            if ser.in_waiting > 0:
+                ser.read(ser.in_waiting)
+
         print()
-        print(f"[STEP 3/{total_steps}] Writing client certificate")
+        print(f"[STEP {step_index}/{total_steps}] Writing client certificate")
         results["certificate"] = send_pem_streaming(
             ser, "dataflash write aws clientcertificate", cert_pem, timeout=30
         )
+        step_index += 1
 
         time.sleep(1.0)
         ser.reset_input_buffer()
@@ -362,10 +415,11 @@ def main():
             ser.read(ser.in_waiting)
 
         print()
-        print(f"[STEP 4/{total_steps}] Writing client private key")
+        print(f"[STEP {step_index}/{total_steps}] Writing client private key")
         results["private_key"] = send_pem_streaming(
             ser, "dataflash write aws clientprivatekey", key_pem, timeout=30
         )
+        step_index += 1
 
         # Step 5 (OTA): コード署名証明書
         if codesigner_pem:
@@ -378,7 +432,7 @@ def main():
                 ser.read(ser.in_waiting)
 
             print()
-            print(f"[STEP 5/{total_steps}] Writing code signer certificate (OTA)")
+            print(f"[STEP {step_index}/{total_steps}] Writing code signer certificate (OTA)")
             results["codesigner_cert"] = send_pem_streaming(
                 ser, "dataflash write aws codesignercertificate",
                 codesigner_pem, timeout=30

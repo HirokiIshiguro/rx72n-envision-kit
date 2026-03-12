@@ -38,6 +38,8 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 /* FreeRTOS+TCP includes. */
 #include "FreeRTOS_IP.h"
+#include <stdio.h>
+#include <string.h>
 
 /* Demo includes */
 #include "aws_demo.h"
@@ -109,6 +111,9 @@ void vApplicationDaemonTaskStartupHook( void );
  * @brief Initializes the board.
  */
 static void prvMiscInitialization( void );
+static BaseType_t prvParseMacAddressString( const char * pcMacAddressString,
+                                            uint8_t ucParsedMacAddress[ 6 ] );
+static void prvLoadMacAddressFromDataFlash( void );
 /*-----------------------------------------------------------*/
 
 /**
@@ -150,12 +155,107 @@ static void prvMiscInitialization( void )
 }
 /*-----------------------------------------------------------*/
 
+static BaseType_t prvParseMacAddressString( const char * pcMacAddressString,
+                                            uint8_t ucParsedMacAddress[ 6 ] )
+{
+    unsigned int ulOctets[ 6 ] = { 0 };
+    int lParsedCount = 0;
+    size_t xIndex = 0;
+
+    if( pcMacAddressString == NULL )
+    {
+        return pdFALSE;
+    }
+
+    lParsedCount = sscanf( pcMacAddressString,
+                           "%2x:%2x:%2x:%2x:%2x:%2x",
+                           &ulOctets[ 0 ],
+                           &ulOctets[ 1 ],
+                           &ulOctets[ 2 ],
+                           &ulOctets[ 3 ],
+                           &ulOctets[ 4 ],
+                           &ulOctets[ 5 ] );
+
+    if( lParsedCount != 6 )
+    {
+        lParsedCount = sscanf( pcMacAddressString,
+                               "%2x-%2x-%2x-%2x-%2x-%2x",
+                               &ulOctets[ 0 ],
+                               &ulOctets[ 1 ],
+                               &ulOctets[ 2 ],
+                               &ulOctets[ 3 ],
+                               &ulOctets[ 4 ],
+                               &ulOctets[ 5 ] );
+    }
+
+    if( lParsedCount != 6 )
+    {
+        return pdFALSE;
+    }
+
+    for( xIndex = 0; xIndex < 6; xIndex++ )
+    {
+        ucParsedMacAddress[ xIndex ] = ( uint8_t ) ulOctets[ xIndex ];
+    }
+
+    return pdTRUE;
+}
+/*-----------------------------------------------------------*/
+
+static void prvLoadMacAddressFromDataFlash( void )
+{
+    SFD_HANDLE xMacAddressHandle = SFD_HANDLE_INVALID;
+    uint8_t * pucMacAddressString = NULL;
+    uint32_t ulMacAddressLength = 0;
+
+    xMacAddressHandle = R_SFD_FindObject( ( uint8_t * ) mac_address_label,
+                                          ( uint8_t ) strlen( mac_address_label ) );
+
+    if( xMacAddressHandle == SFD_HANDLE_INVALID )
+    {
+        configPRINTF( ( "MAC address not found in dataflash. Using built-in default.\r\n" ) );
+        return;
+    }
+
+    if( R_SFD_GetObjectValue( xMacAddressHandle,
+                              &pucMacAddressString,
+                              &ulMacAddressLength ) != SFD_SUCCESS )
+    {
+        configPRINTF( ( "Failed to read MAC address from dataflash. Using built-in default.\r\n" ) );
+        return;
+    }
+
+    if( ( pucMacAddressString == NULL ) || ( ulMacAddressLength == 0 ) )
+    {
+        configPRINTF( ( "MAC address entry in dataflash is empty. Using built-in default.\r\n" ) );
+        return;
+    }
+
+    if( prvParseMacAddressString( ( const char * ) pucMacAddressString, ucMACAddress ) != pdTRUE )
+    {
+        configPRINTF( ( "Invalid MAC address in dataflash: %s\r\n", pucMacAddressString ) );
+        configPRINTF( ( "Using built-in default MAC address instead.\r\n" ) );
+        return;
+    }
+
+    configPRINTF( ( "Loaded MAC address from dataflash: %02X:%02X:%02X:%02X:%02X:%02X\r\n",
+                    ucMACAddress[ 0 ],
+                    ucMACAddress[ 1 ],
+                    ucMACAddress[ 2 ],
+                    ucMACAddress[ 3 ],
+                    ucMACAddress[ 4 ],
+                    ucMACAddress[ 5 ] ) );
+}
+/*-----------------------------------------------------------*/
+
 void vApplicationDaemonTaskStartupHook( void )
 {
     prvMiscInitialization();
 
     if( SYSTEM_Init() == pdPASS )
     {
+        prvLoadMacAddressFromDataFlash();
+
         /* Initialise the RTOS's TCP/IP stack.  The tasks that use the network
         are created in the vApplicationIPNetworkEventHook() hook function
         below.  The hook function is called when the network connects. */
