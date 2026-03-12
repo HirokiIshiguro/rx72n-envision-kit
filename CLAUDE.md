@@ -619,6 +619,26 @@ python test_scripts/uart_test/provision_aws.py \
 
 ## Changelog / 変更履歴
 
+### 2026-03-12: Issue #16 3セット farm 安定化を legacy baseline へ切り出し
+
+Created a dedicated debug track for the 3-set RX72N test farm before resuming Phase 8 / latest FreeRTOS work.
+The baseline is pipeline `#441` (`a00d6b32` on `master`), where the legacy flow
+`build -> flash -> provision -> test -> ota` was confirmed green.
+
+Issue [#16](https://shelty2.servegame.com/oss/import/github/renesas/rx72n-envision-kit/-/issues/16)
+is scoped to runner/device affinity, UART path, E2 Lite selection, and other multi-set farm stability work only.
+`phase8b/`, latest FreeRTOS migration regressions, and phase8b OTA/CLI failures are intentionally out of scope here.
+
+Phase 8 / latest FreeRTOS の不安定と、3セット化した hardware/runner 側の不安定が混線していたため、
+先に legacy Amazon FreeRTOS ベースで「3セットでも安定に回る」状態を再確立する枝を用意した。
+基準は pipeline `#441`（`master` の `a00d6b32`）で、ここでは
+`build -> flash -> provision -> test -> ota` がすべて green だった。
+
+Issue [#16](https://shelty2.servegame.com/oss/import/github/renesas/rx72n-envision-kit/-/issues/16)
+では runner/device 固定化、UART path、E2 Lite 選択、CI 変数束など
+3セット farm の安定化だけを扱う。`phase8b/` や latest FreeRTOS 移植起因の不具合、
+phase8b OTA/CLI 失敗はこの枝では追わない。
+
 ### 2026-03-09: Issue #6 OTA AWS 制御を Windows runner へ分離
 
 Split OTA execution into three jobs: `ota_create_job` (Windows), `ota_monitor` (Raspberry Pi),
