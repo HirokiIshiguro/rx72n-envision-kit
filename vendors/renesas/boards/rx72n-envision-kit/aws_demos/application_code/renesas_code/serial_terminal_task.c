@@ -819,9 +819,39 @@ void serial_terminal_task( void * pvParameters )
                             }
                             serial_terminal_putstring(task_info->hWin_serial_terminal, sci_handle, message_buffer);
                         }
+                        else if(!strcmp((const char *)arg1, "setdns"))
+                        {
+                            uint32_t ulIPAddress, ulNetMask, ulGatewayAddress, ulDNSServerAddress;
+                            char cBuffer[16];
+
+                            ulDNSServerAddress = FreeRTOS_inet_addr((const char *)arg2);
+
+                            if( ulDNSServerAddress != 0 )
+                            {
+                                FreeRTOS_GetAddressConfiguration(
+                                    &ulIPAddress,
+                                    &ulNetMask,
+                                    &ulGatewayAddress,
+                                    NULL );
+
+                                FreeRTOS_SetAddressConfiguration(
+                                    &ulIPAddress,
+                                    &ulNetMask,
+                                    &ulGatewayAddress,
+                                    &ulDNSServerAddress );
+
+                                FreeRTOS_inet_ntoa( ulDNSServerAddress, cBuffer );
+                                sprintf(message_buffer, "DNS Server Address updated to %s\r\n", cBuffer);
+                            }
+                            else
+                            {
+                                sprintf(message_buffer, "invalid IP address: %s\r\n", arg2);
+                            }
+                            serial_terminal_putstring(task_info->hWin_serial_terminal, sci_handle, message_buffer);
+                        }
                         else
                         {
-                            serial_terminal_putstring(task_info->hWin_serial_terminal, sci_handle, "usage: network info | network resolve <host>\r\n");
+                            serial_terminal_putstring(task_info->hWin_serial_terminal, sci_handle, "usage: network info | network resolve <host> | network setdns <ip>\r\n");
                         }
                         break;
                     }
