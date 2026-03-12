@@ -25,6 +25,6 @@ case "${DEVICE_SLOT}" in
     ;;
 esac
 
-export UART_PORT="${UART_PORT:-${uart_port_default}}"
-export COMMAND_PORT="${COMMAND_PORT:-${command_port_default}}"
-export MAC_ADDR="${MAC_ADDR:-${mac_addr_default}}"
+export UART_PORT="${uart_port_default}"
+export COMMAND_PORT="${command_port_default}"
+export MAC_ADDR="${mac_addr_default}"
