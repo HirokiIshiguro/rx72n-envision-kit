@@ -888,6 +888,17 @@
                         /* Use DNS server. */
                         xAddress.sin_addr = ulIPAddress;
                         xAddress.sin_port = dnsDNS_PORT;
+
+                        #if ( ipconfigHAS_PRINTF == 1 )
+                            {
+                                char cBuffer[ 16 ];
+                                FreeRTOS_inet_ntoa( ulIPAddress, cBuffer );
+                                FreeRTOS_printf( ( "DNS query attempt %ld for '%s' -> server %s\r\n",
+                                                   ( long ) ( xAttempt + 1 ),
+                                                   pcHostName,
+                                                   cBuffer ) );
+                            }
+                        #endif
                     }
 
                     ulIPAddress = 0UL;
@@ -935,10 +946,28 @@
                                 /* coverity[break_stmt] : Break statement terminating the loop */
                                 break;
                             }
+                            else
+                            {
+                                #if ( ipconfigHAS_PRINTF == 1 )
+                                    FreeRTOS_printf( ( "DNS reply received for '%s' but no IP address was parsed.\r\n",
+                                                       pcHostName ) );
+                                #endif
+                            }
+                        }
+                        else
+                        {
+                            #if ( ipconfigHAS_PRINTF == 1 )
+                                FreeRTOS_printf( ( "DNS recvfrom returned %ld for '%s'.\r\n",
+                                                   ( long ) lBytes,
+                                                   pcHostName ) );
+                            #endif
                         }
                     }
                     else
                     {
+                        #if ( ipconfigHAS_PRINTF == 1 )
+                            FreeRTOS_printf( ( "DNS sendto failed for '%s'.\r\n", pcHostName ) );
+                        #endif
                         /* The message was not sent so the stack will not be
                          * releasing the zero copy - it must be released here. */
                         vReleaseNetworkBufferAndDescriptor( pxNetworkBuffer );
