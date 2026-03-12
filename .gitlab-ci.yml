@@ -369,6 +369,12 @@ download_aws_demos:
       artifacts: true
     - job: flash_boot_loader
       artifacts: false
+      parallel:
+        matrix:
+          - DEVICE_SLOT: ['$[[ matrix.DEVICE_SLOT ]]']
+            DEVICE_ID: ['$[[ matrix.DEVICE_ID ]]']
+            DEVICE_RUNNER_TAG: ['$[[ matrix.DEVICE_RUNNER_TAG ]]']
+            DEVICE_RESOURCE_GROUP: ['$[[ matrix.DEVICE_RESOURCE_GROUP ]]']
   variables:
     # .rsu 生成に使うシーケンス番号（OTA 更新ごとに増加させる）
     RSU_SEQ_NO: "1"
@@ -448,17 +454,35 @@ test_commands:
   needs:
     - job: download_aws_demos
       artifacts: false
+      parallel:
+        matrix:
+          - DEVICE_SLOT: ['$[[ matrix.DEVICE_SLOT ]]']
+            DEVICE_ID: ['$[[ matrix.DEVICE_ID ]]']
+            DEVICE_RUNNER_TAG: ['$[[ matrix.DEVICE_RUNNER_TAG ]]']
+            DEVICE_RESOURCE_GROUP: ['$[[ matrix.DEVICE_RESOURCE_GROUP ]]']
     - job: capture_after_download_aws_demos
       optional: true
       artifacts: false
     - job: health_aws_demos_startup
       optional: true
       artifacts: false
+      parallel:
+        matrix:
+          - DEVICE_SLOT: ['$[[ matrix.DEVICE_SLOT ]]']
+            DEVICE_ID: ['$[[ matrix.DEVICE_ID ]]']
+            DEVICE_RUNNER_TAG: ['$[[ matrix.DEVICE_RUNNER_TAG ]]']
+            DEVICE_RESOURCE_GROUP: ['$[[ matrix.DEVICE_RESOURCE_GROUP ]]']
     # provision_aws_credentials も COMMAND_PORT を使用するため、同時実行を防止。
     # RUN_AWS_TESTS=false 時は provision がスキップされるため optional: true。
     - job: provision_aws_credentials
       optional: true
       artifacts: false
+      parallel:
+        matrix:
+          - DEVICE_SLOT: ['$[[ matrix.DEVICE_SLOT ]]']
+            DEVICE_ID: ['$[[ matrix.DEVICE_ID ]]']
+            DEVICE_RUNNER_TAG: ['$[[ matrix.DEVICE_RUNNER_TAG ]]']
+            DEVICE_RESOURCE_GROUP: ['$[[ matrix.DEVICE_RESOURCE_GROUP ]]']
   variables:
     COMMAND_TIMEOUT: "10"
   script:
@@ -488,6 +512,12 @@ test_screen_navigation:
     - when: always
   needs:
     - job: test_commands
+      parallel:
+        matrix:
+          - DEVICE_SLOT: ['$[[ matrix.DEVICE_SLOT ]]']
+            DEVICE_ID: ['$[[ matrix.DEVICE_ID ]]']
+            DEVICE_RUNNER_TAG: ['$[[ matrix.DEVICE_RUNNER_TAG ]]']
+            DEVICE_RESOURCE_GROUP: ['$[[ matrix.DEVICE_RESOURCE_GROUP ]]']
   script:
     - |
       set -euo pipefail
@@ -515,12 +545,24 @@ provision_aws_credentials:
   needs:
     - job: download_aws_demos
       artifacts: false
+      parallel:
+        matrix:
+          - DEVICE_SLOT: ['$[[ matrix.DEVICE_SLOT ]]']
+            DEVICE_ID: ['$[[ matrix.DEVICE_ID ]]']
+            DEVICE_RUNNER_TAG: ['$[[ matrix.DEVICE_RUNNER_TAG ]]']
+            DEVICE_RESOURCE_GROUP: ['$[[ matrix.DEVICE_RESOURCE_GROUP ]]']
     - job: capture_after_download_aws_demos
       optional: true
       artifacts: false
     - job: health_aws_demos_startup
       optional: true
       artifacts: false
+      parallel:
+        matrix:
+          - DEVICE_SLOT: ['$[[ matrix.DEVICE_SLOT ]]']
+            DEVICE_ID: ['$[[ matrix.DEVICE_ID ]]']
+            DEVICE_RUNNER_TAG: ['$[[ matrix.DEVICE_RUNNER_TAG ]]']
+            DEVICE_RESOURCE_GROUP: ['$[[ matrix.DEVICE_RESOURCE_GROUP ]]']
   script:
     - |
       set -euo pipefail
@@ -545,6 +587,12 @@ health_aws_demos_startup:
   needs:
     - job: download_aws_demos
       artifacts: false
+      parallel:
+        matrix:
+          - DEVICE_SLOT: ['$[[ matrix.DEVICE_SLOT ]]']
+            DEVICE_ID: ['$[[ matrix.DEVICE_ID ]]']
+            DEVICE_RUNNER_TAG: ['$[[ matrix.DEVICE_RUNNER_TAG ]]']
+            DEVICE_RESOURCE_GROUP: ['$[[ matrix.DEVICE_RESOURCE_GROUP ]]']
   script:
     - |
       set -euo pipefail
@@ -583,6 +631,12 @@ confirm_aws_mqtt:
     - if: $RUN_AWS_TESTS == "true"
   needs:
     - job: test_screen_navigation
+      parallel:
+        matrix:
+          - DEVICE_SLOT: ['$[[ matrix.DEVICE_SLOT ]]']
+            DEVICE_ID: ['$[[ matrix.DEVICE_ID ]]']
+            DEVICE_RUNNER_TAG: ['$[[ matrix.DEVICE_RUNNER_TAG ]]']
+            DEVICE_RESOURCE_GROUP: ['$[[ matrix.DEVICE_RESOURCE_GROUP ]]']
   retry:
     max: 1
     when: script_failure
@@ -611,8 +665,20 @@ test_sd_update:
     - if: $RUN_AWS_TESTS == "true" && $RUN_SD_UPDATE_TEST == "true"
   needs:
     - job: confirm_aws_mqtt
+      parallel:
+        matrix:
+          - DEVICE_SLOT: ['$[[ matrix.DEVICE_SLOT ]]']
+            DEVICE_ID: ['$[[ matrix.DEVICE_ID ]]']
+            DEVICE_RUNNER_TAG: ['$[[ matrix.DEVICE_RUNNER_TAG ]]']
+            DEVICE_RESOURCE_GROUP: ['$[[ matrix.DEVICE_RESOURCE_GROUP ]]']
     - job: download_aws_demos
       artifacts: true
+      parallel:
+        matrix:
+          - DEVICE_SLOT: ['$[[ matrix.DEVICE_SLOT ]]']
+            DEVICE_ID: ['$[[ matrix.DEVICE_ID ]]']
+            DEVICE_RUNNER_TAG: ['$[[ matrix.DEVICE_RUNNER_TAG ]]']
+            DEVICE_RESOURCE_GROUP: ['$[[ matrix.DEVICE_RESOURCE_GROUP ]]']
   script:
     - |
       set -euo pipefail
