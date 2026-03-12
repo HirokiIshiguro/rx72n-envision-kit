@@ -61,11 +61,13 @@ variables:
   # RUN_SD_UPDATE_TEST: SD カードファームウェア更新テストを実行するか
   # RUN_OTA_TEST:       OTA テスト (build_ota, prepare_ota, ota_create_job,
   #                     ota_monitor, ota_finalize) を実行するか
+  # RUN_HW_HEALTHCHECK: download_aws_demos 直後の CN8/SCI2 prompt を単独確認するか
   # デフォルトはフルテスト（MR マージ前に全テスト通過を保証）。
   # ダミーブランチで個別テストを回す場合は変数をオーバーライドする。
   RUN_AWS_TESTS: "true"
   RUN_SD_UPDATE_TEST: "true"
   RUN_OTA_TEST: "true"
+  RUN_HW_HEALTHCHECK: "false"
   # RUN_OTA_ONLY: OTA テストのみ実行するショートカットモード。
   # "true" にすると通常のビルド/フラッシュ/テストジョブをスキップし、
   # build_ota → prepare_ota → ota_create_job/ota_monitor → ota_finalize のみ実行する。
@@ -369,11 +371,15 @@ test_commands:
     - .pi_pyserial_job
   timeout: 5 minutes
   rules:
+    - if: $RUN_HW_HEALTHCHECK == "true"
+      when: never
     - if: $RUN_OTA_ONLY == "true"
       when: never
     - when: always
   needs:
     - job: download_aws_demos
+    - job: health_aws_demos_startup
+      optional: true
     # provision_aws_credentials も COMMAND_PORT を使用するため、同時実行を防止。
     # RUN_AWS_TESTS=false 時は provision がスキップされるため optional: true。
     - job: provision_aws_credentials
@@ -398,6 +404,8 @@ test_screen_navigation:
     - .pi_pyserial_job
   timeout: 3 minutes
   rules:
+    - if: $RUN_HW_HEALTHCHECK == "true"
+      when: never
     - if: $RUN_OTA_ONLY == "true"
       when: never
     - when: always
@@ -420,6 +428,8 @@ provision_aws_credentials:
     - .pi_pyserial_job
   timeout: 3 minutes
   rules:
+    - if: $RUN_HW_HEALTHCHECK == "true"
+      when: never
     - if: $RUN_OTA_ONLY == "true"
       when: never
     - if: $RUN_AWS_TESTS == "true"
@@ -435,6 +445,39 @@ provision_aws_credentials:
         --device-id "$DEVICE_ID" \
         --codesigner-cert "$CI_PROJECT_DIR/sample_keys/secp256r1.crt"
 
+health_aws_demos_startup:
+  stage: test
+  extends:
+    - .pi_device_job
+    - .pi_pyserial_job
+  timeout: 4 minutes
+  rules:
+    - if: $RUN_HW_HEALTHCHECK == "true"
+    - when: never
+  needs:
+    - job: download_aws_demos
+  script:
+    - |
+      set -euo pipefail
+      bash "$CI_PROJECT_DIR/tools/ci/validate_pi_serial_path.sh" UART_PORT COMMAND_PORT
+      bash "$CI_PROJECT_DIR/tools/ci/print_pi_hardware_state.sh" UART_PORT COMMAND_PORT | tee "$CI_PROJECT_DIR/aws_demos_hardware_state.log"
+      echo "=== aws_demos Startup Health Check ==="
+      python3 "$CI_PROJECT_DIR/test_scripts/uart_test/check_device_health.py" \
+        command-prompt \
+        --port "$COMMAND_PORT" \
+        --baud "$COMMAND_BAUD_RATE" \
+        --initial-wait 3 \
+        --prompt-timeout 60 \
+        --command-timeout 10 \
+        --probe-command version \
+        --probe-expect v | tee "$CI_PROJECT_DIR/aws_demos_health.log"
+  artifacts:
+    when: always
+    paths:
+      - aws_demos_hardware_state.log
+      - aws_demos_health.log
+    expire_in: 1 week
+
 confirm_aws_mqtt:
   stage: test
   extends:
@@ -442,6 +485,8 @@ confirm_aws_mqtt:
     - .pi_pyserial_job
   timeout: 5 minutes
   rules:
+    - if: $RUN_HW_HEALTHCHECK == "true"
+      when: never
     - if: $RUN_OTA_ONLY == "true"
       when: never
     - if: $RUN_AWS_TESTS == "true"
@@ -466,6 +511,8 @@ test_sd_update:
     - .pi_pyserial_job
   timeout: 10 minutes
   rules:
+    - if: $RUN_HW_HEALTHCHECK == "true"
+      when: never
     - if: $RUN_OTA_ONLY == "true"
       when: never
     - if: $RUN_AWS_TESTS == "true" && $RUN_SD_UPDATE_TEST == "true"
@@ -498,6 +545,8 @@ build_ota:
   tags:
     - run_ishiguro_machine
   rules:
+    - if: $RUN_HW_HEALTHCHECK == "true"
+      when: never
     - if: $RUN_OTA_TEST == "true"
   script:
     # MAC アドレス書き換え（build ジョブと同じ）
@@ -665,6 +714,8 @@ prepare_ota:
     - .pi_crypto_serial_job
   timeout: 5 minutes
   rules:
+    - if: $RUN_HW_HEALTHCHECK == "true"
+      when: never
     - if: $RUN_OTA_TEST == "true"
   dependencies:
     - build_ota
@@ -720,6 +771,8 @@ ota_create_job:
     - .windows_ota_aws_job
   timeout: 10 minutes
   rules:
+    - if: $RUN_HW_HEALTHCHECK == "true"
+      when: never
     - if: $RUN_OTA_TEST == "true"
   dependencies:
     - build_ota
@@ -749,6 +802,8 @@ ota_monitor:
     - .pi_pyserial_job
   timeout: 15 minutes
   rules:
+    - if: $RUN_HW_HEALTHCHECK == "true"
+      when: never
     - if: $RUN_OTA_TEST == "true"
   dependencies: []
   script:
@@ -779,6 +834,8 @@ ota_finalize:
   timeout: 10 minutes
   when: always
   rules:
+    - if: $RUN_HW_HEALTHCHECK == "true"
+      when: never
     - if: $RUN_OTA_TEST == "true"
   dependencies:
     - ota_create_job
