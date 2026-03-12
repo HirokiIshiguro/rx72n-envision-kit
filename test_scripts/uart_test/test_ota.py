@@ -786,13 +786,13 @@ def legacy_main():
         device = load_device_config(args.device_id)
         print(f"[INFO] Loaded config for device: {args.device_id}")
         if args.log_port == "COM7":
-            args.log_port = device["log_port"]
+            args.log_port = device.get("log_port") or os.environ.get("UART_PORT") or "COM7"
         if args.log_baud == 921600:
-            args.log_baud = device["log_baud"]
+            args.log_baud = int(device.get("log_baud") or os.environ.get("UART_BAUD_RATE") or 921600)
         if not args.cmd_port:
-            args.cmd_port = device.get("command_port")
-        if args.cmd_baud == 115200 and "command_baud" in device:
-            args.cmd_baud = device["command_baud"]
+            args.cmd_port = device.get("command_port") or os.environ.get("COMMAND_PORT")
+        if args.cmd_baud == 115200:
+            args.cmd_baud = int(device.get("command_baud") or os.environ.get("COMMAND_BAUD_RATE") or 115200)
         if not args.region:
             args.region = device.get("aws_region", "ap-northeast-1")
         if not args.thing_name:

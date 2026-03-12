@@ -39,6 +39,12 @@ variables:
   MAC_ADDR: "${MAC_ADDR_ENVISION_KIT_RX72N}"
   # デバイス ID（device_config.json で定義、複数デバイス時に切り替え）
   DEVICE_ID: "rx72n-01"
+  # Raspberry Pi runner 固定用タグ / resource_group。3 セット運用時は pipeline 変数で
+  # dev-rx72n-01/-02/-03, rx72n-device-01/-02/-03 のように切り替える。
+  DEVICE_RUNNER_TAG: "dev-rx72n"
+  DEVICE_RESOURCE_GROUP: "rx72n-device"
+  # 1 runner = 1 E2 Lite 構成では generic e2l を使い、必要時のみ e2l:<serial> に override する。
+  RFP_TOOL: "e2l"
   # Git サブモジュール初期化（coreSNTP 等の外部ライブラリ）
   GIT_SUBMODULE_STRATEGY: recursive
   # Windows 260文字パス長制限の回避
@@ -71,8 +77,8 @@ variables:
     - exec-shell
     - os-linux
     - hw-raspi
-    - dev-rx72n
-  resource_group: rx72n-device
+    - $DEVICE_RUNNER_TAG
+  resource_group: $DEVICE_RESOURCE_GROUP
 
 .pi_flash_job:
   extends: .pi_device_job
@@ -80,7 +86,7 @@ variables:
     - exec-shell
     - os-linux
     - hw-raspi
-    - dev-rx72n
+    - $DEVICE_RUNNER_TAG
     - cap-flash
 
 .pi_pyserial_job:
@@ -299,18 +305,14 @@ flash_boot_loader:
         echo "ERROR: $mot not found"
         exit 1
       fi
-      if [[ -z "${E2LITE_SERIAL:-}" ]]; then
-        echo "ERROR: E2LITE_SERIAL not set"
-        exit 1
-      fi
       echo "=== Flash boot_loader ==="
       echo "  .mot:    $mot"
       echo "  Device:  RX72x"
-      echo "  Tool:    E2 Lite (${E2LITE_SERIAL})"
+      echo "  Tool:    $RFP_TOOL"
       echo "  I/F:     FINE"
-      "$RFP_CLI" -device RX72x -tool "e2l:${E2LITE_SERIAL}" -if fine -speed 1500K \
+      "$RFP_CLI" -device RX72x -tool "$RFP_TOOL" -if fine -speed 1500K \
         -auth id FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF -erase-chip -noquery
-      "$RFP_CLI" -device RX72x -tool "e2l:${E2LITE_SERIAL}" -if fine -speed 1500K \
+      "$RFP_CLI" -device RX72x -tool "$RFP_TOOL" -if fine -speed 1500K \
         -auth id FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF -p "$mot" -v -run -noquery
       echo "Flash completed successfully. Boot loader is running."
       echo "  UART verification deferred to download_aws_demos step."
@@ -675,9 +677,9 @@ prepare_ota:
         exit 1
       fi
       echo "=== Flash boot_loader (OTA) ==="
-      "$RFP_CLI" -device RX72x -tool "e2l:${E2LITE_SERIAL}" -if fine -speed 1500K \
+      "$RFP_CLI" -device RX72x -tool "$RFP_TOOL" -if fine -speed 1500K \
         -auth id FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF -erase-chip -noquery
-      "$RFP_CLI" -device RX72x -tool "e2l:${E2LITE_SERIAL}" -if fine -speed 1500K \
+      "$RFP_CLI" -device RX72x -tool "$RFP_TOOL" -if fine -speed 1500K \
         -auth id FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF -p "$mot" -v -run -noquery
       echo "Boot loader flashed successfully."
     - |

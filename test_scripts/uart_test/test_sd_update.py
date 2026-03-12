@@ -485,13 +485,13 @@ def main():
         device = load_device_config(args.device_id)
         print(f"[INFO] Loaded config for device: {args.device_id}")
         if not args.cmd_port:
-            cmd_port = device["command_port"]
+            cmd_port = device.get("command_port") or os.environ.get("COMMAND_PORT") or cmd_port
         if not args.cmd_baud:
-            cmd_baud = device["command_baud"]
+            cmd_baud = int(device.get("command_baud") or os.environ.get("COMMAND_BAUD_RATE") or cmd_baud)
         if not args.log_port:
-            log_port = device["log_port"]
+            log_port = device.get("log_port") or os.environ.get("UART_PORT") or log_port
         if not args.log_baud:
-            log_baud = device["log_baud"]
+            log_baud = int(device.get("log_baud") or os.environ.get("UART_BAUD_RATE") or log_baud)
 
     # RSU ファイル存在チェック
     if not os.path.isfile(args.rsu):
