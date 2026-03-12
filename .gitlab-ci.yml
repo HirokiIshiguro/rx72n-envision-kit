@@ -77,6 +77,9 @@ variables:
   CAPTURE_AFTER_AWS_DEMOS: "true"
   CAPTURE_VIDEO_DEVICE: "MonsterX U3.0R Capture 0"
   CAPTURE_FILTER: ""
+  # RUN_ONLY_DEVICE_SLOT: "01" / "02" / "03" を指定すると、その slot 以外の
+  # matrix job は skip する。故障疑いハードウェアの隔離や単独デバッグ用。
+  RUN_ONLY_DEVICE_SLOT: ""
   # RUN_OTA_ONLY: OTA テストのみ実行するショートカットモード。
   # "true" にすると通常のビルド/フラッシュ/テストジョブをスキップし、
   # build_ota → prepare_ota → ota_create_job/ota_monitor → ota_finalize のみ実行する。
@@ -327,6 +330,8 @@ flash_boot_loader:
     - .pi_flash_job
     - .rx72n_set_matrix
   rules:
+    - if: $RUN_ONLY_DEVICE_SLOT != "" && $RUN_ONLY_DEVICE_SLOT != $DEVICE_SLOT
+      when: never
     - if: $RUN_OTA_ONLY == "true"
       when: never
     - when: always
@@ -361,6 +366,8 @@ download_aws_demos:
     - .pi_crypto_serial_job
     - .rx72n_set_matrix
   rules:
+    - if: $RUN_ONLY_DEVICE_SLOT != "" && $RUN_ONLY_DEVICE_SLOT != $DEVICE_SLOT
+      when: never
     - if: $RUN_OTA_ONLY == "true"
       when: never
     - when: always
@@ -446,6 +453,8 @@ test_commands:
     - .rx72n_set_matrix
   timeout: 5 minutes
   rules:
+    - if: $RUN_ONLY_DEVICE_SLOT != "" && $RUN_ONLY_DEVICE_SLOT != $DEVICE_SLOT
+      when: never
     - if: $RUN_HW_HEALTHCHECK == "true"
       when: never
     - if: $RUN_OTA_ONLY == "true"
@@ -505,6 +514,8 @@ test_screen_navigation:
     - .rx72n_set_matrix
   timeout: 3 minutes
   rules:
+    - if: $RUN_ONLY_DEVICE_SLOT != "" && $RUN_ONLY_DEVICE_SLOT != $DEVICE_SLOT
+      when: never
     - if: $RUN_HW_HEALTHCHECK == "true"
       when: never
     - if: $RUN_OTA_ONLY == "true"
@@ -537,6 +548,8 @@ provision_aws_credentials:
     - .rx72n_set_matrix
   timeout: 3 minutes
   rules:
+    - if: $RUN_ONLY_DEVICE_SLOT != "" && $RUN_ONLY_DEVICE_SLOT != $DEVICE_SLOT
+      when: never
     - if: $RUN_HW_HEALTHCHECK == "true"
       when: never
     - if: $RUN_OTA_ONLY == "true"
@@ -582,6 +595,8 @@ health_aws_demos_startup:
     - .rx72n_set_matrix
   timeout: 4 minutes
   rules:
+    - if: $RUN_ONLY_DEVICE_SLOT != "" && $RUN_ONLY_DEVICE_SLOT != $DEVICE_SLOT
+      when: never
     - if: $RUN_HW_HEALTHCHECK == "true"
     - when: never
   needs:
@@ -624,6 +639,8 @@ confirm_aws_mqtt:
     - .rx72n_set_matrix
   timeout: 5 minutes
   rules:
+    - if: $RUN_ONLY_DEVICE_SLOT != "" && $RUN_ONLY_DEVICE_SLOT != $DEVICE_SLOT
+      when: never
     - if: $RUN_HW_HEALTHCHECK == "true"
       when: never
     - if: $RUN_OTA_ONLY == "true"
@@ -658,6 +675,8 @@ test_sd_update:
     - .rx72n_set_matrix
   timeout: 10 minutes
   rules:
+    - if: $RUN_ONLY_DEVICE_SLOT != "" && $RUN_ONLY_DEVICE_SLOT != $DEVICE_SLOT
+      when: never
     - if: $RUN_HW_HEALTHCHECK == "true"
       when: never
     - if: $RUN_OTA_ONLY == "true"
@@ -875,6 +894,8 @@ prepare_ota:
     - .rx72n_set_matrix
   timeout: 5 minutes
   rules:
+    - if: $RUN_ONLY_DEVICE_SLOT != "" && $RUN_ONLY_DEVICE_SLOT != $DEVICE_SLOT
+      when: never
     - if: $RUN_HW_HEALTHCHECK == "true"
       when: never
     - if: $RUN_OTA_TEST == "true"
@@ -937,6 +958,8 @@ ota_create_job:
     - .rx72n_set_matrix
   timeout: 10 minutes
   rules:
+    - if: $RUN_ONLY_DEVICE_SLOT != "" && $RUN_ONLY_DEVICE_SLOT != $DEVICE_SLOT
+      when: never
     - if: $RUN_HW_HEALTHCHECK == "true"
       when: never
     - if: $RUN_OTA_TEST == "true"
@@ -970,6 +993,8 @@ ota_monitor:
     - .rx72n_set_matrix
   timeout: 15 minutes
   rules:
+    - if: $RUN_ONLY_DEVICE_SLOT != "" && $RUN_ONLY_DEVICE_SLOT != $DEVICE_SLOT
+      when: never
     - if: $RUN_HW_HEALTHCHECK == "true"
       when: never
     - if: $RUN_OTA_TEST == "true"
@@ -1006,6 +1031,8 @@ ota_finalize:
   timeout: 10 minutes
   when: always
   rules:
+    - if: $RUN_ONLY_DEVICE_SLOT != "" && $RUN_ONLY_DEVICE_SLOT != $DEVICE_SLOT
+      when: never
     - if: $RUN_HW_HEALTHCHECK == "true"
       when: never
     - if: $RUN_OTA_TEST == "true"
