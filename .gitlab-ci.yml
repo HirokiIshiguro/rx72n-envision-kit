@@ -31,6 +31,7 @@ variables:
   PHASE8B_E2STUDIO_PROJECTS: "phase8b/Projects"
   # Renesas Flash Programmer CLI on Raspberry Pi
   RFP_CLI: "rfp-cli"
+  RFP_SPEED: "1500K"
   # --- ハードウェア依存変数（hardware-config リポジトリの CI/CD Variables から取得） ---
   # USB 抜き差しで COM 番号が変わった場合は、hardware-config リポジトリの CLAUDE.md を
   # 更新し、/oss グループの CI/CD Variables を変更すること（本ファイルの修正は不要）。
@@ -446,9 +447,9 @@ flash_phase8b_boot_loader:
       echo "  .mot:   $mot"
       echo "  Device: RX72x"
       echo "  Tool:   $RFP_TOOL"
-      "$RFP_CLI" -device RX72x -tool "$RFP_TOOL" -if fine -speed 1500K \
+      "$RFP_CLI" -device RX72x -tool "$RFP_TOOL" -if fine -speed "$RFP_SPEED" \
         -auth id FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF -erase-chip -noquery
-      "$RFP_CLI" -device RX72x -tool "$RFP_TOOL" -if fine -speed 1500K \
+      "$RFP_CLI" -device RX72x -tool "$RFP_TOOL" -if fine -speed "$RFP_SPEED" \
         -auth id FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF -p "$mot" -v -run -noquery
       if [[ "${RUN_HW_HEALTHCHECK}" == "true" ]]; then
         bash "$CI_PROJECT_DIR/tools/ci/validate_pi_serial_path.sh" UART_PORT
@@ -592,15 +593,15 @@ diag_phase8b_direct_flash_cli:
       echo "  Boot MOT: $boot_mot"
       echo "  Device:   RX72x"
       echo "  Tool:     $RFP_TOOL"
-      "$RFP_CLI" -device RX72x -tool "$RFP_TOOL" -if fine -speed 1500K \
+      "$RFP_CLI" -device RX72x -tool "$RFP_TOOL" -if fine -speed "$RFP_SPEED" \
         -auth id FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF -erase-chip -noquery
-      "$RFP_CLI" -device RX72x -tool "$RFP_TOOL" -if fine -speed 1500K \
+      "$RFP_CLI" -device RX72x -tool "$RFP_TOOL" -if fine -speed "$RFP_SPEED" \
         -auth id FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF -p "$boot_mot" -v -run -noquery
       echo "=== Direct flash phase8b app (.mot) ==="
       echo "  App MOT: $mot"
       echo "  Device: RX72x"
       echo "  Tool:   $RFP_TOOL"
-      "$RFP_CLI" -device RX72x -tool "$RFP_TOOL" -if fine -speed 1500K \
+      "$RFP_CLI" -device RX72x -tool "$RFP_TOOL" -if fine -speed "$RFP_SPEED" \
         -auth id FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF -p "$mot" -v -run -noquery
       echo "=== phase8b CLI provisioning (direct-flashed app) ==="
       python3 -u "$CI_PROJECT_DIR/tools/provision_phase8b.py" \
@@ -696,9 +697,9 @@ flash_boot_loader:
       echo "  Device:  RX72x"
       echo "  Tool:    $RFP_TOOL"
       echo "  I/F:     FINE"
-      "$RFP_CLI" -device RX72x -tool "$RFP_TOOL" -if fine -speed 1500K \
+      "$RFP_CLI" -device RX72x -tool "$RFP_TOOL" -if fine -speed "$RFP_SPEED" \
         -auth id FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF -erase-chip -noquery
-      "$RFP_CLI" -device RX72x -tool "$RFP_TOOL" -if fine -speed 1500K \
+      "$RFP_CLI" -device RX72x -tool "$RFP_TOOL" -if fine -speed "$RFP_SPEED" \
         -auth id FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF -p "$mot" -v -run -noquery
       echo "Flash completed successfully. Boot loader is running."
       if [[ "${RUN_HW_HEALTHCHECK}" == "true" ]]; then
@@ -1288,9 +1289,9 @@ prepare_ota:
         exit 1
       fi
       echo "=== Flash boot_loader (OTA) ==="
-      "$RFP_CLI" -device RX72x -tool "$RFP_TOOL" -if fine -speed 1500K \
+      "$RFP_CLI" -device RX72x -tool "$RFP_TOOL" -if fine -speed "$RFP_SPEED" \
         -auth id FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF -erase-chip -noquery
-      "$RFP_CLI" -device RX72x -tool "$RFP_TOOL" -if fine -speed 1500K \
+      "$RFP_CLI" -device RX72x -tool "$RFP_TOOL" -if fine -speed "$RFP_SPEED" \
         -auth id FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF -p "$mot" -v -run -noquery
       echo "Boot loader flashed successfully."
     - |
@@ -1357,9 +1358,9 @@ prepare_phase8b_ota:
       echo "=== Flash phase8b boot_loader (OTA) ==="
       echo "  Device ID: $DEVICE_ID"
       echo "  Tool:      $RFP_TOOL"
-      "$RFP_CLI" -device RX72x -tool "$RFP_TOOL" -if fine -speed 1500K \
+      "$RFP_CLI" -device RX72x -tool "$RFP_TOOL" -if fine -speed "$RFP_SPEED" \
         -auth id FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF -erase-chip -noquery
-      "$RFP_CLI" -device RX72x -tool "$RFP_TOOL" -if fine -speed 1500K \
+      "$RFP_CLI" -device RX72x -tool "$RFP_TOOL" -if fine -speed "$RFP_SPEED" \
         -auth id FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF -p "$mot" -v -run -noquery
       echo "Phase8b boot loader flashed successfully."
       bash "$CI_PROJECT_DIR/tools/ci/validate_pi_serial_path.sh" UART_PORT
