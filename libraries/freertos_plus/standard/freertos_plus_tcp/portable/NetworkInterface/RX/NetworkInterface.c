@@ -258,6 +258,43 @@ static void prvEMACDeferredInterruptHandlerTask( void * pvParameters )
         }
         else if( xBytesReceived > 0 )
         {
+            BaseType_t xLogDNSFrame = pdFALSE;
+            uint16_t usSourcePort = 0U;
+            uint16_t usDestinationPort = 0U;
+            char cSourceIP[ 16 ] = { 0 };
+            char cDestinationIP[ 16 ] = { 0 };
+
+            if( xBytesReceived >= ( int32_t ) sizeof( UDPPacket_t ) )
+            {
+                const EthernetHeader_t * pxEthernetHeader =
+                    ipCAST_CONST_PTR_TO_CONST_TYPE_PTR( EthernetHeader_t, buffer_pointer );
+
+                if( pxEthernetHeader->usFrameType == ipIPv4_FRAME_TYPE )
+                {
+                    const UDPPacket_t * pxUDPPacket =
+                        ipCAST_CONST_PTR_TO_CONST_TYPE_PTR( UDPPacket_t, buffer_pointer );
+
+                    if( pxUDPPacket->xIPHeader.ucProtocol == ipPROTOCOL_UDP )
+                    {
+                        usSourcePort = FreeRTOS_ntohs( pxUDPPacket->xUDPHeader.usSourcePort );
+                        usDestinationPort = FreeRTOS_ntohs( pxUDPPacket->xUDPHeader.usDestinationPort );
+
+                        if( ( usSourcePort == ipDNS_PORT ) || ( usDestinationPort == ipDNS_PORT ) )
+                        {
+                            xLogDNSFrame = pdTRUE;
+                            ( void ) FreeRTOS_inet_ntoa( pxUDPPacket->xIPHeader.ulSourceIPAddress, cSourceIP );
+                            ( void ) FreeRTOS_inet_ntoa( pxUDPPacket->xIPHeader.ulDestinationIPAddress, cDestinationIP );
+                            FreeRTOS_printf( ( "NI RX DNS frame len=%ld %s:%u -> %s:%u\r\n",
+                                               ( long ) xBytesReceived,
+                                               cSourceIP,
+                                               usSourcePort,
+                                               cDestinationIP,
+                                               usDestinationPort ) );
+                        }
+                    }
+                }
+            }
+
             /* Allocate a network buffer descriptor that points to a buffer
              * large enough to hold the received frame.  As this is the simple
              * rather than efficient example the received data will just be copied
@@ -288,6 +325,15 @@ static void prvEMACDeferredInterruptHandlerTask( void * pvParameters )
                 * to unblock this task for packets that don't need processing. */
                 if( eConsiderFrameForProcessing( pxBufferDescriptor->pucEthernetBuffer ) == eProcessBuffer )
                 {
+                    if( xLogDNSFrame != pdFALSE )
+                    {
+                        FreeRTOS_printf( ( "NI RX DNS frame accepted for IP task %s:%u -> %s:%u\r\n",
+                                           cSourceIP,
+                                           usSourcePort,
+                                           cDestinationIP,
+                                           usDestinationPort ) );
+                    }
+
                     /* The event about to be sent to the TCP/IP is an Rx event. */
                     xRxEvent.eEventType = eNetworkRxEvent;
 
@@ -298,6 +344,15 @@ static void prvEMACDeferredInterruptHandlerTask( void * pvParameters )
                     /* Send the data to the TCP/IP stack. */
                     if( xSendEventStructToIPTask( &xRxEvent, 0 ) == pdFALSE )
                     {
+                        if( xLogDNSFrame != pdFALSE )
+                        {
+                            FreeRTOS_printf( ( "NI RX DNS frame lost before IP task %s:%u -> %s:%u\r\n",
+                                               cSourceIP,
+                                               usSourcePort,
+                                               cDestinationIP,
+                                               usDestinationPort ) );
+                        }
+
                         /* The buffer could not be sent to the IP task so the buffer must be released. */
                         vReleaseNetworkBufferAndDescriptor( pxBufferDescriptor );
 
@@ -315,6 +370,15 @@ static void prvEMACDeferredInterruptHandlerTask( void * pvParameters )
                 }
                 else
                 {
+                    if( xLogDNSFrame != pdFALSE )
+                    {
+                        FreeRTOS_printf( ( "NI RX DNS frame rejected by eConsiderFrameForProcessing %s:%u -> %s:%u\r\n",
+                                           cSourceIP,
+                                           usSourcePort,
+                                           cDestinationIP,
+                                           usDestinationPort ) );
+                    }
+
                     /* The Ethernet frame can be dropped, but the Ethernet buffer must be released. */
                     vReleaseNetworkBufferAndDescriptor( pxBufferDescriptor );
                 }

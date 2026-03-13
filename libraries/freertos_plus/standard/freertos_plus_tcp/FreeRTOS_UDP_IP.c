@@ -294,12 +294,33 @@ BaseType_t xProcessReceivedUDPPacket( NetworkBufferDescriptor_t * pxNetworkBuffe
 
     /* Map the ethernet buffer to the UDPPacket_t struct for easy access to the fields. */
     const UDPPacket_t * pxUDPPacket = ipCAST_CONST_PTR_TO_CONST_TYPE_PTR( UDPPacket_t, pxNetworkBuffer->pucEthernetBuffer );
+    const uint16_t usSourcePort = FreeRTOS_ntohs( pxUDPPacket->xUDPHeader.usSourcePort );
+    const BaseType_t xLogDNSPacket = ( ( usSourcePort == ipDNS_PORT ) || ( usPort == ipDNS_PORT ) ) ? pdTRUE : pdFALSE;
+
+    if( xLogDNSPacket != pdFALSE )
+    {
+        char cSourceIP[ 16 ] = { 0 };
+        char cDestinationIP[ 16 ] = { 0 };
+        ( void ) FreeRTOS_inet_ntoa( pxUDPPacket->xIPHeader.ulSourceIPAddress, cSourceIP );
+        ( void ) FreeRTOS_inet_ntoa( pxUDPPacket->xIPHeader.ulDestinationIPAddress, cDestinationIP );
+        FreeRTOS_printf( ( "UDP RX DNS packet %s:%u -> %s:%u\r\n",
+                           cSourceIP,
+                           usSourcePort,
+                           cDestinationIP,
+                           usPort ) );
+    }
 
     /* Caller must check for minimum packet size. */
     pxSocket = pxUDPSocketLookup( usPort );
 
     if( pxSocket != NULL )
     {
+        if( xLogDNSPacket != pdFALSE )
+        {
+            FreeRTOS_printf( ( "UDP RX DNS socket lookup hit local port %u\r\n",
+                               usPort ) );
+        }
+
         /* When refreshing the ARP cache with received UDP packets we must be
          * careful;  hundreds of broadcast messages may pass and if we're not
          * handling them, no use to fill the ARP cache with those IP addresses. */
@@ -400,6 +421,13 @@ BaseType_t xProcessReceivedUDPPacket( NetworkBufferDescriptor_t * pxNetworkBuffe
     }
     else
     {
+        if( xLogDNSPacket != pdFALSE )
+        {
+            FreeRTOS_printf( ( "UDP RX DNS socket lookup miss local port %u source port %u\r\n",
+                               usPort,
+                               usSourcePort ) );
+        }
+
         /* There is no socket listening to the target port, but still it might
          * be for this node. */
 
