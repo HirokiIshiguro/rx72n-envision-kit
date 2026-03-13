@@ -1268,6 +1268,7 @@ prepare_ota:
     - if: $RUN_PHASE8B_BASELINE == "true"
       when: never
     - if: $RUN_PHASE8B_OTA == "true"
+      when: never
     - if: $RUN_HW_HEALTHCHECK == "true"
       when: never
     - if: $RUN_OTA_TEST == "true"
@@ -1436,6 +1437,7 @@ ota_monitor:
     - if: $RUN_PHASE8B_BASELINE == "true"
       when: never
     - if: $RUN_PHASE8B_OTA == "true"
+      when: never
     - if: $RUN_HW_HEALTHCHECK == "true"
       when: never
     - if: $RUN_OTA_TEST == "true"
@@ -1480,6 +1482,7 @@ ota_finalize:
     - if: $RUN_PHASE8B_BASELINE == "true"
       when: never
     - if: $RUN_PHASE8B_OTA == "true"
+      when: never
     - if: $RUN_HW_HEALTHCHECK == "true"
       when: never
     - if: $RUN_OTA_TEST == "true"
