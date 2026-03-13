@@ -40,6 +40,7 @@ Dependencies:
 
 import argparse
 import os
+import subprocess
 import sys
 import threading
 import time
@@ -61,6 +62,7 @@ DEFAULT_TIMEOUT = 300  # 5 minutes (1.8MB at 921600 = ~20s + flash write time)
 # UART send chunk size (bytes)
 # Large enough for efficiency, small enough to allow progress monitoring
 SEND_CHUNK_SIZE = 4096
+DEFAULT_INTER_CHUNK_DELAY = 0.0
 
 # Key messages from boot_loader
 MSG_INSTALLING_FW = "installing firmware"
@@ -74,15 +76,23 @@ MSG_CHECK_NG = "...NG"
 MSG_CONST_DATA = "installing const data"
 MSG_COMPLETED_CONST = "completed installing const data"
 MSG_SW_RESET = "software reset"
-MSG_JUMP_USER = "jump to user program"
-MSG_READY = "send \"userprog.rsu\" via UART."
+MSG_ERROR = "error occurred"
+DEFAULT_SUCCESS_MESSAGE = "jump to user program"
+DEFAULT_READY_MESSAGE = "send \"userprog.rsu\" via UART."
+DEFAULT_WRITE_ACK_PREFIX = "W 0x"
 
 
 class UartDownloader:
     """Send .rsu firmware to boot loader via UART and monitor progress."""
 
     def __init__(self, port, baud, timeout, post_tx_wait=30, diag=False,
-                 wait_for_ready=False, ready_timeout=60):
+                 wait_for_ready=False, ready_timeout=60,
+                 ready_message=DEFAULT_READY_MESSAGE,
+                 success_message=DEFAULT_SUCCESS_MESSAGE,
+                 success_timeout=30, reset_cmd=None, reset_settle=0.2,
+                 send_chunk_size=SEND_CHUNK_SIZE, inter_chunk_delay=DEFAULT_INTER_CHUNK_DELAY,
+                 rtscts=False, ack_each_chunk=False,
+                 ack_prefix=DEFAULT_WRITE_ACK_PREFIX, ack_timeout=10.0):
         self.port_name = port
         self.baud = baud
         self.timeout = timeout
@@ -90,6 +100,17 @@ class UartDownloader:
         self.diag = diag
         self.wait_for_ready = wait_for_ready
         self.ready_timeout = ready_timeout
+        self.ready_message = ready_message
+        self.success_message = success_message
+        self.success_timeout = success_timeout
+        self.reset_cmd = reset_cmd
+        self.reset_settle = reset_settle
+        self.send_chunk_size = send_chunk_size
+        self.inter_chunk_delay = inter_chunk_delay
+        self.rtscts = rtscts
+        self.ack_each_chunk = ack_each_chunk
+        self.ack_prefix = ack_prefix
+        self.ack_timeout = ack_timeout
         self.ser = None
         self.rx_buffer = ""
         self.messages = []
@@ -97,6 +118,10 @@ class UartDownloader:
         self.send_error = None
         self.bytes_sent = 0
         self.total_bytes = 0
+        self.total_chunks = 0
+        self.chunks_sent = 0
+        self.write_ack_count = 0
+        self.pending_chunk_deadline = None
         self.start_time = 0
         self.tx_complete_time = None
         self._lock = threading.Lock()
@@ -112,6 +137,7 @@ class UartDownloader:
             stopbits=serial.STOPBITS_ONE,
             timeout=0.1,  # read timeout for non-blocking reads
             write_timeout=10,
+            rtscts=self.rtscts,
         )
         # Flush any stale data
         self.ser.reset_input_buffer()
@@ -124,6 +150,27 @@ class UartDownloader:
             self.ser.close()
             print(f"Port closed: {self.port_name}")
 
+    def trigger_reset(self):
+        """Reset the board after UART is opened so one-shot boot banners are captured."""
+        if not self.reset_cmd:
+            return
+        print(f"Triggering reset command: {self.reset_cmd}")
+        result = subprocess.run(
+            self.reset_cmd,
+            shell=True,
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        if result.stdout.strip():
+            print(result.stdout.strip())
+        if result.stderr.strip():
+            print(result.stderr.strip())
+        if result.returncode != 0:
+            raise RuntimeError(f"reset command failed with exit status {result.returncode}")
+        if self.reset_settle > 0:
+            time.sleep(self.reset_settle)
+
     def send_thread(self, rsu_data):
         """
         Thread function: send .rsu data in chunks.
@@ -132,9 +179,11 @@ class UartDownloader:
         try:
             offset = 0
             while offset < len(rsu_data):
-                chunk = rsu_data[offset:offset + SEND_CHUNK_SIZE]
+                chunk = rsu_data[offset:offset + self.send_chunk_size]
                 self.ser.write(chunk)
                 offset += len(chunk)
+                if self.inter_chunk_delay > 0:
+                    time.sleep(self.inter_chunk_delay)
                 with self._lock:
                     self.bytes_sent = offset
         except Exception as e:
@@ -163,6 +212,8 @@ class UartDownloader:
                     if line:
                         lines.append(line)
                         self.messages.append(line)
+                        if self.ack_each_chunk and line.startswith(self.ack_prefix):
+                            self.write_ack_count += 1
 
                 # Also check for \r-only lines (progress updates use \r)
                 if '\r' in self.rx_buffer and '\n' not in self.rx_buffer:
@@ -175,10 +226,29 @@ class UartDownloader:
                             # Don't add progress lines to messages (too many)
                             if MSG_INSTALLING_FW not in part and MSG_CONST_DATA not in part:
                                 self.messages.append(part)
+                            if self.ack_each_chunk and part.startswith(self.ack_prefix):
+                                self.write_ack_count += 1
                     self.rx_buffer = parts[-1]
         except serial.SerialException:
             pass
         return lines
+
+    def send_next_chunk(self, rsu_data):
+        """Send one chunk when per-chunk ACK pacing is enabled."""
+        if self.bytes_sent >= self.total_bytes:
+            return
+
+        chunk = rsu_data[self.bytes_sent:self.bytes_sent + self.send_chunk_size]
+        self.ser.write(chunk)
+        if self.inter_chunk_delay > 0:
+            time.sleep(self.inter_chunk_delay)
+
+        with self._lock:
+            self.bytes_sent += len(chunk)
+            self.chunks_sent += 1
+            if self.bytes_sent >= self.total_bytes:
+                self.send_complete = True
+            self.pending_chunk_deadline = time.time() + self.ack_timeout
 
     def download(self, rsu_path):
         """
@@ -191,6 +261,7 @@ class UartDownloader:
         # Read .rsu file
         rsu_data = rsu_path.read_bytes()
         self.total_bytes = len(rsu_data)
+        self.total_chunks = (self.total_bytes + self.send_chunk_size - 1) // self.send_chunk_size
         print(f"\n=== UART Download ===")
         print(f"  File:     {rsu_path}")
         print(f"  Size:     {self.total_bytes:,} bytes ({self.total_bytes/1024:.1f} KB)")
@@ -198,10 +269,16 @@ class UartDownloader:
         estimated_sec = self.total_bytes * 10 / self.baud
         print(f"  Est time: {estimated_sec:.0f}s ({estimated_sec/60:.1f} min) for transfer")
         print(f"  Timeout:  {self.timeout}s")
+        print(f"  Chunk:    {self.send_chunk_size} bytes")
+        print(f"  Delay:    {self.inter_chunk_delay:.3f}s")
+        print(f"  RTS/CTS:  {'ON' if self.rtscts else 'OFF'}")
+        print(f"  Ack mode: {'per-chunk' if self.ack_each_chunk else 'streaming'}")
         print()
 
         self.open_port()
         self.start_time = time.time()
+
+        self.trigger_reset()
 
         # Brief pause to let boot_loader settle
         time.sleep(0.5)
@@ -224,12 +301,12 @@ class UartDownloader:
             print(f"Waiting for boot_loader ready signal (timeout={self.ready_timeout}s)...")
             ready_start = time.time()
             rx_buf = drain_data.decode('ascii', errors='replace') if drain_data else ""
-            ready_found = MSG_READY in rx_buf
+            ready_found = self.ready_message in rx_buf
             while not ready_found:
                 elapsed = time.time() - ready_start
                 if elapsed > self.ready_timeout:
                     print(f"TIMEOUT: boot_loader ready signal not detected after {self.ready_timeout}s")
-                    print(f"  Expected: '{MSG_READY}'")
+                    print(f"  Expected: '{self.ready_message}'")
                     print(f"  Received so far: {rx_buf[-200:]}")
                     self.close_port()
                     return 1
@@ -243,24 +320,29 @@ class UartDownloader:
                         line = line.strip('\r').strip()
                         if line:
                             print(f"  [{elapsed:.1f}s] {line}")
-                    if MSG_READY in rx_buf:
+                    if self.ready_message in rx_buf:
                         ready_found = True
                         print(f"  Boot_loader ready ({elapsed:.1f}s)")
                 time.sleep(0.05)
 
         # Start send thread
         print(f"Sending {self.total_bytes:,} bytes...")
-        sender = threading.Thread(target=self.send_thread, args=(rsu_data,), daemon=True)
-        sender.start()
+        sender = None
+        if self.ack_each_chunk:
+            self.send_next_chunk(rsu_data)
+        else:
+            sender = threading.Thread(target=self.send_thread, args=(rsu_data,), daemon=True)
+            sender.start()
 
         # Monitor loop
         fw_completed = False
         integrity_ok = False
         const_completed = False
         sw_reset = False
-        jump_user = False
+        success_message_seen = False
         last_progress_print = 0
-        post_reset_timeout = 30  # seconds to wait after sw reset for "jump to user program"
+        last_ack_report = 0
+        post_reset_timeout = self.success_timeout
         post_reset_start = None
 
         while True:
@@ -276,7 +358,9 @@ class UartDownloader:
             lines = self.read_uart()
             for line in lines:
                 # Print significant messages
-                if MSG_INSTALLING_FW in line:
+                if self.ack_each_chunk and line.startswith(self.ack_prefix):
+                    pass
+                elif MSG_INSTALLING_FW in line:
                     # Progress update — print periodically
                     if time.time() - last_progress_print > 5:
                         print(f"  [{elapsed:6.1f}s] {line}")
@@ -297,13 +381,29 @@ class UartDownloader:
                     print(f"\nERROR: Firmware integrity check FAILED")
                     self.close_port()
                     return 1
+                elif MSG_ERROR in line.lower():
+                    print(f"\nERROR: Boot loader reported failure: {line}")
+                    self.close_port()
+                    return 1
                 elif MSG_COMPLETED_CONST in line:
                     const_completed = True
                 elif MSG_SW_RESET in line:
                     sw_reset = True
                     post_reset_start = time.time()
-                elif MSG_JUMP_USER in line:
-                    jump_user = True
+                elif self.success_message in line:
+                    success_message_seen = True
+
+            if self.ack_each_chunk:
+                while not self.send_error and self.chunks_sent < self.total_chunks and self.write_ack_count >= self.chunks_sent:
+                    self.send_next_chunk(rsu_data)
+
+                if self.chunks_sent > self.write_ack_count and self.pending_chunk_deadline:
+                    if time.time() > self.pending_chunk_deadline:
+                        pending = self.chunks_sent - self.write_ack_count
+                        self.send_error = (
+                            f"Timed out waiting for write acknowledgement "
+                            f"({self.write_ack_count}/{self.total_chunks} ACK, {pending} chunk pending)"
+                        )
 
             # Print send progress and detect TX completion
             with self._lock:
@@ -313,10 +413,19 @@ class UartDownloader:
                 pct = sent * 100 / self.total_bytes
                 if self.diag and time.time() - last_progress_print > 10:
                     print(f"  [{elapsed:6.1f}s] TX: {sent:,}/{self.total_bytes:,} bytes ({pct:.0f}%)")
+                    if self.ack_each_chunk:
+                        print(f"  [{elapsed:6.1f}s] ACK: {self.write_ack_count}/{self.total_chunks} chunks")
+                    last_progress_print = time.time()
             elif tx_done and self.tx_complete_time is None and not self.send_error:
                 self.tx_complete_time = time.time()
                 print(f"  [{elapsed:6.1f}s] TX complete: {sent:,} bytes sent")
                 print(f"  [{elapsed:6.1f}s] Waiting up to {self.post_tx_wait}s for boot_loader response...")
+
+            if self.ack_each_chunk and self.diag and self.write_ack_count != last_ack_report:
+                if self.write_ack_count <= 4 or self.write_ack_count == self.total_chunks or self.write_ack_count % 256 == 0:
+                    pct = self.write_ack_count * 100 / self.total_chunks
+                    print(f"  [{elapsed:6.1f}s] ACK: {self.write_ack_count}/{self.total_chunks} chunks ({pct:.0f}%)")
+                    last_ack_report = self.write_ack_count
 
             # Check if send failed
             if self.send_error:
@@ -342,7 +451,7 @@ class UartDownloader:
 
             # Success condition: firmware installed + verified + data flash + reset
             if sw_reset:
-                if jump_user:
+                if success_message_seen:
                     # Full success — aws_demos is booting
                     elapsed = time.time() - self.start_time
                     print(f"\n=== Download Complete ===")
@@ -350,12 +459,12 @@ class UartDownloader:
                     print(f"  Integrity check:   {'PASS' if integrity_ok else 'UNKNOWN'}")
                     print(f"  Const data:        {'YES' if const_completed else 'NO'}")
                     print(f"  Software reset:    YES")
-                    print(f"  Jump to user:      YES")
+                    print(f"  Success marker:    YES ({self.success_message})")
                     print(f"  Total time:        {elapsed:.1f}s ({elapsed/60:.1f} min)")
                     self.close_port()
                     return 0
 
-                # After sw_reset, wait limited time for "jump to user program"
+                # After sw_reset, wait limited time for the configured success marker.
                 if post_reset_start and (time.time() - post_reset_start > post_reset_timeout):
                     # Timeout waiting for jump, but download itself succeeded
                     elapsed = time.time() - self.start_time
@@ -364,9 +473,9 @@ class UartDownloader:
                     print(f"  Integrity check:   {'PASS' if integrity_ok else 'UNKNOWN'}")
                     print(f"  Const data:        {'YES' if const_completed else 'NO'}")
                     print(f"  Software reset:    YES")
-                    print(f"  Jump to user:      NO (timeout after {post_reset_timeout}s)")
+                    print(f"  Success marker:    NO (timeout after {post_reset_timeout}s)")
                     print(f"  Total time:        {elapsed:.1f}s ({elapsed/60:.1f} min)")
-                    print(f"\nWARNING: 'jump to user program' not detected, but download completed.")
+                    print(f"\nWARNING: Success marker '{self.success_message}' not detected, but download completed.")
                     print(f"  This may be normal if the user program does not output to UART,")
                     print(f"  or if boot_loader does bank swap before printing this message.")
                     self.close_port()
@@ -399,6 +508,28 @@ def main():
                              "Required when boot_loader was just flashed in the same job.")
     parser.add_argument("--ready-timeout", type=int, default=60,
                         help="Timeout for boot_loader ready signal in seconds (default: 60)")
+    parser.add_argument("--ready-message", default=DEFAULT_READY_MESSAGE,
+                        help=f"Boot loader ready message to wait for (default: {DEFAULT_READY_MESSAGE})")
+    parser.add_argument("--success-message", default=DEFAULT_SUCCESS_MESSAGE,
+                        help=f"Success marker expected after software reset (default: {DEFAULT_SUCCESS_MESSAGE})")
+    parser.add_argument("--success-timeout", type=int, default=30,
+                        help="Seconds to wait for success marker after software reset (default: 30)")
+    parser.add_argument("--reset-cmd",
+                        help="Command to execute after opening UART, before waiting for the ready message")
+    parser.add_argument("--reset-settle", type=float, default=0.2,
+                        help="Seconds to wait after reset command completes (default: 0.2)")
+    parser.add_argument("--send-chunk-size", type=int, default=SEND_CHUNK_SIZE,
+                        help=f"UART TX chunk size in bytes (default: {SEND_CHUNK_SIZE})")
+    parser.add_argument("--inter-chunk-delay", type=float, default=DEFAULT_INTER_CHUNK_DELAY,
+                        help=f"Delay after each UART TX chunk in seconds (default: {DEFAULT_INTER_CHUNK_DELAY})")
+    parser.add_argument("--rtscts", action="store_true",
+                        help="Enable hardware RTS/CTS flow control")
+    parser.add_argument("--ack-each-chunk", action="store_true",
+                        help="Send one chunk at a time and wait for a boot_loader write acknowledgement before sending the next chunk")
+    parser.add_argument("--ack-prefix", default=DEFAULT_WRITE_ACK_PREFIX,
+                        help=f"UART line prefix that acknowledges one write chunk (default: {DEFAULT_WRITE_ACK_PREFIX})")
+    parser.add_argument("--ack-timeout", type=float, default=10.0,
+                        help="Seconds to wait for the next write acknowledgement in --ack-each-chunk mode (default: 10.0)")
 
     args = parser.parse_args()
 
@@ -414,6 +545,17 @@ def main():
         diag=args.diag,
         wait_for_ready=args.wait_for_ready,
         ready_timeout=args.ready_timeout,
+        ready_message=args.ready_message,
+        success_message=args.success_message,
+        success_timeout=args.success_timeout,
+        reset_cmd=args.reset_cmd,
+        reset_settle=args.reset_settle,
+        send_chunk_size=args.send_chunk_size,
+        inter_chunk_delay=args.inter_chunk_delay,
+        rtscts=args.rtscts,
+        ack_each_chunk=args.ack_each_chunk,
+        ack_prefix=args.ack_prefix,
+        ack_timeout=args.ack_timeout,
     )
 
     try:

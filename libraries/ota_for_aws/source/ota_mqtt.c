@@ -31,6 +31,9 @@
 #include <stdlib.h>
 #include <assert.h>
 
+/* FreeRTOS includes. */
+#include "FreeRTOS.h"
+
 /* OTA includes. */
 #include "ota.h"
 #include "ota_private.h"
@@ -47,6 +50,14 @@
 
 /* Agent to Job Service status message constants. */
 #define OTA_STATUS_MSG_MAX_SIZE      128U               /*!< Max length of a job status message to the service. */
+
+static void logHeapState( const char * pTag )
+{
+    LogInfo( ( "Heap[%s]: current=%u lowest=%u",
+               pTag,
+               ( unsigned int ) xPortGetFreeHeapSize(),
+               ( unsigned int ) xPortGetMinimumEverFreeHeapSize() ) );
+}
 
 /**
  *  @brief Topic strings used by the OTA process.
@@ -1113,6 +1124,7 @@ OtaErr_t requestFileBlock_Mqtt( OtaAgentContext_t * pAgentCtx )
 
     /* Reset number of blocks requested. */
     pAgentCtx->numOfBlocksToReceive = otaconfigMAX_NUM_BLOCKS_REQUEST;
+    logHeapState( "ota_mqtt_request_file_block" );
 
     numBlocks = ( pFileContext->fileSize + ( OTA_FILE_BLOCK_SIZE - 1U ) ) >> otaconfigLOG2_FILE_BLOCK_SIZE;
     bitmapLen = ( numBlocks + ( BITS_PER_BYTE - 1U ) ) >> LOG2_BITS_PER_BYTE;

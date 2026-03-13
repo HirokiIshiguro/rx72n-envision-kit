@@ -11,6 +11,9 @@ stages:
   - ota_run
   - ota_finalize
 
+include:
+  - local: ".gitlab-phase8b.yml"
+
 # MR パイプライン (merge_request_event) を抑止。
 # rules: 付きジョブと rules: なしジョブが混在すると、MR パイプラインで
 # needs: の依存先が見つからず即座に失敗するため、ブランチパイプラインのみ使用する。
