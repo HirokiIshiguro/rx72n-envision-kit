@@ -107,6 +107,7 @@ void get_random_number( uint8_t * data,
                         uint32_t len );
 
 void prvLinkStatusChange( BaseType_t xStatus );
+extern uint8_t g_ucNetworkInterfaceMACAddress[ 6 ];
 
 /***********************************************************************************************************************
  * Function Name: xNetworkInterfaceInitialise ()
@@ -481,15 +482,6 @@ static int InitializeNetwork( void )
     ether_return_t eth_ret;
     BaseType_t return_code = pdFALSE;
     ether_param_t param;
-    uint8_t myethaddr[ 6 ] =
-    {
-        configMAC_ADDR0,
-        configMAC_ADDR1,
-        configMAC_ADDR2,
-        configMAC_ADDR3,
-        configMAC_ADDR4,
-        configMAC_ADDR5
-    }; /*XXX Fix me */
 
     R_ETHER_PinSet_CHANNEL_0();
     R_ETHER_Initial();
@@ -503,7 +495,7 @@ static int InitializeNetwork( void )
         return pdFALSE;
     }
 
-    eth_ret = R_ETHER_Open_ZC2( ETHER_CHANNEL_0, myethaddr, ETHER_FLAG_OFF );
+    eth_ret = R_ETHER_Open_ZC2( ETHER_CHANNEL_0, g_ucNetworkInterfaceMACAddress, ETHER_FLAG_OFF );
 
     if( ETHER_SUCCESS != eth_ret )
     {

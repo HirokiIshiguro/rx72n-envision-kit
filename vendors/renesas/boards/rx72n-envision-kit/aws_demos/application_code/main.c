@@ -68,6 +68,16 @@ static uint8_t ucMACAddress[ 6 ] =
     configMAC_ADDR5
 }; //XXX
 
+uint8_t g_ucNetworkInterfaceMACAddress[ 6 ] =
+{
+    configMAC_ADDR0,
+    configMAC_ADDR1,
+    configMAC_ADDR2,
+    configMAC_ADDR3,
+    configMAC_ADDR4,
+    configMAC_ADDR5
+};
+
 /* Define the network addressing.  These parameters will be used if either
 ipconfigUDE_DHCP is 0 or if ipconfigUSE_DHCP is 1 but DHCP auto configuration
 failed. */
@@ -114,6 +124,7 @@ static void prvMiscInitialization( void );
 static BaseType_t prvParseMacAddressString( const char * pcMacAddressString,
                                             uint8_t ucParsedMacAddress[ 6 ] );
 static void prvLoadMacAddressFromDataFlash( void );
+static void prvPublishMacAddressToNetworkInterface( void );
 /*-----------------------------------------------------------*/
 
 /**
@@ -248,6 +259,12 @@ static void prvLoadMacAddressFromDataFlash( void )
 }
 /*-----------------------------------------------------------*/
 
+static void prvPublishMacAddressToNetworkInterface( void )
+{
+    ( void ) memcpy( g_ucNetworkInterfaceMACAddress, ucMACAddress, sizeof( ucMACAddress ) );
+}
+/*-----------------------------------------------------------*/
+
 void vApplicationDaemonTaskStartupHook( void )
 {
     prvMiscInitialization();
@@ -255,6 +272,7 @@ void vApplicationDaemonTaskStartupHook( void )
     if( SYSTEM_Init() == pdPASS )
     {
         prvLoadMacAddressFromDataFlash();
+        prvPublishMacAddressToNetworkInterface();
 
         /* Initialise the RTOS's TCP/IP stack.  The tasks that use the network
         are created in the vApplicationIPNetworkEventHook() hook function
