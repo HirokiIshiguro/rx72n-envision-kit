@@ -664,8 +664,19 @@ confirm_aws_mqtt:
       bash "$CI_PROJECT_DIR/tools/ci/validate_pi_serial_path.sh" COMMAND_PORT UART_PORT
       echo "=== AWS IoT Core MQTT Connectivity Test ==="
       echo "  Device ID: $DEVICE_ID"
-      python3 "$CI_PROJECT_DIR/test_scripts/uart_test/test_aws_connectivity.py" \
-        --device-id "$DEVICE_ID" --timeout 120
+      capture_dir="$CI_PROJECT_DIR/packet_capture"
+      capture_prefix="$capture_dir/${DEVICE_ID}_confirm_aws_mqtt"
+      bash "$CI_PROJECT_DIR/tools/ci/with_pi_packet_capture.sh" "$capture_prefix" \
+        python3 "$CI_PROJECT_DIR/test_scripts/uart_test/test_aws_connectivity.py" \
+          --device-id "$DEVICE_ID" --timeout 120
+  artifacts:
+    when: always
+    paths:
+      - packet_capture/*.pcapng
+      - packet_capture/*.summary.txt
+      - packet_capture/*.meta.txt
+      - packet_capture/*.capture.log
+    expire_in: 1 week
 
 test_sd_update:
   stage: test
