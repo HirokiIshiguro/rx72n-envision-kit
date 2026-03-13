@@ -114,6 +114,11 @@ variables:
   # build_ota → prepare_ota → ota_create_job/ota_monitor → ota_finalize のみ実行する。
   # OTA デバッグ中のイテレーション高速化用。安定後は "false" に戻すこと。
   RUN_OTA_ONLY: "false"
+  # RUN_PREPARE_OTA_ONLY: build_ota -> prepare_ota のみを実行する最小再現モード。
+  # RUN_OTA_ONLY=true と併用し、ota_create_job / ota_monitor / ota_finalize を止める。
+  RUN_PREPARE_OTA_ONLY: "false"
+  # RUN_ONLY_DEVICE_SLOT: "01" / "02" / "03" を指定すると、対応する matrix slot のみ実行する。
+  RUN_ONLY_DEVICE_SLOT: ""
 
 .pi_device_job:
   tags:
@@ -364,6 +369,8 @@ build_phase8b:
   tags:
     - run_ishiguro_machine
   rules:
+    - if: $RUN_PREPARE_OTA_ONLY == "true"
+      when: never
     - if: $RUN_RFP_SOAK_TEST == "true"
       when: never
     - if: $RUN_PHASE8B_OTA == "true"
@@ -402,6 +409,8 @@ build_phase8b_ota:
   tags:
     - run_ishiguro_machine
   rules:
+    - if: $RUN_PREPARE_OTA_ONLY == "true"
+      when: never
     - if: $RUN_RFP_SOAK_TEST == "true"
       when: never
     - if: $RUN_PHASE8B_OTA == "true"
@@ -1350,6 +1359,9 @@ prepare_ota:
     - .rx72n_set_matrix
   timeout: 5 minutes
   rules:
+    - if: '$RUN_ONLY_DEVICE_SLOT != "" && $RUN_ONLY_DEVICE_SLOT != $DEVICE_SLOT'
+      when: never
+    - if: $RUN_PREPARE_OTA_ONLY == "true"
     - if: $RUN_RFP_SOAK_TEST == "true"
       when: never
     - if: $RUN_PHASE8B_BUILD_ONLY == "true"
@@ -1491,6 +1503,8 @@ ota_create_job:
     - .rx72n_set_matrix
   timeout: 10 minutes
   rules:
+    - if: $RUN_PREPARE_OTA_ONLY == "true"
+      when: never
     - if: $RUN_RFP_SOAK_TEST == "true"
       when: never
     - if: $RUN_PHASE8B_BUILD_ONLY == "true"
@@ -1532,6 +1546,8 @@ ota_monitor:
     - .rx72n_set_matrix
   timeout: 15 minutes
   rules:
+    - if: $RUN_PREPARE_OTA_ONLY == "true"
+      when: never
     - if: $RUN_RFP_SOAK_TEST == "true"
       when: never
     - if: $RUN_PHASE8B_BUILD_ONLY == "true"
@@ -1579,6 +1595,8 @@ ota_finalize:
   timeout: 10 minutes
   when: always
   rules:
+    - if: $RUN_PREPARE_OTA_ONLY == "true"
+      when: never
     - if: $RUN_RFP_SOAK_TEST == "true"
       when: never
     - if: $RUN_PHASE8B_BUILD_ONLY == "true"
