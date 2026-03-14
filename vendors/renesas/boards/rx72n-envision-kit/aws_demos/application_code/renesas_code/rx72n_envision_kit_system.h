@@ -63,6 +63,7 @@
 #define DATAFLASH_LABEL_NAME_CLIENT_CERTIFICATE "client_certificate"
 #define DATAFLASH_LABEL_NAME_IOT_THING_NAME "iot_thing_name"
 #define DATAFLASH_LABEL_NAME_MQTT_BROKER_ENDPOINT "mqtt_broker_endpoint"
+#define DATAFLASH_LABEL_NAME_MAC_ADDRESS "mac_address"
 #define DATAFLASH_LABEL_NAME_CODE_SIGNER_CERTIFICATE "code_signer_certificate"
 #define DATAFLASH_LABEL_NAME_TCP_SEND_PERFORMANCE_SERVER_IP_ADDRESS "tcp_send_performance_server_ip_address"
 #define DATAFLASH_LABEL_NAME_TCP_SEND_PERFORMANCE_SERVER_PORT_NUMBER "tcp_send_performance_server_port_number"
@@ -160,6 +161,7 @@ extern const char client_private_key_label[];
 extern const char client_certificate_label[];
 extern const char iot_thing_name_label[];
 extern const char mqtt_broker_endpoint_label[];
+extern const char mac_address_label[];
 extern const char code_signer_certificate_label[];
 extern const char tcp_send_performance_server_ip_address_label[];
 extern const char tcp_send_performance_server_port_number_label[];

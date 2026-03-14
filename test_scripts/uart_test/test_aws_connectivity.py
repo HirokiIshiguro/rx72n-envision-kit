@@ -48,6 +48,12 @@ class MilestoneMonitor:
                 re.compile(r"network is up", re.IGNORECASE),
             ],
         },
+        "dns_server": {
+            "description": "DNS server configuration observed",
+            "patterns": [
+                re.compile(r"DNS\s*Server\s*Address:\s*\d+\.\d+\.\d+\.\d+", re.IGNORECASE),
+            ],
+        },
         "tls_connection": {
             "description": "TLS connection established",
             "patterns": [
@@ -71,11 +77,24 @@ class MilestoneMonitor:
         re.compile(r"Failed to establish MQTT", re.IGNORECASE),
         re.compile(r"TLS.+failed", re.IGNORECASE),
         re.compile(r"Certificate verification failed", re.IGNORECASE),
+        re.compile(r"DNS resolution failed", re.IGNORECASE),
+        re.compile(r"Failed to connect to server", re.IGNORECASE),
+    ]
+
+    INFO_PATTERNS = [
+        re.compile(r"System time has been initialized", re.IGNORECASE),
+        re.compile(r"build timestamp", re.IGNORECASE),
+        re.compile(r"DNS\s*Server\s*Address:", re.IGNORECASE),
+        re.compile(r"DNS query attempt", re.IGNORECASE),
+        re.compile(r"DNS recvfrom returned", re.IGNORECASE),
+        re.compile(r"DNS sendto failed", re.IGNORECASE),
+        re.compile(r"DNS reply received", re.IGNORECASE),
     ]
 
     def __init__(self):
         self.detected = {}
         self.errors = []
+        self.info_lines = []
         self.all_lines = []
         self.rx_bytes_total = 0  # COM7 受信バイト数（診断用）
         self.lock = threading.Lock()
@@ -105,6 +124,12 @@ class MilestoneMonitor:
                     self.errors.append(line.strip())
                     print(f"[ERROR] {line.strip()}")
 
+            for pattern in self.INFO_PATTERNS:
+                if pattern.search(line):
+                    self.info_lines.append(line.strip())
+                    print(f"[INFO-LINE] {line.strip()}")
+                    break
+
     def all_detected(self):
         """全マイルストーンが検出されたか"""
         with self.lock:
@@ -119,7 +144,7 @@ class MilestoneMonitor:
                     report.append((name, True, info["description"], self.detected[name]["line"]))
                 else:
                     report.append((name, False, info["description"], ""))
-            return report, self.errors
+            return report, self.errors, list(self.info_lines)
 
 
 def log_monitor_thread(ser, monitor):
@@ -340,7 +365,7 @@ def main():
                 last_status = int(elapsed) // 30
                 with monitor.lock:
                     rx_total = monitor.rx_bytes_total
-                report, errors = monitor.get_report()
+                report, errors, _ = monitor.get_report()
                 detected = sum(1 for _, ok, _, _ in report if ok)
                 print(f"[INFO] {elapsed:.0f}s elapsed: {detected}/{len(report)} milestones, "
                       f"COM7 RX={rx_total} bytes")
@@ -368,7 +393,7 @@ def main():
     # --- 結果レポート ---
     print()
     print("=" * 60)
-    report, errors = monitor.get_report()
+    report, errors, info_lines = monitor.get_report()
     with monitor.lock:
         rx_total = monitor.rx_bytes_total
         line_count = len(monitor.all_lines)
@@ -387,6 +412,12 @@ def main():
         print(f"  Errors detected ({len(errors)}):")
         for err in errors[:5]:
             print(f"    - {err[:80]}")
+
+    if info_lines:
+        print()
+        print(f"  Info lines ({len(info_lines)}):")
+        for line in info_lines[:8]:
+            print(f"    - {line[:120]}")
 
     print("=" * 60)
 
@@ -418,6 +449,12 @@ def main():
             with monitor.lock:
                 for i, line in enumerate(monitor.all_lines[:10]):
                     print(f"  [{i+1}] {line.strip()[:100]}")
+        elif rx_total > 0:
+            print("[DIAG] Last lines received on COM7:")
+            with monitor.lock:
+                tail_lines = monitor.all_lines[-20:]
+            for i, line in enumerate(tail_lines, 1):
+                print(f"  [-{len(tail_lines) - i + 1}] {line.strip()[:120]}")
         sys.exit(1)
 
 

@@ -83,6 +83,8 @@ OTA_MILESTONES = {
             r"Received OtaJobEventStartTest",
             r"Beginning self-test",
             r"In self test mode",
+            r"Created self test update",
+            r'"self_test":"ready"',
         ],
         "required": True,
     },
@@ -864,7 +866,33 @@ def verify_job_status(ota_update_id, region):
         else:
             print(f"[WARN] describe-job failed: {job_result.stderr[:200]}")
 
-    return {"status": status, "error_info": error_info}
+    return {"status": status, "error_info": error_info, "aws_job_id": aws_job_id}
+
+
+def describe_job_execution(job_id, thing_name, region):
+    """Thing 向け IoT Job execution の状態を確認する。"""
+    print(f"[AWS] Checking IoT Job execution: job={job_id}, thing={thing_name}")
+    result = subprocess.run(
+        [
+            "aws", "iot", "describe-job-execution",
+            "--job-id", job_id,
+            "--thing-name", thing_name,
+            "--region", region,
+        ],
+        capture_output=True, text=True
+    )
+    if result.returncode != 0:
+        print(f"[WARN] Could not get IoT Job execution status: {result.stderr[:200]}")
+        return {"status": None, "status_details": None}
+
+    response = json.loads(result.stdout)
+    execution = response.get("execution", {})
+    status = execution.get("status")
+    status_details = execution.get("statusDetails")
+    print(f"[AWS] IoT Job execution status: {status}")
+    if status_details:
+        print(f"[AWS] IoT Job execution details: {json.dumps(status_details, ensure_ascii=False)}")
+    return {"status": status, "status_details": status_details}
 
 
 def wait_for_ota_job_ready(ota_update_id, region, timeout=60):
@@ -1311,6 +1339,7 @@ def run_create_job_mode(args):
         job_result = wait_for_ota_job_ready(ota_update_id, args.region, timeout=60)
         metadata["job_ready_status"] = job_result["status"]
         metadata["job_ready_error_info"] = job_result["error_info"]
+        metadata["job_ready_aws_job_id"] = job_result.get("aws_job_id")
         results["ota_job_ready"] = job_result["status"] != "CREATE_FAILED"
     except subprocess.CalledProcessError as exc:
         metadata["error"] = str(exc)
@@ -1438,6 +1467,7 @@ def run_finalize_mode(args):
     s3_key = metadata.get("s3_key")
     region = metadata.get("region") or args.region or os.environ.get("AWS_DEFAULT_REGION") or "ap-northeast-1"
     ota_update_id = metadata.get("ota_update_id")
+    thing_name = metadata.get("thing_name")
 
     print("=" * 60)
     print("[INFO] AWS IoT OTA finalize phase")
@@ -1461,6 +1491,11 @@ def run_finalize_mode(args):
         if ota_update_id:
             job_result = verify_job_status(ota_update_id, region)
             results["aws_status"] = job_result["status"] is not None
+            aws_job_id = job_result.get("aws_job_id") or metadata.get("job_ready_aws_job_id")
+            if aws_job_id and thing_name:
+                print()
+                print("[STEP 1.5/2] Checking AWS IoT Job execution status")
+                describe_job_execution(aws_job_id, thing_name, region)
         else:
             print("[WARN] ota_update_id not available; skipping AWS status lookup")
     except subprocess.CalledProcessError as exc:

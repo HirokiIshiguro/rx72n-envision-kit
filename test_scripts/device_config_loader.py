@@ -53,6 +53,7 @@ def load_device_config(device_id, config_path=None):
         "command_port": "COMMAND_PORT",
         "log_port": "UART_PORT",
         "e2lite_serial": "E2LITE_SERIAL",
+        "mac_address": "MAC_ADDR",
     }
     for key, env_var in env_overrides.items():
         val = os.environ.get(env_var)

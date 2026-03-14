@@ -41,7 +41,7 @@
 #include "task.h"
 #include "FreeRTOS_IP.h"
 #include "FreeRTOS_IP_Private.h"
-/*#include "FreeRTOS_DNS.h" */
+#include "FreeRTOS_DNS.h"
 #include "NetworkBufferManagement.h"
 #include "NetworkInterface.h"
 
@@ -107,6 +107,7 @@ void get_random_number( uint8_t * data,
                         uint32_t len );
 
 void prvLinkStatusChange( BaseType_t xStatus );
+extern uint8_t g_ucNetworkInterfaceMACAddress[ 6 ];
 
 /***********************************************************************************************************************
  * Function Name: xNetworkInterfaceInitialise ()
@@ -258,6 +259,43 @@ static void prvEMACDeferredInterruptHandlerTask( void * pvParameters )
         }
         else if( xBytesReceived > 0 )
         {
+            BaseType_t xLogDNSFrame = pdFALSE;
+            uint16_t usSourcePort = 0U;
+            uint16_t usDestinationPort = 0U;
+            char cSourceIP[ 16 ] = { 0 };
+            char cDestinationIP[ 16 ] = { 0 };
+
+            if( xBytesReceived >= ( int32_t ) sizeof( UDPPacket_t ) )
+            {
+                const EthernetHeader_t * pxEthernetHeader =
+                    ipCAST_CONST_PTR_TO_CONST_TYPE_PTR( EthernetHeader_t, buffer_pointer );
+
+                if( pxEthernetHeader->usFrameType == ipIPv4_FRAME_TYPE )
+                {
+                    const UDPPacket_t * pxUDPPacket =
+                        ipCAST_CONST_PTR_TO_CONST_TYPE_PTR( UDPPacket_t, buffer_pointer );
+
+                    if( pxUDPPacket->xIPHeader.ucProtocol == ipPROTOCOL_UDP )
+                    {
+                        usSourcePort = FreeRTOS_ntohs( pxUDPPacket->xUDPHeader.usSourcePort );
+                        usDestinationPort = FreeRTOS_ntohs( pxUDPPacket->xUDPHeader.usDestinationPort );
+
+                        if( ( usSourcePort == ipDNS_PORT ) || ( usDestinationPort == ipDNS_PORT ) )
+                        {
+                            xLogDNSFrame = pdTRUE;
+                            ( void ) FreeRTOS_inet_ntoa( pxUDPPacket->xIPHeader.ulSourceIPAddress, cSourceIP );
+                            ( void ) FreeRTOS_inet_ntoa( pxUDPPacket->xIPHeader.ulDestinationIPAddress, cDestinationIP );
+                            FreeRTOS_printf( ( "NI RX DNS frame len=%ld %s:%u -> %s:%u\r\n",
+                                               ( long ) xBytesReceived,
+                                               cSourceIP,
+                                               usSourcePort,
+                                               cDestinationIP,
+                                               usDestinationPort ) );
+                        }
+                    }
+                }
+            }
+
             /* Allocate a network buffer descriptor that points to a buffer
              * large enough to hold the received frame.  As this is the simple
              * rather than efficient example the received data will just be copied
@@ -288,6 +326,15 @@ static void prvEMACDeferredInterruptHandlerTask( void * pvParameters )
                 * to unblock this task for packets that don't need processing. */
                 if( eConsiderFrameForProcessing( pxBufferDescriptor->pucEthernetBuffer ) == eProcessBuffer )
                 {
+                    if( xLogDNSFrame != pdFALSE )
+                    {
+                        FreeRTOS_printf( ( "NI RX DNS frame accepted for IP task %s:%u -> %s:%u\r\n",
+                                           cSourceIP,
+                                           usSourcePort,
+                                           cDestinationIP,
+                                           usDestinationPort ) );
+                    }
+
                     /* The event about to be sent to the TCP/IP is an Rx event. */
                     xRxEvent.eEventType = eNetworkRxEvent;
 
@@ -298,6 +345,15 @@ static void prvEMACDeferredInterruptHandlerTask( void * pvParameters )
                     /* Send the data to the TCP/IP stack. */
                     if( xSendEventStructToIPTask( &xRxEvent, 0 ) == pdFALSE )
                     {
+                        if( xLogDNSFrame != pdFALSE )
+                        {
+                            FreeRTOS_printf( ( "NI RX DNS frame lost before IP task %s:%u -> %s:%u\r\n",
+                                               cSourceIP,
+                                               usSourcePort,
+                                               cDestinationIP,
+                                               usDestinationPort ) );
+                        }
+
                         /* The buffer could not be sent to the IP task so the buffer must be released. */
                         vReleaseNetworkBufferAndDescriptor( pxBufferDescriptor );
 
@@ -315,6 +371,15 @@ static void prvEMACDeferredInterruptHandlerTask( void * pvParameters )
                 }
                 else
                 {
+                    if( xLogDNSFrame != pdFALSE )
+                    {
+                        FreeRTOS_printf( ( "NI RX DNS frame rejected by eConsiderFrameForProcessing %s:%u -> %s:%u\r\n",
+                                           cSourceIP,
+                                           usSourcePort,
+                                           cDestinationIP,
+                                           usDestinationPort ) );
+                    }
+
                     /* The Ethernet frame can be dropped, but the Ethernet buffer must be released. */
                     vReleaseNetworkBufferAndDescriptor( pxBufferDescriptor );
                 }
@@ -417,15 +482,6 @@ static int InitializeNetwork( void )
     ether_return_t eth_ret;
     BaseType_t return_code = pdFALSE;
     ether_param_t param;
-    uint8_t myethaddr[ 6 ] =
-    {
-        configMAC_ADDR0,
-        configMAC_ADDR1,
-        configMAC_ADDR2,
-        configMAC_ADDR3,
-        configMAC_ADDR4,
-        configMAC_ADDR5
-    }; /*XXX Fix me */
 
     R_ETHER_PinSet_CHANNEL_0();
     R_ETHER_Initial();
@@ -439,7 +495,7 @@ static int InitializeNetwork( void )
         return pdFALSE;
     }
 
-    eth_ret = R_ETHER_Open_ZC2( ETHER_CHANNEL_0, myethaddr, ETHER_FLAG_OFF );
+    eth_ret = R_ETHER_Open_ZC2( ETHER_CHANNEL_0, g_ucNetworkInterfaceMACAddress, ETHER_FLAG_OFF );
 
     if( ETHER_SUCCESS != eth_ret )
     {
