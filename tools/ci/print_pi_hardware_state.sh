@@ -10,6 +10,37 @@ if command -v lsusb >/dev/null 2>&1; then
   echo
   echo "--- lsusb ---"
   lsusb
+
+  echo
+  echo "--- lsusb -t ---"
+  lsusb -t || true
+fi
+
+if command -v rfp-cli >/dev/null 2>&1; then
+  echo
+  echo "--- rfp-cli -list-tools ---"
+  rfp_device="${RFP_STATE_DEVICE:-RX72x}"
+  rfp-cli -device "$rfp_device" -list-tools || true
+fi
+
+if command -v journalctl >/dev/null 2>&1; then
+  echo
+  echo "--- journalctl -k -n 80 ---"
+  if sudo -n true 2>/dev/null; then
+    sudo -n journalctl -k -n 80 --no-pager || true
+  else
+    journalctl -k -n 80 --no-pager || true
+  fi
+fi
+
+if command -v dmesg >/dev/null 2>&1; then
+  echo
+  echo "--- dmesg | tail -n 80 ---"
+  if sudo -n true 2>/dev/null; then
+    sudo -n dmesg | tail -n 80 || true
+  else
+    dmesg | tail -n 80 || true
+  fi
 fi
 
 echo

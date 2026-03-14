@@ -1,0 +1,470 @@
+build_phase8b:
+  stage: build
+  tags:
+    - run_ishiguro_machine
+  rules:
+    - if: $RUN_PHASE8B_OTA == "true"
+      when: never
+    - if: $RUN_PHASE8B_DIRECT_FLASH_DIAG == "true"
+    - if: $RUN_PHASE8B_BUILD_ONLY == "true"
+    - if: $RUN_PHASE8B_BASELINE == "true"
+    - changes:
+        - phase8b/**/*
+        - docs/phase8b-migration-plan.md
+        - CLAUDE.md
+        - tools/ci/build_phase8b_headless.ps1
+        - tools/provision_phase8b.py
+        - tools/test_phase8b_mqtt.py
+        - test_scripts/uart_test/test_uart_download.py
+        - .gitlab-ci.yml
+  script:
+    - |
+      & "$env:CI_PROJECT_DIR\tools\ci\build_phase8b_headless.ps1" `
+        -ProjectRoot "$env:CI_PROJECT_DIR" `
+        -E2Studio "$env:E2STUDIO" `
+        -Workspace "$env:PHASE8B_WORKSPACE" `
+        -LogFile "$env:CI_PROJECT_DIR\phase8b_e2studio_build.log"
+  artifacts:
+    when: always
+    paths:
+      - phase8b_e2studio_build.log
+      - phase8b/Projects/boot_loader_rx72n_envision_kit/e2studio_ccrx/HardwareDebug/*.mot
+      - phase8b/Projects/aws_ether_rx72n_envision_kit/e2studio_ccrx/HardwareDebug/*.mot
+      - phase8b/Projects/aws_ether_rx72n_envision_kit/e2studio_ccrx/HardwareDebug/*.abs
+      - phase8b/Projects/aws_ether_rx72n_envision_kit/e2studio_ccrx/HardwareDebug/*.x
+    expire_in: 1 week
+
+build_phase8b_ota:
+  stage: build
+  tags:
+    - run_ishiguro_machine
+  rules:
+    - if: $RUN_PHASE8B_OTA == "true"
+    - when: never
+  script:
+    - python -m pip install --quiet --user cryptography
+    - |
+      & "$env:CI_PROJECT_DIR\tools\ci\build_phase8b_ota.ps1" `
+        -ProjectRoot "$env:CI_PROJECT_DIR" `
+        -E2Studio "$env:E2STUDIO" `
+        -Workspace "$env:PHASE8B_WORKSPACE" `
+        -LogFileV1 "$env:CI_PROJECT_DIR\phase8b_ota_build_v1.log" `
+        -LogFileV2 "$env:CI_PROJECT_DIR\phase8b_ota_build_v2.log" `
+        -PipelineIid ([int]$env:CI_PIPELINE_IID)
+  artifacts:
+    when: always
+    paths:
+      - phase8b_ota_v1.rsu
+      - phase8b_ota_v2.rsu
+      - phase8b_ota_build_v1.log
+      - phase8b_ota_build_v2.log
+      - phase8b/Projects/boot_loader_rx72n_envision_kit/e2studio_ccrx/HardwareDebug/*.mot
+      - phase8b/Projects/aws_ether_rx72n_envision_kit/e2studio_ccrx/HardwareDebug/*.mot
+      - phase8b/Projects/aws_ether_rx72n_envision_kit/e2studio_ccrx/HardwareDebug/*.abs
+      - phase8b/Projects/aws_ether_rx72n_envision_kit/e2studio_ccrx/HardwareDebug/*.x
+    expire_in: 1 week
+
+flash_phase8b_boot_loader:
+  stage: flash
+  extends:
+    - .pi_flash_job
+    - .pi_pyserial_job
+  rules:
+    - if: $RUN_PHASE8B_BUILD_ONLY == "true"
+      when: never
+    - if: $RUN_PHASE8B_OTA == "true"
+      when: never
+    - if: $RUN_OTA_ONLY == "true"
+      when: never
+    - if: $RUN_PHASE8B_BASELINE == "true"
+    - when: never
+  needs:
+    - job: build_phase8b
+      artifacts: true
+  script:
+    - |
+      set -euo pipefail
+      source "$CI_PROJECT_DIR/tools/ci/acquire_pi_device_lock.sh" "$DEVICE_ID"
+      mot="$CI_PROJECT_DIR/$PHASE8B_E2STUDIO_PROJECTS/boot_loader_rx72n_envision_kit/e2studio_ccrx/HardwareDebug/boot_loader_rx72n_envision_kit.mot"
+      if [[ ! -f "$mot" ]]; then
+        echo "ERROR: $mot not found"
+        exit 1
+      fi
+      echo "=== Flash phase8b boot_loader ==="
+      echo "  .mot:   $mot"
+      echo "  Device: RX72x"
+      echo "  Tool:   $RFP_TOOL"
+      "$RFP_CLI" -device RX72x -tool "$RFP_TOOL" -if fine -speed "$RFP_SPEED" \
+        -auth id FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF -erase-chip -noquery
+      "$RFP_CLI" -device RX72x -tool "$RFP_TOOL" -if fine -speed "$RFP_SPEED" \
+        -auth id FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF -p "$mot" -v -run -noquery
+      if [[ "${RUN_HW_HEALTHCHECK}" == "true" ]]; then
+        bash "$CI_PROJECT_DIR/tools/ci/validate_pi_serial_path.sh" UART_PORT
+        if ! python3 "$CI_PROJECT_DIR/test_scripts/uart_test/check_device_health.py" \
+          boot-banner \
+          --port "$UART_PORT" \
+          --baud "$UART_BAUD_RATE" \
+          --expect "BootLoader" \
+          --expect "send image(*.rsu) via UART." \
+          --timeout 20 | tee "$CI_PROJECT_DIR/phase8b_boot_loader_health.log"; then
+          echo "[WARN] phase8b boot_loader banner health-check did not observe the one-shot UART banner."
+          echo "[WARN] Continue to download_phase8b_app, which performs the real ready-message gate."
+        fi
+      fi
+  artifacts:
+    when: always
+    paths:
+      - phase8b_boot_loader_health.log
+    expire_in: 1 week
+
+download_phase8b_app:
+  stage: flash
+  extends:
+    - .pi_flash_job
+    - .pi_crypto_serial_job
+  rules:
+    - if: $RUN_PHASE8B_BUILD_ONLY == "true"
+      when: never
+    - if: $RUN_PHASE8B_OTA == "true"
+      when: never
+    - if: $RUN_OTA_ONLY == "true"
+      when: never
+    - if: $RUN_PHASE8B_BASELINE == "true"
+    - when: never
+  needs:
+    - job: build_phase8b
+      artifacts: true
+    - job: flash_phase8b_boot_loader
+  variables:
+    RSU_SEQ_NO: "1"
+  script:
+    - |
+      set -euo pipefail
+      source "$CI_PROJECT_DIR/tools/ci/acquire_pi_device_lock.sh" "$DEVICE_ID"
+      bash "$CI_PROJECT_DIR/tools/ci/validate_pi_serial_path.sh" UART_PORT
+      mot="$CI_PROJECT_DIR/$PHASE8B_E2STUDIO_PROJECTS/aws_ether_rx72n_envision_kit/e2studio_ccrx/HardwareDebug/aws_ether_rx72n_envision_kit.mot"
+      rsu_prefix="$CI_PROJECT_DIR/phase8b_userprog"
+      rsu="${rsu_prefix}.rsu"
+      key="$CI_PROJECT_DIR/sample_keys/secp256r1.privatekey"
+      prm="$CI_PROJECT_DIR/$PHASE8B_E2STUDIO_PROJECTS/boot_loader_rx72n_envision_kit/e2studio_ccrx/src/smc_gen/r_fwup/tool/RX72N_DualBank_ImageGenerator_PRM.csv"
+      builder="$CI_PROJECT_DIR/tools/build_fwup_v2_rsu.py"
+      reset_cmd="$RFP_CLI -device RX72x -tool ${RFP_TOOL} -if fine -run -noquery"
+      if [[ ! -f "$mot" ]]; then
+        echo "ERROR: phase8b app .mot not found: $mot"
+        exit 1
+      fi
+      if [[ ! -f "$builder" ]]; then
+        echo "ERROR: phase8b RSU builder not found: $builder"
+        exit 1
+      fi
+      if [[ ! -f "$prm" ]]; then
+        echo "ERROR: phase8b PRM file not found: $prm"
+        exit 1
+      fi
+      echo "=== Generate phase8b RSU (FWUP v2 / RELFWV2 format) ==="
+      echo "  MOT: $mot"
+      echo "  PRM: $prm"
+      echo "  RSU: $rsu"
+      echo "  Reset: $reset_cmd"
+      python3 "$builder" \
+        --mot "$mot" \
+        --prm "$prm" \
+        --key "$key" \
+        --output "$rsu"
+      echo "=== UART Download phase8b app ==="
+      python3 "$CI_PROJECT_DIR/test_scripts/uart_test/test_uart_download.py" \
+        --rsu "$rsu" --port "$UART_PORT" --baud "$UART_BAUD_RATE" \
+        --timeout 300 --diag --wait-for-ready --ready-timeout 60 \
+        --send-chunk-size 128 --ack-each-chunk --ack-timeout 20 \
+        --reset-cmd "$reset_cmd" \
+        --ready-message "send image(*.rsu) via UART." \
+        --success-message "execute image ..." \
+        --success-timeout 30
+      # phase8b の CLI は app 初回起動直後の短時間だけ有効。
+      # 外部 debugger reset で再現できないため、同一 job 内で provisioning と MQTT baseline まで進める。
+      echo "=== phase8b Provisioning (inline after first boot) ==="
+      python3 -u "$CI_PROJECT_DIR/tools/provision_phase8b.py" \
+        --device-id "$DEVICE_ID" \
+        --port "$UART_PORT" \
+        --baud "$UART_BAUD_RATE" \
+        --codesigner-cert "$CI_PROJECT_DIR/sample_keys/secp256r1.crt" \
+        --cli-timeout 40 \
+        --no-reset
+      echo "=== phase8b Software Reset via UART CLI ==="
+      python3 "$CI_PROJECT_DIR/tools/ci/send_serial_command.py" \
+        --port "$UART_PORT" \
+        --baud "$UART_BAUD_RATE" \
+        --command reset \
+        --delay-after 1
+      echo "=== phase8b MQTT baseline ==="
+      python3 -u "$CI_PROJECT_DIR/tools/test_phase8b_mqtt.py" \
+        --device-id "$DEVICE_ID" \
+        --log-port "$UART_PORT" \
+        --log-baud "$UART_BAUD_RATE" \
+        --timeout 150 \
+        --no-reset
+  artifacts:
+    when: always
+    paths:
+      - phase8b_userprog.rsu
+    expire_in: 1 week
+
+diag_phase8b_direct_flash_cli:
+  stage: test
+  extends:
+    - .pi_flash_job
+    - .pi_pyserial_job
+  timeout: 5 minutes
+  rules:
+    - if: $RUN_PHASE8B_DIRECT_FLASH_DIAG == "true"
+    - when: never
+  needs:
+    - job: build_phase8b
+      artifacts: true
+  script:
+    - |
+      set -euo pipefail
+      source "$CI_PROJECT_DIR/tools/ci/acquire_pi_device_lock.sh" "$DEVICE_ID"
+      bash "$CI_PROJECT_DIR/tools/ci/validate_pi_serial_path.sh" UART_PORT
+      boot_mot="$CI_PROJECT_DIR/$PHASE8B_E2STUDIO_PROJECTS/boot_loader_rx72n_envision_kit/e2studio_ccrx/HardwareDebug/boot_loader_rx72n_envision_kit.mot"
+      mot="$CI_PROJECT_DIR/$PHASE8B_E2STUDIO_PROJECTS/aws_ether_rx72n_envision_kit/e2studio_ccrx/HardwareDebug/aws_ether_rx72n_envision_kit.mot"
+      if [[ ! -f "$boot_mot" ]]; then
+        echo "ERROR: phase8b boot_loader .mot not found: $boot_mot"
+        exit 1
+      fi
+      if [[ ! -f "$mot" ]]; then
+        echo "ERROR: phase8b app .mot not found: $mot"
+        exit 1
+      fi
+      echo "=== Restore phase8b boot_loader/config area ==="
+      echo "  Boot MOT: $boot_mot"
+      echo "  Device:   RX72x"
+      echo "  Tool:     $RFP_TOOL"
+      "$RFP_CLI" -device RX72x -tool "$RFP_TOOL" -if fine -speed "$RFP_SPEED" \
+        -auth id FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF -erase-chip -noquery
+      "$RFP_CLI" -device RX72x -tool "$RFP_TOOL" -if fine -speed "$RFP_SPEED" \
+        -auth id FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF -p "$boot_mot" -v -run -noquery
+      echo "=== Direct flash phase8b app (.mot) ==="
+      echo "  App MOT: $mot"
+      echo "  Device: RX72x"
+      echo "  Tool:   $RFP_TOOL"
+      "$RFP_CLI" -device RX72x -tool "$RFP_TOOL" -if fine -speed "$RFP_SPEED" \
+        -auth id FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF -p "$mot" -v -run -noquery
+      echo "=== phase8b CLI provisioning (direct-flashed app) ==="
+      python3 -u "$CI_PROJECT_DIR/tools/provision_phase8b.py" \
+        --device-id "$DEVICE_ID" \
+        --port "$UART_PORT" \
+        --baud "$UART_BAUD_RATE" \
+        --codesigner-cert "$CI_PROJECT_DIR/sample_keys/secp256r1.crt" \
+        --cli-timeout 40 \
+        --no-reset
+
+provision_phase8b_credentials:
+  stage: health
+  extends:
+    - .pi_device_job
+    - .pi_pyserial_job
+  timeout: 5 minutes
+  rules:
+    - when: never
+  needs:
+    - job: download_phase8b_app
+  script:
+    - |
+      set -euo pipefail
+      source "$CI_PROJECT_DIR/tools/ci/acquire_pi_device_lock.sh" "$DEVICE_ID"
+      bash "$CI_PROJECT_DIR/tools/ci/validate_pi_serial_path.sh" UART_PORT
+      reset_cmd="$RFP_CLI -device RX72x -tool ${RFP_TOOL} -if fine -reset -noquery"
+      echo "=== phase8b Provisioning ==="
+      echo "  Device ID: $DEVICE_ID"
+      echo "  Port:      $UART_PORT @ ${UART_BAUD_RATE}bps"
+      echo "  Reset:     $reset_cmd"
+      python3 "$CI_PROJECT_DIR/tools/provision_phase8b.py" \
+        --device-id "$DEVICE_ID" \
+        --port "$UART_PORT" \
+        --baud "$UART_BAUD_RATE" \
+        --codesigner-cert "$CI_PROJECT_DIR/sample_keys/secp256r1.crt" \
+        --reset-cmd "$reset_cmd"
+
+confirm_phase8b_mqtt:
+  stage: test
+  extends:
+    - .pi_device_job
+    - .pi_pyserial_job
+  timeout: 5 minutes
+  rules:
+    - when: never
+  needs:
+    - job: provision_phase8b_credentials
+  script:
+    - |
+      set -euo pipefail
+      source "$CI_PROJECT_DIR/tools/ci/acquire_pi_device_lock.sh" "$DEVICE_ID"
+      bash "$CI_PROJECT_DIR/tools/ci/validate_pi_serial_path.sh" UART_PORT
+      reset_cmd="$RFP_CLI -device RX72x -tool ${RFP_TOOL} -if fine -reset -noquery"
+      echo "=== phase8b MQTT baseline ==="
+      echo "  Device ID: $DEVICE_ID"
+      echo "  Reset:     $reset_cmd"
+      python3 "$CI_PROJECT_DIR/tools/test_phase8b_mqtt.py" \
+        --device-id "$DEVICE_ID" \
+        --timeout 150 \
+        --reset-cmd "$reset_cmd"
+
+prepare_phase8b_ota:
+  stage: ota_prepare
+  extends:
+    - .pi_flash_job
+    - .pi_crypto_serial_job
+  timeout: 8 minutes
+  rules:
+    - if: $RUN_PHASE8B_OTA == "true"
+    - when: never
+  dependencies:
+    - build_phase8b_ota
+  script:
+    - |
+      set -euo pipefail
+      source "$CI_PROJECT_DIR/tools/ci/acquire_pi_device_lock.sh" "$DEVICE_ID"
+      mot="$CI_PROJECT_DIR/$PHASE8B_E2STUDIO_PROJECTS/boot_loader_rx72n_envision_kit/e2studio_ccrx/HardwareDebug/boot_loader_rx72n_envision_kit.mot"
+      rsu="$CI_PROJECT_DIR/phase8b_ota_v1.rsu"
+      reset_cmd="$RFP_CLI -device RX72x -tool ${RFP_TOOL} -if fine -run -noquery"
+      if [[ ! -f "$mot" ]]; then
+        echo "ERROR: phase8b boot_loader.mot not found: $mot"
+        exit 1
+      fi
+      if [[ ! -f "$rsu" ]]; then
+        echo "ERROR: phase8b_ota_v1.rsu not found"
+        exit 1
+      fi
+      echo "=== Flash phase8b boot_loader (OTA) ==="
+      echo "  Device ID: $DEVICE_ID"
+      echo "  Tool:      $RFP_TOOL"
+      "$RFP_CLI" -device RX72x -tool "$RFP_TOOL" -if fine -speed "$RFP_SPEED" \
+        -auth id FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF -erase-chip -noquery
+      "$RFP_CLI" -device RX72x -tool "$RFP_TOOL" -if fine -speed "$RFP_SPEED" \
+        -auth id FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF -p "$mot" -v -run -noquery
+      echo "Phase8b boot loader flashed successfully."
+      bash "$CI_PROJECT_DIR/tools/ci/validate_pi_serial_path.sh" UART_PORT
+      echo "=== UART Download phase8b OTA v1 ==="
+      python3 "$CI_PROJECT_DIR/test_scripts/uart_test/test_uart_download.py" \
+        --rsu "$rsu" --port "$UART_PORT" --baud "$UART_BAUD_RATE" \
+        --timeout 300 --diag --wait-for-ready --ready-timeout 60 \
+        --send-chunk-size 128 --ack-each-chunk --ack-timeout 20 \
+        --reset-cmd "$reset_cmd" \
+        --ready-message "send image(*.rsu) via UART." \
+        --success-message "execute image ..." \
+        --success-timeout 30
+      echo "=== phase8b Provisioning for OTA ==="
+      python3 -u "$CI_PROJECT_DIR/tools/provision_phase8b.py" \
+        --device-id "$DEVICE_ID" \
+        --port "$UART_PORT" \
+        --baud "$UART_BAUD_RATE" \
+        --codesigner-cert "$CI_PROJECT_DIR/sample_keys/secp256r1.crt" \
+        --cli-timeout 40 \
+        --no-reset
+      echo "=== phase8b Resetting device for OTA Agent startup ==="
+      python3 "$CI_PROJECT_DIR/tools/ci/send_serial_command.py" \
+        --port "$UART_PORT" \
+        --baud "$UART_BAUD_RATE" \
+        --command reset \
+        --delay-after 1
+      echo "Reset command sent. Waiting for OTA Agent startup..."
+      sleep 10
+
+phase8b_ota_create_job:
+  stage: ota_run
+  extends:
+    - .windows_ota_aws_job
+  timeout: 10 minutes
+  rules:
+    - if: $RUN_PHASE8B_OTA == "true"
+    - when: never
+  dependencies:
+    - build_phase8b_ota
+  script:
+    - |
+      $v2 = [int]$env:CI_PIPELINE_IID * 2 + 1
+      Write-Host "=== AWS IoT OTA Create Job (phase8b) ==="
+      Write-Host "  Expected version build: $v2"
+      python -u "$env:CI_PROJECT_DIR\test_scripts\uart_test\test_ota.py" `
+        --mode create-job `
+        --device-id "$env:DEVICE_ID" `
+        --rsu "$env:CI_PROJECT_DIR\phase8b_ota_v2.rsu" `
+        --s3-bucket "$env:OTA_S3_BUCKET" `
+        --ota-role-arn "$env:OTA_ROLE_ARN" `
+        --create-start-delay 15 `
+        --metadata-out "$env:CI_PROJECT_DIR\phase8b_ota_job_metadata.json"
+  artifacts:
+    when: always
+    paths:
+      - phase8b_ota_job_metadata.json
+    expire_in: 1 week
+
+phase8b_ota_monitor:
+  stage: ota_run
+  extends:
+    - .pi_device_job
+    - .pi_pyserial_job
+  timeout: 15 minutes
+  rules:
+    - if: $RUN_PHASE8B_OTA == "true"
+    - when: never
+  dependencies: []
+  script:
+    - |
+      set -euo pipefail
+      printf '{}\n' > "$CI_PROJECT_DIR/phase8b_ota_monitor_results.json"
+      printf 'monitor started\n' > "$CI_PROJECT_DIR/phase8b_ota_monitor.log"
+      source "$CI_PROJECT_DIR/tools/ci/acquire_pi_device_lock.sh" "$DEVICE_ID"
+      bash "$CI_PROJECT_DIR/tools/ci/validate_pi_serial_path.sh" UART_PORT
+      v2=$((CI_PIPELINE_IID * 2 + 1))
+      echo "=== AWS IoT OTA Monitor (phase8b) ==="
+      echo "  Expected version build: $v2"
+      python3 -u "$CI_PROJECT_DIR/test_scripts/uart_test/test_ota.py" \
+        --mode monitor \
+        --device-id "$DEVICE_ID" \
+        --expected-build "$v2" \
+        --timeout 600 \
+        --monitor-results-out "$CI_PROJECT_DIR/phase8b_ota_monitor_results.json" | tee "$CI_PROJECT_DIR/phase8b_ota_monitor.log"
+  artifacts:
+    when: always
+    paths:
+      - phase8b_ota_monitor_results.json
+      - phase8b_ota_monitor.log
+    expire_in: 1 week
+
+phase8b_ota_finalize:
+  stage: ota_finalize
+  extends:
+    - .windows_ota_aws_job
+  timeout: 10 minutes
+  when: always
+  rules:
+    - if: $RUN_PHASE8B_OTA == "true"
+    - when: never
+  dependencies:
+    - phase8b_ota_create_job
+    - phase8b_ota_monitor
+  script:
+    - |
+      $metadata = "$env:CI_PROJECT_DIR\phase8b_ota_job_metadata.json"
+      $results = "$env:CI_PROJECT_DIR\phase8b_ota_monitor_results.json"
+      $monitorLog = "$env:CI_PROJECT_DIR\phase8b_ota_monitor.log"
+      if (-not (Test-Path $metadata) -or -not (Test-Path $results)) {
+        Write-Host "Skipping phase8b OTA finalize because required metadata is missing."
+        if (-not (Test-Path $metadata)) { '{}' | Set-Content -Encoding ASCII $metadata }
+        if (-not (Test-Path $results)) { '{}' | Set-Content -Encoding ASCII $results }
+        if (-not (Test-Path $monitorLog)) { 'monitor skipped or failed before results were produced.' | Set-Content -Encoding ASCII $monitorLog }
+        exit 0
+      }
+      python -u "$env:CI_PROJECT_DIR\test_scripts\uart_test\test_ota.py" `
+        --mode finalize `
+        --metadata-in $metadata `
+        --monitor-results-in $results
+  artifacts:
+    when: always
+    paths:
+      - phase8b_ota_job_metadata.json
+      - phase8b_ota_monitor_results.json
+      - phase8b_ota_monitor.log
+    expire_in: 1 week

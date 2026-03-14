@@ -649,6 +649,15 @@ static bool calculateBackoffForNextPoll( BackoffAlgorithmContext_t * pContext,
                                          bool shouldInitializeContext,
                                          uint32_t minPollPeriod,
                                          uint32_t * pPollPeriod );
+static bool isLeapYear( uint16_t year );
+static uint8_t monthStringToNumber( const char * pMonth );
+static uint32_t translateDateTimeToUnixSeconds( uint16_t year,
+                                                uint8_t month,
+                                                uint8_t day,
+                                                uint8_t hour,
+                                                uint8_t minute,
+                                                uint8_t second );
+static bool translateBuildTimestampToUnixSeconds( uint32_t * pUnixSeconds );
 
 /*------------------------------------------------------------------------------*/
 
@@ -664,6 +673,97 @@ static uint32_t translateYearToUnixSeconds( uint16_t year )
     numOfDaysSince1970 += ( ( year - 1969 ) / 4 );
 
     return( numOfDaysSince1970 * 24 * 3600 );
+}
+
+static bool isLeapYear( uint16_t year )
+{
+    return ( ( year % 4U ) == 0U ) && ( ( year % 100U ) != 0U || ( year % 400U ) == 0U );
+}
+
+static uint8_t monthStringToNumber( const char * pMonth )
+{
+    static const char * ppMonths[] =
+    {
+        "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+        "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
+    };
+    uint8_t index;
+
+    for( index = 0U; index < 12U; index++ )
+    {
+        if( strncmp( pMonth, ppMonths[ index ], 3U ) == 0 )
+        {
+            return index + 1U;
+        }
+    }
+
+    return 0U;
+}
+
+static uint32_t translateDateTimeToUnixSeconds( uint16_t year,
+                                                uint8_t month,
+                                                uint8_t day,
+                                                uint8_t hour,
+                                                uint8_t minute,
+                                                uint8_t second )
+{
+    static const uint16_t usDaysBeforeMonth[ 12 ] =
+    {
+        0U, 31U, 59U, 90U, 120U, 151U,
+        181U, 212U, 243U, 273U, 304U, 334U
+    };
+    uint32_t ulUnixSeconds = translateYearToUnixSeconds( year );
+    uint32_t ulDayOffset = usDaysBeforeMonth[ month - 1U ];
+
+    if( ( month > 2U ) && isLeapYear( year ) )
+    {
+        ulDayOffset++;
+    }
+
+    ulUnixSeconds += ( ulDayOffset + ( day - 1U ) ) * 24UL * 3600UL;
+    ulUnixSeconds += ( uint32_t ) hour * 3600UL;
+    ulUnixSeconds += ( uint32_t ) minute * 60UL;
+    ulUnixSeconds += second;
+
+    return ulUnixSeconds;
+}
+
+static bool translateBuildTimestampToUnixSeconds( uint32_t * pUnixSeconds )
+{
+    char month[ 4 ] = { 0 };
+    unsigned int day = 0U, year = 0U, hour = 0U, minute = 0U, second = 0U;
+    uint8_t monthNumber;
+
+    if( pUnixSeconds == NULL )
+    {
+        return false;
+    }
+
+    if( sscanf( __DATE__, "%3s %u %u", month, &day, &year ) != 3 )
+    {
+        return false;
+    }
+
+    if( sscanf( __TIME__, "%u:%u:%u", &hour, &minute, &second ) != 3 )
+    {
+        return false;
+    }
+
+    monthNumber = monthStringToNumber( month );
+
+    if( monthNumber == 0U )
+    {
+        return false;
+    }
+
+    *pUnixSeconds = translateDateTimeToUnixSeconds( ( uint16_t ) year,
+                                                    monthNumber,
+                                                    ( uint8_t ) day,
+                                                    ( uint8_t ) hour,
+                                                    ( uint8_t ) minute,
+                                                    ( uint8_t ) second );
+
+    return true;
 }
 
 void calculateCurrentTime( UTCTime_t * pBaseTime,
@@ -1283,13 +1383,27 @@ static uint32_t generateRandomNumber()
 
 void initializeSystemClock( void )
 {
-    /* On boot-up initialize the system time as the first second in the configured year. */
-    int64_t startupTimeInUnixSecs = translateYearToUnixSeconds( democonfigSYSTEM_START_YEAR );
+    uint32_t startupTimeInUnixSecs = 0U;
+
+    /* Prefer firmware build timestamp so TLS can start from a recent clock value
+     * even before the first SNTP synchronization completes. */
+    if( translateBuildTimestampToUnixSeconds( &startupTimeInUnixSecs ) == true )
+    {
+        LogInfo( ( "System time has been initialized from firmware build timestamp: %s %s",
+                   __DATE__,
+                   __TIME__ ) );
+    }
+    else
+    {
+        /* Fall back to the baked-in year if build timestamp parsing fails. */
+        startupTimeInUnixSecs = translateYearToUnixSeconds( democonfigSYSTEM_START_YEAR );
+        LogWarn( ( "Falling back to baked system start year %u for initial clock.",
+                   democonfigSYSTEM_START_YEAR ) );
+    }
 
     systemClock.baseTime.secs = startupTimeInUnixSecs;
     systemClock.baseTime.msecs = 0;
 
-    LogInfo( ( "System time has been initialized to the year %u", democonfigSYSTEM_START_YEAR ) );
     printTime( &systemClock.baseTime );
 
     /* Initialize semaphore for guarding access to system clock variables. */

@@ -1,11 +1,18 @@
 stages:
   - build
+  - flash_boot
   - flash
+  - download
+  - observe
+  - provision
   - health
   - test
   - ota_prepare
   - ota_run
   - ota_finalize
+
+include:
+  - local: ".gitlab-phase8b.yml"
 
 # MR パイプライン (merge_request_event) を抑止。
 # rules: 付きジョブと rules: なしジョブが混在すると、MR パイプラインで
@@ -24,6 +31,7 @@ variables:
   PHASE8B_E2STUDIO_PROJECTS: "phase8b/Projects"
   # Renesas Flash Programmer CLI on Raspberry Pi
   RFP_CLI: "rfp-cli"
+  RFP_SPEED: "1500K"
   # --- ハードウェア依存変数（hardware-config リポジトリの CI/CD Variables から取得） ---
   # USB 抜き差しで COM 番号が変わった場合は、hardware-config リポジトリの CLAUDE.md を
   # 更新し、/oss グループの CI/CD Variables を変更すること（本ファイルの修正は不要）。
@@ -38,15 +46,13 @@ variables:
   # Raspberry Pi では /dev/serial/by-id/... など Linux device path を設定する。
   COMMAND_PORT: "${UART_PORT_ENVISION_KIT_RX72N_CN8}"
   COMMAND_BAUD_RATE: "115200"
-  # Ethernet MAC アドレス（ビルド前に FreeRTOSConfig.h を書き換え）
-  MAC_ADDR: "${MAC_ADDR_ENVISION_KIT_RX72N}"
   # デバイス ID（device_config.json で定義、複数デバイス時に切り替え）
   DEVICE_ID: "rx72n-01"
   # Raspberry Pi runner は 1 Pi = 1 E2 Lite 構成を前提とし、既定では generic `e2l`
   # を使う。必要なら set 固有の `e2l:<serial>` で override する。
   RFP_TOOL: "e2l"
-  # Runner 固定用タグ / resource_group。3 セット運用時は pipeline 変数または
-  # project/group CI/CD Variables で set ごとの値へ上書きする。
+  # Raspberry Pi runner 固定用タグ / resource_group。3 セット運用時は pipeline 変数で
+  # dev-rx72n-01/-02/-03, rx72n-device-01/-02/-03 のように切り替える。
   DEVICE_RUNNER_TAG: "dev-rx72n"
   DEVICE_RESOURCE_GROUP: "rx72n-device"
   # Git サブモジュール初期化（coreSNTP 等の外部ライブラリ）
@@ -62,10 +68,10 @@ variables:
   # --- パイプライン条件分岐 ---
   # GitLab UI の「Run Pipeline」画面でオーバーライド可能。
   # RUN_AWS_TESTS:      AWS 接続テスト (provision, MQTT) を実行するか
-  # RUN_HW_HEALTHCHECK: 実機の段階的ヘルスチェックを実行するか
   # RUN_SD_UPDATE_TEST: SD カードファームウェア更新テストを実行するか
   # RUN_OTA_TEST:       OTA テスト (build_ota, prepare_ota, ota_create_job,
   #                     ota_monitor, ota_finalize) を実行するか
+  # RUN_HW_HEALTHCHECK: 実機の段階的ヘルスチェックを実行するか
   # RUN_PHASE8B_BUILD_ONLY: phase8b の build-only gate のみ実行するか
   # RUN_PHASE8B_BASELINE: phase8b の hardware baseline
   #                       (build_phase8b -> flash/download -> provision -> MQTT)
@@ -75,23 +81,50 @@ variables:
   #                      phase8b_ota_create_job/monitor/finalize) のみ実行するか
   # RUN_PHASE8B_DIRECT_FLASH_DIAG: phase8b app を .mot 直接書き込みして
   #                                CLI 起動可否を診断するか
+  # RUN_RFP_SOAK_TEST:  RFP/E2 Lite の切り分け用 soak test を実行するか
+  # RFP_SOAK_MODE:      sig | flash_boot
+  # RFP_SOAK_LOOPS:     soak test の反復回数
+  # RFP_SOAK_SLEEP_SECONDS: 各反復間の待ち時間（秒）
   # デフォルトは SD カード更新テストを除く通常テスト。
   # フルテストを実施したい場合は RUN_SD_UPDATE_TEST=true を指定する。
   RUN_AWS_TESTS: "true"
-  RUN_HW_HEALTHCHECK: "true"
   RUN_SD_UPDATE_TEST: "false"
   RUN_OTA_TEST: "true"
   RUN_PHASE8B_BUILD_ONLY: "false"
   RUN_PHASE8B_BASELINE: "false"
   RUN_PHASE8B_OTA: "false"
   RUN_PHASE8B_DIRECT_FLASH_DIAG: "false"
+  RUN_RFP_SOAK_TEST: "false"
+  RFP_SOAK_MODE: "sig"
+  RFP_SOAK_LOOPS: "25"
+  RFP_SOAK_SLEEP_SECONDS: "1"
   # Raspberry Pi runner 上でのプロジェクト横断デバイス排他ロック格納先。
   DEVICE_LOCK_ROOT: "/tmp/gitlab-device-locks"
+  RUN_HW_HEALTHCHECK: "false"
+  # BUILD_USE_SOURCE_MAC_ADDR: "true" の場合のみビルド前に FreeRTOSConfig.h の
+  # configMAC_ADDR* を書き換える。通常は dataflash の MAC override を使うため
+  # "false" のままにし、build artifact を 3 台で共通化する。
+  BUILD_USE_SOURCE_MAC_ADDR: "false"
+  # download_aws_demos 完了直後の全景キャプチャを有効化する。
+  CAPTURE_AFTER_AWS_DEMOS: "true"
+  CAPTURE_VIDEO_DEVICE: "MonsterX U3.0R Capture 0"
+  CAPTURE_FILTER: ""
   # RUN_OTA_ONLY: OTA テストのみ実行するショートカットモード。
   # "true" にすると通常のビルド/フラッシュ/テストジョブをスキップし、
   # build_ota → prepare_ota → ota_create_job/ota_monitor → ota_finalize のみ実行する。
   # OTA デバッグ中のイテレーション高速化用。安定後は "false" に戻すこと。
   RUN_OTA_ONLY: "false"
+  # RUN_PREPARE_OTA_ONLY: build_ota -> prepare_ota のみを実行する最小再現モード。
+  # RUN_OTA_ONLY=true と併用し、ota_create_job / ota_monitor / ota_finalize を止める。
+  RUN_PREPARE_OTA_ONLY: "false"
+  # RUN_ONLY_DEVICE_SLOT: "01" / "02" / "03" を指定すると、対応する matrix slot のみ実行する。
+  RUN_ONLY_DEVICE_SLOT: ""
+  # PREPARE_OTA_STOP_AFTER:
+  #   ""         : 既定の full prepare_ota
+  #   "flash"    : boot_loader flash 完了で停止
+  #   "uart"     : UART download 完了で停止
+  #   "provision": provisioning 完了で停止
+  PREPARE_OTA_STOP_AFTER: ""
 
 .pi_device_job:
   tags:
@@ -133,6 +166,27 @@ variables:
       }
       python -m pip install --quiet --user cryptography
 
+.windows_capture_job:
+  tags:
+    - run_ishiguro_machine
+  resource_group: rx72n-camera
+
+.rx72n_set_matrix:
+  parallel:
+    matrix:
+      - DEVICE_SLOT: "01"
+        DEVICE_ID: "rx72n-01"
+        DEVICE_RUNNER_TAG: "dev-rx72n-01"
+        DEVICE_RESOURCE_GROUP: "rx72n-device-01"
+      - DEVICE_SLOT: "02"
+        DEVICE_ID: "rx72n-02"
+        DEVICE_RUNNER_TAG: "dev-rx72n-02"
+        DEVICE_RESOURCE_GROUP: "rx72n-device-02"
+      - DEVICE_SLOT: "03"
+        DEVICE_ID: "rx72n-03"
+        DEVICE_RUNNER_TAG: "dev-rx72n-03"
+        DEVICE_RESOURCE_GROUP: "rx72n-device-03"
+
 build:
   stage: build
   tags:
@@ -150,7 +204,7 @@ build:
   script:
     # MAC アドレス書き換え（hardware-config リポジトリのスクリプトを使用）
     - |
-      if ($env:MAC_ADDR) {
+      if (($env:BUILD_USE_SOURCE_MAC_ADDR -eq "true") -and $env:MAC_ADDR) {
         Write-Host "=== Set MAC address: $env:MAC_ADDR ==="
         $hcDir = "C:\tmp\hardware-config"
         if (-not (Test-Path "$hcDir\scripts\set_mac_address.py")) {
@@ -160,7 +214,7 @@ build:
         python "$hcDir\scripts\set_mac_address.py" --mac $env:MAC_ADDR `
           "$env:CI_PROJECT_DIR\vendors\renesas\boards\rx72n-envision-kit\aws_demos\config_files\FreeRTOSConfig.h"
       } else {
-        Write-Host "[WARN] MAC_ADDR not set, using source default"
+        Write-Host "[INFO] Skipping source MAC rewrite. Runtime MAC is expected from dataflash."
       }
     # ワークスペースと HardwareDebug をクリア（stale Makefile とキャッシュの除去）
     - if (Test-Path "$env:WORKSPACE") { Remove-Item -Recurse -Force "$env:WORKSPACE" }
@@ -321,6 +375,10 @@ build_phase8b:
   tags:
     - run_ishiguro_machine
   rules:
+    - if: $RUN_PREPARE_OTA_ONLY == "true"
+      when: never
+    - if: $RUN_RFP_SOAK_TEST == "true"
+      when: never
     - if: $RUN_PHASE8B_OTA == "true"
       when: never
     - if: $RUN_PHASE8B_DIRECT_FLASH_DIAG == "true"
@@ -357,6 +415,10 @@ build_phase8b_ota:
   tags:
     - run_ishiguro_machine
   rules:
+    - if: $RUN_PREPARE_OTA_ONLY == "true"
+      when: never
+    - if: $RUN_RFP_SOAK_TEST == "true"
+      when: never
     - if: $RUN_PHASE8B_OTA == "true"
     - when: never
   script:
@@ -412,9 +474,9 @@ flash_phase8b_boot_loader:
       echo "  .mot:   $mot"
       echo "  Device: RX72x"
       echo "  Tool:   $RFP_TOOL"
-      "$RFP_CLI" -device RX72x -tool "$RFP_TOOL" -if fine -speed 1500K \
+      "$RFP_CLI" -device RX72x -tool "$RFP_TOOL" -if fine -speed "$RFP_SPEED" \
         -auth id FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF -erase-chip -noquery
-      "$RFP_CLI" -device RX72x -tool "$RFP_TOOL" -if fine -speed 1500K \
+      "$RFP_CLI" -device RX72x -tool "$RFP_TOOL" -if fine -speed "$RFP_SPEED" \
         -auth id FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF -p "$mot" -v -run -noquery
       if [[ "${RUN_HW_HEALTHCHECK}" == "true" ]]; then
         bash "$CI_PROJECT_DIR/tools/ci/validate_pi_serial_path.sh" UART_PORT
@@ -558,15 +620,15 @@ diag_phase8b_direct_flash_cli:
       echo "  Boot MOT: $boot_mot"
       echo "  Device:   RX72x"
       echo "  Tool:     $RFP_TOOL"
-      "$RFP_CLI" -device RX72x -tool "$RFP_TOOL" -if fine -speed 1500K \
+      "$RFP_CLI" -device RX72x -tool "$RFP_TOOL" -if fine -speed "$RFP_SPEED" \
         -auth id FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF -erase-chip -noquery
-      "$RFP_CLI" -device RX72x -tool "$RFP_TOOL" -if fine -speed 1500K \
+      "$RFP_CLI" -device RX72x -tool "$RFP_TOOL" -if fine -speed "$RFP_SPEED" \
         -auth id FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF -p "$boot_mot" -v -run -noquery
       echo "=== Direct flash phase8b app (.mot) ==="
       echo "  App MOT: $mot"
       echo "  Device: RX72x"
       echo "  Tool:   $RFP_TOOL"
-      "$RFP_CLI" -device RX72x -tool "$RFP_TOOL" -if fine -speed 1500K \
+      "$RFP_CLI" -device RX72x -tool "$RFP_TOOL" -if fine -speed "$RFP_SPEED" \
         -auth id FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF -p "$mot" -v -run -noquery
       echo "=== phase8b CLI provisioning (direct-flashed app) ==="
       python3 -u "$CI_PROJECT_DIR/tools/provision_phase8b.py" \
@@ -629,11 +691,14 @@ confirm_phase8b_mqtt:
         --reset-cmd "$reset_cmd"
 
 flash_boot_loader:
-  stage: flash
+  stage: flash_boot
   extends:
     - .pi_flash_job
     - .pi_pyserial_job
+    - .rx72n_set_matrix
   rules:
+    - if: $RUN_RFP_SOAK_TEST == "true"
+      when: never
     - if: $RUN_PHASE8B_BUILD_ONLY == "true"
       when: never
     - if: $RUN_PHASE8B_BASELINE == "true"
@@ -643,11 +708,19 @@ flash_boot_loader:
     - if: $RUN_OTA_ONLY == "true"
       when: never
     - when: always
-  needs: [build]
+  needs:
+    - job: build
+      artifacts: true
   script:
     - |
       set -euo pipefail
       source "$CI_PROJECT_DIR/tools/ci/acquire_pi_device_lock.sh" "$DEVICE_ID"
+      . "$CI_PROJECT_DIR/tools/ci/load_rx72n_set_env.sh"
+      snapshot_log="$CI_PROJECT_DIR/boot_loader_hardware_state.log"
+      health_log="$CI_PROJECT_DIR/boot_loader_health.log"
+      : > "$snapshot_log"
+      : > "$health_log"
+      trap 'RFP_STATE_DEVICE=RX72x bash "$CI_PROJECT_DIR/tools/ci/print_pi_hardware_state.sh" UART_PORT COMMAND_PORT > "$snapshot_log" 2>&1 || true' ERR
       mot="$CI_PROJECT_DIR/$E2STUDIO_PROJECTS/boot_loader/HardwareDebug/rx72n_boot_loader.mot"
       if [[ ! -f "$mot" ]]; then
         echo "ERROR: $mot not found"
@@ -658,21 +731,21 @@ flash_boot_loader:
       echo "  Device:  RX72x"
       echo "  Tool:    $RFP_TOOL"
       echo "  I/F:     FINE"
-      "$RFP_CLI" -device RX72x -tool "$RFP_TOOL" -if fine -speed 1500K \
+      "$RFP_CLI" -device RX72x -tool "$RFP_TOOL" -if fine -speed "$RFP_SPEED" \
         -auth id FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF -erase-chip -noquery
-      "$RFP_CLI" -device RX72x -tool "$RFP_TOOL" -if fine -speed 1500K \
+      "$RFP_CLI" -device RX72x -tool "$RFP_TOOL" -if fine -speed "$RFP_SPEED" \
         -auth id FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF -p "$mot" -v -run -noquery
+      RFP_STATE_DEVICE=RX72x bash "$CI_PROJECT_DIR/tools/ci/print_pi_hardware_state.sh" UART_PORT COMMAND_PORT > "$snapshot_log" 2>&1 || true
       echo "Flash completed successfully. Boot loader is running."
       if [[ "${RUN_HW_HEALTHCHECK}" == "true" ]]; then
         bash "$CI_PROJECT_DIR/tools/ci/validate_pi_serial_path.sh" UART_PORT
-        bash "$CI_PROJECT_DIR/tools/ci/print_pi_hardware_state.sh" UART_PORT | tee "$CI_PROJECT_DIR/boot_loader_hardware_state.log"
         python3 "$CI_PROJECT_DIR/test_scripts/uart_test/check_device_health.py" \
           boot-banner \
           --port "$UART_PORT" \
           --baud "$UART_BAUD_RATE" \
           --expect "RX72N secure boot program" \
           --expect "send \"userprog.rsu\" via UART." \
-          --timeout 20 | tee "$CI_PROJECT_DIR/boot_loader_health.log"
+          --timeout 20 | tee "$health_log"
       else
         echo "  Boot loader health-check skipped (RUN_HW_HEALTHCHECK=false)."
       fi
@@ -683,12 +756,65 @@ flash_boot_loader:
       - boot_loader_health.log
     expire_in: 1 week
 
+rfp_soak_test:
+  stage: health
+  extends:
+    - .pi_flash_job
+    - .rx72n_set_matrix
+  timeout: 30 minutes
+  rules:
+    - if: $RUN_RFP_SOAK_TEST == "true"
+    - when: never
+  needs:
+    - job: build
+      artifacts: true
+  script:
+    - |
+      set -euo pipefail
+      source "$CI_PROJECT_DIR/tools/ci/acquire_pi_device_lock.sh" "$DEVICE_ID"
+      . "$CI_PROJECT_DIR/tools/ci/load_rx72n_set_env.sh"
+      output_dir="$CI_PROJECT_DIR/rfp_soak_${DEVICE_ID}"
+      mode="${RFP_SOAK_MODE:-sig}"
+      loops="${RFP_SOAK_LOOPS:-25}"
+      sleep_seconds="${RFP_SOAK_SLEEP_SECONDS:-1}"
+      cmd=(bash "$CI_PROJECT_DIR/tools/ci/run_rfp_soak_test.sh"
+        --output-dir "$output_dir"
+        --loops "$loops"
+        --sleep-seconds "$sleep_seconds"
+        --mode "$mode"
+        --device RX72x
+        --tool "$RFP_TOOL"
+        --speed "$RFP_SPEED"
+        --auth-id FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF
+        --port-env UART_PORT
+        --port-env COMMAND_PORT)
+      if [[ "$mode" == "flash_boot" ]]; then
+        mot="$CI_PROJECT_DIR/$E2STUDIO_PROJECTS/boot_loader/HardwareDebug/rx72n_boot_loader.mot"
+        if [[ ! -f "$mot" ]]; then
+          echo "ERROR: boot_loader.mot not found for soak test: $mot"
+          exit 1
+        fi
+        cmd+=(--mot "$mot")
+      fi
+      printf 'Running:'
+      printf ' %q' "${cmd[@]}"
+      printf '\n'
+      "${cmd[@]}"
+  artifacts:
+    when: always
+    paths:
+      - rfp_soak_${DEVICE_ID}/
+    expire_in: 1 week
+
 download_aws_demos:
-  stage: flash
+  stage: download
   extends:
     - .pi_flash_job
     - .pi_crypto_serial_job
+    - .rx72n_set_matrix
   rules:
+    - if: $RUN_RFP_SOAK_TEST == "true"
+      when: never
     - if: $RUN_PHASE8B_BUILD_ONLY == "true"
       when: never
     - if: $RUN_PHASE8B_BASELINE == "true"
@@ -702,6 +828,7 @@ download_aws_demos:
     - job: build
       artifacts: true
     - job: flash_boot_loader
+      artifacts: false
   variables:
     # .rsu 生成に使うシーケンス番号（OTA 更新ごとに増加させる）
     RSU_SEQ_NO: "1"
@@ -709,9 +836,10 @@ download_aws_demos:
     - |
       set -euo pipefail
       source "$CI_PROJECT_DIR/tools/ci/acquire_pi_device_lock.sh" "$DEVICE_ID"
+      . "$CI_PROJECT_DIR/tools/ci/load_rx72n_set_env.sh"
       bash "$CI_PROJECT_DIR/tools/ci/validate_pi_serial_path.sh" UART_PORT
       mot="$CI_PROJECT_DIR/$E2STUDIO_PROJECTS/aws_demos/HardwareDebug/aws_demos.mot"
-      rsu="$CI_PROJECT_DIR/userprog.rsu"
+      rsu="$CI_PROJECT_DIR/userprog_${DEVICE_ID}.rsu"
       key="$CI_PROJECT_DIR/sample_keys/secp256r1.privatekey"
       if [[ ! -f "$mot" ]]; then
         echo "ERROR: aws_demos.mot not found: $mot"
@@ -732,7 +860,39 @@ download_aws_demos:
         --timeout 300 --diag
   artifacts:
     paths:
-      - userprog.rsu
+      - userprog_${DEVICE_ID}.rsu
+    expire_in: 1 week
+
+capture_after_download_aws_demos:
+  stage: observe
+  extends:
+    - .windows_capture_job
+  allow_failure: true
+  when: always
+  rules:
+    - if: $RUN_RFP_SOAK_TEST == "true"
+      when: never
+    - if: $RUN_OTA_ONLY == "true"
+      when: never
+    - if: $CAPTURE_AFTER_AWS_DEMOS == "true"
+    - when: never
+  script:
+    - |
+      $captureDir = "$env:CI_PROJECT_DIR\camera_capture"
+      $timestamp = Get-Date -Format "yyyyMMdd_HHmmss"
+      $imagePath = "$captureDir\monsterx_after_aws_demos_$timestamp.jpg"
+      $devicesLog = "$captureDir\monsterx_after_aws_demos_${timestamp}_devices.txt"
+      New-Item -ItemType Directory -Force -Path $captureDir | Out-Null
+      & "$env:CI_PROJECT_DIR\tools\ci\capture_monsterx_frame.ps1" `
+        -OutputPath $imagePath `
+        -DevicesLogPath $devicesLog `
+        -VideoDeviceName $env:CAPTURE_VIDEO_DEVICE `
+        -Filter $env:CAPTURE_FILTER
+  artifacts:
+    when: always
+    paths:
+      - camera_capture/*.jpg
+      - camera_capture/*.txt
     expire_in: 1 week
 
 health_aws_demos_startup:
@@ -782,31 +942,43 @@ test_commands:
   extends:
     - .pi_device_job
     - .pi_pyserial_job
+    - .rx72n_set_matrix
   timeout: 5 minutes
   rules:
+    - if: $RUN_RFP_SOAK_TEST == "true"
+      when: never
     - if: $RUN_PHASE8B_BUILD_ONLY == "true"
       when: never
     - if: $RUN_PHASE8B_BASELINE == "true"
       when: never
     - if: $RUN_PHASE8B_OTA == "true"
       when: never
+    - if: $RUN_HW_HEALTHCHECK == "true"
+      when: never
     - if: $RUN_OTA_ONLY == "true"
       when: never
     - when: always
   needs:
     - job: download_aws_demos
+      artifacts: false
+    - job: capture_after_download_aws_demos
+      optional: true
+      artifacts: false
     - job: health_aws_demos_startup
       optional: true
+      artifacts: false
     # provision_aws_credentials も COMMAND_PORT を使用するため、同時実行を防止。
     # RUN_AWS_TESTS=false 時は provision がスキップされるため optional: true。
     - job: provision_aws_credentials
       optional: true
+      artifacts: false
   variables:
     COMMAND_TIMEOUT: "10"
   script:
     - |
       set -euo pipefail
       source "$CI_PROJECT_DIR/tools/ci/acquire_pi_device_lock.sh" "$DEVICE_ID"
+      . "$CI_PROJECT_DIR/tools/ci/load_rx72n_set_env.sh"
       bash "$CI_PROJECT_DIR/tools/ci/validate_pi_serial_path.sh" COMMAND_PORT
       echo "=== UART Command-Response Test ==="
       echo "  Port: $COMMAND_PORT @ ${COMMAND_BAUD_RATE}bps"
@@ -820,13 +992,18 @@ test_screen_navigation:
   extends:
     - .pi_device_job
     - .pi_pyserial_job
+    - .rx72n_set_matrix
   timeout: 3 minutes
   rules:
+    - if: $RUN_RFP_SOAK_TEST == "true"
+      when: never
     - if: $RUN_PHASE8B_BUILD_ONLY == "true"
       when: never
     - if: $RUN_PHASE8B_BASELINE == "true"
       when: never
     - if: $RUN_PHASE8B_OTA == "true"
+      when: never
+    - if: $RUN_HW_HEALTHCHECK == "true"
       when: never
     - if: $RUN_OTA_ONLY == "true"
       when: never
@@ -837,6 +1014,7 @@ test_screen_navigation:
     - |
       set -euo pipefail
       source "$CI_PROJECT_DIR/tools/ci/acquire_pi_device_lock.sh" "$DEVICE_ID"
+      . "$CI_PROJECT_DIR/tools/ci/load_rx72n_set_env.sh"
       bash "$CI_PROJECT_DIR/tools/ci/validate_pi_serial_path.sh" COMMAND_PORT
       echo "=== Screen Navigation Test ==="
       echo "  Port: $COMMAND_PORT @ ${COMMAND_BAUD_RATE}bps"
@@ -845,29 +1023,40 @@ test_screen_navigation:
         --timeout 30 --prompt-timeout 30 --initial-wait 1
 
 provision_aws_credentials:
-  stage: health
+  stage: provision
   extends:
     - .pi_device_job
     - .pi_pyserial_job
+    - .rx72n_set_matrix
   timeout: 3 minutes
   rules:
+    - if: $RUN_RFP_SOAK_TEST == "true"
+      when: never
     - if: $RUN_PHASE8B_BUILD_ONLY == "true"
       when: never
     - if: $RUN_PHASE8B_BASELINE == "true"
       when: never
     - if: $RUN_PHASE8B_OTA == "true"
       when: never
+    - if: $RUN_HW_HEALTHCHECK == "true"
+      when: never
     - if: $RUN_OTA_ONLY == "true"
       when: never
     - if: $RUN_AWS_TESTS == "true"
   needs:
     - job: download_aws_demos
+      artifacts: false
+    - job: capture_after_download_aws_demos
+      optional: true
+      artifacts: false
     - job: health_aws_demos_startup
       optional: true
+      artifacts: false
   script:
     - |
       set -euo pipefail
       source "$CI_PROJECT_DIR/tools/ci/acquire_pi_device_lock.sh" "$DEVICE_ID"
+      . "$CI_PROJECT_DIR/tools/ci/load_rx72n_set_env.sh"
       bash "$CI_PROJECT_DIR/tools/ci/validate_pi_serial_path.sh" COMMAND_PORT
       echo "=== AWS IoT Core Provisioning ==="
       echo "  Device ID: $DEVICE_ID"
@@ -875,18 +1064,59 @@ provision_aws_credentials:
         --device-id "$DEVICE_ID" \
         --codesigner-cert "$CI_PROJECT_DIR/sample_keys/secp256r1.crt"
 
+health_aws_demos_startup:
+  stage: observe
+  extends:
+    - .pi_device_job
+    - .pi_pyserial_job
+    - .rx72n_set_matrix
+  timeout: 4 minutes
+  rules:
+    - if: $RUN_HW_HEALTHCHECK == "true"
+    - when: never
+  needs:
+    - job: download_aws_demos
+      artifacts: false
+  script:
+    - |
+      set -euo pipefail
+      . "$CI_PROJECT_DIR/tools/ci/load_rx72n_set_env.sh"
+      bash "$CI_PROJECT_DIR/tools/ci/validate_pi_serial_path.sh" UART_PORT COMMAND_PORT
+      bash "$CI_PROJECT_DIR/tools/ci/print_pi_hardware_state.sh" UART_PORT COMMAND_PORT | tee "$CI_PROJECT_DIR/aws_demos_hardware_state.log"
+      echo "=== aws_demos Startup Health Check ==="
+      python3 "$CI_PROJECT_DIR/test_scripts/uart_test/check_device_health.py" \
+        command-prompt \
+        --port "$COMMAND_PORT" \
+        --baud "$COMMAND_BAUD_RATE" \
+        --initial-wait 3 \
+        --prompt-timeout 60 \
+        --command-timeout 10 \
+        --probe-command version \
+        --probe-expect v | tee "$CI_PROJECT_DIR/aws_demos_health.log"
+  artifacts:
+    when: always
+    paths:
+      - aws_demos_hardware_state.log
+      - aws_demos_health.log
+    expire_in: 1 week
+
 confirm_aws_mqtt:
   stage: test
   extends:
     - .pi_device_job
     - .pi_pyserial_job
+    - .rx72n_set_matrix
   timeout: 5 minutes
   rules:
+    - if: $RUN_RFP_SOAK_TEST == "true"
+      when: never
     - if: $RUN_PHASE8B_BUILD_ONLY == "true"
       when: never
     - if: $RUN_PHASE8B_BASELINE == "true"
       when: never
     - if: $RUN_PHASE8B_OTA == "true"
+      when: never
+    - if: $RUN_HW_HEALTHCHECK == "true"
       when: never
     - if: $RUN_OTA_ONLY == "true"
       when: never
@@ -900,6 +1130,7 @@ confirm_aws_mqtt:
     - |
       set -euo pipefail
       source "$CI_PROJECT_DIR/tools/ci/acquire_pi_device_lock.sh" "$DEVICE_ID"
+      . "$CI_PROJECT_DIR/tools/ci/load_rx72n_set_env.sh"
       bash "$CI_PROJECT_DIR/tools/ci/validate_pi_serial_path.sh" COMMAND_PORT UART_PORT
       echo "=== AWS IoT Core MQTT Connectivity Test ==="
       echo "  Device ID: $DEVICE_ID"
@@ -911,6 +1142,7 @@ test_sd_update:
   extends:
     - .pi_device_job
     - .pi_pyserial_job
+    - .rx72n_set_matrix
   timeout: 10 minutes
   rules:
     - if: $RUN_PHASE8B_BUILD_ONLY == "true"
@@ -918,6 +1150,8 @@ test_sd_update:
     - if: $RUN_PHASE8B_BASELINE == "true"
       when: never
     - if: $RUN_PHASE8B_OTA == "true"
+      when: never
+    - if: $RUN_HW_HEALTHCHECK == "true"
       when: never
     - if: $RUN_OTA_ONLY == "true"
       when: never
@@ -930,13 +1164,14 @@ test_sd_update:
     - |
       set -euo pipefail
       source "$CI_PROJECT_DIR/tools/ci/acquire_pi_device_lock.sh" "$DEVICE_ID"
+      . "$CI_PROJECT_DIR/tools/ci/load_rx72n_set_env.sh"
       bash "$CI_PROJECT_DIR/tools/ci/validate_pi_serial_path.sh" COMMAND_PORT UART_PORT
       echo "=== SD Card Firmware Update Test ==="
       echo "  Device ID: $DEVICE_ID"
-      echo "  RSU file:  $CI_PROJECT_DIR/userprog.rsu"
+      echo "  RSU file:  $CI_PROJECT_DIR/userprog_${DEVICE_ID}.rsu"
       python3 "$CI_PROJECT_DIR/test_scripts/uart_test/test_sd_update.py" \
         --device-id "$DEVICE_ID" \
-        --rsu "$CI_PROJECT_DIR/userprog.rsu" \
+        --rsu "$CI_PROJECT_DIR/userprog_${DEVICE_ID}.rsu" \
         --timeout 300
 
 # ==============================================================================
@@ -952,17 +1187,21 @@ build_ota:
   tags:
     - run_ishiguro_machine
   rules:
+    - if: $RUN_RFP_SOAK_TEST == "true"
+      when: never
     - if: $RUN_PHASE8B_BUILD_ONLY == "true"
       when: never
     - if: $RUN_PHASE8B_BASELINE == "true"
       when: never
     - if: $RUN_PHASE8B_OTA == "true"
       when: never
+    - if: $RUN_HW_HEALTHCHECK == "true"
+      when: never
     - if: $RUN_OTA_TEST == "true"
   script:
     # MAC アドレス書き換え（build ジョブと同じ）
     - |
-      if ($env:MAC_ADDR) {
+      if (($env:BUILD_USE_SOURCE_MAC_ADDR -eq "true") -and $env:MAC_ADDR) {
         Write-Host "=== Set MAC address: $env:MAC_ADDR ==="
         $hcDir = "C:\tmp\hardware-config"
         if (-not (Test-Path "$hcDir\scripts\set_mac_address.py")) {
@@ -972,7 +1211,7 @@ build_ota:
         python "$hcDir\scripts\set_mac_address.py" --mac $env:MAC_ADDR `
           "$env:CI_PROJECT_DIR\vendors\renesas\boards\rx72n-envision-kit\aws_demos\config_files\FreeRTOSConfig.h"
       } else {
-        Write-Host "[WARN] MAC_ADDR not set, using source default"
+        Write-Host "[INFO] Skipping source MAC rewrite. Runtime MAC is expected from dataflash."
       }
     # ワークスペースと HardwareDebug をクリア
     - if (Test-Path "$env:WORKSPACE") { Remove-Item -Recurse -Force "$env:WORKSPACE" }
@@ -1123,13 +1362,21 @@ prepare_ota:
   extends:
     - .pi_flash_job
     - .pi_crypto_serial_job
+    - .rx72n_set_matrix
   timeout: 5 minutes
   rules:
+    - if: '$RUN_ONLY_DEVICE_SLOT != "" && $RUN_ONLY_DEVICE_SLOT != $DEVICE_SLOT'
+      when: never
+    - if: $RUN_PREPARE_OTA_ONLY == "true"
+    - if: $RUN_RFP_SOAK_TEST == "true"
+      when: never
     - if: $RUN_PHASE8B_BUILD_ONLY == "true"
       when: never
     - if: $RUN_PHASE8B_BASELINE == "true"
       when: never
     - if: $RUN_PHASE8B_OTA == "true"
+      when: never
+    - if: $RUN_HW_HEALTHCHECK == "true"
       when: never
     - if: $RUN_OTA_TEST == "true"
   dependencies:
@@ -1138,19 +1385,29 @@ prepare_ota:
     - |
       set -euo pipefail
       source "$CI_PROJECT_DIR/tools/ci/acquire_pi_device_lock.sh" "$DEVICE_ID"
+      . "$CI_PROJECT_DIR/tools/ci/load_rx72n_set_env.sh"
+      snapshot_log="$CI_PROJECT_DIR/prepare_ota_hardware_state.log"
+      : > "$snapshot_log"
+      trap 'RFP_STATE_DEVICE=RX72x bash "$CI_PROJECT_DIR/tools/ci/print_pi_hardware_state.sh" UART_PORT COMMAND_PORT > "$snapshot_log" 2>&1 || true' ERR
       mot="$CI_PROJECT_DIR/$E2STUDIO_PROJECTS/boot_loader/HardwareDebug/rx72n_boot_loader.mot"
       if [[ ! -f "$mot" ]]; then
         echo "ERROR: boot_loader.mot not found: $mot"
         exit 1
       fi
       echo "=== Flash boot_loader (OTA) ==="
-      "$RFP_CLI" -device RX72x -tool "$RFP_TOOL" -if fine -speed 1500K \
+      "$RFP_CLI" -device RX72x -tool "$RFP_TOOL" -if fine -speed "$RFP_SPEED" \
         -auth id FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF -erase-chip -noquery
-      "$RFP_CLI" -device RX72x -tool "$RFP_TOOL" -if fine -speed 1500K \
+      "$RFP_CLI" -device RX72x -tool "$RFP_TOOL" -if fine -speed "$RFP_SPEED" \
         -auth id FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF -p "$mot" -v -run -noquery
+      RFP_STATE_DEVICE=RX72x bash "$CI_PROJECT_DIR/tools/ci/print_pi_hardware_state.sh" UART_PORT COMMAND_PORT > "$snapshot_log" 2>&1 || true
       echo "Boot loader flashed successfully."
+      if [[ "${PREPARE_OTA_STOP_AFTER:-}" == "flash" ]]; then
+        echo "[INFO] PREPARE_OTA_STOP_AFTER=flash: stopping after boot_loader flash."
+        exit 0
+      fi
     - |
       set -euo pipefail
+      . "$CI_PROJECT_DIR/tools/ci/load_rx72n_set_env.sh"
       bash "$CI_PROJECT_DIR/tools/ci/validate_pi_serial_path.sh" UART_PORT
       rsu="$CI_PROJECT_DIR/ota_v1.rsu"
       if [[ ! -f "$rsu" ]]; then
@@ -1163,16 +1420,26 @@ prepare_ota:
       python3 "$CI_PROJECT_DIR/test_scripts/uart_test/test_uart_download.py" \
         --rsu "$rsu" --port "$UART_PORT" --baud "$UART_BAUD_RATE" \
         --timeout 300 --diag --wait-for-ready --ready-timeout 60
+      if [[ "${PREPARE_OTA_STOP_AFTER:-}" == "uart" ]]; then
+        echo "[INFO] PREPARE_OTA_STOP_AFTER=uart: stopping after UART download."
+        exit 0
+      fi
     - |
       set -euo pipefail
+      . "$CI_PROJECT_DIR/tools/ci/load_rx72n_set_env.sh"
       bash "$CI_PROJECT_DIR/tools/ci/validate_pi_serial_path.sh" COMMAND_PORT
       echo "=== AWS IoT Core Provisioning (with code signer cert) ==="
       echo "  Device ID: $DEVICE_ID"
       python3 "$CI_PROJECT_DIR/test_scripts/uart_test/provision_aws.py" \
         --device-id "$DEVICE_ID" \
         --codesigner-cert "$CI_PROJECT_DIR/sample_keys/secp256r1.crt"
+      if [[ "${PREPARE_OTA_STOP_AFTER:-}" == "provision" ]]; then
+        echo "[INFO] PREPARE_OTA_STOP_AFTER=provision: stopping after provisioning."
+        exit 0
+      fi
     - |
       set -euo pipefail
+      . "$CI_PROJECT_DIR/tools/ci/load_rx72n_set_env.sh"
       bash "$CI_PROJECT_DIR/tools/ci/validate_pi_serial_path.sh" COMMAND_PORT
       echo "=== Resetting device ==="
       python3 "$CI_PROJECT_DIR/tools/ci/send_serial_command.py" \
@@ -1180,6 +1447,11 @@ prepare_ota:
         --command reset --delay-after 1
       echo "Reset command sent. Waiting for OTA Agent startup..."
       sleep 10
+  artifacts:
+    when: always
+    paths:
+      - prepare_ota_hardware_state.log
+    expire_in: 1 week
 
 prepare_phase8b_ota:
   stage: ota_prepare
@@ -1210,9 +1482,9 @@ prepare_phase8b_ota:
       echo "=== Flash phase8b boot_loader (OTA) ==="
       echo "  Device ID: $DEVICE_ID"
       echo "  Tool:      $RFP_TOOL"
-      "$RFP_CLI" -device RX72x -tool "$RFP_TOOL" -if fine -speed 1500K \
+      "$RFP_CLI" -device RX72x -tool "$RFP_TOOL" -if fine -speed "$RFP_SPEED" \
         -auth id FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF -erase-chip -noquery
-      "$RFP_CLI" -device RX72x -tool "$RFP_TOOL" -if fine -speed 1500K \
+      "$RFP_CLI" -device RX72x -tool "$RFP_TOOL" -if fine -speed "$RFP_SPEED" \
         -auth id FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF -p "$mot" -v -run -noquery
       echo "Phase8b boot loader flashed successfully."
       bash "$CI_PROJECT_DIR/tools/ci/validate_pi_serial_path.sh" UART_PORT
@@ -1246,13 +1518,22 @@ ota_create_job:
   stage: ota_run
   extends:
     - .windows_ota_aws_job
+    - .rx72n_set_matrix
   timeout: 10 minutes
   rules:
+    - if: '$RUN_ONLY_DEVICE_SLOT != "" && $RUN_ONLY_DEVICE_SLOT != $DEVICE_SLOT'
+      when: never
+    - if: $RUN_PREPARE_OTA_ONLY == "true"
+      when: never
+    - if: $RUN_RFP_SOAK_TEST == "true"
+      when: never
     - if: $RUN_PHASE8B_BUILD_ONLY == "true"
       when: never
     - if: $RUN_PHASE8B_BASELINE == "true"
       when: never
     - if: $RUN_PHASE8B_OTA == "true"
+      when: never
+    - if: $RUN_HW_HEALTHCHECK == "true"
       when: never
     - if: $RUN_OTA_TEST == "true"
   dependencies:
@@ -1260,6 +1541,7 @@ ota_create_job:
   script:
     - |
       $v2 = [int]$env:CI_PIPELINE_IID * 2 + 1
+      $metadataFile = "$env:CI_PROJECT_DIR\ota_job_metadata_$env:DEVICE_ID.json"
       Write-Host "=== AWS IoT OTA Create Job ==="
       Write-Host "  Expected version build: $v2"
       python -u "$env:CI_PROJECT_DIR\test_scripts\uart_test\test_ota.py" `
@@ -1269,11 +1551,11 @@ ota_create_job:
         --s3-bucket "$env:OTA_S3_BUCKET" `
         --ota-role-arn "$env:OTA_ROLE_ARN" `
         --create-start-delay 15 `
-        --metadata-out "$env:CI_PROJECT_DIR\ota_job_metadata.json"
+        --metadata-out $metadataFile
   artifacts:
     when: always
     paths:
-      - ota_job_metadata.json
+      - ota_job_metadata_*.json
     expire_in: 1 week
 
 ota_monitor:
@@ -1281,13 +1563,22 @@ ota_monitor:
   extends:
     - .pi_device_job
     - .pi_pyserial_job
+    - .rx72n_set_matrix
   timeout: 15 minutes
   rules:
+    - if: '$RUN_ONLY_DEVICE_SLOT != "" && $RUN_ONLY_DEVICE_SLOT != $DEVICE_SLOT'
+      when: never
+    - if: $RUN_PREPARE_OTA_ONLY == "true"
+      when: never
+    - if: $RUN_RFP_SOAK_TEST == "true"
+      when: never
     - if: $RUN_PHASE8B_BUILD_ONLY == "true"
       when: never
     - if: $RUN_PHASE8B_BASELINE == "true"
       when: never
     - if: $RUN_PHASE8B_OTA == "true"
+      when: never
+    - if: $RUN_HW_HEALTHCHECK == "true"
       when: never
     - if: $RUN_OTA_TEST == "true"
   dependencies: []
@@ -1297,9 +1588,12 @@ ota_monitor:
       printf '{}\n' > "$CI_PROJECT_DIR/ota_monitor_results.json"
       printf 'monitor started\n' > "$CI_PROJECT_DIR/ota_monitor.log"
       source "$CI_PROJECT_DIR/tools/ci/acquire_pi_device_lock.sh" "$DEVICE_ID"
+      . "$CI_PROJECT_DIR/tools/ci/load_rx72n_set_env.sh"
       bash "$CI_PROJECT_DIR/tools/ci/validate_pi_serial_path.sh" UART_PORT
       bash "$CI_PROJECT_DIR/tools/ci/validate_pi_serial_path.sh" COMMAND_PORT
       v2=$((CI_PIPELINE_IID * 2 + 1))
+      monitor_results="$CI_PROJECT_DIR/ota_monitor_results_${DEVICE_ID}.json"
+      monitor_log="$CI_PROJECT_DIR/ota_monitor_${DEVICE_ID}.log"
       echo "=== AWS IoT OTA Monitor ==="
       echo "  Expected version build: $v2"
       python3 -u "$CI_PROJECT_DIR/test_scripts/uart_test/test_ota.py" \
@@ -1307,26 +1601,35 @@ ota_monitor:
         --device-id "$DEVICE_ID" \
         --expected-build "$v2" \
         --timeout 600 \
-        --monitor-results-out "$CI_PROJECT_DIR/ota_monitor_results.json" | tee "$CI_PROJECT_DIR/ota_monitor.log"
+        --monitor-results-out "$monitor_results" | tee "$monitor_log"
   artifacts:
     when: always
     paths:
-      - ota_monitor_results.json
-      - ota_monitor.log
+      - ota_monitor_results_*.json
+      - ota_monitor_*.log
     expire_in: 1 week
 
 ota_finalize:
   stage: ota_finalize
   extends:
     - .windows_ota_aws_job
+    - .rx72n_set_matrix
   timeout: 10 minutes
   when: always
   rules:
+    - if: '$RUN_ONLY_DEVICE_SLOT != "" && $RUN_ONLY_DEVICE_SLOT != $DEVICE_SLOT'
+      when: never
+    - if: $RUN_PREPARE_OTA_ONLY == "true"
+      when: never
+    - if: $RUN_RFP_SOAK_TEST == "true"
+      when: never
     - if: $RUN_PHASE8B_BUILD_ONLY == "true"
       when: never
     - if: $RUN_PHASE8B_BASELINE == "true"
       when: never
     - if: $RUN_PHASE8B_OTA == "true"
+      when: never
+    - if: $RUN_HW_HEALTHCHECK == "true"
       when: never
     - if: $RUN_OTA_TEST == "true"
   dependencies:
@@ -1334,26 +1637,31 @@ ota_finalize:
     - ota_monitor
   script:
     - |
-      $metadata = "$env:CI_PROJECT_DIR\ota_job_metadata.json"
-      $results = "$env:CI_PROJECT_DIR\ota_monitor_results.json"
-      $monitorLog = "$env:CI_PROJECT_DIR\ota_monitor.log"
-      if (-not (Test-Path $metadata) -or -not (Test-Path $results)) {
-        Write-Host "Skipping OTA finalize because required metadata is missing."
-        if (-not (Test-Path $metadata)) { '{}' | Set-Content -Encoding ASCII $metadata }
-        if (-not (Test-Path $results)) { '{}' | Set-Content -Encoding ASCII $results }
-        if (-not (Test-Path $monitorLog)) { 'monitor skipped or failed before results were produced.' | Set-Content -Encoding ASCII $monitorLog }
+      $metadataFile = "$env:CI_PROJECT_DIR\ota_job_metadata_$env:DEVICE_ID.json"
+      $monitorResultsFile = "$env:CI_PROJECT_DIR\ota_monitor_results_$env:DEVICE_ID.json"
+      $finalizeLogFile = "$env:CI_PROJECT_DIR\ota_finalize_$env:DEVICE_ID.log"
+      if (-not (Test-Path $metadataFile) -or -not (Test-Path $monitorResultsFile)) {
+        @(
+          "Skipping ota_finalize because prerequisite files are missing.",
+          "DEVICE_ID=$env:DEVICE_ID",
+          "metadata_exists=$([bool](Test-Path $metadataFile))",
+          "monitor_results_exists=$([bool](Test-Path $monitorResultsFile))"
+        ) | Set-Content -Encoding UTF8 $finalizeLogFile
+        Write-Host "Skipping ota_finalize because prerequisite files are missing."
+        Write-Host "  metadata: $metadataFile"
+        Write-Host "  monitor : $monitorResultsFile"
         exit 0
       }
       python -u "$env:CI_PROJECT_DIR\test_scripts\uart_test\test_ota.py" `
         --mode finalize `
-        --metadata-in $metadata `
-        --monitor-results-in $results
+        --metadata-in $metadataFile `
+        --monitor-results-in $monitorResultsFile 2>&1 | Tee-Object -FilePath $finalizeLogFile
   artifacts:
     when: always
     paths:
-      - ota_job_metadata.json
-      - ota_monitor_results.json
-      - ota_monitor.log
+      - ota_job_metadata_*.json
+      - ota_monitor_results_*.json
+      - ota_monitor_*.log
     expire_in: 1 week
 
 phase8b_ota_create_job:

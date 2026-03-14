@@ -467,7 +467,8 @@ static TransportSocketStatus_t prvConnectToServerWithBackoffRetries( NetworkCont
 
         if( xNetworkStatus != TRANSPORT_SOCKET_STATUS_SUCCESS )
         {
-            LogWarn( ( "Connection to the broker failed. Attempting connection retry after backoff delay." ) );
+            LogWarn( ( "Connection to the broker failed: TransportStatus=%d. Attempting connection retry after backoff delay.",
+                       ( int ) xNetworkStatus ) );
 
             /* As the connection attempt failed, we will retry the connection after an
              * exponential backoff with jitter delay. */
