@@ -250,6 +250,7 @@ CI/CD Variables を変更すること。
 | `RUN_HW_HEALTHCHECK` | `"true"` | 実機の段階的ヘルスチェック（USB/serial 列挙、boot_loader バナー、aws_demos プロンプト）を実行するか |
 | `RUN_SD_UPDATE_TEST` | `"false"` | SD カードファームウェア更新テストを実行するか |
 | `RUN_OTA_TEST` | `"true"` | OTA テスト（build_ota, prepare_ota, ota_create_job, ota_monitor, ota_finalize）を実行するか |
+| `RUN_OTA_BOUNDARY_ONLY` | `"false"` | legacy OTA の `build_ota -> prepare_ota -> ota_create_job -> ota_monitor` だけを流す境界再現モード。`RUN_ONLY_DEVICE_SLOT` と併用して 1 台だけを繰り返し観測する |
 | `RUN_PHASE8B_BUILD_ONLY` | `"false"` | `phase8b/` の build-only gate (`build_phase8b`) のみを実行するか |
 | `RUN_PHASE8B_BASELINE` | `"false"` | `phase8b/` の hardware baseline (`build_phase8b -> flash/download -> provision -> MQTT`) のみを実行するか |
 | `RUN_PHASE8B_OTA` | `"false"` | `phase8b/` の OTA 再検証 (`build_phase8b_ota -> prepare_phase8b_ota -> phase8b_ota_create_job/monitor/finalize`) のみを実行するか |
