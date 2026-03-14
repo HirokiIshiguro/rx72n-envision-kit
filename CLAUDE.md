@@ -808,6 +808,20 @@ python test_scripts/uart_test/provision_aws.py \
 
 ## Changelog / 変更履歴
 
+### 2026-03-14: MR !50 診断で direct-flash wrong-state と OTA handoff silent-state を分離
+
+After the diagnostic commits landed on MR `!50`, two targeted reruns were executed on set #1 (`ef-saffti-001-rpi-001-rx72nek`). Pipeline `#812` (`diag_phase8b_direct_flash_cli`) proved that the new boot_loader marker detection is working: after direct-flashing the phase8b app `.mot`, reopening SCI7, and issuing `rfp-cli ... -auth id FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF -sig -run -noquery`, the serial log printed `==== RX72N : BootLoader [dual bank] ====`, `send image(*.rsu) via UART.`, then `sample_write_image failed: FWUP_ERR_FAILURE (4)` and `ERROR: boot_loader responded on the log UART; phase8b app CLI is not active`. In other words, the direct-flash repro is now clearly identified as a wrong-state boot_loader capture, not just a generic CLI timeout.
+
+Pipeline `#813` (`build_phase8b_ota -> prepare_phase8b_ota`) showed a different failure mode on the OTA handoff path. The RSU download still reached `verify install area buffer [sig-sha256-ecdsa]...OK` and `activating image ... OK`, and the new provisioning flow again used `rfp-cli ... -auth id FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF -sig -run -noquery` with `--reset-after-open`. This time, however, SCI7 produced neither the boot_loader banner nor the new `[phase8b] main_task entered` / `[phase8b] cli task started` banners before ending with `ERROR: CLI prompt not detected`. That narrows the live OTA blocker to a silent post-reset state on the app path, distinct from the direct-flash boot_loader takeover.
+
+The reruns also exposed a CI hygiene issue: `capture_after_download_aws_demos` was still being instantiated in phase8b-only pipelines because its rules looked only at `CAPTURE_AFTER_AWS_DEMOS`. The job is now suppressed when `RUN_PHASE8B_BUILD_ONLY`, `RUN_PHASE8B_BASELINE`, `RUN_PHASE8B_DIRECT_FLASH_DIAG`, or `RUN_PHASE8B_OTA` is enabled so future phase8b diagnostics do not spend Windows runner time on unrelated camera capture.
+
+MR `!50` に診断 commit を取り込んだ後、set #1 (`ef-saffti-001-rpi-001-rx72nek`) で 2 本の targeted rerun を実行した。pipeline `#812` (`diag_phase8b_direct_flash_cli`) では、新しい boot_loader marker 検出が有効に働くことを確認できた。phase8b app `.mot` を direct-flash し、SCI7 を開き直したうえで `rfp-cli ... -auth id FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF -sig -run -noquery` を掛けると、serial log に `==== RX72N : BootLoader [dual bank] ====`, `send image(*.rsu) via UART.` が出て、その後 `sample_write_image failed: FWUP_ERR_FAILURE (4)` と `ERROR: boot_loader responded on the log UART; phase8b app CLI is not active` で終了した。つまり direct-flash repro は「単なる CLI timeout」ではなく、boot_loader wrong-state を明示的に捕捉できている。
+
+一方 pipeline `#813` (`build_phase8b_ota -> prepare_phase8b_ota`) では、OTA handoff 側が別モードで失敗することが分かった。RSU download 自体は引き続き `verify install area buffer [sig-sha256-ecdsa]...OK` と `activating image ... OK` まで到達し、provisioning でも `rfp-cli ... -auth id FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF -sig -run -noquery` + `--reset-after-open` を使っている。それにもかかわらず、SCI7 には boot_loader banner も新設した `[phase8b] main_task entered` / `[phase8b] cli task started` banner も現れず、最終的に `ERROR: CLI prompt not detected` で終わった。これにより、live OTA の残 blocker は「direct-flash の boot_loader takeover」とは別の、「app path 側で reset 後に無音になる状態」へさらに絞り込めた。
+
+加えて rerun では CI hygiene 上の別問題も見つかった。`capture_after_download_aws_demos` が `CAPTURE_AFTER_AWS_DEMOS` だけを見ており、phase8b-only pipeline でも生成されていた。今後の phase8b 診断で無関係な camera capture に Windows runner 時間を使わないよう、この job は `RUN_PHASE8B_BUILD_ONLY`, `RUN_PHASE8B_BASELINE`, `RUN_PHASE8B_DIRECT_FLASH_DIAG`, `RUN_PHASE8B_OTA` のいずれかが有効な場合は抑止するよう更新した。
+
 ### 2026-03-14: Issue #18 / MR !50 で `#784` vs `#786` を再比較し、code 差分ゼロ・reset 後無応答を確認
 
 Issue `#18` / MR `!50` の再解析では、安定していた pipeline `#784` の commit `0107fd8c213aca75c2c6a27196be24d541c2d155` と、不安定化を観測した pipeline `#786` の commit `baddcce218a6f1bf918b3e5fcf9e97f5ede1e140` を比較した。両者の tree hash はどちらも `dca6730229b29e0fb74bb553049a63febdb0ad83` で一致しており、repo contents だけでは `#786` の崩れを説明できないことが確認できた。したがって本件は code 差分より、runtime state / runner hygiene / hardware state / reset timing の優先度が高い。

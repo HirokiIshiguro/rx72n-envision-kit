@@ -878,6 +878,14 @@ capture_after_download_aws_demos:
   allow_failure: true
   when: always
   rules:
+    - if: $RUN_PHASE8B_BUILD_ONLY == "true"
+      when: never
+    - if: $RUN_PHASE8B_BASELINE == "true"
+      when: never
+    - if: $RUN_PHASE8B_DIRECT_FLASH_DIAG == "true"
+      when: never
+    - if: $RUN_PHASE8B_OTA == "true"
+      when: never
     - if: $RUN_RFP_SOAK_TEST == "true"
       when: never
     - if: $RUN_OTA_ONLY == "true"
