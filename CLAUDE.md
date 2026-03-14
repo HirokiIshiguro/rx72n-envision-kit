@@ -808,6 +808,24 @@ python test_scripts/uart_test/provision_aws.py \
 
 ## Changelog / 変更履歴
 
+### 2026-03-14: Issue #18 / MR !50 で `#784` vs `#786` を再比較し、code 差分ゼロ・reset 後無応答を確認
+
+Issue `#18` / MR `!50` の再解析では、安定していた pipeline `#784` の commit `0107fd8c213aca75c2c6a27196be24d541c2d155` と、不安定化を観測した pipeline `#786` の commit `baddcce218a6f1bf918b3e5fcf9e97f5ede1e140` を比較した。両者の tree hash はどちらも `dca6730229b29e0fb74bb553049a63febdb0ad83` で一致しており、repo contents だけでは `#786` の崩れを説明できないことが確認できた。したがって本件は code 差分より、runtime state / runner hygiene / hardware state / reset timing の優先度が高い。
+
+ローカル採取した `#786` の OTA monitor job log（`#4620` / `#4621` / `#4622`）では、set #1 / #2 / #3 の全てが同じパターンで失敗していた。各 job は正しい `UART_PORT` を open し、`COMMAND_PORT` 経由で reset を送った直後に `OTA Agent not detected within 60s` へ落ち、`[DEBUG] Received:` は 3 台とも空だった。個別 set の UART path mismatch よりも、「reset 後に target が SCI7 へ全く戻ってきていない」ことのほうが支配的なシグナルになっている。
+
+その後の 2026-03-14 rerun では、3 台並列を外した set #1 単体でも同系 failure が再現した。pipeline `#790` / `#796` / `#805` の `prepare_phase8b_ota` 系 trace は `verify install area buffer [sig-sha256-ecdsa]...OK` と `activating image ... OK` まで進んだ一方、後続 provisioning では CLI prompt を再捕捉できなかった。さらに direct-flash repro の pipeline `#792` / `#795` でも、app `.mot` を直接書いた直後に `ERROR: CLI prompt not detected` へ落ちており、問題は OTA cloud handoff 固有ではなく「phase8b app が reset 後に CLI/OTA Agent を立ち上げていない」側へ寄っている。
+
+reset 手順の差し替えも 2026-03-14 に試した。`rfp-cli ... -reset -noquery` では target が無音のまま CLI に入れず、`rfp-cli ... -auth id FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF -sig -run -noquery` へ寄せた repro でも、`E4000004: A framing error occurred while receiving data` に落ちるケースと、signature / memory info までは通るが結局 SCI7 は無音のままというケースの両方が出た。少なくとも現時点では、`#786` の本質は「3-set orchestration だけの問題」ではなく、「post-flash / post-reset の app startup handoff が不安定」という見立てが妥当である。
+
+The replay for Issue `#18` / MR `!50` compared stable pipeline `#784` at `0107fd8c213aca75c2c6a27196be24d541c2d155` against unstable pipeline `#786` at `baddcce218a6f1bf918b3e5fcf9e97f5ede1e140`. Both commits resolve to the same tree hash, `dca6730229b29e0fb74bb553049a63febdb0ad83`, so the repository contents themselves are not a sufficient explanation for the regression. The investigation priority should therefore remain on runtime state, runner hygiene, hardware state, and reset timing.
+
+Saved `#786` OTA monitor traces (`#4620` / `#4621` / `#4622`) failed the same way on all three sets: each job opened the expected SCI7 FTDI path, issued a reset via `COMMAND_PORT`, then timed out with `OTA Agent not detected within 60s` and an empty receive buffer. That pattern points more strongly to "the target never came back on SCI7 after reset" than to a per-device UART mapping mistake.
+
+Later reruns on 2026-03-14 reproduced the same failure on set #1 alone. `prepare_phase8b_ota` repro pipelines `#790`, `#796`, and `#805` reached `verify install area buffer [sig-sha256-ecdsa]...OK` and `activating image ... OK`, yet the follow-up provisioning step still could not recapture the short-lived CLI window. Direct-flash repro pipelines `#792` and `#795` then failed in the same way immediately after writing the app `.mot`, which shows the missing CLI/OTA Agent is not specific to the cloud OTA handoff path.
+
+Current working hypothesis: the dominant blocker after `#786` is unstable post-flash / post-reset app startup rather than a new code delta between the two commits. The next high-value path is the diagnostic branch `codex/15-phase8b-cli-reset-capture`, which already carries `--reset-after-open`, boot_loader marker checks, and early phase8b CLI banners for SCI7-side capture.
+
 ### 2026-03-11: `RFP_TOOL=e2l` を既定化し、E2 Lite serial 依存を外した
 
 Follow-up probing on `ef-saffti-001-rpi-002-rx72nek` / `003` showed that `rfp-cli -d RX72x -lt` only reports supported tool classes (`e2`, `e2l`) and does not enumerate the attached E2 Lite serial. Because the runner topology is 1 Raspberry Pi to 1 RX72N set, pinning by runner tag is already enough to identify the programmer.
