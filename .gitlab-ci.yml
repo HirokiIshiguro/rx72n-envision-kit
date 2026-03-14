@@ -119,6 +119,12 @@ variables:
   RUN_PREPARE_OTA_ONLY: "false"
   # RUN_ONLY_DEVICE_SLOT: "01" / "02" / "03" を指定すると、対応する matrix slot のみ実行する。
   RUN_ONLY_DEVICE_SLOT: ""
+  # PREPARE_OTA_STOP_AFTER:
+  #   ""         : 既定の full prepare_ota
+  #   "flash"    : boot_loader flash 完了で停止
+  #   "uart"     : UART download 完了で停止
+  #   "provision": provisioning 完了で停止
+  PREPARE_OTA_STOP_AFTER: ""
 
 .pi_device_job:
   tags:
@@ -1395,6 +1401,10 @@ prepare_ota:
         -auth id FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF -p "$mot" -v -run -noquery
       RFP_STATE_DEVICE=RX72x bash "$CI_PROJECT_DIR/tools/ci/print_pi_hardware_state.sh" UART_PORT COMMAND_PORT > "$snapshot_log" 2>&1 || true
       echo "Boot loader flashed successfully."
+      if [[ "${PREPARE_OTA_STOP_AFTER:-}" == "flash" ]]; then
+        echo "[INFO] PREPARE_OTA_STOP_AFTER=flash: stopping after boot_loader flash."
+        exit 0
+      fi
     - |
       set -euo pipefail
       . "$CI_PROJECT_DIR/tools/ci/load_rx72n_set_env.sh"
@@ -1410,6 +1420,10 @@ prepare_ota:
       python3 "$CI_PROJECT_DIR/test_scripts/uart_test/test_uart_download.py" \
         --rsu "$rsu" --port "$UART_PORT" --baud "$UART_BAUD_RATE" \
         --timeout 300 --diag --wait-for-ready --ready-timeout 60
+      if [[ "${PREPARE_OTA_STOP_AFTER:-}" == "uart" ]]; then
+        echo "[INFO] PREPARE_OTA_STOP_AFTER=uart: stopping after UART download."
+        exit 0
+      fi
     - |
       set -euo pipefail
       . "$CI_PROJECT_DIR/tools/ci/load_rx72n_set_env.sh"
@@ -1419,6 +1433,10 @@ prepare_ota:
       python3 "$CI_PROJECT_DIR/test_scripts/uart_test/provision_aws.py" \
         --device-id "$DEVICE_ID" \
         --codesigner-cert "$CI_PROJECT_DIR/sample_keys/secp256r1.crt"
+      if [[ "${PREPARE_OTA_STOP_AFTER:-}" == "provision" ]]; then
+        echo "[INFO] PREPARE_OTA_STOP_AFTER=provision: stopping after provisioning."
+        exit 0
+      fi
     - |
       set -euo pipefail
       . "$CI_PROJECT_DIR/tools/ci/load_rx72n_set_env.sh"
