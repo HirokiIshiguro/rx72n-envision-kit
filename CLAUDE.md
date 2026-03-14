@@ -808,6 +808,20 @@ python test_scripts/uart_test/provision_aws.py \
 
 ## Changelog / 変更履歴
 
+### 2026-03-14: `COMMAND_PORT` shadow capture でも silent-state は解けず、focus を `main_task` より前へ移す
+
+The shadow-port instrumentation added on MR `!50` was exercised with two more set #1 reruns on 2026-03-14. Pipeline `#816` repeated the direct-flash repro with `COMMAND_PORT` opened as a shadow serial port, but the result did not change: SCI7 still printed `==== RX72N : BootLoader [dual bank] ====`, `send image(*.rsu) via UART.`, and `FWUP_ERR_FAILURE (4)`, while the shadow port emitted nothing at all. This keeps the direct-flash case classified as a boot_loader wrong-state on SCI7 rather than a simple port mix-up.
+
+Pipeline `#819` then applied the same shadow capture to the real OTA handoff path (`build_phase8b_ota -> prepare_phase8b_ota`). The RSU transfer again reached `verify install area buffer [sig-sha256-ecdsa]...OK` and `activating image ... OK`, but during the subsequent `--reset-after-open` provisioning window neither SCI7 nor `COMMAND_PORT` produced any banner or CLI marker before ending in `ERROR: CLI prompt not detected`. That significantly weakens the "CLI moved to COMMAND_PORT" theory for the OTA handoff case.
+
+Because the earliest added SCI7 banners (`[phase8b] main_task entered`, `[phase8b] cli task started`) were also absent in `#819`, the remaining software-side candidates are now earlier than, or inside, the path leading into `main_task()` and `prvMiscInitialization()`. In other words, the next high-value firmware probes should move from "which UART port is active?" to "does the phase8b app reach CLI/UART initialization at all after OTA handoff reset?".
+
+MR `!50` に追加した shadow-port 診断を、2026-03-14 に set #1 でさらに 2 本回した。pipeline `#816` では direct-flash repro に対して `COMMAND_PORT` を shadow serial として開いたが、結果は変わらなかった。SCI7 には引き続き `==== RX72N : BootLoader [dual bank] ====`, `send image(*.rsu) via UART.`, `FWUP_ERR_FAILURE (4)` が出た一方で、shadow 側は完全無音だった。したがって direct-flash case は「単なる port 取り違え」ではなく、SCI7 上の boot_loader wrong-state と見なしてよい。
+
+続く pipeline `#819` では、同じ shadow capture を OTA handoff 本線 (`build_phase8b_ota -> prepare_phase8b_ota`) に適用した。RSU transfer 自体は再び `verify install area buffer [sig-sha256-ecdsa]...OK` と `activating image ... OK` まで進んだが、その後の `--reset-after-open` provisioning 窓では SCI7 にも `COMMAND_PORT` にも banner / CLI marker が一切出ず、最後は `ERROR: CLI prompt not detected` で終わった。これにより、OTA handoff 側に関しては「CLI が `COMMAND_PORT` 側へ移っているだけ」という仮説はかなり弱くなった。
+
+さらに `#819` では、main_task 冒頭に足した最初期の SCI7 banner（`[phase8b] main_task entered`, `[phase8b] cli task started`）も見えていない。したがって、残る software-side の候補は `main_task()` より前、あるいは `prvMiscInitialization()` に入るまでの経路へ寄ってきた。次に価値が高い probe は「どの UART が active か」より、「OTA handoff reset 後に phase8b app が UART/CLI 初期化まで到達しているか」を直接見る方向である。
+
 ### 2026-03-14: MR !50 診断で direct-flash wrong-state と OTA handoff silent-state を分離
 
 After the diagnostic commits landed on MR `!50`, two targeted reruns were executed on set #1 (`ef-saffti-001-rpi-001-rx72nek`). Pipeline `#812` (`diag_phase8b_direct_flash_cli`) proved that the new boot_loader marker detection is working: after direct-flashing the phase8b app `.mot`, reopening SCI7, and issuing `rfp-cli ... -auth id FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF -sig -run -noquery`, the serial log printed `==== RX72N : BootLoader [dual bank] ====`, `send image(*.rsu) via UART.`, then `sample_write_image failed: FWUP_ERR_FAILURE (4)` and `ERROR: boot_loader responded on the log UART; phase8b app CLI is not active`. In other words, the direct-flash repro is now clearly identified as a wrong-state boot_loader capture, not just a generic CLI timeout.
