@@ -20,6 +20,7 @@ RX72N Envision Kit の aws_demos が AWS IoT Core に MQTT 接続できること
 """
 
 import argparse
+import json
 import os
 import re
 import sys
@@ -250,6 +251,56 @@ def send_reset(cmd_ser, timeout=10):
         return True
 
 
+def write_evidence_outputs(monitor, args, reset_ok, exit_reason, raw_log_out=None, summary_json_out=None):
+    report, errors, info_lines = monitor.get_report()
+    with monitor.lock:
+        all_lines = list(monitor.all_lines)
+        rx_total = monitor.rx_bytes_total
+        line_count = len(monitor.all_lines)
+
+    if raw_log_out:
+        raw_dir = os.path.dirname(raw_log_out)
+        if raw_dir:
+            os.makedirs(raw_dir, exist_ok=True)
+        with open(raw_log_out, "w", encoding="utf-8", newline="\n") as f:
+            if all_lines:
+                f.write("\n".join(line.rstrip("\n") for line in all_lines))
+                f.write("\n")
+
+    if summary_json_out:
+        summary_dir = os.path.dirname(summary_json_out)
+        if summary_dir:
+            os.makedirs(summary_dir, exist_ok=True)
+        summary = {
+            "device_id": args.device_id,
+            "cmd_port": args.cmd_port,
+            "cmd_baud": args.cmd_baud,
+            "log_port": args.log_port,
+            "log_baud": args.log_baud,
+            "timeout": args.timeout,
+            "skip_reset": args.skip_reset,
+            "reset_ok": reset_ok,
+            "exit_reason": exit_reason,
+            "rx_bytes_total": rx_total,
+            "line_count": line_count,
+            "milestones": [
+                {
+                    "name": name,
+                    "ok": ok,
+                    "description": description,
+                    "line": line,
+                }
+                for name, ok, description, line in report
+            ],
+            "errors": errors,
+            "info_lines": info_lines,
+            "last_lines": [line.rstrip("\n") for line in all_lines[-50:]],
+        }
+        with open(summary_json_out, "w", encoding="utf-8", newline="\n") as f:
+            json.dump(summary, f, indent=2)
+            f.write("\n")
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="AWS IoT Core connectivity test for aws_demos"
@@ -268,6 +319,10 @@ def main():
                         help=f"Overall timeout in seconds (default: {DEFAULT_TIMEOUT})")
     parser.add_argument("--skip-reset", action="store_true",
                         help="Skip device reset (assume already running)")
+    parser.add_argument("--raw-log-out",
+                        help="Optional path to write the raw UART transcript")
+    parser.add_argument("--summary-json-out",
+                        help="Optional path to write the connectivity summary JSON")
     args = parser.parse_args()
 
     # --device-id が指定された場合、device_config.json からポート設定を解決
@@ -297,6 +352,9 @@ def main():
     monitor = MilestoneMonitor()
     log_ser = None
     cmd_ser = None
+    reset_ok = True
+    exit_code = 0
+    exit_reason = "running"
 
     try:
         # COM7 ログポートを開く
@@ -309,7 +367,6 @@ def main():
         thread = threading.Thread(target=log_monitor_thread, args=(log_ser, monitor), daemon=True)
         thread.start()
 
-        reset_ok = True
         if not args.skip_reset:
             # コマンドポートを開く
             cmd_ser = serial.Serial(args.cmd_port, args.cmd_baud, timeout=0)
@@ -378,10 +435,13 @@ def main():
 
     except serial.SerialException as e:
         print(f"[ERROR] Serial port error: {e}")
-        sys.exit(1)
+        exit_code = 1
+        exit_reason = f"serial_error: {e}"
     except KeyboardInterrupt:
         print("\n[INFO] Interrupted by user")
         monitor.stop_event.set()
+        exit_code = 130
+        exit_reason = "interrupted"
     finally:
         if log_ser and log_ser.is_open:
             log_ser.close()
@@ -422,10 +482,22 @@ def main():
     print("=" * 60)
 
     all_ok = monitor.all_detected()
-    if all_ok:
+    if exit_code == 0 and all_ok:
+        exit_reason = "success"
+        write_evidence_outputs(
+            monitor,
+            args,
+            reset_ok,
+            exit_reason,
+            raw_log_out=args.raw_log_out,
+            summary_json_out=args.summary_json_out,
+        )
         print("[PASS] AWS IoT Core connectivity verified")
         sys.exit(0)
     else:
+        if exit_code == 0:
+            exit_code = 1
+            exit_reason = "missing_milestones"
         detected = sum(1 for _, ok, _, _ in report if ok)
         print(f"[FAIL] Only {detected}/{len(report)} milestones detected")
 
@@ -455,7 +527,15 @@ def main():
                 tail_lines = monitor.all_lines[-20:]
             for i, line in enumerate(tail_lines, 1):
                 print(f"  [-{len(tail_lines) - i + 1}] {line.strip()[:120]}")
-        sys.exit(1)
+        write_evidence_outputs(
+            monitor,
+            args,
+            reset_ok,
+            exit_reason,
+            raw_log_out=args.raw_log_out,
+            summary_json_out=args.summary_json_out,
+        )
+        sys.exit(exit_code)
 
 
 if __name__ == "__main__":

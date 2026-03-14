@@ -119,6 +119,12 @@ variables:
   RUN_PREPARE_OTA_ONLY: "false"
   # RUN_ONLY_DEVICE_SLOT: "01" / "02" / "03" を指定すると、対応する matrix slot のみ実行する。
   RUN_ONLY_DEVICE_SLOT: ""
+  # RUN_ISSUE17_PRE_HW_MAC_REPRO: "true" で `9224a597` を build 時のみ一時的に戻し、
+  # dataflash MAC と RX hardware MAC の不一致を controlled repro する。
+  RUN_ISSUE17_PRE_HW_MAC_REPRO: "false"
+  # ISSUE17_RECORD_MQTT_EVIDENCE: "true" で confirm_aws_mqtt 時に
+  # raw UART と mirror-port packet trace artifacts を保存する。
+  ISSUE17_RECORD_MQTT_EVIDENCE: "false"
   # PREPARE_OTA_STOP_AFTER:
   #   ""         : 既定の full prepare_ota
   #   "flash"    : boot_loader flash 完了で停止
@@ -215,6 +221,19 @@ build:
           "$env:CI_PROJECT_DIR\vendors\renesas\boards\rx72n-envision-kit\aws_demos\config_files\FreeRTOSConfig.h"
       } else {
         Write-Host "[INFO] Skipping source MAC rewrite. Runtime MAC is expected from dataflash."
+      }
+    - |
+      if ($env:RUN_ISSUE17_PRE_HW_MAC_REPRO -eq "true") {
+        if ($env:BUILD_USE_SOURCE_MAC_ADDR -eq "true") {
+          Write-Host "ERROR: RUN_ISSUE17_PRE_HW_MAC_REPRO=true requires BUILD_USE_SOURCE_MAC_ADDR=false."
+          exit 1
+        }
+        $patch = "$env:CI_PROJECT_DIR\tools\ci\patches\issue17-pre-hw-mac-repro.patch"
+        Write-Host "=== Apply issue17 pre-hw-mac repro patch ==="
+        git -C "$env:CI_PROJECT_DIR" apply --check "$patch"
+        git -C "$env:CI_PROJECT_DIR" apply "$patch"
+      } else {
+        Write-Host "[INFO] Keeping RX hardware MAC alignment fix enabled."
       }
     # ワークスペースと HardwareDebug をクリア（stale Makefile とキャッシュの除去）
     - if (Test-Path "$env:WORKSPACE") { Remove-Item -Recurse -Force "$env:WORKSPACE" }
@@ -697,6 +716,8 @@ flash_boot_loader:
     - .pi_pyserial_job
     - .rx72n_set_matrix
   rules:
+    - if: '$RUN_ONLY_DEVICE_SLOT != "" && $RUN_ONLY_DEVICE_SLOT != $DEVICE_SLOT'
+      when: never
     - if: $RUN_RFP_SOAK_TEST == "true"
       when: never
     - if: $RUN_PHASE8B_BUILD_ONLY == "true"
@@ -813,6 +834,8 @@ download_aws_demos:
     - .pi_crypto_serial_job
     - .rx72n_set_matrix
   rules:
+    - if: '$RUN_ONLY_DEVICE_SLOT != "" && $RUN_ONLY_DEVICE_SLOT != $DEVICE_SLOT'
+      when: never
     - if: $RUN_RFP_SOAK_TEST == "true"
       when: never
     - if: $RUN_PHASE8B_BUILD_ONLY == "true"
@@ -945,6 +968,8 @@ test_commands:
     - .rx72n_set_matrix
   timeout: 5 minutes
   rules:
+    - if: '$RUN_ONLY_DEVICE_SLOT != "" && $RUN_ONLY_DEVICE_SLOT != $DEVICE_SLOT'
+      when: never
     - if: $RUN_RFP_SOAK_TEST == "true"
       when: never
     - if: $RUN_PHASE8B_BUILD_ONLY == "true"
@@ -995,6 +1020,8 @@ test_screen_navigation:
     - .rx72n_set_matrix
   timeout: 3 minutes
   rules:
+    - if: '$RUN_ONLY_DEVICE_SLOT != "" && $RUN_ONLY_DEVICE_SLOT != $DEVICE_SLOT'
+      when: never
     - if: $RUN_RFP_SOAK_TEST == "true"
       when: never
     - if: $RUN_PHASE8B_BUILD_ONLY == "true"
@@ -1030,6 +1057,8 @@ provision_aws_credentials:
     - .rx72n_set_matrix
   timeout: 3 minutes
   rules:
+    - if: '$RUN_ONLY_DEVICE_SLOT != "" && $RUN_ONLY_DEVICE_SLOT != $DEVICE_SLOT'
+      when: never
     - if: $RUN_RFP_SOAK_TEST == "true"
       when: never
     - if: $RUN_PHASE8B_BUILD_ONLY == "true"
@@ -1072,6 +1101,8 @@ health_aws_demos_startup:
     - .rx72n_set_matrix
   timeout: 4 minutes
   rules:
+    - if: '$RUN_ONLY_DEVICE_SLOT != "" && $RUN_ONLY_DEVICE_SLOT != $DEVICE_SLOT'
+      when: never
     - if: $RUN_HW_HEALTHCHECK == "true"
     - when: never
   needs:
@@ -1108,6 +1139,8 @@ confirm_aws_mqtt:
     - .rx72n_set_matrix
   timeout: 5 minutes
   rules:
+    - if: '$RUN_ONLY_DEVICE_SLOT != "" && $RUN_ONLY_DEVICE_SLOT != $DEVICE_SLOT'
+      when: never
     - if: $RUN_RFP_SOAK_TEST == "true"
       when: never
     - if: $RUN_PHASE8B_BUILD_ONLY == "true"
@@ -1134,8 +1167,28 @@ confirm_aws_mqtt:
       bash "$CI_PROJECT_DIR/tools/ci/validate_pi_serial_path.sh" COMMAND_PORT UART_PORT
       echo "=== AWS IoT Core MQTT Connectivity Test ==="
       echo "  Device ID: $DEVICE_ID"
-      python3 "$CI_PROJECT_DIR/test_scripts/uart_test/test_aws_connectivity.py" \
-        --device-id "$DEVICE_ID" --timeout 120
+      evidence_base="$CI_PROJECT_DIR/issue17_mqtt_${DEVICE_ID}"
+      cmd=(
+        python3 "$CI_PROJECT_DIR/test_scripts/uart_test/test_aws_connectivity.py"
+        --device-id "$DEVICE_ID"
+        --timeout 120
+      )
+      if [[ "${ISSUE17_RECORD_MQTT_EVIDENCE}" == "true" ]]; then
+        cmd+=(
+          --raw-log-out "${evidence_base}.uart.log"
+          --summary-json-out "${evidence_base}.summary.json"
+        )
+        bash "$CI_PROJECT_DIR/tools/ci/with_pi_packet_capture.sh" "${evidence_base}.packet" "${cmd[@]}"
+      else
+        "${cmd[@]}"
+      fi
+  artifacts:
+    when: always
+    paths:
+      - issue17_mqtt_*.uart.log
+      - issue17_mqtt_*.summary.json
+      - issue17_mqtt_*.packet.*
+    expire_in: 1 week
 
 test_sd_update:
   stage: test
@@ -1145,6 +1198,8 @@ test_sd_update:
     - .rx72n_set_matrix
   timeout: 10 minutes
   rules:
+    - if: '$RUN_ONLY_DEVICE_SLOT != "" && $RUN_ONLY_DEVICE_SLOT != $DEVICE_SLOT'
+      when: never
     - if: $RUN_PHASE8B_BUILD_ONLY == "true"
       when: never
     - if: $RUN_PHASE8B_BASELINE == "true"

@@ -1,0 +1,87 @@
+diff --git a/libraries/freertos_plus/standard/freertos_plus_tcp/portable/NetworkInterface/RX/NetworkInterface.c b/libraries/freertos_plus/standard/freertos_plus_tcp/portable/NetworkInterface/RX/NetworkInterface.c
+index c2358a4e..1f41c52a 100644
+--- a/libraries/freertos_plus/standard/freertos_plus_tcp/portable/NetworkInterface/RX/NetworkInterface.c
++++ b/libraries/freertos_plus/standard/freertos_plus_tcp/portable/NetworkInterface/RX/NetworkInterface.c
+@@ -107,7 +107,6 @@ void get_random_number( uint8_t * data,
+                         uint32_t len );
+ 
+ void prvLinkStatusChange( BaseType_t xStatus );
+-extern uint8_t g_ucNetworkInterfaceMACAddress[ 6 ];
+ 
+ /***********************************************************************************************************************
+  * Function Name: xNetworkInterfaceInitialise ()
+@@ -482,6 +481,15 @@ static int InitializeNetwork( void )
+     ether_return_t eth_ret;
+     BaseType_t return_code = pdFALSE;
+     ether_param_t param;
++    uint8_t myethaddr[ 6 ] =
++    {
++        configMAC_ADDR0,
++        configMAC_ADDR1,
++        configMAC_ADDR2,
++        configMAC_ADDR3,
++        configMAC_ADDR4,
++        configMAC_ADDR5
++    }; /*XXX Fix me */
+ 
+     R_ETHER_PinSet_CHANNEL_0();
+     R_ETHER_Initial();
+@@ -495,7 +503,7 @@ static int InitializeNetwork( void )
+         return pdFALSE;
+     }
+ 
+-    eth_ret = R_ETHER_Open_ZC2( ETHER_CHANNEL_0, g_ucNetworkInterfaceMACAddress, ETHER_FLAG_OFF );
++    eth_ret = R_ETHER_Open_ZC2( ETHER_CHANNEL_0, myethaddr, ETHER_FLAG_OFF );
+ 
+     if( ETHER_SUCCESS != eth_ret )
+     {
+diff --git a/vendors/renesas/boards/rx72n-envision-kit/aws_demos/application_code/main.c b/vendors/renesas/boards/rx72n-envision-kit/aws_demos/application_code/main.c
+index bc290ed1..bbca3035 100644
+--- a/vendors/renesas/boards/rx72n-envision-kit/aws_demos/application_code/main.c
++++ b/vendors/renesas/boards/rx72n-envision-kit/aws_demos/application_code/main.c
+@@ -68,16 +68,6 @@ static uint8_t ucMACAddress[ 6 ] =
+     configMAC_ADDR5
+ }; //XXX
+ 
+-uint8_t g_ucNetworkInterfaceMACAddress[ 6 ] =
+-{
+-    configMAC_ADDR0,
+-    configMAC_ADDR1,
+-    configMAC_ADDR2,
+-    configMAC_ADDR3,
+-    configMAC_ADDR4,
+-    configMAC_ADDR5
+-};
+-
+ /* Define the network addressing.  These parameters will be used if either
+ ipconfigUDE_DHCP is 0 or if ipconfigUSE_DHCP is 1 but DHCP auto configuration
+ failed. */
+@@ -124,7 +114,6 @@ static void prvMiscInitialization( void );
+ static BaseType_t prvParseMacAddressString( const char * pcMacAddressString,
+                                             uint8_t ucParsedMacAddress[ 6 ] );
+ static void prvLoadMacAddressFromDataFlash( void );
+-static void prvPublishMacAddressToNetworkInterface( void );
+ /*-----------------------------------------------------------*/
+ 
+ /**
+@@ -259,12 +248,6 @@ static void prvLoadMacAddressFromDataFlash( void )
+ }
+ /*-----------------------------------------------------------*/
+ 
+-static void prvPublishMacAddressToNetworkInterface( void )
+-{
+-    ( void ) memcpy( g_ucNetworkInterfaceMACAddress, ucMACAddress, sizeof( ucMACAddress ) );
+-}
+-/*-----------------------------------------------------------*/
+-
+ void vApplicationDaemonTaskStartupHook( void )
+ {
+     prvMiscInitialization();
+@@ -272,7 +255,6 @@ void vApplicationDaemonTaskStartupHook( void )
+     if( SYSTEM_Init() == pdPASS )
+     {
+         prvLoadMacAddressFromDataFlash();
+-        prvPublishMacAddressToNetworkInterface();
+ 
+         /* Initialise the RTOS's TCP/IP stack.  The tasks that use the network
+         are created in the vApplicationIPNetworkEventHook() hook function
