@@ -561,6 +561,7 @@ download_phase8b_app:
         --ready-message "send image(*.rsu) via UART." \
         --success-message "execute image ..." \
         --success-timeout 30
+      bash "$CI_PROJECT_DIR/tools/ci/validate_pi_serial_path.sh" COMMAND_PORT
       # phase8b の CLI は起動直後の短時間だけ有効。
       # prepare->provision の切り替え時は UART を開いたまま明示 reset して
       # CLI window を再捕捉する。
@@ -573,6 +574,9 @@ download_phase8b_app:
         --cli-timeout 40 \
         --reset-cmd "$provision_reset_cmd" \
         --reset-after-open \
+        --shadow-port "$COMMAND_PORT" \
+        --shadow-baud "$COMMAND_BAUD_RATE" \
+        --shadow-name "command-port" \
         --no-reset
       echo "=== phase8b Software Reset via UART CLI ==="
       python3 "$CI_PROJECT_DIR/tools/ci/send_serial_command.py" \
@@ -610,6 +614,7 @@ diag_phase8b_direct_flash_cli:
       set -euo pipefail
       source "$CI_PROJECT_DIR/tools/ci/acquire_pi_device_lock.sh" "$DEVICE_ID"
       bash "$CI_PROJECT_DIR/tools/ci/validate_pi_serial_path.sh" UART_PORT
+      bash "$CI_PROJECT_DIR/tools/ci/validate_pi_serial_path.sh" COMMAND_PORT
       boot_mot="$CI_PROJECT_DIR/$PHASE8B_E2STUDIO_PROJECTS/boot_loader_rx72n_envision_kit/e2studio_ccrx/HardwareDebug/boot_loader_rx72n_envision_kit.mot"
       mot="$CI_PROJECT_DIR/$PHASE8B_E2STUDIO_PROJECTS/aws_ether_rx72n_envision_kit/e2studio_ccrx/HardwareDebug/aws_ether_rx72n_envision_kit.mot"
       if [[ ! -f "$boot_mot" ]]; then
@@ -644,6 +649,9 @@ diag_phase8b_direct_flash_cli:
         --cli-timeout 40 \
         --reset-cmd "$provision_reset_cmd" \
         --reset-after-open \
+        --shadow-port "$COMMAND_PORT" \
+        --shadow-baud "$COMMAND_BAUD_RATE" \
+        --shadow-name "command-port" \
         --no-reset
 
 provision_phase8b_credentials:
@@ -661,6 +669,7 @@ provision_phase8b_credentials:
       set -euo pipefail
       source "$CI_PROJECT_DIR/tools/ci/acquire_pi_device_lock.sh" "$DEVICE_ID"
       bash "$CI_PROJECT_DIR/tools/ci/validate_pi_serial_path.sh" UART_PORT
+      bash "$CI_PROJECT_DIR/tools/ci/validate_pi_serial_path.sh" COMMAND_PORT
       reset_cmd="$RFP_CLI -device RX72x -tool ${RFP_TOOL} -if fine -auth id FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF -sig -run -noquery"
       echo "=== phase8b Provisioning ==="
       echo "  Device ID: $DEVICE_ID"
@@ -672,6 +681,9 @@ provision_phase8b_credentials:
         --baud "$UART_BAUD_RATE" \
         --codesigner-cert "$CI_PROJECT_DIR/sample_keys/secp256r1.crt" \
         --reset-cmd "$reset_cmd" \
+        --shadow-port "$COMMAND_PORT" \
+        --shadow-baud "$COMMAND_BAUD_RATE" \
+        --shadow-name "command-port" \
         --reset-after-open
 
 confirm_phase8b_mqtt:
@@ -1505,6 +1517,7 @@ prepare_phase8b_ota:
         -auth id FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF -p "$mot" -v -run -noquery
       echo "Phase8b boot loader flashed successfully."
       bash "$CI_PROJECT_DIR/tools/ci/validate_pi_serial_path.sh" UART_PORT
+      bash "$CI_PROJECT_DIR/tools/ci/validate_pi_serial_path.sh" COMMAND_PORT
       echo "=== UART Download phase8b OTA v1 ==="
       python3 "$CI_PROJECT_DIR/test_scripts/uart_test/test_uart_download.py" \
         --rsu "$rsu" --port "$UART_PORT" --baud "$UART_BAUD_RATE" \
@@ -1523,6 +1536,9 @@ prepare_phase8b_ota:
         --cli-timeout 40 \
         --reset-cmd "$provision_reset_cmd" \
         --reset-after-open \
+        --shadow-port "$COMMAND_PORT" \
+        --shadow-baud "$COMMAND_BAUD_RATE" \
+        --shadow-name "command-port" \
         --no-reset
       echo "=== phase8b Resetting device for OTA Agent startup ==="
       python3 "$CI_PROJECT_DIR/tools/ci/send_serial_command.py" \

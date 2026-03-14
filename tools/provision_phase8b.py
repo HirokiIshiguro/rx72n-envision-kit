@@ -35,6 +35,7 @@ DEFAULT_LINE_DELAY = 0.5
 DEFAULT_BOOT_WAIT = 3.0
 DEFAULT_CLI_TIMEOUT = 15.0
 DEFAULT_CLI_RETRY_INTERVAL = 1.0
+DEFAULT_SHADOW_BAUD = int(os.environ.get("COMMAND_BAUD_RATE", "115200"))
 CLI_READY_MARKERS = ("Going to FreeRTOS-CLI", ">")
 BOOTLOADER_MARKERS = (
     "send image(*.rsu) via UART.",
@@ -93,17 +94,30 @@ def send_pem_command(ser, key_name, pem_path, char_delay, line_delay):
     return False
 
 
-def wait_for_boot(ser, timeout):
+def wait_for_boot(ser, timeout, shadow_ser=None, shadow_name="shadow"):
     print(f"Waiting for device boot ({timeout}s timeout)...")
     start = time.time()
     collected = ""
+    shadow_collected = ""
     while time.time() - start < timeout:
         if ser.in_waiting:
             data = ser.read(ser.in_waiting).decode("ascii", errors="replace")
             collected += data
             sys.stdout.write(mask_sensitive_output(data))
             sys.stdout.flush()
+        shadow_collected = read_shadow_data(shadow_ser, shadow_name, shadow_collected)
         time.sleep(0.1)
+    return collected, shadow_collected
+
+
+def read_shadow_data(shadow_ser, shadow_name, collected):
+    if not shadow_ser or not shadow_ser.in_waiting:
+        return collected
+
+    data = shadow_ser.read(shadow_ser.in_waiting).decode("ascii", errors="replace")
+    collected += data
+    sys.stdout.write(f"[{shadow_name}] {mask_sensitive_output(data)}")
+    sys.stdout.flush()
     return collected
 
 
@@ -116,9 +130,11 @@ def run_reset_command(reset_cmd, description):
     return True
 
 
-def enter_cli_mode(ser, char_delay, line_delay, timeout, retry_interval):
+def enter_cli_mode(ser, char_delay, line_delay, timeout, retry_interval, shadow_ser=None, shadow_name="shadow"):
     print("Entering CLI mode...")
     ser.reset_input_buffer()
+    shadow_collected = ""
+    shadow_bootloader_reported = False
 
     start = time.monotonic()
     collected = ""
@@ -145,6 +161,14 @@ def enter_cli_mode(ser, char_delay, line_delay, timeout, retry_interval):
             if any(marker in collected for marker in BOOTLOADER_MARKERS):
                 print("\nERROR: boot_loader responded on the log UART; phase8b app CLI is not active")
                 return False
+        shadow_collected = read_shadow_data(shadow_ser, shadow_name, shadow_collected)
+        if shadow_collected:
+            if any(marker in shadow_collected for marker in CLI_READY_MARKERS):
+                print(f"\nERROR: CLI markers were observed on {shadow_name} instead of the log UART")
+                return False
+            if (not shadow_bootloader_reported) and any(marker in shadow_collected for marker in BOOTLOADER_MARKERS):
+                print(f"\nWARNING: boot_loader banner was observed on {shadow_name}")
+                shadow_bootloader_reported = True
         time.sleep(0.1)
 
     print("\nERROR: CLI prompt not detected")
@@ -209,6 +233,8 @@ def provision(args):
     print(f"Endpoint:   {args.endpoint}")
     print(f"Cert:       {args.cert}")
     print(f"Key:        {args.key}")
+    if args.shadow_port:
+        print(f"Shadow Port:{args.shadow_port} @ {args.shadow_baud}")
     if args.codesigner_cert:
         print(f"Code Sign:  {args.codesigner_cert}")
     if args.reset_cmd:
@@ -235,16 +261,35 @@ def provision(args):
         return 1
 
     print(f"Serial port {args.port} opened")
+    shadow_ser = None
+    if args.shadow_port:
+        try:
+            shadow_ser = serial.Serial(
+                port=args.shadow_port,
+                baudrate=args.shadow_baud,
+                bytesize=serial.EIGHTBITS,
+                parity=serial.PARITY_NONE,
+                stopbits=serial.STOPBITS_ONE,
+                timeout=1.0,
+            )
+        except serial.SerialException as e:
+            ser.close()
+            print(f"ERROR: Cannot open shadow port {args.shadow_port}: {e}")
+            return 1
+        print(f"Shadow serial port {args.shadow_port} opened")
 
     try:
         if args.reset_cmd and args.reset_after_open:
             ser.reset_input_buffer()
             ser.reset_output_buffer()
+            if shadow_ser:
+                shadow_ser.reset_input_buffer()
+                shadow_ser.reset_output_buffer()
             if not run_reset_command(args.reset_cmd, "Running external reset command after opening serial..."):
                 return 1
 
         if not args.skip_boot_wait:
-            wait_for_boot(ser, args.boot_wait)
+            wait_for_boot(ser, args.boot_wait, shadow_ser=shadow_ser, shadow_name=args.shadow_name)
 
         if not enter_cli_mode(
             ser,
@@ -252,6 +297,8 @@ def provision(args):
             args.line_delay,
             args.cli_timeout,
             args.cli_retry_interval,
+            shadow_ser=shadow_ser,
+            shadow_name=args.shadow_name,
         ):
             print("ERROR: Failed to enter CLI mode")
             return 1
@@ -303,8 +350,11 @@ def provision(args):
             print("  Reset command sent")
             if not args.quiet:
                 print("\n--- Device boot output ---")
-                wait_for_boot(ser, 5.0)
+                wait_for_boot(ser, 5.0, shadow_ser=shadow_ser, shadow_name=args.shadow_name)
     finally:
+        if shadow_ser:
+            shadow_ser.close()
+            print(f"Shadow serial port {args.shadow_port} closed")
         ser.close()
         print(f"\nSerial port {args.port} closed")
 
@@ -339,6 +389,11 @@ def main():
     parser.add_argument("--reset-cmd", help="External reset/run command executed before or after opening UART")
     parser.add_argument("--reset-after-open", action="store_true",
                         help="Open UART first, then execute --reset-cmd to capture the short CLI window")
+    parser.add_argument("--shadow-port", help="Optional secondary UART to monitor during boot/CLI capture")
+    parser.add_argument("--shadow-baud", type=int, default=DEFAULT_SHADOW_BAUD,
+                        help=f"Secondary UART baud rate (default: {DEFAULT_SHADOW_BAUD})")
+    parser.add_argument("--shadow-name", default="shadow",
+                        help="Label used when printing secondary UART output")
     parser.add_argument("--format", action="store_true", help="Format data flash before provisioning")
     parser.add_argument("--no-reset", action="store_true", help="Do not reset device after provisioning")
     parser.add_argument("--skip-boot-wait", action="store_true",
