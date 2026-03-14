@@ -114,6 +114,10 @@ variables:
   # build_ota → prepare_ota → ota_create_job/ota_monitor → ota_finalize のみ実行する。
   # OTA デバッグ中のイテレーション高速化用。安定後は "false" に戻すこと。
   RUN_OTA_ONLY: "false"
+  # RUN_OTA_BOUNDARY_ONLY: `prepare_ota -> ota_create_job -> ota_monitor` 境界の
+  # 再現専用モード。legacy OTA の build_ota は流すが、通常ジョブと ota_finalize は止める。
+  # `RUN_ONLY_DEVICE_SLOT` と併用して 1 台だけを繰り返し観測する用途を想定。
+  RUN_OTA_BOUNDARY_ONLY: "false"
   # RUN_PREPARE_OTA_ONLY: build_ota -> prepare_ota のみを実行する最小再現モード。
   # RUN_OTA_ONLY=true と併用し、ota_create_job / ota_monitor / ota_finalize を止める。
   RUN_PREPARE_OTA_ONLY: "false"
@@ -197,6 +201,8 @@ build:
     - if: $RUN_PHASE8B_BASELINE == "true"
       when: never
     - if: $RUN_PHASE8B_OTA == "true"
+      when: never
+    - if: $RUN_OTA_BOUNDARY_ONLY == "true"
       when: never
     - if: $RUN_OTA_ONLY == "true"
       when: never
@@ -380,6 +386,8 @@ build_phase8b:
     - if: $RUN_RFP_SOAK_TEST == "true"
       when: never
     - if: $RUN_PHASE8B_OTA == "true"
+      when: never
+    - if: $RUN_OTA_BOUNDARY_ONLY == "true"
       when: never
     - if: $RUN_PHASE8B_DIRECT_FLASH_DIAG == "true"
     - if: $RUN_PHASE8B_BUILD_ONLY == "true"
@@ -725,6 +733,8 @@ flash_boot_loader:
       when: never
     - if: $RUN_PHASE8B_OTA == "true"
       when: never
+    - if: $RUN_OTA_BOUNDARY_ONLY == "true"
+      when: never
     - if: $RUN_OTA_ONLY == "true"
       when: never
     - when: always
@@ -841,6 +851,8 @@ download_aws_demos:
       when: never
     - if: $RUN_PHASE8B_OTA == "true"
       when: never
+    - if: $RUN_OTA_BOUNDARY_ONLY == "true"
+      when: never
     - if: $RUN_OTA_ONLY == "true"
       when: never
     - when: always
@@ -898,6 +910,8 @@ capture_after_download_aws_demos:
       when: never
     - if: $RUN_PHASE8B_OTA == "true"
       when: never
+    - if: $RUN_OTA_BOUNDARY_ONLY == "true"
+      when: never
     - if: $RUN_RFP_SOAK_TEST == "true"
       when: never
     - if: $RUN_OTA_ONLY == "true"
@@ -935,6 +949,8 @@ health_aws_demos_startup:
     - if: $RUN_PHASE8B_BASELINE == "true"
       when: never
     - if: $RUN_PHASE8B_OTA == "true"
+      when: never
+    - if: $RUN_OTA_BOUNDARY_ONLY == "true"
       when: never
     - if: $RUN_OTA_ONLY == "true"
       when: never
@@ -980,6 +996,8 @@ test_commands:
     - if: $RUN_PHASE8B_BASELINE == "true"
       when: never
     - if: $RUN_PHASE8B_OTA == "true"
+      when: never
+    - if: $RUN_OTA_BOUNDARY_ONLY == "true"
       when: never
     - if: $RUN_HW_HEALTHCHECK == "true"
       when: never
@@ -1031,6 +1049,8 @@ test_screen_navigation:
       when: never
     - if: $RUN_PHASE8B_OTA == "true"
       when: never
+    - if: $RUN_OTA_BOUNDARY_ONLY == "true"
+      when: never
     - if: $RUN_HW_HEALTHCHECK == "true"
       when: never
     - if: $RUN_OTA_ONLY == "true"
@@ -1065,6 +1085,8 @@ provision_aws_credentials:
     - if: $RUN_PHASE8B_BASELINE == "true"
       when: never
     - if: $RUN_PHASE8B_OTA == "true"
+      when: never
+    - if: $RUN_OTA_BOUNDARY_ONLY == "true"
       when: never
     - if: $RUN_HW_HEALTHCHECK == "true"
       when: never
@@ -1144,6 +1166,8 @@ confirm_aws_mqtt:
       when: never
     - if: $RUN_PHASE8B_OTA == "true"
       when: never
+    - if: $RUN_OTA_BOUNDARY_ONLY == "true"
+      when: never
     - if: $RUN_HW_HEALTHCHECK == "true"
       when: never
     - if: $RUN_OTA_ONLY == "true"
@@ -1178,6 +1202,8 @@ test_sd_update:
     - if: $RUN_PHASE8B_BASELINE == "true"
       when: never
     - if: $RUN_PHASE8B_OTA == "true"
+      when: never
+    - if: $RUN_OTA_BOUNDARY_ONLY == "true"
       when: never
     - if: $RUN_HW_HEALTHCHECK == "true"
       when: never
@@ -1225,6 +1251,7 @@ build_ota:
       when: never
     - if: $RUN_HW_HEALTHCHECK == "true"
       when: never
+    - if: $RUN_OTA_BOUNDARY_ONLY == "true"
     - if: $RUN_OTA_TEST == "true"
   script:
     # MAC アドレス書き換え（build ジョブと同じ）
@@ -1406,6 +1433,7 @@ prepare_ota:
       when: never
     - if: $RUN_HW_HEALTHCHECK == "true"
       when: never
+    - if: $RUN_OTA_BOUNDARY_ONLY == "true"
     - if: $RUN_OTA_TEST == "true"
   dependencies:
     - build_ota
@@ -1570,6 +1598,7 @@ ota_create_job:
       when: never
     - if: $RUN_HW_HEALTHCHECK == "true"
       when: never
+    - if: $RUN_OTA_BOUNDARY_ONLY == "true"
     - if: $RUN_OTA_TEST == "true"
   dependencies:
     - build_ota
@@ -1615,6 +1644,7 @@ ota_monitor:
       when: never
     - if: $RUN_HW_HEALTHCHECK == "true"
       when: never
+    - if: $RUN_OTA_BOUNDARY_ONLY == "true"
     - if: $RUN_OTA_TEST == "true"
   dependencies: []
   script:
@@ -1663,6 +1693,8 @@ ota_finalize:
     - if: $RUN_PHASE8B_BASELINE == "true"
       when: never
     - if: $RUN_PHASE8B_OTA == "true"
+      when: never
+    - if: $RUN_OTA_BOUNDARY_ONLY == "true"
       when: never
     - if: $RUN_HW_HEALTHCHECK == "true"
       when: never
