@@ -151,6 +151,7 @@ static const uint8_t ucDNSServerAddress[4] =
 };
 
 extern int32_t littlFs_init (void);
+extern void vSerialPutString(const signed char * pcString, unsigned short usStringLength);
 
 /**
  * @brief Application task startup hook.
@@ -184,12 +185,16 @@ void main_task(void)
     extern TaskHandle_t xCLIHandle;
 
     prvMiscInitialization();
+    vSerialPutString((const signed char *)"[phase8b] main_task entered\r\n",
+                     (unsigned short)strlen("[phase8b] main_task entered\r\n"));
     UserInitialization();
 
 #if (ENABLE_CREDENTIAL_BY_CLI == 1)
     /* Register the standard CLI commands. */
     vRegisterSampleCLICommands();
     vUARTCommandConsoleStart(mainUART_COMMAND_CONSOLE_STACK_SIZE, mainUART_COMMAND_CONSOLE_TASK_PRIORITY);
+    vSerialPutString((const signed char *)"[phase8b] cli task started\r\n",
+                     (unsigned short)strlen("[phase8b] cli task started\r\n"));
 #endif
 
     xResults = littlFs_init();
