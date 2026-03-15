@@ -315,6 +315,9 @@ def run_over_ssh(args: argparse.Namespace) -> int:
     cmd.extend(
         [
             target,
+            "sudo",
+            "-u",
+            "gitlab-runner",
             "python3",
             "-",
             "--internal-remote-helper",
