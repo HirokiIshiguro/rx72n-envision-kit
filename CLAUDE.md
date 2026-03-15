@@ -808,6 +808,14 @@ python test_scripts/uart_test/provision_aws.py \
 
 ## Changelog / 変更履歴
 
+### 2026-03-15: current head `0dcf3199` で full pipeline 2 本連続成功
+
+Issue `#18` の切り分けと reservation / OTA monitor 診断を積み直した current head `0dcf3199111f841863362e0041abf307f4ccf065` について、2026-03-15 夜に full pipeline を連続実行した。pipeline `#877` は `2026-03-15 19:33 JST` 開始で `34/34 jobs success`、pipeline `#878` も `2026-03-15 20:16 JST` 開始で `34/34 jobs success` だった。少なくとも branch head 上では、「cross-pipeline 干渉を止めたうえで full pipeline を 2 本連続で通せた」という材料が揃った。
+
+この 2 本が通った時点で、legacy OTA 側の reservation mechanism は実運用上の効果を示したと見てよい。pipeline `#873` では `build_ota -> prepare_ota -> ota_create_job` を clean に通しつつ reservation も保持でき、その後 `#877` / `#878` の full pipeline success に接続できている。以前の `#814/#815` や `#834/#835` のような overlapping pipeline 干渉で説明できる failure は、少なくともこの head の sequential full run では再発していない。
+
+ただし、これで USB 直結仮説の有効性が単独で証明されたわけではない。今回の 2 連続 success は reservation / build_ota 安定化 / OTA PAL 診断を入れた branch head 上で得られたものであり、USB ハブ経由 vs 直結の A/B 比較はまだ取っていない。したがって MR `!50` を締める論点としては、「repo / CI 側の source-code non-dependent instability を再現・特定し、cross-pipeline 干渉を防いで full pipeline success を回復した」と表現するのが正確である。
+
 ### 2026-03-15: legacy OTA に pipeline 単位の boundary reservation を追加
 
 `prepare_ota -> ota_create_job -> ota_monitor -> ota_finalize` の途中で別 pipeline が同じ `DEVICE_ID` / Thing を触る問題に対し、legacy OTA 向けに pipeline 単位の reservation を追加した。新しい `tools/ci/ota_boundary_reservation.py` は Raspberry Pi 側 `/tmp/gitlab-ota-boundary/<DEVICE_ID>.json` に lease を保持し、`prepare_ota` が acquire、`ota_create_job` / `ota_monitor` が assert、`ota_finalize` または boundary-only 専用 release job が release を行う。
