@@ -42,6 +42,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include "demo_config.h"
 #include "store.h"
 #include "mqtt_agent_task.h"
+#include "serial.h"
 
 bool ApplicationCounter (uint32_t xWaitTime);
 signed char vISR_Routine (void);
@@ -151,8 +152,6 @@ static const uint8_t ucDNSServerAddress[4] =
 };
 
 extern int32_t littlFs_init (void);
-extern void vSerialPutString(const signed char * pcString, unsigned short usStringLength);
-
 /**
  * @brief Application task startup hook.
  */
@@ -180,10 +179,9 @@ void main_task(void)
 {
     int32_t xResults;
     int32_t Time2Wait = 10000;
-    extern void vRegisterSampleCLICommands (void);
-    extern void vUARTCommandConsoleStart (uint16_t usStackSize, UBaseType_t uxPriority);
     extern TaskHandle_t xCLIHandle;
 
+    vStartupTracePutString("[phase8b] main_task pre-init\r\n");
     prvMiscInitialization();
     vSerialPutString((const signed char *)"[phase8b] main_task entered\r\n",
                      (unsigned short)strlen("[phase8b] main_task entered\r\n"));
@@ -276,6 +274,7 @@ void prvMiscInitialization(void)
 {
     /* Initialize UART for serial terminal. */
     CLI_Support_Settings();
+    vStartupTracePutString("[phase8b] misc init done\r\n");
 
     /* Start logging task. */
     xLoggingTaskInitialize(mainLOGGING_TASK_STACK_SIZE,
@@ -295,7 +294,7 @@ End of function prvMiscInitialization
  *********************************************************************************************************************/
 void vApplicationDaemonTaskStartupHook(void)
 {
-
+    vStartupTracePutString("[phase8b] daemon hook entered\r\n");
 }
 /*****************************************************************************************
 End of function vApplicationDaemonTaskStartupHook
