@@ -101,7 +101,7 @@ variables:
   # Raspberry Pi runner 上でのプロジェクト横断デバイス排他ロック格納先。
   DEVICE_LOCK_ROOT: "/tmp/gitlab-device-locks"
   # legacy OTA の split job 間で DEVICE_ID 単位の予約状態を保持する。
-  OTA_BOUNDARY_RESERVATION_ROOT: "/tmp/gitlab-ota-boundary"
+  OTA_BOUNDARY_RESERVATION_ROOT: "/tmp/gitlab-ota-boundary-shared"
   RUN_HW_HEALTHCHECK: "false"
   # BUILD_USE_SOURCE_MAC_ADDR: "true" の場合のみビルド前に FreeRTOSConfig.h の
   # configMAC_ADDR* を書き換える。通常は dataflash の MAC override を使うため

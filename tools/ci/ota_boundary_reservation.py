@@ -24,7 +24,7 @@ from pathlib import Path
 from typing import Any
 
 
-DEFAULT_STATE_DIR = "/tmp/gitlab-ota-boundary"
+DEFAULT_STATE_DIR = "/tmp/gitlab-ota-boundary-shared"
 DEFAULT_TIMEOUT = 1800
 DEFAULT_POLL_INTERVAL = 5.0
 DEFAULT_STALE_SECONDS = 7200
@@ -72,7 +72,7 @@ class SimpleFileLock:
         self.fd: int | None = None
 
     def __enter__(self) -> "SimpleFileLock":
-        self.path.parent.mkdir(parents=True, exist_ok=True)
+        ensure_shared_dir(self.path.parent)
         deadline = time.time() + self.timeout
         while True:
             try:
@@ -125,7 +125,7 @@ def read_state(path: Path) -> dict[str, Any] | None:
 
 
 def write_state(path: Path, payload: dict[str, Any]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
+    ensure_shared_dir(path.parent)
     tmp = path.with_suffix(".tmp")
     with tmp.open("w", encoding="utf-8") as f:
         json.dump(payload, f, indent=2, ensure_ascii=False)
@@ -142,6 +142,16 @@ def state_is_stale(state: dict[str, Any], stale_seconds: int) -> bool:
     except (TypeError, ValueError):
         return True
     return (time.time() - touched_epoch) > stale_seconds
+
+
+def ensure_shared_dir(path: Path) -> None:
+    path.mkdir(parents=True, exist_ok=True)
+    try:
+        # Allow both gitlab-runner and admin (SSH from Windows jobs) to update
+        # the same lease directory on the Raspberry Pi.
+        os.chmod(path, 0o1777)
+    except PermissionError:
+        pass
 
 
 def build_payload(args: argparse.Namespace, previous: dict[str, Any] | None) -> dict[str, Any]:
