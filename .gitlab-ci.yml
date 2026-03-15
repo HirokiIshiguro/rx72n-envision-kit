@@ -1620,7 +1620,7 @@ ota_create_job:
     - build_ota
   script:
     - |
-      $owner = "$env:CI_PROJECT_ID:$env:CI_PIPELINE_ID:$env:DEVICE_ID"
+      $owner = "$($env:CI_PROJECT_ID):$($env:CI_PIPELINE_ID):$($env:DEVICE_ID)"
       $leaseArgs = @(
         '-u',
         "$env:CI_PROJECT_DIR\tools\ci\ota_boundary_reservation.py",
@@ -1745,7 +1745,7 @@ ota_finalize:
     - ota_monitor
   script:
     - |
-      $owner = "$env:CI_PROJECT_ID:$env:CI_PIPELINE_ID:$env:DEVICE_ID"
+      $owner = "$($env:CI_PROJECT_ID):$($env:CI_PIPELINE_ID):$($env:DEVICE_ID)"
       $leaseReleaseArgs = @(
         '-u',
         "$env:CI_PROJECT_DIR\tools\ci\ota_boundary_reservation.py",
@@ -1823,7 +1823,7 @@ ota_release_reservation:
     - if: $RUN_OTA_BOUNDARY_ONLY == "true"
   script:
     - |
-      $owner = "$env:CI_PROJECT_ID:$env:CI_PIPELINE_ID:$env:DEVICE_ID"
+      $owner = "$($env:CI_PROJECT_ID):$($env:CI_PIPELINE_ID):$($env:DEVICE_ID)"
       $releaseArgs = @(
         '-u',
         "$env:CI_PROJECT_DIR\tools\ci\ota_boundary_reservation.py",
