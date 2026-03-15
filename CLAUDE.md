@@ -808,6 +808,12 @@ python test_scripts/uart_test/provision_aws.py \
 
 ## Changelog / 変更履歴
 
+### 2026-03-16: `!47` の実質差分は `!50` / current `master` へ吸収済みのため、follow-up は Issue `#19` へ移す
+
+2026-03-16 時点で current `master` は `4b6d82b3e93bc3e69797bcd31235c80eec1639f8` であり、`!47` の中核だった `fix: recapture phase8b cli after reset`、`ci: use sig-run for phase8b cli recapture`、`debug: add early phase8b cli banners` は、それぞれ current `master` 側の `33682669`、`4445b974`、`8c9b833c` として実質取り込み済みである。したがって `codex/15-phase8b-cli-reset-capture` をそのまま延命するより、現行安定 `master` から切り直すほうが、Issue `#18` / MR `!50` で積んだ 3-set 安定化・OTA boundary reservation・shadow capture などの診断基盤を保ったまま phase8b 側の本丸へ進める。
+
+一方で `!47` 側にしか残っていないのは、set 固定 rerun 用 commit や当時の切り分けメモが中心であり、現時点の主論点は reset 手順そのものではなく、「phase8b app が `main_task` まで来ていないのか、それともそこまで来ても SCI7 出力だけ死んでいるのか」を current `master` 上で詰めることにある。この follow-up は Issue `#19` で管理し、direct-flash diag を 1 台固定で回しつつ、必要なら `frtos_start.c`、task create 前後、scheduler start、assert / HardFault 近傍へ観測点を前倒ししていく。
+
 ### 2026-03-15: current head `0dcf3199` で full pipeline 2 本連続成功
 
 Issue `#18` の切り分けと reservation / OTA monitor 診断を積み直した current head `0dcf3199111f841863362e0041abf307f4ccf065` について、2026-03-15 夜に full pipeline を連続実行した。pipeline `#877` は `2026-03-15 19:33 JST` 開始で `34/34 jobs success`、pipeline `#878` も `2026-03-15 20:16 JST` 開始で `34/34 jobs success` だった。少なくとも branch head 上では、「cross-pipeline 干渉を止めたうえで full pipeline を 2 本連続で通せた」という材料が揃った。
