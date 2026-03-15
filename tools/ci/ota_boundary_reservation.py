@@ -126,7 +126,7 @@ def read_state(path: Path) -> dict[str, Any] | None:
 
 def write_state(path: Path, payload: dict[str, Any]) -> None:
     ensure_shared_dir(path.parent)
-    tmp = path.with_suffix(".tmp")
+    tmp = path.parent / f"{path.name}.tmp.{os.getpid()}"
     with tmp.open("w", encoding="utf-8") as f:
         json.dump(payload, f, indent=2, ensure_ascii=False)
         f.write("\n")
