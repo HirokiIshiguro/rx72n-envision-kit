@@ -616,17 +616,22 @@ static OtaPalStatus_t otaPal_CheckFileSignature( OtaFileContext_t * const pFileC
     {
         LogInfo( ( "Started %s signature verification, file: %s",
                    OTA_JsonFileSignatureKey, ( const char * ) pFileContext->pCertFilepath ) );
+        LogInfo( ( "signature_verify: reading signer certificate" ) );
         pucSignerCert = otaPal_ReadAndAssumeCertificate( pFileContext->pCertFilepath, &ulSignerCertSize );
 
         if( pucSignerCert == NULL )
         {
+            LogError( ( "signature_verify: signer certificate unavailable" ) );
             eResult = OtaPalBadSignerCert;
         }
         else
         {
+            LogInfo( ( "signature_verify: signer certificate ready (%lu bytes)", ( unsigned long ) ulSignerCertSize ) );
+            LogInfo( ( "signature_verify: updating hash over %lu bytes", ( unsigned long ) load_firmware_control_block.total_image_length ) );
             CRYPTO_SignatureVerificationUpdate( pvSigVerifyContext,
                                                 ( const uint8_t * ) BOOT_LOADER_UPDATE_TEMPORARY_AREA_LOW_ADDRESS + BOOT_LOADER_USER_FIRMWARE_HEADER_LENGTH,
                                                 load_firmware_control_block.total_image_length );
+            LogInfo( ( "signature_verify: update completed, calling final" ) );
 
             if( CRYPTO_SignatureVerificationFinal( pvSigVerifyContext, ( char * ) pucSignerCert, ulSignerCertSize,
                                                    pFileContext->pSignature->data, pFileContext->pSignature->size ) == pdFALSE )
@@ -940,26 +945,39 @@ static CK_RV prvGetCertificate( const char * pcLabelName,
     CK_BBOOL xSessionOpen = CK_FALSE;
 
     xResult = C_GetFunctionList( &xFunctionList );
+    LogInfo( ( "prvGetCertificate: C_GetFunctionList -> 0x%08lx", ( unsigned long ) xResult ) );
 
     if( CKR_OK == xResult )
     {
         xResult = xFunctionList->C_Initialize( NULL );
+        LogInfo( ( "prvGetCertificate: C_Initialize -> 0x%08lx", ( unsigned long ) xResult ) );
     }
 
     if( ( CKR_OK == xResult ) || ( CKR_CRYPTOKI_ALREADY_INITIALIZED == xResult ) )
     {
         xResult = xFunctionList->C_GetSlotList( CK_TRUE, &xSlotId, &xCount );
+        LogInfo( ( "prvGetCertificate: C_GetSlotList -> 0x%08lx, slot=%lu, count=%lu",
+                   ( unsigned long ) xResult,
+                   ( unsigned long ) xSlotId,
+                   ( unsigned long ) xCount ) );
     }
 
     if( CKR_OK == xResult )
     {
         xResult = xFunctionList->C_OpenSession( xSlotId, CKF_SERIAL_SESSION, NULL, NULL, &xSession );
+        LogInfo( ( "prvGetCertificate: C_OpenSession -> 0x%08lx, session=%lu",
+                   ( unsigned long ) xResult,
+                   ( unsigned long ) xSession ) );
     }
 
     if( CKR_OK == xResult )
     {
         xSessionOpen = CK_TRUE;
         xResult = prvGetCertificateHandle( xFunctionList, xSession, pcLabelName, &xHandle );
+        LogInfo( ( "prvGetCertificate: prvGetCertificateHandle('%s') -> 0x%08lx, handle=%lu",
+                   pcLabelName,
+                   ( unsigned long ) xResult,
+                   ( unsigned long ) xHandle ) );
     }
 
     if( ( xHandle != 0 ) && ( xResult == CKR_OK ) ) /* 0 is an invalid handle */
@@ -968,10 +986,16 @@ static CK_RV prvGetCertificate( const char * pcLabelName,
         xTemplate.type = CKA_VALUE;
         xTemplate.pValue = NULL;
         xResult = xFunctionList->C_GetAttributeValue( xSession, xHandle, &xTemplate, xCount );
+        LogInfo( ( "prvGetCertificate: C_GetAttributeValue(len) -> 0x%08lx, len=%lu",
+                   ( unsigned long ) xResult,
+                   ( unsigned long ) xTemplate.ulValueLen ) );
 
         if( xResult == CKR_OK )
         {
             pucCert = pvPortMalloc( xTemplate.ulValueLen );
+            LogInfo( ( "prvGetCertificate: pvPortMalloc(%lu) -> %p",
+                       ( unsigned long ) xTemplate.ulValueLen,
+                       pucCert ) );
         }
 
         if( ( xResult == CKR_OK ) && ( pucCert == NULL ) )
@@ -983,6 +1007,8 @@ static CK_RV prvGetCertificate( const char * pcLabelName,
         {
             xTemplate.pValue = pucCert;
             xResult = xFunctionList->C_GetAttributeValue( xSession, xHandle, &xTemplate, xCount );
+            LogInfo( ( "prvGetCertificate: C_GetAttributeValue(data) -> 0x%08lx",
+                       ( unsigned long ) xResult ) );
 
             if( xResult == CKR_OK )
             {
@@ -1004,6 +1030,7 @@ static CK_RV prvGetCertificate( const char * pcLabelName,
     if( xSessionOpen == CK_TRUE )
     {
         ( void ) xFunctionList->C_CloseSession( xSession );
+        LogInfo( ( "prvGetCertificate: C_CloseSession(%lu)", ( unsigned long ) xSession ) );
     }
 
     return xResult;

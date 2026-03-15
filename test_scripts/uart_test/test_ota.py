@@ -76,6 +76,14 @@ OTA_MILESTONES = {
         ],
         "required": True,
     },
+    "signature_verify_started": {
+        "description": "Signature verification started",
+        "patterns": [
+            r"Started sig-sha256-ecdsa signature verification",
+            r"Started .* signature verification",
+        ],
+        "required": False,
+    },
     "self_test": {
         "description": "Self-test callback received",
         "patterns": [
@@ -653,11 +661,13 @@ def monitor_ota_progress(ser, timeout=600, port_label="UART"):
     """ログ UART を監視し、OTA マイルストーンを検出する。
 
     Returns:
-        tuple: (detected_milestones, last_version)
+        tuple: (detected_milestones, last_version, stall_hint)
             - detected_milestones: dict {name: timestamp}
             - last_version: tuple (major, minor, build) or None
               モニタリング中に検出された最後のバージョン情報。
               self_test 後のリブートでバージョンが出力された場合にここに格納される。
+            - stall_hint: 文字列 or None
+              進行が止まった相を追加で推定できた場合に設定する。
     """
     detected = {}
     start = time.time()
@@ -665,6 +675,7 @@ def monitor_ota_progress(ser, timeout=600, port_label="UART"):
     block_count = 0
     last_progress_time = start
     last_version = None  # モニタリング中に検出したバージョン情報
+    stall_hint = None
 
     print(f"[MONITOR] Watching OTA progress (timeout={timeout}s)...")
 
@@ -691,6 +702,12 @@ def monitor_ota_progress(ser, timeout=600, port_label="UART"):
                     block_count += 1
                     if block_count % 50 == 0 or block_count <= 3:
                         print(f"[MONITOR] {elapsed:.0f}s: Block {block_count} received")
+                    if "job_received" not in detected:
+                        detected["job_received"] = elapsed
+                        print(
+                            f"[MILESTONE] {elapsed:.0f}s: OTA job document received"
+                            " (inferred from file-block download activity)"
+                        )
 
                 # マイルストーン検出
                 for name, info in OTA_MILESTONES.items():
@@ -735,12 +752,23 @@ def monitor_ota_progress(ser, timeout=600, port_label="UART"):
             print("[WARN] No data received for 120s")
             break
 
+    if (
+        "signature_verify_started" in detected
+        and "self_test" not in detected
+        and "download_complete" in detected
+    ):
+        stall_hint = "stalled_after_signature_verification"
+        print("[WARN] OTA appears stalled after signature verification started")
+    elif "download_complete" in detected and "self_test" not in detected:
+        stall_hint = "stalled_after_download_complete"
+        print("[WARN] OTA appears stalled after download completion")
+
     elapsed = time.time() - start
     print(f"[MONITOR] Monitoring ended after {elapsed:.0f}s")
     print(f"[MONITOR] Total blocks received: {block_count}")
     if last_version:
         print(f"[MONITOR] Last detected version: {last_version[0]}.{last_version[1]}.{last_version[2]}")
-    return detected, last_version
+    return detected, last_version, stall_hint
 
 
 def verify_new_version_after_reset(ser, expected_build, timeout=120):
@@ -1399,11 +1427,13 @@ def run_monitor_mode(args):
 
         print()
         print("[STEP 2/3] Monitoring OTA progress")
-        milestones, monitor_version = monitor_ota_progress(
+        milestones, monitor_version, stall_hint = monitor_ota_progress(
             log_ser, timeout=args.timeout, port_label=os.path.basename(args.log_port)
         )
         monitor_payload["milestones"] = milestones
         monitor_payload["monitor_version"] = format_version(monitor_version)
+        if stall_hint:
+            monitor_payload["stall_hint"] = stall_hint
 
         required = {name for name, info in OTA_MILESTONES.items() if info["required"]}
         required.discard("agent_ready")

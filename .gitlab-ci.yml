@@ -100,6 +100,10 @@ variables:
   RFP_SOAK_SLEEP_SECONDS: "1"
   # Raspberry Pi runner 上でのプロジェクト横断デバイス排他ロック格納先。
   DEVICE_LOCK_ROOT: "/tmp/gitlab-device-locks"
+  # legacy OTA の split job 間で DEVICE_ID 単位の予約状態を保持する。
+  OTA_BOUNDARY_RESERVATION_ROOT: "/tmp/gitlab-ota-boundary-shared"
+  # cleanup が取りこぼした lease を次 run で自動回収するまでの上限秒数。
+  OTA_BOUNDARY_RESERVATION_STALE_SECONDS: "1800"
   RUN_HW_HEALTHCHECK: "false"
   # BUILD_USE_SOURCE_MAC_ADDR: "true" の場合のみビルド前に FreeRTOSConfig.h の
   # configMAC_ADDR* を書き換える。通常は dataflash の MAC override を使うため
@@ -114,6 +118,10 @@ variables:
   # build_ota → prepare_ota → ota_create_job/ota_monitor → ota_finalize のみ実行する。
   # OTA デバッグ中のイテレーション高速化用。安定後は "false" に戻すこと。
   RUN_OTA_ONLY: "false"
+  # RUN_OTA_BOUNDARY_ONLY: `prepare_ota -> ota_create_job -> ota_monitor` 境界の
+  # 再現専用モード。legacy OTA の build_ota は流すが、通常ジョブと ota_finalize は止める。
+  # `RUN_ONLY_DEVICE_SLOT` と併用して 1 台だけを繰り返し観測する用途を想定。
+  RUN_OTA_BOUNDARY_ONLY: "false"
   # RUN_PREPARE_OTA_ONLY: build_ota -> prepare_ota のみを実行する最小再現モード。
   # RUN_OTA_ONLY=true と併用し、ota_create_job / ota_monitor / ota_finalize を止める。
   RUN_PREPARE_OTA_ONLY: "false"
@@ -178,14 +186,17 @@ variables:
         DEVICE_ID: "rx72n-01"
         DEVICE_RUNNER_TAG: "dev-rx72n-01"
         DEVICE_RESOURCE_GROUP: "rx72n-device-01"
+        PI_HOST: "192.168.10.102"
       - DEVICE_SLOT: "02"
         DEVICE_ID: "rx72n-02"
         DEVICE_RUNNER_TAG: "dev-rx72n-02"
         DEVICE_RESOURCE_GROUP: "rx72n-device-02"
+        PI_HOST: "192.168.10.103"
       - DEVICE_SLOT: "03"
         DEVICE_ID: "rx72n-03"
         DEVICE_RUNNER_TAG: "dev-rx72n-03"
         DEVICE_RESOURCE_GROUP: "rx72n-device-03"
+        PI_HOST: "192.168.10.104"
 
 build:
   stage: build
@@ -197,6 +208,8 @@ build:
     - if: $RUN_PHASE8B_BASELINE == "true"
       when: never
     - if: $RUN_PHASE8B_OTA == "true"
+      when: never
+    - if: $RUN_OTA_BOUNDARY_ONLY == "true"
       when: never
     - if: $RUN_OTA_ONLY == "true"
       when: never
@@ -381,6 +394,8 @@ build_phase8b:
       when: never
     - if: $RUN_PHASE8B_OTA == "true"
       when: never
+    - if: $RUN_OTA_BOUNDARY_ONLY == "true"
+      when: never
     - if: $RUN_PHASE8B_DIRECT_FLASH_DIAG == "true"
     - if: $RUN_PHASE8B_BUILD_ONLY == "true"
     - if: $RUN_PHASE8B_BASELINE == "true"
@@ -529,6 +544,7 @@ download_phase8b_app:
       prm="$CI_PROJECT_DIR/$PHASE8B_E2STUDIO_PROJECTS/boot_loader_rx72n_envision_kit/e2studio_ccrx/src/smc_gen/r_fwup/tool/RX72N_DualBank_ImageGenerator_PRM.csv"
       builder="$CI_PROJECT_DIR/tools/build_fwup_v2_rsu.py"
       reset_cmd="$RFP_CLI -device RX72x -tool ${RFP_TOOL} -if fine -run -noquery"
+      provision_reset_cmd="$RFP_CLI -device RX72x -tool ${RFP_TOOL} -if fine -auth id FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF -sig -run -noquery"
       if [[ ! -f "$mot" ]]; then
         echo "ERROR: phase8b app .mot not found: $mot"
         exit 1
@@ -560,8 +576,10 @@ download_phase8b_app:
         --ready-message "send image(*.rsu) via UART." \
         --success-message "execute image ..." \
         --success-timeout 30
-      # phase8b の CLI は app 初回起動直後の短時間だけ有効。
-      # 外部 debugger reset で再現できないため、同一 job 内で provisioning と MQTT baseline まで進める。
+      bash "$CI_PROJECT_DIR/tools/ci/validate_pi_serial_path.sh" COMMAND_PORT
+      # phase8b の CLI は起動直後の短時間だけ有効。
+      # prepare->provision の切り替え時は UART を開いたまま明示 reset して
+      # CLI window を再捕捉する。
       echo "=== phase8b Provisioning (inline after first boot) ==="
       python3 -u "$CI_PROJECT_DIR/tools/provision_phase8b.py" \
         --device-id "$DEVICE_ID" \
@@ -569,6 +587,11 @@ download_phase8b_app:
         --baud "$UART_BAUD_RATE" \
         --codesigner-cert "$CI_PROJECT_DIR/sample_keys/secp256r1.crt" \
         --cli-timeout 40 \
+        --reset-cmd "$provision_reset_cmd" \
+        --reset-after-open \
+        --shadow-port "$COMMAND_PORT" \
+        --shadow-baud "$COMMAND_BAUD_RATE" \
+        --shadow-name "command-port" \
         --no-reset
       echo "=== phase8b Software Reset via UART CLI ==="
       python3 "$CI_PROJECT_DIR/tools/ci/send_serial_command.py" \
@@ -606,6 +629,7 @@ diag_phase8b_direct_flash_cli:
       set -euo pipefail
       source "$CI_PROJECT_DIR/tools/ci/acquire_pi_device_lock.sh" "$DEVICE_ID"
       bash "$CI_PROJECT_DIR/tools/ci/validate_pi_serial_path.sh" UART_PORT
+      bash "$CI_PROJECT_DIR/tools/ci/validate_pi_serial_path.sh" COMMAND_PORT
       boot_mot="$CI_PROJECT_DIR/$PHASE8B_E2STUDIO_PROJECTS/boot_loader_rx72n_envision_kit/e2studio_ccrx/HardwareDebug/boot_loader_rx72n_envision_kit.mot"
       mot="$CI_PROJECT_DIR/$PHASE8B_E2STUDIO_PROJECTS/aws_ether_rx72n_envision_kit/e2studio_ccrx/HardwareDebug/aws_ether_rx72n_envision_kit.mot"
       if [[ ! -f "$boot_mot" ]]; then
@@ -631,12 +655,18 @@ diag_phase8b_direct_flash_cli:
       "$RFP_CLI" -device RX72x -tool "$RFP_TOOL" -if fine -speed "$RFP_SPEED" \
         -auth id FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF -p "$mot" -v -run -noquery
       echo "=== phase8b CLI provisioning (direct-flashed app) ==="
+      provision_reset_cmd="$RFP_CLI -device RX72x -tool ${RFP_TOOL} -if fine -auth id FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF -sig -run -noquery"
       python3 -u "$CI_PROJECT_DIR/tools/provision_phase8b.py" \
         --device-id "$DEVICE_ID" \
         --port "$UART_PORT" \
         --baud "$UART_BAUD_RATE" \
         --codesigner-cert "$CI_PROJECT_DIR/sample_keys/secp256r1.crt" \
         --cli-timeout 40 \
+        --reset-cmd "$provision_reset_cmd" \
+        --reset-after-open \
+        --shadow-port "$COMMAND_PORT" \
+        --shadow-baud "$COMMAND_BAUD_RATE" \
+        --shadow-name "command-port" \
         --no-reset
 
 provision_phase8b_credentials:
@@ -654,7 +684,8 @@ provision_phase8b_credentials:
       set -euo pipefail
       source "$CI_PROJECT_DIR/tools/ci/acquire_pi_device_lock.sh" "$DEVICE_ID"
       bash "$CI_PROJECT_DIR/tools/ci/validate_pi_serial_path.sh" UART_PORT
-      reset_cmd="$RFP_CLI -device RX72x -tool ${RFP_TOOL} -if fine -reset -noquery"
+      bash "$CI_PROJECT_DIR/tools/ci/validate_pi_serial_path.sh" COMMAND_PORT
+      reset_cmd="$RFP_CLI -device RX72x -tool ${RFP_TOOL} -if fine -auth id FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF -sig -run -noquery"
       echo "=== phase8b Provisioning ==="
       echo "  Device ID: $DEVICE_ID"
       echo "  Port:      $UART_PORT @ ${UART_BAUD_RATE}bps"
@@ -664,7 +695,11 @@ provision_phase8b_credentials:
         --port "$UART_PORT" \
         --baud "$UART_BAUD_RATE" \
         --codesigner-cert "$CI_PROJECT_DIR/sample_keys/secp256r1.crt" \
-        --reset-cmd "$reset_cmd"
+        --reset-cmd "$reset_cmd" \
+        --shadow-port "$COMMAND_PORT" \
+        --shadow-baud "$COMMAND_BAUD_RATE" \
+        --shadow-name "command-port" \
+        --reset-after-open
 
 confirm_phase8b_mqtt:
   stage: test
@@ -681,7 +716,7 @@ confirm_phase8b_mqtt:
       set -euo pipefail
       source "$CI_PROJECT_DIR/tools/ci/acquire_pi_device_lock.sh" "$DEVICE_ID"
       bash "$CI_PROJECT_DIR/tools/ci/validate_pi_serial_path.sh" UART_PORT
-      reset_cmd="$RFP_CLI -device RX72x -tool ${RFP_TOOL} -if fine -reset -noquery"
+      reset_cmd="$RFP_CLI -device RX72x -tool ${RFP_TOOL} -if fine -auth id FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF -sig -run -noquery"
       echo "=== phase8b MQTT baseline ==="
       echo "  Device ID: $DEVICE_ID"
       echo "  Reset:     $reset_cmd"
@@ -704,6 +739,8 @@ flash_boot_loader:
     - if: $RUN_PHASE8B_BASELINE == "true"
       when: never
     - if: $RUN_PHASE8B_OTA == "true"
+      when: never
+    - if: $RUN_OTA_BOUNDARY_ONLY == "true"
       when: never
     - if: $RUN_OTA_ONLY == "true"
       when: never
@@ -821,6 +858,8 @@ download_aws_demos:
       when: never
     - if: $RUN_PHASE8B_OTA == "true"
       when: never
+    - if: $RUN_OTA_BOUNDARY_ONLY == "true"
+      when: never
     - if: $RUN_OTA_ONLY == "true"
       when: never
     - when: always
@@ -870,6 +909,16 @@ capture_after_download_aws_demos:
   allow_failure: true
   when: always
   rules:
+    - if: $RUN_PHASE8B_BUILD_ONLY == "true"
+      when: never
+    - if: $RUN_PHASE8B_BASELINE == "true"
+      when: never
+    - if: $RUN_PHASE8B_DIRECT_FLASH_DIAG == "true"
+      when: never
+    - if: $RUN_PHASE8B_OTA == "true"
+      when: never
+    - if: $RUN_OTA_BOUNDARY_ONLY == "true"
+      when: never
     - if: $RUN_RFP_SOAK_TEST == "true"
       when: never
     - if: $RUN_OTA_ONLY == "true"
@@ -907,6 +956,8 @@ health_aws_demos_startup:
     - if: $RUN_PHASE8B_BASELINE == "true"
       when: never
     - if: $RUN_PHASE8B_OTA == "true"
+      when: never
+    - if: $RUN_OTA_BOUNDARY_ONLY == "true"
       when: never
     - if: $RUN_OTA_ONLY == "true"
       when: never
@@ -952,6 +1003,8 @@ test_commands:
     - if: $RUN_PHASE8B_BASELINE == "true"
       when: never
     - if: $RUN_PHASE8B_OTA == "true"
+      when: never
+    - if: $RUN_OTA_BOUNDARY_ONLY == "true"
       when: never
     - if: $RUN_HW_HEALTHCHECK == "true"
       when: never
@@ -1003,6 +1056,8 @@ test_screen_navigation:
       when: never
     - if: $RUN_PHASE8B_OTA == "true"
       when: never
+    - if: $RUN_OTA_BOUNDARY_ONLY == "true"
+      when: never
     - if: $RUN_HW_HEALTHCHECK == "true"
       when: never
     - if: $RUN_OTA_ONLY == "true"
@@ -1037,6 +1092,8 @@ provision_aws_credentials:
     - if: $RUN_PHASE8B_BASELINE == "true"
       when: never
     - if: $RUN_PHASE8B_OTA == "true"
+      when: never
+    - if: $RUN_OTA_BOUNDARY_ONLY == "true"
       when: never
     - if: $RUN_HW_HEALTHCHECK == "true"
       when: never
@@ -1116,6 +1173,8 @@ confirm_aws_mqtt:
       when: never
     - if: $RUN_PHASE8B_OTA == "true"
       when: never
+    - if: $RUN_OTA_BOUNDARY_ONLY == "true"
+      when: never
     - if: $RUN_HW_HEALTHCHECK == "true"
       when: never
     - if: $RUN_OTA_ONLY == "true"
@@ -1150,6 +1209,8 @@ test_sd_update:
     - if: $RUN_PHASE8B_BASELINE == "true"
       when: never
     - if: $RUN_PHASE8B_OTA == "true"
+      when: never
+    - if: $RUN_OTA_BOUNDARY_ONLY == "true"
       when: never
     - if: $RUN_HW_HEALTHCHECK == "true"
       when: never
@@ -1197,6 +1258,7 @@ build_ota:
       when: never
     - if: $RUN_HW_HEALTHCHECK == "true"
       when: never
+    - if: $RUN_OTA_BOUNDARY_ONLY == "true"
     - if: $RUN_OTA_TEST == "true"
   script:
     # MAC アドレス書き換え（build ジョブと同じ）
@@ -1252,6 +1314,26 @@ build_ota:
       Add-Content $configFile "`n#define CONFIG_OTA_MQTT_UPDATE_DEMO_ENABLED`n"
       Write-Host "  Disabled: CONFIG_CORE_MQTT_MUTUAL_AUTH_DEMO_ENABLED"
       Write-Host "  Enabled:  CONFIG_OTA_MQTT_UPDATE_DEMO_ENABLED"
+    # OTA build は安定性優先で並列 build を止める。
+    # recent rerun で aws_demos の headless OTA build が sporadic に落ちているため、
+    # 通常 build より保守的な設定を使う。
+    - |
+      $otaProjects = @(
+        "$env:CI_PROJECT_DIR\$env:E2STUDIO_PROJECTS\aws_demos\.cproject",
+        "$env:CI_PROJECT_DIR\$env:E2STUDIO_PROJECTS\boot_loader\.cproject"
+      )
+      foreach ($project in $otaProjects) {
+        if (-not (Test-Path $project)) {
+          Write-Host "ERROR: .cproject not found: $project"
+          exit 1
+        }
+        $content = Get-Content $project -Raw
+        $updated = $content `
+          -replace 'parallelBuildOn="true"', 'parallelBuildOn="false"' `
+          -replace 'parallelizationNumber="optimal"', 'parallelizationNumber="1"'
+        Set-Content -Path $project -Value $updated -Encoding UTF8
+        Write-Host "  Parallel build disabled: $project"
+      }
     # バージョン番号を v1 に設定 (CI_PIPELINE_IID * 2)
     # OTA はダウングレード禁止 (otaconfigAllowDowngrade=0) のため、
     # パイプラインごとに一意のバージョン番号が必要
@@ -1267,12 +1349,11 @@ build_ota:
       $logFile = "$env:CI_PROJECT_DIR\e2studio_ota_build.log"
       $e2base = @("--launcher.suppressErrors", "-nosplash", "-application", "org.eclipse.cdt.managedbuilder.core.headlessbuild", "-data", "$env:WORKSPACE")
       $imports = @("-import", "$shortProj\aws_demos", "-import", "$shortProj\boot_loader")
-      # -cleanBuild all: import したプロジェクト (aws_demos + rx72n_boot_loader) をすべてビルド。
-      # 注意: boot_loader ディレクトリの e2studio プロジェクト名は "rx72n_boot_loader"（.project 参照）。
-      # カンマ区切りの個別指定 ("aws_demos/HardwareDebug,rx72n_boot_loader/HardwareDebug") より
-      # "all" の方が安全で、import 済みプロジェクトのみがビルドされる。
+      # workspace は毎回作り直すため cleanBuild は不要。
+      # clean ステップは "No rule to make target 'clean'" を noisy に出すだけなので、
+      # OTA build では build のみを実行する。
       Write-Host "=== Build v1 (aws_demos + boot_loader) ==="
-      & "$env:E2STUDIO" @e2base @imports -cleanBuild all 2>&1 | Tee-Object -FilePath $logFile | Out-Null
+      & "$env:E2STUDIO" @e2base @imports -build all 2>&1 | Tee-Object -FilePath $logFile | Out-Null
       Write-Host "e2studio exit code: $LASTEXITCODE"
 
       # 診断: ビルドログの末尾20行
@@ -1314,10 +1395,10 @@ build_ota:
       $shortProj = "$shortRoot\$env:E2STUDIO_PROJECTS"
       $logFile = "$env:CI_PROJECT_DIR\e2studio_ota_build_v2.log"
       $e2base = @("--launcher.suppressErrors", "-nosplash", "-application", "org.eclipse.cdt.managedbuilder.core.headlessbuild", "-data", "$env:WORKSPACE")
-      # v2 は aws_demos のみリビルド。boot_loader は v1 と同じで変更不要だが、
-      # -cleanBuild all を使って確実にビルドする（boot_loader の再ビルドは無害）。
+      # v2 は aws_demos のみ再生成したいが、workspace 上の build target は all で揃える。
+      # HardwareDebug は上で消しているため build のみで十分。
       Write-Host "=== Build v2 (aws_demos only) ==="
-      & "$env:E2STUDIO" @e2base -cleanBuild all 2>&1 | Tee-Object -FilePath $logFile | Out-Null
+      & "$env:E2STUDIO" @e2base -build all 2>&1 | Tee-Object -FilePath $logFile | Out-Null
       Write-Host "e2studio exit code: $LASTEXITCODE"
 
       # 診断: ビルドログの末尾20行
@@ -1378,12 +1459,25 @@ prepare_ota:
       when: never
     - if: $RUN_HW_HEALTHCHECK == "true"
       when: never
+    - if: $RUN_OTA_BOUNDARY_ONLY == "true"
     - if: $RUN_OTA_TEST == "true"
   dependencies:
     - build_ota
   script:
     - |
       set -euo pipefail
+      if [[ "${RUN_OTA_TEST:-false}" == "true" || "${RUN_OTA_BOUNDARY_ONLY:-false}" == "true" ]]; then
+        python3 "$CI_PROJECT_DIR/tools/ci/ota_boundary_reservation.py" \
+          --action acquire \
+          --device-id "$DEVICE_ID" \
+          --owner "${CI_PROJECT_ID}:${CI_PIPELINE_ID}:${DEVICE_ID}" \
+          --project-id "${CI_PROJECT_ID}" \
+          --pipeline-id "${CI_PIPELINE_ID}" \
+          --pipeline-url "${CI_PIPELINE_URL:-}" \
+          --ref "${CI_COMMIT_REF_NAME:-}" \
+          --state-dir "${OTA_BOUNDARY_RESERVATION_ROOT}" \
+          --stale-seconds "${OTA_BOUNDARY_RESERVATION_STALE_SECONDS}"
+      fi
       source "$CI_PROJECT_DIR/tools/ci/acquire_pi_device_lock.sh" "$DEVICE_ID"
       . "$CI_PROJECT_DIR/tools/ci/load_rx72n_set_env.sh"
       snapshot_log="$CI_PROJECT_DIR/prepare_ota_hardware_state.log"
@@ -1471,6 +1565,7 @@ prepare_phase8b_ota:
       mot="$CI_PROJECT_DIR/$PHASE8B_E2STUDIO_PROJECTS/boot_loader_rx72n_envision_kit/e2studio_ccrx/HardwareDebug/boot_loader_rx72n_envision_kit.mot"
       rsu="$CI_PROJECT_DIR/phase8b_ota_v1.rsu"
       reset_cmd="$RFP_CLI -device RX72x -tool ${RFP_TOOL} -if fine -run -noquery"
+      provision_reset_cmd="$RFP_CLI -device RX72x -tool ${RFP_TOOL} -if fine -auth id FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF -sig -run -noquery"
       if [[ ! -f "$mot" ]]; then
         echo "ERROR: phase8b boot_loader.mot not found: $mot"
         exit 1
@@ -1488,6 +1583,7 @@ prepare_phase8b_ota:
         -auth id FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF -p "$mot" -v -run -noquery
       echo "Phase8b boot loader flashed successfully."
       bash "$CI_PROJECT_DIR/tools/ci/validate_pi_serial_path.sh" UART_PORT
+      bash "$CI_PROJECT_DIR/tools/ci/validate_pi_serial_path.sh" COMMAND_PORT
       echo "=== UART Download phase8b OTA v1 ==="
       python3 "$CI_PROJECT_DIR/test_scripts/uart_test/test_uart_download.py" \
         --rsu "$rsu" --port "$UART_PORT" --baud "$UART_BAUD_RATE" \
@@ -1504,6 +1600,11 @@ prepare_phase8b_ota:
         --baud "$UART_BAUD_RATE" \
         --codesigner-cert "$CI_PROJECT_DIR/sample_keys/secp256r1.crt" \
         --cli-timeout 40 \
+        --reset-cmd "$provision_reset_cmd" \
+        --reset-after-open \
+        --shadow-port "$COMMAND_PORT" \
+        --shadow-baud "$COMMAND_BAUD_RATE" \
+        --shadow-name "command-port" \
         --no-reset
       echo "=== phase8b Resetting device for OTA Agent startup ==="
       python3 "$CI_PROJECT_DIR/tools/ci/send_serial_command.py" \
@@ -1535,11 +1636,29 @@ ota_create_job:
       when: never
     - if: $RUN_HW_HEALTHCHECK == "true"
       when: never
+    - if: $RUN_OTA_BOUNDARY_ONLY == "true"
     - if: $RUN_OTA_TEST == "true"
   dependencies:
     - build_ota
   script:
     - |
+      $owner = "$($env:CI_PROJECT_ID):$($env:CI_PIPELINE_ID):$($env:DEVICE_ID)"
+      $leaseArgs = @(
+        '-u',
+        "$env:CI_PROJECT_DIR\tools\ci\ota_boundary_reservation.py",
+        '--action', 'assert',
+        '--device-id', "$env:DEVICE_ID",
+        '--owner', $owner,
+        '--project-id', "$env:CI_PROJECT_ID",
+        '--pipeline-id', "$env:CI_PIPELINE_ID",
+        '--pipeline-url', "$env:CI_PIPELINE_URL",
+        '--ref', "$env:CI_COMMIT_REF_NAME",
+        '--state-dir', "$env:OTA_BOUNDARY_RESERVATION_ROOT",
+        '--stale-seconds', "$env:OTA_BOUNDARY_RESERVATION_STALE_SECONDS",
+        '--host', "$env:PI_HOST"
+      )
+      & python @leaseArgs
+      if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       $v2 = [int]$env:CI_PIPELINE_IID * 2 + 1
       $metadataFile = "$env:CI_PROJECT_DIR\ota_job_metadata_$env:DEVICE_ID.json"
       Write-Host "=== AWS IoT OTA Create Job ==="
@@ -1580,6 +1699,7 @@ ota_monitor:
       when: never
     - if: $RUN_HW_HEALTHCHECK == "true"
       when: never
+    - if: $RUN_OTA_BOUNDARY_ONLY == "true"
     - if: $RUN_OTA_TEST == "true"
   dependencies: []
   script:
@@ -1587,6 +1707,16 @@ ota_monitor:
       set -euo pipefail
       printf '{}\n' > "$CI_PROJECT_DIR/ota_monitor_results.json"
       printf 'monitor started\n' > "$CI_PROJECT_DIR/ota_monitor.log"
+      python3 "$CI_PROJECT_DIR/tools/ci/ota_boundary_reservation.py" \
+        --action assert \
+        --device-id "$DEVICE_ID" \
+        --owner "${CI_PROJECT_ID}:${CI_PIPELINE_ID}:${DEVICE_ID}" \
+        --project-id "${CI_PROJECT_ID}" \
+        --pipeline-id "${CI_PIPELINE_ID}" \
+        --pipeline-url "${CI_PIPELINE_URL:-}" \
+        --ref "${CI_COMMIT_REF_NAME:-}" \
+        --state-dir "${OTA_BOUNDARY_RESERVATION_ROOT}" \
+        --stale-seconds "${OTA_BOUNDARY_RESERVATION_STALE_SECONDS}"
       source "$CI_PROJECT_DIR/tools/ci/acquire_pi_device_lock.sh" "$DEVICE_ID"
       . "$CI_PROJECT_DIR/tools/ci/load_rx72n_set_env.sh"
       bash "$CI_PROJECT_DIR/tools/ci/validate_pi_serial_path.sh" UART_PORT
@@ -1629,6 +1759,8 @@ ota_finalize:
       when: never
     - if: $RUN_PHASE8B_OTA == "true"
       when: never
+    - if: $RUN_OTA_BOUNDARY_ONLY == "true"
+      when: never
     - if: $RUN_HW_HEALTHCHECK == "true"
       when: never
     - if: $RUN_OTA_TEST == "true"
@@ -1637,25 +1769,52 @@ ota_finalize:
     - ota_monitor
   script:
     - |
+      $owner = "$($env:CI_PROJECT_ID):$($env:CI_PIPELINE_ID):$($env:DEVICE_ID)"
+      $leaseReleaseArgs = @(
+        '-u',
+        "$env:CI_PROJECT_DIR\tools\ci\ota_boundary_reservation.py",
+        '--action', 'release',
+        '--device-id', "$env:DEVICE_ID",
+        '--owner', $owner,
+        '--project-id', "$env:CI_PROJECT_ID",
+        '--pipeline-id', "$env:CI_PIPELINE_ID",
+        '--pipeline-url', "$env:CI_PIPELINE_URL",
+        '--ref', "$env:CI_COMMIT_REF_NAME",
+        '--state-dir', "$env:OTA_BOUNDARY_RESERVATION_ROOT",
+        '--stale-seconds', "$env:OTA_BOUNDARY_RESERVATION_STALE_SECONDS",
+        '--host', "$env:PI_HOST"
+      )
       $metadataFile = "$env:CI_PROJECT_DIR\ota_job_metadata_$env:DEVICE_ID.json"
       $monitorResultsFile = "$env:CI_PROJECT_DIR\ota_monitor_results_$env:DEVICE_ID.json"
       $finalizeLogFile = "$env:CI_PROJECT_DIR\ota_finalize_$env:DEVICE_ID.log"
-      if (-not (Test-Path $metadataFile) -or -not (Test-Path $monitorResultsFile)) {
-        @(
-          "Skipping ota_finalize because prerequisite files are missing.",
-          "DEVICE_ID=$env:DEVICE_ID",
-          "metadata_exists=$([bool](Test-Path $metadataFile))",
-          "monitor_results_exists=$([bool](Test-Path $monitorResultsFile))"
-        ) | Set-Content -Encoding UTF8 $finalizeLogFile
-        Write-Host "Skipping ota_finalize because prerequisite files are missing."
-        Write-Host "  metadata: $metadataFile"
-        Write-Host "  monitor : $monitorResultsFile"
-        exit 0
+      $finalExit = 0
+      try {
+        if (-not (Test-Path $metadataFile) -or -not (Test-Path $monitorResultsFile)) {
+          @(
+            "Skipping ota_finalize because prerequisite files are missing.",
+            "DEVICE_ID=$env:DEVICE_ID",
+            "metadata_exists=$([bool](Test-Path $metadataFile))",
+            "monitor_results_exists=$([bool](Test-Path $monitorResultsFile))"
+          ) | Set-Content -Encoding UTF8 $finalizeLogFile
+          Write-Host "Skipping ota_finalize because prerequisite files are missing."
+          Write-Host "  metadata: $metadataFile"
+          Write-Host "  monitor : $monitorResultsFile"
+        } else {
+          & python -u "$env:CI_PROJECT_DIR\test_scripts\uart_test\test_ota.py" `
+            --mode finalize `
+            --metadata-in $metadataFile `
+            --monitor-results-in $monitorResultsFile 2>&1 | Tee-Object -FilePath $finalizeLogFile
+          if ($LASTEXITCODE -ne 0) {
+            $finalExit = $LASTEXITCODE
+          }
+        }
+      } finally {
+        & python @leaseReleaseArgs
+        if ($LASTEXITCODE -ne 0) {
+          Write-Warning "OTA boundary lease release failed for $env:DEVICE_ID (exit=$LASTEXITCODE)."
+        }
       }
-      python -u "$env:CI_PROJECT_DIR\test_scripts\uart_test\test_ota.py" `
-        --mode finalize `
-        --metadata-in $metadataFile `
-        --monitor-results-in $monitorResultsFile 2>&1 | Tee-Object -FilePath $finalizeLogFile
+      exit $finalExit
   artifacts:
     when: always
     paths:
@@ -1663,6 +1822,52 @@ ota_finalize:
       - ota_monitor_results_*.json
       - ota_monitor_*.log
     expire_in: 1 week
+
+ota_release_reservation:
+  stage: ota_finalize
+  extends:
+    - .windows_ota_aws_job
+    - .rx72n_set_matrix
+  timeout: 5 minutes
+  when: always
+  rules:
+    - if: '$RUN_ONLY_DEVICE_SLOT != "" && $RUN_ONLY_DEVICE_SLOT != $DEVICE_SLOT'
+      when: never
+    - if: $RUN_PREPARE_OTA_ONLY == "true"
+      when: never
+    - if: $RUN_RFP_SOAK_TEST == "true"
+      when: never
+    - if: $RUN_PHASE8B_BUILD_ONLY == "true"
+      when: never
+    - if: $RUN_PHASE8B_BASELINE == "true"
+      when: never
+    - if: $RUN_PHASE8B_OTA == "true"
+      when: never
+    - if: $RUN_HW_HEALTHCHECK == "true"
+      when: never
+    - if: $RUN_OTA_BOUNDARY_ONLY == "true"
+  script:
+    - |
+      $owner = "$($env:CI_PROJECT_ID):$($env:CI_PIPELINE_ID):$($env:DEVICE_ID)"
+      $releaseArgs = @(
+        '-u',
+        "$env:CI_PROJECT_DIR\tools\ci\ota_boundary_reservation.py",
+        '--action', 'release',
+        '--device-id', "$env:DEVICE_ID",
+        '--owner', $owner,
+        '--project-id', "$env:CI_PROJECT_ID",
+        '--pipeline-id', "$env:CI_PIPELINE_ID",
+        '--pipeline-url', "$env:CI_PIPELINE_URL",
+        '--ref', "$env:CI_COMMIT_REF_NAME",
+        '--state-dir', "$env:OTA_BOUNDARY_RESERVATION_ROOT",
+        '--stale-seconds', "$env:OTA_BOUNDARY_RESERVATION_STALE_SECONDS",
+        '--host', "$env:PI_HOST"
+      )
+      & python @releaseArgs
+      if ($LASTEXITCODE -ne 0) {
+        Write-Warning "OTA boundary lease release failed for $env:DEVICE_ID (exit=$LASTEXITCODE)."
+        exit 0
+      }
 
 phase8b_ota_create_job:
   stage: ota_run
