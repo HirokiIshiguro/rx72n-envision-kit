@@ -808,6 +808,14 @@ python test_scripts/uart_test/provision_aws.py \
 
 ## Changelog / 変更履歴
 
+### 2026-03-15: legacy OTA に pipeline 単位の boundary reservation を追加
+
+`prepare_ota -> ota_create_job -> ota_monitor -> ota_finalize` の途中で別 pipeline が同じ `DEVICE_ID` / Thing を触る問題に対し、legacy OTA 向けに pipeline 単位の reservation を追加した。新しい `tools/ci/ota_boundary_reservation.py` は Raspberry Pi 側 `/tmp/gitlab-ota-boundary/<DEVICE_ID>.json` に lease を保持し、`prepare_ota` が acquire、`ota_create_job` / `ota_monitor` が assert、`ota_finalize` または boundary-only 専用 release job が release を行う。
+
+Windows 側の OTA job は、`.rx72n_set_matrix` に追加した `PI_HOST` (`192.168.10.102` / `.103` / `.104`) を使って対応 Raspberry Pi へ SSH し、同じ lease を参照する。これにより、Pi job と Windows job が split された current CI 構成でも、「同一 pipeline 内の create/monitor 並列性は維持しつつ、別 pipeline が境界へ割り込む」パターンを止められる見込みになった。
+
+なお、pipeline 強制中断などで release まで到達しなかった場合に備え、lease には stale timeout を設けている。したがって reservation は永久に残らないが、timeout に掛かるまでの間は次 run が待機する可能性がある。remote SSH 経路（Windows runner → Raspberry Pi）の成否は CI 実機での次回確認が必要。
+
 ### 2026-03-15: `prepare_ota -> ota_monitor` の不安定には cross-pipeline 干渉が混じっており、`#835` と `#814/#815` は clean repro ではなかった
 
 アーティファクト比較を進めた結果、`prepare_ota -> ota_monitor` failure は全部同じ種類ではないことが分かった。pipeline `#835` は当初「stale OTA state の clean な境界再現」に見えていたが、実際には同じ実機 set と同じ AWS Thing を触る別 pipeline が途中で割り込んでいた。slot #1 の `#835` は `v1=946 / v2=947` を build し、`2026-03-14 23:21:43 JST` に `prepare_ota` を終え、`23:21:44` に OTA update `rx72n-ota-1773498142` を作成している。ところがその 2 秒後、pipeline `#834` が同じ `rx72n-01` で `prepare_ota` を開始し (`23:21:46 -> 23:23:53`)、board を自分の `v1=944` へ書き戻した。さらに `#834` の `ota_create_job` は `23:23:54` に `#835` の OTA update `1773498142` を stale として削除し、自分の `v2=945` 用に `rx72n-ota-1773498272` を作り直している。結果として `#835` の `ota_monitor` は `23:23:56` 開始時点で current firmware `2.0.944` を見ており、受信した AWS job ID も `AFR_OTA-rx72n-ota-1773498272`、最終 reboot 後 version も `2.0.945` だった。つまり `#835` は自分の job を処理したのではなく、後から割り込んだ `#834` の job を処理していた。
