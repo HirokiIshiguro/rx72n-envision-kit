@@ -1314,6 +1314,26 @@ build_ota:
       Add-Content $configFile "`n#define CONFIG_OTA_MQTT_UPDATE_DEMO_ENABLED`n"
       Write-Host "  Disabled: CONFIG_CORE_MQTT_MUTUAL_AUTH_DEMO_ENABLED"
       Write-Host "  Enabled:  CONFIG_OTA_MQTT_UPDATE_DEMO_ENABLED"
+    # OTA build は安定性優先で並列 build を止める。
+    # recent rerun で aws_demos の headless OTA build が sporadic に落ちているため、
+    # 通常 build より保守的な設定を使う。
+    - |
+      $otaProjects = @(
+        "$env:CI_PROJECT_DIR\$env:E2STUDIO_PROJECTS\aws_demos\.cproject",
+        "$env:CI_PROJECT_DIR\$env:E2STUDIO_PROJECTS\boot_loader\.cproject"
+      )
+      foreach ($project in $otaProjects) {
+        if (-not (Test-Path $project)) {
+          Write-Host "ERROR: .cproject not found: $project"
+          exit 1
+        }
+        $content = Get-Content $project -Raw
+        $updated = $content `
+          -replace 'parallelBuildOn="true"', 'parallelBuildOn="false"' `
+          -replace 'parallelizationNumber="optimal"', 'parallelizationNumber="1"'
+        Set-Content -Path $project -Value $updated -Encoding UTF8
+        Write-Host "  Parallel build disabled: $project"
+      }
     # バージョン番号を v1 に設定 (CI_PIPELINE_IID * 2)
     # OTA はダウングレード禁止 (otaconfigAllowDowngrade=0) のため、
     # パイプラインごとに一意のバージョン番号が必要
@@ -1329,12 +1349,11 @@ build_ota:
       $logFile = "$env:CI_PROJECT_DIR\e2studio_ota_build.log"
       $e2base = @("--launcher.suppressErrors", "-nosplash", "-application", "org.eclipse.cdt.managedbuilder.core.headlessbuild", "-data", "$env:WORKSPACE")
       $imports = @("-import", "$shortProj\aws_demos", "-import", "$shortProj\boot_loader")
-      # -cleanBuild all: import したプロジェクト (aws_demos + rx72n_boot_loader) をすべてビルド。
-      # 注意: boot_loader ディレクトリの e2studio プロジェクト名は "rx72n_boot_loader"（.project 参照）。
-      # カンマ区切りの個別指定 ("aws_demos/HardwareDebug,rx72n_boot_loader/HardwareDebug") より
-      # "all" の方が安全で、import 済みプロジェクトのみがビルドされる。
+      # workspace は毎回作り直すため cleanBuild は不要。
+      # clean ステップは "No rule to make target 'clean'" を noisy に出すだけなので、
+      # OTA build では build のみを実行する。
       Write-Host "=== Build v1 (aws_demos + boot_loader) ==="
-      & "$env:E2STUDIO" @e2base @imports -cleanBuild all 2>&1 | Tee-Object -FilePath $logFile | Out-Null
+      & "$env:E2STUDIO" @e2base @imports -build all 2>&1 | Tee-Object -FilePath $logFile | Out-Null
       Write-Host "e2studio exit code: $LASTEXITCODE"
 
       # 診断: ビルドログの末尾20行
@@ -1376,10 +1395,10 @@ build_ota:
       $shortProj = "$shortRoot\$env:E2STUDIO_PROJECTS"
       $logFile = "$env:CI_PROJECT_DIR\e2studio_ota_build_v2.log"
       $e2base = @("--launcher.suppressErrors", "-nosplash", "-application", "org.eclipse.cdt.managedbuilder.core.headlessbuild", "-data", "$env:WORKSPACE")
-      # v2 は aws_demos のみリビルド。boot_loader は v1 と同じで変更不要だが、
-      # -cleanBuild all を使って確実にビルドする（boot_loader の再ビルドは無害）。
+      # v2 は aws_demos のみ再生成したいが、workspace 上の build target は all で揃える。
+      # HardwareDebug は上で消しているため build のみで十分。
       Write-Host "=== Build v2 (aws_demos only) ==="
-      & "$env:E2STUDIO" @e2base -cleanBuild all 2>&1 | Tee-Object -FilePath $logFile | Out-Null
+      & "$env:E2STUDIO" @e2base -build all 2>&1 | Tee-Object -FilePath $logFile | Out-Null
       Write-Host "e2studio exit code: $LASTEXITCODE"
 
       # 診断: ビルドログの末尾20行
