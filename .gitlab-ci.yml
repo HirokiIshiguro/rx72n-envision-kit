@@ -102,6 +102,8 @@ variables:
   DEVICE_LOCK_ROOT: "/tmp/gitlab-device-locks"
   # legacy OTA の split job 間で DEVICE_ID 単位の予約状態を保持する。
   OTA_BOUNDARY_RESERVATION_ROOT: "/tmp/gitlab-ota-boundary-shared"
+  # cleanup が取りこぼした lease を次 run で自動回収するまでの上限秒数。
+  OTA_BOUNDARY_RESERVATION_STALE_SECONDS: "1800"
   RUN_HW_HEALTHCHECK: "false"
   # BUILD_USE_SOURCE_MAC_ADDR: "true" の場合のみビルド前に FreeRTOSConfig.h の
   # configMAC_ADDR* を書き換える。通常は dataflash の MAC override を使うため
@@ -1454,7 +1456,8 @@ prepare_ota:
           --pipeline-id "${CI_PIPELINE_ID}" \
           --pipeline-url "${CI_PIPELINE_URL:-}" \
           --ref "${CI_COMMIT_REF_NAME:-}" \
-          --state-dir "${OTA_BOUNDARY_RESERVATION_ROOT}"
+          --state-dir "${OTA_BOUNDARY_RESERVATION_ROOT}" \
+          --stale-seconds "${OTA_BOUNDARY_RESERVATION_STALE_SECONDS}"
       fi
       source "$CI_PROJECT_DIR/tools/ci/acquire_pi_device_lock.sh" "$DEVICE_ID"
       . "$CI_PROJECT_DIR/tools/ci/load_rx72n_set_env.sh"
@@ -1632,6 +1635,7 @@ ota_create_job:
         '--pipeline-url', "$env:CI_PIPELINE_URL",
         '--ref', "$env:CI_COMMIT_REF_NAME",
         '--state-dir', "$env:OTA_BOUNDARY_RESERVATION_ROOT",
+        '--stale-seconds', "$env:OTA_BOUNDARY_RESERVATION_STALE_SECONDS",
         '--host', "$env:PI_HOST"
       )
       & python @leaseArgs
@@ -1692,7 +1696,8 @@ ota_monitor:
         --pipeline-id "${CI_PIPELINE_ID}" \
         --pipeline-url "${CI_PIPELINE_URL:-}" \
         --ref "${CI_COMMIT_REF_NAME:-}" \
-        --state-dir "${OTA_BOUNDARY_RESERVATION_ROOT}"
+        --state-dir "${OTA_BOUNDARY_RESERVATION_ROOT}" \
+        --stale-seconds "${OTA_BOUNDARY_RESERVATION_STALE_SECONDS}"
       source "$CI_PROJECT_DIR/tools/ci/acquire_pi_device_lock.sh" "$DEVICE_ID"
       . "$CI_PROJECT_DIR/tools/ci/load_rx72n_set_env.sh"
       bash "$CI_PROJECT_DIR/tools/ci/validate_pi_serial_path.sh" UART_PORT
@@ -1757,6 +1762,7 @@ ota_finalize:
         '--pipeline-url', "$env:CI_PIPELINE_URL",
         '--ref', "$env:CI_COMMIT_REF_NAME",
         '--state-dir', "$env:OTA_BOUNDARY_RESERVATION_ROOT",
+        '--stale-seconds', "$env:OTA_BOUNDARY_RESERVATION_STALE_SECONDS",
         '--host', "$env:PI_HOST"
       )
       $metadataFile = "$env:CI_PROJECT_DIR\ota_job_metadata_$env:DEVICE_ID.json"
@@ -1785,8 +1791,8 @@ ota_finalize:
         }
       } finally {
         & python @leaseReleaseArgs
-        if ($LASTEXITCODE -ne 0 -and $finalExit -eq 0) {
-          $finalExit = $LASTEXITCODE
+        if ($LASTEXITCODE -ne 0) {
+          Write-Warning "OTA boundary lease release failed for $env:DEVICE_ID (exit=$LASTEXITCODE)."
         }
       }
       exit $finalExit
@@ -1835,9 +1841,14 @@ ota_release_reservation:
         '--pipeline-url', "$env:CI_PIPELINE_URL",
         '--ref', "$env:CI_COMMIT_REF_NAME",
         '--state-dir', "$env:OTA_BOUNDARY_RESERVATION_ROOT",
+        '--stale-seconds', "$env:OTA_BOUNDARY_RESERVATION_STALE_SECONDS",
         '--host', "$env:PI_HOST"
       )
       & python @releaseArgs
+      if ($LASTEXITCODE -ne 0) {
+        Write-Warning "OTA boundary lease release failed for $env:DEVICE_ID (exit=$LASTEXITCODE)."
+        exit 0
+      }
 
 phase8b_ota_create_job:
   stage: ota_run
