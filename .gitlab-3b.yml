@@ -81,7 +81,7 @@ diag_phase8b_3b_boot:
         --reset-cmd "$reset_cmd" \
         --success-message "[phase8b] main_task entered" \
         --success-timeout 40 | tee "$download_log"
-      if ! grep -F "[phase8b] main_task entered" "$download_log" >/dev/null; then
+      if ! grep -E '^\s*\[[[:space:][:digit:].]+s\] \[phase8b\] main_task entered$' "$download_log" >/dev/null; then
         echo "ERROR: phase8b boot marker was not observed after legacy boot_loader download."
         exit 1
       fi
