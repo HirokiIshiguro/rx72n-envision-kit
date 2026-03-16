@@ -214,6 +214,7 @@ diag_phase8b_direct_flash_cli:
   extends:
     - .pi_flash_job
     - .pi_pyserial_job
+    - .rx72n_set_matrix
   timeout: 5 minutes
   rules:
     - if: $RUN_PHASE8B_DIRECT_FLASH_DIAG == "true"
@@ -225,6 +226,7 @@ diag_phase8b_direct_flash_cli:
     - |
       set -euo pipefail
       source "$CI_PROJECT_DIR/tools/ci/acquire_pi_device_lock.sh" "$DEVICE_ID"
+      . "$CI_PROJECT_DIR/tools/ci/load_rx72n_set_env.sh"
       bash "$CI_PROJECT_DIR/tools/ci/validate_pi_serial_path.sh" UART_PORT
       boot_mot="$CI_PROJECT_DIR/$PHASE8B_E2STUDIO_PROJECTS/boot_loader_rx72n_envision_kit/e2studio_ccrx/HardwareDebug/boot_loader_rx72n_envision_kit.mot"
       mot="$CI_PROJECT_DIR/$PHASE8B_E2STUDIO_PROJECTS/aws_ether_rx72n_envision_kit/e2studio_ccrx/HardwareDebug/aws_ether_rx72n_envision_kit.mot"
