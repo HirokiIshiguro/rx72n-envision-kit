@@ -653,7 +653,10 @@ diag_phase8b_direct_flash_cli:
       echo "  Device: RX72x"
       echo "  Tool:   $RFP_TOOL"
       "$RFP_CLI" -device RX72x -tool "$RFP_TOOL" -if fine -speed "$RFP_SPEED" \
-        -auth id FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF -p "$mot" -v -run -noquery
+        -auth id FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF -p "$mot" -v -noquery
+      # UART を開く前に -run すると 1 回目の startup trace を取り逃がす。
+      # direct-flash diag では app を書き込んだ後は走らせず、provision helper が
+      # serial open 後に最初の -sig -run を打って boot banner / breadcrumb を再捕捉する。
       echo "=== phase8b CLI provisioning (direct-flashed app) ==="
       provision_reset_cmd="$RFP_CLI -device RX72x -tool ${RFP_TOOL} -if fine -auth id FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF -sig -run -noquery"
       python3 -u "$CI_PROJECT_DIR/tools/provision_phase8b.py" \
