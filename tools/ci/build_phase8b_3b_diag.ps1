@@ -28,6 +28,7 @@ $legacyProjectsPath = $LegacyProjectsPath -replace "/", "\"
 $phase8bProjectsPath = $Phase8bProjectsPath -replace "/", "\"
 $logFile = [System.IO.Path]::GetFullPath($LogFile)
 $shortRoot = "C:\rx72n-phase8b-3b-src"
+$appBspConfigPath = Join-Path $projectRoot "$phase8bProjectsPath\aws_ether_rx72n_envision_kit\e2studio_ccrx\src\smc_gen\r_config\r_bsp_config.h"
 $projectDefinitions = @(
     @{
         Name = "rx72n_boot_loader"
@@ -48,10 +49,28 @@ $projectDefinitions = @(
     }
 )
 $rcpcSnapshots = @{}
+$fileSnapshots = @{}
 
 if (Test-Path $workspace) {
     Remove-Item -Recurse -Force $workspace
 }
+
+if (-not (Test-Path $appBspConfigPath)) {
+    throw "phase8b app BSP config not found: $appBspConfigPath"
+}
+
+$fileSnapshots[$appBspConfigPath] = Get-Content $appBspConfigPath -Raw
+
+$appBspConfig = $fileSnapshots[$appBspConfigPath] -replace `
+    '#define BSP_CFG_PHASE8B_3B_SKIP_MCU_CLOCK_SETUP\s+\(0\)', `
+    '#define BSP_CFG_PHASE8B_3B_SKIP_MCU_CLOCK_SETUP   (1)'
+
+if ($appBspConfig -eq $fileSnapshots[$appBspConfigPath]) {
+    throw "Failed to enable BSP_CFG_PHASE8B_3B_SKIP_MCU_CLOCK_SETUP in $appBspConfigPath"
+}
+
+[System.IO.File]::WriteAllText($appBspConfigPath, $appBspConfig, [System.Text.UTF8Encoding]::new($false))
+Write-Host "Enabled 3b diag clock-setup bypass: $appBspConfigPath"
 
 foreach ($project in $projectDefinitions) {
     $hardwareDebug = Join-Path $projectRoot $project.HardwareDebug
@@ -163,6 +182,10 @@ try {
     Write-Host "Phase 8b 3b headless build succeeded."
 }
 finally {
+    foreach ($filePath in $fileSnapshots.Keys) {
+        [System.IO.File]::WriteAllText($filePath, $fileSnapshots[$filePath], [System.Text.UTF8Encoding]::new($false))
+    }
+
     foreach ($rcpcPath in $rcpcSnapshots.Keys) {
         [System.IO.File]::WriteAllText($rcpcPath, $rcpcSnapshots[$rcpcPath], [System.Text.UTF8Encoding]::new($false))
     }

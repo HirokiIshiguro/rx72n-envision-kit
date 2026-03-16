@@ -103,7 +103,10 @@ Configuration Options
 /* NOTE:
    The default settings are the same as when using RSKRX65N-2MB.
    Change to the settings for the user board.
-*/
+ */
+
+/* ③'b diagnostic switch. Normal builds must keep this at 0. */
+#define BSP_CFG_PHASE8B_3B_SKIP_MCU_CLOCK_SETUP   (0)
 
 /* Start up select
    0 = Enable BSP startup program.
