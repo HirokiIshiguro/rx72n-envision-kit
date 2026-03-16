@@ -620,6 +620,8 @@ diag_phase8b_direct_flash_cli:
     - .rx72n_set_matrix
   timeout: 5 minutes
   rules:
+    - if: '$RUN_ONLY_DEVICE_SLOT != "" && $RUN_ONLY_DEVICE_SLOT != $DEVICE_SLOT'
+      when: never
     - if: $RUN_PHASE8B_DIRECT_FLASH_DIAG == "true"
     - when: never
   needs:
