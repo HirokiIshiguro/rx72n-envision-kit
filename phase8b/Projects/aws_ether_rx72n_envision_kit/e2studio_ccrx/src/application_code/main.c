@@ -274,6 +274,7 @@ void prvMiscInitialization(void)
 {
     /* Initialize UART for serial terminal. */
     CLI_Support_Settings();
+    vStartupTracePutString("[phase8b] sci7 open ok\r\n");
     vStartupTracePutString("[phase8b] misc init done\r\n");
 
     /* Start logging task. */
@@ -394,6 +395,7 @@ End of function vApplicationGetTimerTaskMemory
  *********************************************************************************************************************/
 void vApplicationMallocFailedHook( void )
     {
+        vStartupTracePutString("[phase8b] malloc failed\r\n");
         configPRINT_STRING(("ERROR: Malloc failed to allocate memory\r\n"));
         taskDISABLE_INTERRUPTS();
 
@@ -422,8 +424,15 @@ End of function vApplicationMallocFailedHook
  * Return Value : .
  *********************************************************************************************************************/
 void vApplicationStackOverflowHook(TaskHandle_t xTask,
-                                        char * pcTaskName)
+                                         char * pcTaskName)
     {
+        vStartupTracePutString("[phase8b] stack overflow");
+        if (NULL != pcTaskName)
+        {
+            vStartupTracePutString(": ");
+            vStartupTracePutString(pcTaskName);
+        }
+        vStartupTracePutString("\r\n");
         configPRINT_STRING(("ERROR: stack overflow\r\n"));
         portDISABLE_INTERRUPTS();
 

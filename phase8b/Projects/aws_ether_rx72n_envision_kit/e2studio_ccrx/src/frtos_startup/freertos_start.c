@@ -34,6 +34,8 @@ Includes   <System Includes> , "Project Includes"
 /******************************************************************************
 Macro definitions
 ******************************************************************************/
+#define phase8bBANKSEL_ADDR         ( 0xFE7F5D20UL )
+#define phase8bBANKSWP_MASK         ( 0x00000007UL )
 
 /******************************************************************************
 Typedef definitions
@@ -82,6 +84,26 @@ extern void main_task(void *pvParameters);
 /******************************************************************************
 Private global variables and functions
 ******************************************************************************/
+static void prvStartupTraceDumpBankSel( void );
+
+/******************************************************************************
+* Function Name: prvStartupTraceDumpBankSel
+* Description  : Dump BANKSEL.BANKSWP once before the scheduler starts.
+* Arguments    : None.
+* Return Value : None.
+******************************************************************************/
+static void prvStartupTraceDumpBankSel( void )
+{
+    char cMessage[ 64 ];
+    uint32_t ulBankSel = *( ( volatile uint32_t * ) phase8bBANKSEL_ADDR );
+
+    ( void ) snprintf( cMessage,
+                       sizeof( cMessage ),
+                       "[phase8b] BANKSEL=0x%08lx bankswp=0x%lx\r\n",
+                       ( unsigned long ) ulBankSel,
+                       ( unsigned long ) ( ulBankSel & phase8bBANKSWP_MASK ) );
+    vStartupTracePutString( cMessage );
+}
 
 /******************************************************************************
 * Function Name: vApplicationSetupTimerInterrupt
@@ -342,6 +364,7 @@ void Processing_Before_Start_Kernel(void)
 #endif
 
     vStartupTracePutString("[phase8b] kernel prep entered\r\n");
+    prvStartupTraceDumpBankSel();
     Kernel_Object_init();
     vStartupTracePutString("[phase8b] kernel objects ready\r\n");
 
