@@ -37,6 +37,8 @@
 
 #include <stdio.h>
 
+extern void vStartupTracePutString( const char * pcMessage );
+
 /*-----------------------------------------------------------
 * Application specific definitions.
 *
@@ -184,6 +186,12 @@ extern void vLoggingPrint( const char * pcMessage );
 extern void vOutputString( const char * pcMessage );
 /* Map the logging task's printf to the board specific output function. */
 #define configPRINT_STRING( x )    vOutputString(x)
+
+#define traceENTER_xTaskCreate( pxTaskCode, pcName, uxStackDepth, pvParameters, uxPriority, pxCreatedTask ) \
+    vStartupTracePutString( "[phase8b] trace enter xTaskCreate\r\n" )
+
+#define traceRETURN_xTaskCreate( xReturn ) \
+    vStartupTracePutString( "[phase8b] trace return xTaskCreate\r\n" )
 
 /* Sets the length of the buffers into which logging messages are written - so
  * also defines the maximum length of each log message. */
