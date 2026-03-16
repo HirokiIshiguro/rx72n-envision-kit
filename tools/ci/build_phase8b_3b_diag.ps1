@@ -35,6 +35,12 @@ $projectDefinitions = @(
         HardwareDebug = "$legacyProjectsPath\boot_loader\HardwareDebug"
     },
     @{
+        Name = "boot_loader_rx72n_envision_kit"
+        ImportPath = "$phase8bProjectsPath\boot_loader_rx72n_envision_kit\e2studio_ccrx"
+        HardwareDebug = "$phase8bProjectsPath\boot_loader_rx72n_envision_kit\e2studio_ccrx\HardwareDebug"
+        RcpcPath = "$phase8bProjectsPath\boot_loader_rx72n_envision_kit\e2studio_ccrx\boot_loader_rx72n_envision_kit.rcpc"
+    },
+    @{
         Name = "aws_ether_rx72n_envision_kit"
         ImportPath = "$phase8bProjectsPath\aws_ether_rx72n_envision_kit\e2studio_ccrx"
         HardwareDebug = "$phase8bProjectsPath\aws_ether_rx72n_envision_kit\e2studio_ccrx\HardwareDebug"
