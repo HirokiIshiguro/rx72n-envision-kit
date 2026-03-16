@@ -24,6 +24,7 @@ Includes
 #include "r_smc_cgc.h"
 #include "r_smc_interrupt.h"
 /* Start user code for include. Do not edit comment generated here */
+#include "serial.h"
 /* End user code. Do not edit comment generated here */
 #include "r_cg_userdefine.h"
 
@@ -31,6 +32,15 @@ Includes
 Global variables and functions
 ***********************************************************************************************************************/
 /* Start user code for global. Do not edit comment generated here */
+void my_sw_warmstart_prec_function(void)
+{
+    /* PRE_INITC stays register-only for now; CI-visible breadcrumbs start at POST_INITC. */
+}
+
+void my_sw_warmstart_postc_function(void)
+{
+    vStartupTracePutString("[phase8b] warm start postc\r\n");
+}
 /* End user code. Do not edit comment generated here */
 
 /***********************************************************************************************************************
@@ -58,6 +68,8 @@ void r_undefined_exception(void)
 
 void R_Systeminit(void)
 {
+    vStartupTracePutString("[phase8b] systeminit entered\r\n");
+
     /* Enable writing to registers related to operating modes, LPC, CGC and software reset */
     SYSTEM.PRCR.WORD = 0xA50BU;
 
@@ -89,8 +101,9 @@ void R_Systeminit(void)
 
     /* Enable protection */
     SYSTEM.PRCR.WORD = 0xA500U;
+
+    vStartupTracePutString("[phase8b] systeminit done\r\n");
 }
 
 /* Start user code for adding. Do not edit comment generated here */
 /* End user code. Do not edit comment generated here */
-

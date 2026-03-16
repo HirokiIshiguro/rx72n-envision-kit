@@ -29,6 +29,7 @@
 #include "FreeRTOS.h"
 #include "task.h"
 #include "semphr.h"
+#include <string.h>
 
 /* Demo program includes. */
 #include "serial.h"
@@ -104,25 +105,74 @@ void CLI_Support_Settings(void);
 void vSerialSciCallback( void *pvArgs );
 void CLI_Close(void);
 
-void CLI_Support_Settings(void)
-{
+#define serialSTARTUP_TRACE_RETRY_LIMIT    ( 200000UL )
 
-    /* FreeRTOS CLI Command Console */
-    U_SCI_UART_CLI_PINSET();
+static uint16_t usStartupTraceTxCapacity = 0;
+
+static sci_err_t prvEnsureSerialPortOpen( void )
+{
     sci_cfg_t xSerialSciConfig;
+
+    if( 0 != xSerialSciHandle )
+    {
+        return SCI_SUCCESS;
+    }
+
+    U_SCI_UART_CLI_PINSET();
+    memset( &xSerialSciConfig, 0, sizeof( xSerialSciConfig ) );
     xSerialSciConfig.async.baud_rate    = BSP_CFG_SCI_UART_TERMINAL_BITRATE;
     xSerialSciConfig.async.clk_src      = SCI_CLK_INT;
     xSerialSciConfig.async.data_size    = SCI_DATA_8BIT;
     xSerialSciConfig.async.parity_en    = SCI_PARITY_OFF;
     xSerialSciConfig.async.parity_type  = SCI_EVEN_PARITY;
     xSerialSciConfig.async.stop_bits    = SCI_STOPBITS_1;
-    xSerialSciConfig.async.int_priority = 1; /* lowest at first. */
-    R_SCI_Open(U_SCI_UART_CLI_SCI_CH, SCI_MODE_ASYNC, &xSerialSciConfig, vSerialSciCallback, &xSerialSciHandle);
+    xSerialSciConfig.async.int_priority = 1;
+
+    return R_SCI_Open( U_SCI_UART_CLI_SCI_CH,
+                       SCI_MODE_ASYNC,
+                       &xSerialSciConfig,
+                       vSerialSciCallback,
+                       &xSerialSciHandle );
+}
+
+static BaseType_t xStartupTraceWaitForTxBytes( uint16_t usTargetFreeBytes,
+                                               uint16_t * pusBytesFree )
+{
+    uint32_t ulRetry = serialSTARTUP_TRACE_RETRY_LIMIT;
+
+    do
+    {
+        if( SCI_SUCCESS != R_SCI_Control( xSerialSciHandle,
+                                          SCI_CMD_TX_Q_BYTES_FREE,
+                                          pusBytesFree ) )
+        {
+            return pdFALSE;
+        }
+
+        if( *pusBytesFree >= usTargetFreeBytes )
+        {
+            return pdTRUE;
+        }
+
+        R_BSP_NOP();
+    } while( ulRetry-- > 0 );
+
+    return pdFALSE;
+}
+
+void CLI_Support_Settings(void)
+{
+    ( void ) prvEnsureSerialPortOpen();
 }
 
 void CLI_Close(void)
 {
-	R_SCI_Close(xSerialSciHandle);
+    if( 0 != xSerialSciHandle )
+    {
+        R_SCI_Close( xSerialSciHandle );
+        xSerialSciHandle = 0;
+        usStartupTraceTxCapacity = 0;
+    }
 }
 
 /* Callback function which is called from Renesas API's interrupt service routine. */
@@ -137,7 +187,10 @@ sci_cb_args_t *pxArgs = (sci_cb_args_t *)pvArgs;
     {
         BaseType_t xHigherPriorityTaskWoken = pdFALSE;
 
-        configASSERT( xRxQueue );
+        if( NULL == xRxQueue )
+        {
+            return;
+        }
 
         /* Characters received from the UART are stored in this queue, ready to be
         received by the application.  ***NOTE*** Using a queue in this way is very
@@ -176,6 +229,68 @@ xComPortHandle xSerialPortInitMinimal( unsigned long ulWantedBaud, unsigned port
     /* Only one UART is supported, so it doesn't matter what is returned
     here. */
     return 0;
+}
+
+void vStartupTracePutString( const char * pcMessage )
+{
+    const uint8_t * pucMessage = ( const uint8_t * ) pcMessage;
+    uint16_t usBytesFree = 0;
+    size_t xRemaining;
+
+    if( ( NULL == pcMessage ) || ( '\0' == pcMessage[ 0 ] ) )
+    {
+        return;
+    }
+
+    if( SCI_SUCCESS != prvEnsureSerialPortOpen() )
+    {
+        return;
+    }
+
+    if( 0 == usStartupTraceTxCapacity )
+    {
+        if( pdFALSE == xStartupTraceWaitForTxBytes( 1, &usStartupTraceTxCapacity ) )
+        {
+            return;
+        }
+    }
+
+    xRemaining = strlen( pcMessage );
+
+    while( xRemaining > 0 )
+    {
+        sci_err_t xSendErr;
+        uint16_t usChunkLength;
+        uint32_t ulRetry = serialSTARTUP_TRACE_RETRY_LIMIT;
+
+        if( pdFALSE == xStartupTraceWaitForTxBytes( 1, &usBytesFree ) )
+        {
+            return;
+        }
+
+        usChunkLength = ( uint16_t ) ( ( xRemaining < usBytesFree ) ? xRemaining : usBytesFree );
+
+        do
+        {
+            xSendErr = R_SCI_Send( xSerialSciHandle, ( uint8_t * ) pucMessage, usChunkLength );
+            if( SCI_SUCCESS == xSendErr )
+            {
+                break;
+            }
+
+            R_BSP_NOP();
+        } while( ulRetry-- > 0 );
+
+        if( SCI_SUCCESS != xSendErr )
+        {
+            return;
+        }
+
+        pucMessage += usChunkLength;
+        xRemaining -= usChunkLength;
+    }
+
+    ( void ) xStartupTraceWaitForTxBytes( usStartupTraceTxCapacity, &usBytesFree );
 }
 
 /* Function required in order to link UARTCommandConsole.c - which is used by

@@ -689,7 +689,7 @@ Configuration Options
 #define BSP_CFG_USER_WARM_START_CALLBACK_PRE_INITC_ENABLED    (0)
 #define BSP_CFG_USER_WARM_START_PRE_C_FUNCTION     my_sw_warmstart_prec_function
 
-#define BSP_CFG_USER_WARM_START_CALLBACK_POST_INITC_ENABLED    (0)
+#define BSP_CFG_USER_WARM_START_CALLBACK_POST_INITC_ENABLED    (1)
 #define BSP_CFG_USER_WARM_START_POST_C_FUNCTION    my_sw_warmstart_postc_function
 
 /* By default FIT modules will check input parameters to be valid. This is helpful during development but some users
@@ -866,4 +866,3 @@ Configuration Options
 #define BSP_CFG_BOOTLOADER_PROJECT    (0)
 
 #endif /* R_BSP_CONFIG_REF_HEADER_FILE */
-

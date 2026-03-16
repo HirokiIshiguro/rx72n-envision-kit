@@ -21,6 +21,7 @@ Includes   <System Includes> , "Project Includes"
 #include "FreeRTOS.h"
 #include "task.h"
 #include "freertos_start.h"
+#include "serial.h"
 
 #if defined(FREERTOS_ENABLE_UNIT_TESTS)
 #include "unity_internals.h"
@@ -254,6 +255,7 @@ void vAssertCalled(void)
     /* if not using a emulator, you can use LED on/off or serial terminal */
     volatile unsigned long ul = 0;
 
+    vStartupTracePutString("[phase8b] assert: vAssertCalled\r\n");
     taskENTER_CRITICAL();
     {
         /* Program may stop here when you stop it by debugger. In the case,
@@ -339,18 +341,23 @@ void Processing_Before_Start_Kernel(void)
 	}
 #endif
 
+    vStartupTracePutString("[phase8b] kernel prep entered\r\n");
     Kernel_Object_init();
+    vStartupTracePutString("[phase8b] kernel objects ready\r\n");
 
     /************** task creation ****************************/
     /* Main task. */
     ret = xTaskCreate(main_task, "MAIN_TASK", 512, NULL, 1, NULL);
     if (pdPASS != ret)
     {
+        vStartupTracePutString("[phase8b] kernel main task create failed\r\n");
         while(1)
         {
             /* Failed! Task can not be created. */
         }
     }
+
+    vStartupTracePutString("[phase8b] kernel main task created\r\n");
 
 } /* End of function Processing_Before_Start_Kernel() */
 

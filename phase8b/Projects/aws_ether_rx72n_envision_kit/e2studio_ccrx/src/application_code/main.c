@@ -152,6 +152,7 @@ static const uint8_t ucDNSServerAddress[4] =
 
 extern int32_t littlFs_init (void);
 extern void vSerialPutString(const signed char * pcString, unsigned short usStringLength);
+extern void vStartupTracePutString(const char * pcMessage);
 
 /**
  * @brief Application task startup hook.
@@ -184,7 +185,9 @@ void main_task(void)
     extern void vUARTCommandConsoleStart (uint16_t usStackSize, UBaseType_t uxPriority);
     extern TaskHandle_t xCLIHandle;
 
+    vStartupTracePutString("[phase8b] main_task pre-init\r\n");
     prvMiscInitialization();
+    vStartupTracePutString("[phase8b] misc init done\r\n");
     vSerialPutString((const signed char *)"[phase8b] main_task entered\r\n",
                      (unsigned short)strlen("[phase8b] main_task entered\r\n"));
     UserInitialization();
@@ -295,7 +298,7 @@ End of function prvMiscInitialization
  *********************************************************************************************************************/
 void vApplicationDaemonTaskStartupHook(void)
 {
-
+    vStartupTracePutString("[phase8b] daemon hook entered\r\n");
 }
 /*****************************************************************************************
 End of function vApplicationDaemonTaskStartupHook
