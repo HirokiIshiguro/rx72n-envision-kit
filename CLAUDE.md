@@ -808,6 +808,12 @@ python test_scripts/uart_test/provision_aws.py \
 
 ## Changelog / 変更履歴
 
+### 2026-03-17: Phase 8b の bridge 方針を `③'a` から `③'b` へ切り替え
+
+MR `!51` で `r_fwup` 付属 bootloader + 新FreeRTOS (`③'a`) を診断した結果、`RELFWV2` magic / `st_fw_ctrlblk_t` / lifecycle 契約に app startup 観測が強く縛られることが明確になった。最終目標は MCUboot + 新FreeRTOS (`③`) であり、この `r_fwup` 契約は将来的に捨てる層なので、中間地点として深追いする価値は高くない。
+
+そのため bridge 方針は、石黒実装の既存 bootloader + 新FreeRTOS (`③'b`) へ切り替える。作業の正式な受け皿は Issue `#20` とし、`!51` は `③'a` を深追いしない理由を残す分析ログとして扱う。既存の startup probe 群は app 側コードなので `③'b` 側へそのまま流用できる。
+
 ### 2026-03-15: current head `0dcf3199` で full pipeline 2 本連続成功
 
 Issue `#18` の切り分けと reservation / OTA monitor 診断を積み直した current head `0dcf3199111f841863362e0041abf307f4ccf065` について、2026-03-15 夜に full pipeline を連続実行した。pipeline `#877` は `2026-03-15 19:33 JST` 開始で `34/34 jobs success`、pipeline `#878` も `2026-03-15 20:16 JST` 開始で `34/34 jobs success` だった。少なくとも branch head 上では、「cross-pipeline 干渉を止めたうえで full pipeline を 2 本連続で通せた」という材料が揃った。
