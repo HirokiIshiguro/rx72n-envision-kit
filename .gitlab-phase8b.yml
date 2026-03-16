@@ -3,6 +3,8 @@ build_phase8b:
   tags:
     - run_ishiguro_machine
   rules:
+    - if: $RUN_PHASE8B_3B_DIAG == "true"
+      when: never
     - if: $RUN_PHASE8B_OTA == "true"
       when: never
     - if: $RUN_PHASE8B_DIRECT_FLASH_DIAG == "true"

@@ -13,6 +13,7 @@ stages:
 
 include:
   - local: ".gitlab-phase8b.yml"
+  - local: ".gitlab-3b.yml"
 
 # MR パイプライン (merge_request_event) を抑止。
 # rules: 付きジョブと rules: なしジョブが混在すると、MR パイプラインで
@@ -21,6 +22,12 @@ workflow:
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
       when: never
+    - if: $RUN_PHASE8B_3B_DIAG == "true"
+      variables:
+        RUN_AWS_TESTS: "false"
+        RUN_SD_UPDATE_TEST: "false"
+        RUN_OTA_TEST: "false"
+        CAPTURE_AFTER_AWS_DEMOS: "false"
     - when: always
 
 variables:
@@ -28,6 +35,7 @@ variables:
   WORKSPACE: "C:\\workspace_rx72n"
   E2STUDIO_PROJECTS: "projects/renesas/rx72n_envision_kit/e2studio"
   PHASE8B_WORKSPACE: "C:\\workspace_rx72n_phase8b"
+  PHASE8B_3B_WORKSPACE: "C:\\workspace_rx72n_phase8b_3b"
   PHASE8B_E2STUDIO_PROJECTS: "phase8b/Projects"
   # Renesas Flash Programmer CLI on Raspberry Pi
   RFP_CLI: "rfp-cli"
@@ -81,6 +89,8 @@ variables:
   #                      phase8b_ota_create_job/monitor/finalize) のみ実行するか
   # RUN_PHASE8B_DIRECT_FLASH_DIAG: phase8b app を .mot 直接書き込みして
   #                                CLI 起動可否を診断するか
+  # RUN_PHASE8B_3B_DIAG: 既存 RX72N boot_loader + phase8b app (③'b) の
+  #                      build / UART download / boot marker 観測だけを行うか
   # RUN_RFP_SOAK_TEST:  RFP/E2 Lite の切り分け用 soak test を実行するか
   # RFP_SOAK_MODE:      sig | flash_boot
   # RFP_SOAK_LOOPS:     soak test の反復回数
@@ -94,6 +104,7 @@ variables:
   RUN_PHASE8B_BASELINE: "false"
   RUN_PHASE8B_OTA: "false"
   RUN_PHASE8B_DIRECT_FLASH_DIAG: "false"
+  RUN_PHASE8B_3B_DIAG: "false"
   RUN_RFP_SOAK_TEST: "false"
   RFP_SOAK_MODE: "sig"
   RFP_SOAK_LOOPS: "25"
@@ -203,6 +214,8 @@ build:
   tags:
     - run_ishiguro_machine
   rules:
+    - if: $RUN_PHASE8B_3B_DIAG == "true"
+      when: never
     - if: $RUN_PHASE8B_BUILD_ONLY == "true"
       when: never
     - if: $RUN_PHASE8B_BASELINE == "true"
@@ -388,6 +401,8 @@ build_phase8b:
   tags:
     - run_ishiguro_machine
   rules:
+    - if: $RUN_PHASE8B_3B_DIAG == "true"
+      when: never
     - if: $RUN_PREPARE_OTA_ONLY == "true"
       when: never
     - if: $RUN_RFP_SOAK_TEST == "true"
@@ -732,6 +747,8 @@ flash_boot_loader:
     - .pi_pyserial_job
     - .rx72n_set_matrix
   rules:
+    - if: $RUN_PHASE8B_3B_DIAG == "true"
+      when: never
     - if: $RUN_RFP_SOAK_TEST == "true"
       when: never
     - if: $RUN_PHASE8B_BUILD_ONLY == "true"
@@ -850,6 +867,8 @@ download_aws_demos:
     - .pi_crypto_serial_job
     - .rx72n_set_matrix
   rules:
+    - if: $RUN_PHASE8B_3B_DIAG == "true"
+      when: never
     - if: $RUN_RFP_SOAK_TEST == "true"
       when: never
     - if: $RUN_PHASE8B_BUILD_ONLY == "true"
@@ -909,6 +928,8 @@ capture_after_download_aws_demos:
   allow_failure: true
   when: always
   rules:
+    - if: $RUN_PHASE8B_3B_DIAG == "true"
+      when: never
     - if: $RUN_PHASE8B_BUILD_ONLY == "true"
       when: never
     - if: $RUN_PHASE8B_BASELINE == "true"
@@ -996,6 +1017,8 @@ test_commands:
     - .rx72n_set_matrix
   timeout: 5 minutes
   rules:
+    - if: $RUN_PHASE8B_3B_DIAG == "true"
+      when: never
     - if: $RUN_RFP_SOAK_TEST == "true"
       when: never
     - if: $RUN_PHASE8B_BUILD_ONLY == "true"
@@ -1048,6 +1071,8 @@ test_screen_navigation:
     - .rx72n_set_matrix
   timeout: 3 minutes
   rules:
+    - if: $RUN_PHASE8B_3B_DIAG == "true"
+      when: never
     - if: $RUN_RFP_SOAK_TEST == "true"
       when: never
     - if: $RUN_PHASE8B_BUILD_ONLY == "true"
@@ -1085,6 +1110,8 @@ provision_aws_credentials:
     - .rx72n_set_matrix
   timeout: 3 minutes
   rules:
+    - if: $RUN_PHASE8B_3B_DIAG == "true"
+      when: never
     - if: $RUN_RFP_SOAK_TEST == "true"
       when: never
     - if: $RUN_PHASE8B_BUILD_ONLY == "true"
@@ -1165,6 +1192,8 @@ confirm_aws_mqtt:
     - .rx72n_set_matrix
   timeout: 5 minutes
   rules:
+    - if: $RUN_PHASE8B_3B_DIAG == "true"
+      when: never
     - if: $RUN_RFP_SOAK_TEST == "true"
       when: never
     - if: $RUN_PHASE8B_BUILD_ONLY == "true"
@@ -1204,6 +1233,8 @@ test_sd_update:
     - .rx72n_set_matrix
   timeout: 10 minutes
   rules:
+    - if: $RUN_PHASE8B_3B_DIAG == "true"
+      when: never
     - if: $RUN_PHASE8B_BUILD_ONLY == "true"
       when: never
     - if: $RUN_PHASE8B_BASELINE == "true"
@@ -1248,6 +1279,8 @@ build_ota:
   tags:
     - run_ishiguro_machine
   rules:
+    - if: $RUN_PHASE8B_3B_DIAG == "true"
+      when: never
     - if: $RUN_RFP_SOAK_TEST == "true"
       when: never
     - if: $RUN_PHASE8B_BUILD_ONLY == "true"
@@ -1446,6 +1479,8 @@ prepare_ota:
     - .rx72n_set_matrix
   timeout: 5 minutes
   rules:
+    - if: $RUN_PHASE8B_3B_DIAG == "true"
+      when: never
     - if: '$RUN_ONLY_DEVICE_SLOT != "" && $RUN_ONLY_DEVICE_SLOT != $DEVICE_SLOT'
       when: never
     - if: $RUN_PREPARE_OTA_ONLY == "true"
@@ -1622,6 +1657,8 @@ ota_create_job:
     - .rx72n_set_matrix
   timeout: 10 minutes
   rules:
+    - if: $RUN_PHASE8B_3B_DIAG == "true"
+      when: never
     - if: '$RUN_ONLY_DEVICE_SLOT != "" && $RUN_ONLY_DEVICE_SLOT != $DEVICE_SLOT'
       when: never
     - if: $RUN_PREPARE_OTA_ONLY == "true"
@@ -1685,6 +1722,8 @@ ota_monitor:
     - .rx72n_set_matrix
   timeout: 15 minutes
   rules:
+    - if: $RUN_PHASE8B_3B_DIAG == "true"
+      when: never
     - if: '$RUN_ONLY_DEVICE_SLOT != "" && $RUN_ONLY_DEVICE_SLOT != $DEVICE_SLOT'
       when: never
     - if: $RUN_PREPARE_OTA_ONLY == "true"
@@ -1747,6 +1786,8 @@ ota_finalize:
   timeout: 10 minutes
   when: always
   rules:
+    - if: $RUN_PHASE8B_3B_DIAG == "true"
+      when: never
     - if: '$RUN_ONLY_DEVICE_SLOT != "" && $RUN_ONLY_DEVICE_SLOT != $DEVICE_SLOT'
       when: never
     - if: $RUN_PREPARE_OTA_ONLY == "true"
@@ -1831,6 +1872,8 @@ ota_release_reservation:
   timeout: 5 minutes
   when: always
   rules:
+    - if: $RUN_PHASE8B_3B_DIAG == "true"
+      when: never
     - if: '$RUN_ONLY_DEVICE_SLOT != "" && $RUN_ONLY_DEVICE_SLOT != $DEVICE_SLOT'
       when: never
     - if: $RUN_PREPARE_OTA_ONLY == "true"
