@@ -347,6 +347,7 @@ void Processing_Before_Start_Kernel(void)
 
     /************** task creation ****************************/
     /* Main task. */
+    vStartupTracePutString("[phase8b] kernel main task creating\r\n");
     ret = xTaskCreate(main_task, "MAIN_TASK", 512, NULL, 1, NULL);
     if (pdPASS != ret)
     {
