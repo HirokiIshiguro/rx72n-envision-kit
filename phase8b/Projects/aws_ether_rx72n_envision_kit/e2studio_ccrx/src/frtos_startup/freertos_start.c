@@ -126,14 +126,20 @@ void vApplicationSetupTimerInterrupt(void)
     /* Clear any previously pending interrupts. */
     IR(CMT0, CMI0)  = 0;
 
-    /* Enable the interrupt. */
-    IEN(CMT0, CMI0) = 1;
-
     /* Set its priority to the application defined kernel priority. */
     IPR(CMT0, CMI0) = configKERNEL_INTERRUPT_PRIORITY;
 
+#if BSP_CFG_PHASE8B_3B_SKIP_MCU_CLOCK_SETUP != 0
+    vStartupTracePutString("[phase8b] tick irq suppressed\r\n");
+    IEN(CMT0, CMI0) = 0;
+    CMT.CMSTR0.BIT.STR0 = 0;
+#else
+    /* Enable the interrupt. */
+    IEN(CMT0, CMI0) = 1;
+
     /* Start the timer 0. */
     CMT.CMSTR0.BIT.STR0 = 1;
+#endif
 #endif /* (BSP_CFG_RTOS_SYSTEM_TIMER == 0) */
 
     /* CMT channel 1 is configured as RTOS's system timer. */
