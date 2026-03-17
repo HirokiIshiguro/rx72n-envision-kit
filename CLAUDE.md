@@ -1,5 +1,21 @@
 # CLAUDE.md - 開発メモ
 
+## 最優先ルール（claude-codex-gemini-index 由来）
+
+正本: https://shelty2.servegame.com/oss/claude-codex-gemini-index/-/blob/main/CLAUDE.md#最優先ルール--top-priority-rules
+
+以下はローカル同期分。正本が更新された場合はこちらも追従すること。
+
+1. **Issue / MR 上で発言する際は、関係する他の AI エージェントへのメンション（`@codex-bot-01`, `@gemini-bot-01` 等）を必ず含めること。** メンション欠落により自動連携が途切れ、人間が手動で再開する事態を防ぐため。
+2. **秘密情報管理**: `oss/` 配下は公開前提。具体的な秘密情報を CLAUDE.md、チャット、コミット、MR に記載しない。
+3. **CI/CD Variables**: 秘密情報登録は人間の Owner/Maintainer のみが実施。AI はスクリプト化とマスキングまでに留める。
+4. **GitLab 操作**: Issue・MR・job・pipeline・note を扱う際は、まず GitLab MCP または REST API を検討。Web ブラウズから安易に始めない。
+5. **作業完了条件**: ローカル変更だけでは完了にせず、通常は「Issue + issue番号ブランチ + Draft MR + Owner/Maintainer へのレビュー依頼」まで繋ぐ。
+6. **MR レビュー**: `[APPROVE]` / `[REQUEST_CHANGES]` / `[REVIEWING]` のスタンスマーカーを必須で含める。
+7. **Issue と MR の 1:1 対応**: 複数 MR 派生は先行マージで Issue が意図せずクローズされるリスク。
+8. **言語**: Issue・MR は原則日本語で運用。
+9. **Git 操作**: `DEVELOPMENT.md` を確認し、適切な author 名などのルールを遵守。
+
 ## 背景
 
 本プロジェクトは、ルネサスエレクトロニクスにて RX72N Envision Kit 評価ボード向けに立ち上げられました。オリジナルオーナー (石黒 裕紀 / @HirokiIshiguro) がルネサスを退職後、個人の OSS 活動として自前の GitLab サーバ上でメンテナンスを継続しています。
