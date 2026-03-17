@@ -193,6 +193,9 @@ extern void vOutputString( const char * pcMessage );
 #define traceRETURN_xTaskCreate( xReturn ) \
     vStartupTracePutString( "[phase8b] trace return xTaskCreate\r\n" )
 
+#define traceMALLOC( pvAddress, uiSize ) \
+    vStartupTracePutString( "[phase8b] trace malloc\r\n" )
+
 /* Sets the length of the buffers into which logging messages are written - so
  * also defines the maximum length of each log message. */
 #define configLOGGING_MAX_MESSAGE_LENGTH            192
