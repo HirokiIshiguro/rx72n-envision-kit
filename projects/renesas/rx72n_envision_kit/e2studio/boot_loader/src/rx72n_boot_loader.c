@@ -219,6 +219,7 @@ static void reset_10us_counter(void);
 static void start_10us_counter(void);
 static void stop_10us_counter(void);
 static uint32_t read_10us_counter(void);
+static void stop_bootloader_10us_timer(void);
 
 extern void my_sw_charget_function(void);
 extern void my_sw_charput_function(uint8_t data);
@@ -234,6 +235,7 @@ static uint32_t _10us_counter;
 static uint32_t _10us_counter_start_flag;
 static uint32_t sha256_time;
 static uint32_t ecdsa_time;
+static uint32_t bootloader_10us_timer_channel = CMT_RX_NO_CHANNEL;
 
 /* Handle storage. */
 sci_hdl_t     my_sci_handle;
@@ -265,6 +267,7 @@ void main(void)
 		{
 			/* stop all interrupt completely */
 			set_psw(0);
+			stop_bootloader_10us_timer();
 			R_SIMPLE_GRAPHIC_Close();
 			R_SIMPLE_GLCDC_CONFIG_Close();
 			R_SCI_Close(my_sci_handle);
@@ -313,8 +316,6 @@ static int32_t secure_boot(void)
     	    sci_cfg_t   my_sci_config;
     	    sci_err_t   my_sci_err;
     	    SFD_HANDLE sfd_handle;
-    	    uint32_t my_cmt_channel;
-
     	    /* Set up the configuration data structure for asynchronous (UART) operation. */
     	    my_sci_config.async.baud_rate    = MY_BSP_CFG_SERIAL_TERM_SCI_BITRATE;
     	    my_sci_config.async.clk_src      = SCI_CLK_INT;
@@ -403,8 +404,8 @@ static int32_t secure_boot(void)
     	    R_FLASH_Control(FLASH_CMD_SET_BGO_CALLBACK, (void *)&cb_func_info);
 
     	    /* make software timer handler for measuring performance. timer resolution is 100KHz(10us time tick). */
-    	    R_CMT_CreatePeriodic(100000, bootloader_software_timer_handler, &my_cmt_channel);
-    	    printf("started 10us software timer using CMT channel %d.\r\n", my_cmt_channel);
+			R_CMT_CreatePeriodic(100000, bootloader_software_timer_handler, &bootloader_10us_timer_channel);
+			printf("started 10us software timer using CMT channel %d.\r\n", bootloader_10us_timer_channel);
 
     	    secure_boot_state = BOOT_LOADER_STATE_BANK1_CHECK;
     		break;
@@ -1266,6 +1267,7 @@ static void software_reset(void)
 {
 	/* stop all interrupt completely */
     set_psw(0);
+    stop_bootloader_10us_timer();
     R_BSP_InterruptsDisable();
     R_BSP_RegisterProtectDisable(BSP_REG_PROTECT_LPC_CGC_SWR);
     SYSTEM.SWRR = 0xa501;
@@ -1276,6 +1278,7 @@ static void bank_swap_with_software_reset(void)
 {
 	/* stop all interrupt completely */
     set_psw(0);
+    stop_bootloader_10us_timer();
     R_BSP_InterruptsDisable();
     R_FLASH_Control(FLASH_CMD_BANK_TOGGLE, NULL);
     R_BSP_RegisterProtectDisable(BSP_REG_PROTECT_LPC_CGC_SWR);
@@ -1636,4 +1639,14 @@ static void start_10us_counter(void)
 static void stop_10us_counter(void)
 {
 	_10us_counter_start_flag = 0;
+}
+
+static void stop_bootloader_10us_timer(void)
+{
+    if (CMT_RX_NO_CHANNEL != bootloader_10us_timer_channel)
+    {
+        stop_10us_counter();
+        (void) R_CMT_Stop(bootloader_10us_timer_channel);
+        bootloader_10us_timer_channel = CMT_RX_NO_CHANNEL;
+    }
 }
