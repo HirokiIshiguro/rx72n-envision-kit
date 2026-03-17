@@ -34,6 +34,7 @@ Includes   <System Includes> , "Project Includes"
 /******************************************************************************
 Macro definitions
 ******************************************************************************/
+#define mainAPP_MAIN_TASK_STACK_DEPTH    ( configMINIMAL_STACK_SIZE * 2UL )
 
 /******************************************************************************
 Typedef definitions
@@ -80,7 +81,7 @@ extern void main_task(void *pvParameters);
 
 #if BSP_CFG_PHASE8B_3B_SKIP_MCU_CLOCK_SETUP != 0
 static StaticTask_t xMainTaskTcb;
-static StackType_t xMainTaskStack[512];
+static StackType_t xMainTaskStack[mainAPP_MAIN_TASK_STACK_DEPTH];
 #endif
 
 
@@ -359,7 +360,7 @@ void Processing_Before_Start_Kernel(void)
     #if BSP_CFG_PHASE8B_3B_SKIP_MCU_CLOCK_SETUP != 0
     if( NULL == xTaskCreateStatic( main_task,
                                    "MAIN_TASK",
-                                   512,
+                                   mainAPP_MAIN_TASK_STACK_DEPTH,
                                    NULL,
                                    1,
                                    xMainTaskStack,
@@ -372,7 +373,7 @@ void Processing_Before_Start_Kernel(void)
         ret = pdPASS;
     }
     #else
-    ret = xTaskCreate(main_task, "MAIN_TASK", 512, NULL, 1, NULL);
+    ret = xTaskCreate(main_task, "MAIN_TASK", mainAPP_MAIN_TASK_STACK_DEPTH, NULL, 1, NULL);
     #endif
     if (pdPASS != ret)
     {

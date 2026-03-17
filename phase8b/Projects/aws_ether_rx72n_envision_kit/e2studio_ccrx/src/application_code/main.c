@@ -177,13 +177,15 @@ extern void vRegisterSampleCLICommands (void);
  *                in resetprg.c.
  * Return Value : .
  *********************************************************************************************************************/
-void main_task(void)
+void main_task(void *pvParameters)
 {
     int32_t xResults;
     int32_t Time2Wait = 10000;
     extern void vRegisterSampleCLICommands (void);
     extern void vUARTCommandConsoleStart (uint16_t usStackSize, UBaseType_t uxPriority);
     extern TaskHandle_t xCLIHandle;
+
+    (void) pvParameters;
 
     vStartupTracePutString("[phase8b] main_task pre-init\r\n");
     prvMiscInitialization();
