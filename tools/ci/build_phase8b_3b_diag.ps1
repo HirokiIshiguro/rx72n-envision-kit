@@ -66,25 +66,23 @@ $fileSnapshots[$legacyBootBspConfigPath] = Get-Content $legacyBootBspConfigPath 
 $fileSnapshots[$appBspConfigPath] = Get-Content $appBspConfigPath -Raw
 
 $desiredAppSkipFlag = if ($skipClockSetup) { '(1)' } else { '(0)' }
+if ($fileSnapshots[$appBspConfigPath] -notmatch '#define BSP_CFG_PHASE8B_3B_SKIP_MCU_CLOCK_SETUP\s+\([01]\)') {
+    throw "BSP_CFG_PHASE8B_3B_SKIP_MCU_CLOCK_SETUP macro not found in $appBspConfigPath"
+}
 $appBspConfig = $fileSnapshots[$appBspConfigPath] -replace `
     '#define BSP_CFG_PHASE8B_3B_SKIP_MCU_CLOCK_SETUP\s+\([01]\)', `
     "#define BSP_CFG_PHASE8B_3B_SKIP_MCU_CLOCK_SETUP   $desiredAppSkipFlag"
-
-if ($appBspConfig -eq $fileSnapshots[$appBspConfigPath]) {
-    throw "Failed to set BSP_CFG_PHASE8B_3B_SKIP_MCU_CLOCK_SETUP in $appBspConfigPath"
-}
 
 [System.IO.File]::WriteAllText($appBspConfigPath, $appBspConfig, [System.Text.UTF8Encoding]::new($false))
 Write-Host "Set 3b diag clock-setup bypass=$skipClockSetup : $appBspConfigPath"
 
 $desiredBootHandoffFlag = if ($forceSoftwareResetHandoff) { '(1)' } else { '(0)' }
+if ($fileSnapshots[$legacyBootBspConfigPath] -notmatch '#define BSP_CFG_BOOT_LOADER_SOFTWARE_RESET_HANDOFF\s+\([01]\)') {
+    throw "BSP_CFG_BOOT_LOADER_SOFTWARE_RESET_HANDOFF macro not found in $legacyBootBspConfigPath"
+}
 $legacyBootBspConfig = $fileSnapshots[$legacyBootBspConfigPath] -replace `
     '#define BSP_CFG_BOOT_LOADER_SOFTWARE_RESET_HANDOFF\s+\([01]\)', `
     "#define BSP_CFG_BOOT_LOADER_SOFTWARE_RESET_HANDOFF   $desiredBootHandoffFlag"
-
-if ($legacyBootBspConfig -eq $fileSnapshots[$legacyBootBspConfigPath]) {
-    throw "Failed to set BSP_CFG_BOOT_LOADER_SOFTWARE_RESET_HANDOFF in $legacyBootBspConfigPath"
-}
 
 [System.IO.File]::WriteAllText($legacyBootBspConfigPath, $legacyBootBspConfig, [System.Text.UTF8Encoding]::new($false))
 Write-Host "Set 3b diag software-reset handoff=$forceSoftwareResetHandoff : $legacyBootBspConfigPath"
