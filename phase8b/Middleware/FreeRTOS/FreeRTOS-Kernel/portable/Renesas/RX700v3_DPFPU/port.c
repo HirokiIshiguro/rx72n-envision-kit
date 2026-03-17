@@ -35,6 +35,7 @@
 /* Scheduler includes. */
 #include "FreeRTOS.h"
 #include "task.h"
+#include "serial.h"
 
 /* Library includes. */
 #include "string.h"
@@ -287,6 +288,8 @@ BaseType_t xPortStartScheduler( void )
 {
     extern void vApplicationSetupTimerInterrupt( void );
 
+    vStartupTracePutString( "[phase8b] scheduler start entered\r\n" );
+
     /* Use pxCurrentTCB just so it does not get optimised away. */
     if( pxCurrentTCB != NULL )
     {
@@ -294,6 +297,7 @@ BaseType_t xPortStartScheduler( void )
          * tick interrupt.  This way the application can decide which peripheral to
          * use.  A demo application is provided to show a suitable example. */
         vApplicationSetupTimerInterrupt();
+        vStartupTracePutString( "[phase8b] scheduler tick ready\r\n" );
 
         /* Enable the software interrupt. */
         _IEN( _ICU_SWINT ) = 1;
@@ -303,8 +307,10 @@ BaseType_t xPortStartScheduler( void )
 
         /* Ensure the software interrupt is set to the kernel priority. */
         _IPR( _ICU_SWINT ) = configKERNEL_INTERRUPT_PRIORITY;
+        vStartupTracePutString( "[phase8b] scheduler swint ready\r\n" );
 
         /* Start the first task. */
+        vStartupTracePutString( "[phase8b] scheduler first task start\r\n" );
         prvStartFirstTask();
     }
 

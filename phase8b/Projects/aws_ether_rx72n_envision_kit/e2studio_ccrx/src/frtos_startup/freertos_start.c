@@ -96,6 +96,8 @@ Private global variables and functions
 ******************************************************************************/
 void vApplicationSetupTimerInterrupt(void)
 {
+    vStartupTracePutString("[phase8b] tick setup entered\r\n");
+
     /* CMT channel 0 is configured as RTOS's system timer. */
 #if (BSP_CFG_RTOS_SYSTEM_TIMER == 0)
     /* Protect off. */
@@ -244,6 +246,7 @@ void vApplicationSetupTimerInterrupt(void)
     CMT.CMSTR1.BIT.STR3 = 1;
 #endif /* (BSP_CFG_RTOS_SYSTEM_TIMER == 3) */
 
+    vStartupTracePutString("[phase8b] tick setup done\r\n");
 } /* End of function vApplicationSetupTimerInterrupt() */
 
 /******************************************************************************
