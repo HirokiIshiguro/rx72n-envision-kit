@@ -120,6 +120,12 @@ void CLI_Close(void);
 
 #define serialSTARTUP_TRACE_RETRY_LIMIT    ( 200000UL )
 
+static char prvNibbleToHex( uint8_t ucNibble )
+{
+    ucNibble &= 0x0FU;
+    return ( char ) ( ( ucNibble < 10U ) ? ( '0' + ucNibble ) : ( 'A' + ( ucNibble - 10U ) ) );
+}
+
 static sci_err_t prvEnsureSerialPortOpen( void )
 {
     sci_cfg_t xSerialSciConfig;
@@ -253,6 +259,20 @@ void vStartupTracePutString( const char * pcMessage )
     {
         R_BSP_NOP();
     }
+}
+
+void vStartupTracePutHex32( uint32_t ulValue )
+{
+    char cHex[ 9 ];
+    int32_t lIndex;
+
+    for( lIndex = 0; lIndex < 8; lIndex++ )
+    {
+        cHex[ lIndex ] = prvNibbleToHex( ( uint8_t ) ( ulValue >> ( 28 - ( lIndex * 4 ) ) ) );
+    }
+    cHex[ 8 ] = '\0';
+
+    vStartupTracePutString( cHex );
 }
 
 /* Function required in order to link UARTCommandConsole.c - which is used by

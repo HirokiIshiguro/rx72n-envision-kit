@@ -71,8 +71,15 @@ Private global variables and functions
 ***********************************************************************************************************************/
 /* This array holds callback functions. */
 static void (* g_bsp_vectors[BSP_INT_SRC_TOTAL_ITEMS])(void * pdata);
+static volatile uint32_t g_phase8b_undefined_interrupt_trace_count = 0U;
 
 static bsp_int_err_t bsp_fit_interrupts_control (bool enable, bsp_int_ctrl_t * pdata);
+
+static void prvPhase8bTraceUndefRegister( const char * pcLabel, uint32_t ulValue )
+{
+    vStartupTracePutString( pcLabel );
+    vStartupTracePutHex32( ulValue );
+}
 
 #ifdef BSP_MCU_GROUP_INTERRUPT
 static bsp_int_err_t bsp_gr_int_enable_disable (bsp_int_src_t vector, bool enable, uint32_t ipl);
@@ -1090,6 +1097,42 @@ R_BSP_ATTRIB_INTERRUPT void non_maskable_isr(void)
 R_BSP_ATTRIB_INTERRUPT void undefined_interrupt_source_isr(void)
 {
     vStartupTracePutString( "[phase8b] exception: undefined interrupt source\r\n" );
+
+    if( g_phase8b_undefined_interrupt_trace_count < 4U )
+    {
+        vStartupTracePutString( "[phase8b] undef irq ir swint=0x" );
+        prvPhase8bTraceUndefRegister( "", IR( ICU, SWINT ) );
+        vStartupTracePutString( " cmt0=0x" );
+        prvPhase8bTraceUndefRegister( "", IR( CMT0, CMI0 ) );
+        vStartupTracePutString( " grpAL0=0x" );
+        prvPhase8bTraceUndefRegister( "", IR( ICU, GROUPAL0 ) );
+        vStartupTracePutString( " grpAL1=0x" );
+        prvPhase8bTraceUndefRegister( "", IR( ICU, GROUPAL1 ) );
+        vStartupTracePutString( " grpBE0=0x" );
+        prvPhase8bTraceUndefRegister( "", IR( ICU, GROUPBE0 ) );
+        vStartupTracePutString( "\r\n" );
+
+        vStartupTracePutString( "[phase8b] undef irq sci7 rxi=0x" );
+        prvPhase8bTraceUndefRegister( "", IR( SCI7, RXI7 ) );
+        vStartupTracePutString( " txi=0x" );
+        prvPhase8bTraceUndefRegister( "", IR( SCI7, TXI7 ) );
+        vStartupTracePutString( " scr=0x" );
+        prvPhase8bTraceUndefRegister( "", SCI7.SCR.BYTE );
+        vStartupTracePutString( " ssr=0x" );
+        prvPhase8bTraceUndefRegister( "", SCI7.SSR.BYTE );
+        vStartupTracePutString( "\r\n" );
+
+        vStartupTracePutString( "[phase8b] undef irq grp al0=0x" );
+        prvPhase8bTraceUndefRegister( "", ICU.GRPAL0.LONG );
+        vStartupTracePutString( " al1=0x" );
+        prvPhase8bTraceUndefRegister( "", ICU.GRPAL1.LONG );
+        vStartupTracePutString( " be0=0x" );
+        prvPhase8bTraceUndefRegister( "", ICU.GRPBE0.LONG );
+        vStartupTracePutString( "\r\n" );
+    }
+
+    g_phase8b_undefined_interrupt_trace_count++;
+
     /* If user has registered a callback for this exception then call it. */
     R_BSP_InterruptControl(BSP_INT_SRC_UNDEFINED_INTERRUPT, BSP_INT_CMD_CALL_CALLBACK, FIT_NO_PTR);
 } /* End of function undefined_interrupt_source_isr() */
