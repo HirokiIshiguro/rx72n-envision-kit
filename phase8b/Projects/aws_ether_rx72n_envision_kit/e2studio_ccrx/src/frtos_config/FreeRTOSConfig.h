@@ -193,6 +193,12 @@ extern void vOutputString( const char * pcMessage );
 #define traceRETURN_xTaskCreate( xReturn ) \
     vStartupTracePutString( "[phase8b] trace return xTaskCreate\r\n" )
 
+#define traceENTER_xTaskCreateStatic( pxTaskCode, pcName, uxStackDepth, pvParameters, uxPriority, puxStackBuffer, pxTaskBuffer ) \
+    vStartupTracePutString( "[phase8b] trace enter xTaskCreateStatic\r\n" )
+
+#define traceRETURN_xTaskCreateStatic( xReturn ) \
+    vStartupTracePutString( "[phase8b] trace return xTaskCreateStatic\r\n" )
+
 #define traceMALLOC( pvAddress, uiSize ) \
     vStartupTracePutString( "[phase8b] trace malloc\r\n" )
 
