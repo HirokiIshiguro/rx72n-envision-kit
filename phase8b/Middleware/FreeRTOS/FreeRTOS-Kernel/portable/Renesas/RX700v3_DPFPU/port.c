@@ -87,6 +87,7 @@ const BaseType_t * p_vSoftwareInterruptEntry = &vSoftwareInterruptEntry;
  * access to registers is required.
  */
 static void prvStartFirstTask( void );
+static void prvPhase8bTraceFirstTaskFrame( void );
 
 /*
  * Software interrupt handler.  Performs the actual context switch (saving and
@@ -123,6 +124,34 @@ void vTickISR( void );
  * convenience. */
 extern void * pxCurrentTCB;
 extern void vTaskSwitchContext( void );
+
+static void prvPhase8bTraceFirstTaskFrame( void )
+{
+    StackType_t * pxFirstTaskStack;
+
+    if( pxCurrentTCB == NULL )
+    {
+        return;
+    }
+
+    pxFirstTaskStack = *( StackType_t ** ) pxCurrentTCB;
+
+    vStartupTracePutString( "[phase8b] first task sp=0x" );
+    vStartupTracePutHex32( ( uint32_t ) ( uintptr_t ) pxFirstTaskStack );
+    vStartupTracePutString( " pc=0x" );
+    vStartupTracePutHex32( pxFirstTaskStack[ 23 ] );
+    vStartupTracePutString( " psw=0x" );
+    vStartupTracePutHex32( pxFirstTaskStack[ 24 ] );
+    vStartupTracePutString( "\r\n" );
+
+    vStartupTracePutString( "[phase8b] first task frame0=0x" );
+    vStartupTracePutHex32( pxFirstTaskStack[ 0 ] );
+    vStartupTracePutString( " fpsw=0x" );
+    vStartupTracePutHex32( pxFirstTaskStack[ 7 ] );
+    vStartupTracePutString( " r1=0x" );
+    vStartupTracePutHex32( pxFirstTaskStack[ 8 ] );
+    vStartupTracePutString( "\r\n" );
+}
 
 /*-----------------------------------------------------------*/
 
@@ -311,6 +340,7 @@ BaseType_t xPortStartScheduler( void )
 
         /* Start the first task. */
         vStartupTracePutString( "[phase8b] scheduler first task start\r\n" );
+        prvPhase8bTraceFirstTaskFrame();
         prvStartFirstTask();
     }
 
