@@ -129,6 +129,7 @@ static char prvNibbleToHex( uint8_t ucNibble )
 static sci_err_t prvEnsureSerialPortOpen( void )
 {
     sci_cfg_t xSerialSciConfig;
+    sci_err_t xOpenResult;
 
     if( 0 != xSerialSciHandle )
     {
@@ -145,11 +146,26 @@ static sci_err_t prvEnsureSerialPortOpen( void )
     xSerialSciConfig.async.stop_bits    = SCI_STOPBITS_1;
     xSerialSciConfig.async.int_priority = 1;
 
-    return R_SCI_Open( U_SCI_UART_CLI_SCI_CH,
-                       SCI_MODE_ASYNC,
-                       &xSerialSciConfig,
-                       vSerialSciCallback,
-                       &xSerialSciHandle );
+    xOpenResult = R_SCI_Open( U_SCI_UART_CLI_SCI_CH,
+                              SCI_MODE_ASYNC,
+                              &xSerialSciConfig,
+                              vSerialSciCallback,
+                              &xSerialSciHandle );
+
+#if ( BSP_CFG_PHASE8B_3B_SKIP_MCU_CLOCK_SETUP != 0 ) && ( BSP_CFG_SCI_UART_TERMINAL_CHANNEL == ( 7 ) )
+    if( SCI_SUCCESS == xOpenResult )
+    {
+        /* Keep SCI7 available for polling breadcrumbs, but suppress its IRQ path while we diagnose early boot. */
+        IEN( SCI7, RXI7 ) = 0;
+        IEN( SCI7, TXI7 ) = 0;
+        IR( SCI7, RXI7 ) = 0;
+        IR( SCI7, TXI7 ) = 0;
+        ICU.GENAL0.LONG &= ~( ( 1UL << 22 ) | ( 1UL << 23 ) );
+        U_SCI_UART_CLI_REG.SCR.BYTE &= ( uint8_t ) ~( 0xC4U );
+    }
+#endif
+
+    return xOpenResult;
 }
 
 void CLI_Support_Settings(void)
