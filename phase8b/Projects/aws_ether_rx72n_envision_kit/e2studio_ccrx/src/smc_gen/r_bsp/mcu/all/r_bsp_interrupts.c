@@ -48,6 +48,7 @@
 Includes   <System Includes> , "Project Includes"
 ***********************************************************************************************************************/
 #include "platform.h"
+#include "serial.h"
 
 /***********************************************************************************************************************
 Macro definitions
@@ -734,6 +735,7 @@ static bsp_int_err_t bsp_gr_int_enable_disable(bsp_int_src_t vector, bool enable
 ***********************************************************************************************************************/
 R_BSP_ATTRIB_INTERRUPT void excep_supervisor_inst_isr(void)
 {
+    vStartupTracePutString( "[phase8b] exception: supervisor instruction\r\n" );
     /* If user has registered a callback for this exception then call it. */
     R_BSP_InterruptControl(BSP_INT_SRC_EXC_SUPERVISOR_INSTR, BSP_INT_CMD_CALL_CALLBACK, FIT_NO_PTR);
 } /* End of function excep_supervisor_inst_isr() */
@@ -748,6 +750,7 @@ R_BSP_ATTRIB_INTERRUPT void excep_supervisor_inst_isr(void)
 ***********************************************************************************************************************/
 R_BSP_ATTRIB_INTERRUPT void excep_access_isr(void)
 {
+    vStartupTracePutString( "[phase8b] exception: access\r\n" );
     /* If user has registered a callback for this exception then call it. */
     R_BSP_InterruptControl(BSP_INT_SRC_EXC_ACCESS, BSP_INT_CMD_CALL_CALLBACK, FIT_NO_PTR);
 } /* End of function excep_access_isr() */
@@ -762,6 +765,7 @@ R_BSP_ATTRIB_INTERRUPT void excep_access_isr(void)
 ***********************************************************************************************************************/
 R_BSP_ATTRIB_INTERRUPT void excep_undefined_inst_isr(void)
 {
+    vStartupTracePutString( "[phase8b] exception: undefined instruction\r\n" );
     /* If user has registered a callback for this exception then call it. */
     R_BSP_InterruptControl(BSP_INT_SRC_EXC_UNDEFINED_INSTR, BSP_INT_CMD_CALL_CALLBACK, FIT_NO_PTR);
 } /* End of function excep_undefined_inst_isr() */
@@ -780,6 +784,8 @@ R_BSP_ATTRIB_INTERRUPT void excep_floating_point_isr(void)
     /* Used for reading FPSW register. */
     uint32_t tmp_fpsw;
 #endif
+
+    vStartupTracePutString( "[phase8b] exception: floating point\r\n" );
 
     /* If user has registered a callback for this exception then call it. */
     R_BSP_InterruptControl(BSP_INT_SRC_EXC_FPU, BSP_INT_CMD_CALL_CALLBACK, FIT_NO_PTR);
@@ -804,6 +810,7 @@ R_BSP_ATTRIB_INTERRUPT void excep_floating_point_isr(void)
 ***********************************************************************************************************************/
 R_BSP_ATTRIB_INTERRUPT void excep_address_isr(void)
 {
+    vStartupTracePutString( "[phase8b] exception: address\r\n" );
     /* If user has registered a callback for this exception then call it. */
     R_BSP_InterruptControl(BSP_INT_SRC_EXC_ADDRESS, BSP_INT_CMD_CALL_CALLBACK, FIT_NO_PTR);
 } /* End of function excep_address_isr() */
@@ -1082,6 +1089,7 @@ R_BSP_ATTRIB_INTERRUPT void non_maskable_isr(void)
 ***********************************************************************************************************************/
 R_BSP_ATTRIB_INTERRUPT void undefined_interrupt_source_isr(void)
 {
+    vStartupTracePutString( "[phase8b] exception: undefined interrupt source\r\n" );
     /* If user has registered a callback for this exception then call it. */
     R_BSP_InterruptControl(BSP_INT_SRC_UNDEFINED_INTERRUPT, BSP_INT_CMD_CALL_CALLBACK, FIT_NO_PTR);
 } /* End of function undefined_interrupt_source_isr() */
@@ -1100,6 +1108,7 @@ R_BSP_ATTRIB_INTERRUPT void undefined_interrupt_source_isr(void)
 ***********************************************************************************************************************/
 R_BSP_ATTRIB_INTERRUPT void bus_error_isr(void)
 {
+    vStartupTracePutString( "[phase8b] exception: bus error\r\n" );
     /* Clear the bus error */
     BSC.BERCLR.BIT.STSCLR = 1;
 
@@ -1114,4 +1123,3 @@ R_BSP_ATTRIB_INTERRUPT void bus_error_isr(void)
 #endif
 
 #endif /* BSP_CFG_STARTUP_DISABLE == 0 */
-
