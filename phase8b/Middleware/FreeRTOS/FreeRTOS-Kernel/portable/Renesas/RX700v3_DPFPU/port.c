@@ -162,8 +162,7 @@ static void prvPhase8bTraceIerAndIntb( void )
 
     vStartupTracePutString( "[phase8b] INTB=0x" );
     vStartupTracePutHex32( ( uint32_t ) __get_intb() );
-    vStartupTracePutString( "
-" );
+    vStartupTracePutString( "\r\n" );
 
     vStartupTracePutString( "[phase8b] IER:" );
     for( i = 0; i < 32; i++ )
@@ -177,16 +176,14 @@ static void prvPhase8bTraceIerAndIntb( void )
             vStartupTracePutHex32( ucIer );
         }
     }
-    vStartupTracePutString( "
-" );
+    vStartupTracePutString( "\r\n" );
 }
 
 static void prvPhase8bClearAllIer( void )
 {
     uint32_t i;
 
-    vStartupTracePutString( "[phase8b] clearing all IER+IR
-" );
+    vStartupTracePutString( "[phase8b] clearing all IER+IR\r\n" );
     for( i = 0; i < 32; i++ )
     {
         ICU.IER[ i ].BYTE = 0;

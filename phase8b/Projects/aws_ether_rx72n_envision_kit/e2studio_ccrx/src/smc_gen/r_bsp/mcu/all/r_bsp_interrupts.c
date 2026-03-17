@@ -1100,6 +1100,20 @@ R_BSP_ATTRIB_INTERRUPT void undefined_interrupt_source_isr(void)
 
     if( g_phase8b_undefined_interrupt_trace_count < 4U )
     {
+        /* Dump BPC/BPSW — if this ISR was reached via an exception (not an
+         * interrupt), BPC holds the faulting PC and BPSW holds the faulting
+         * PSW.  For normal interrupts these are stale / zero. */
+        {
+            uint32_t bpc_val, bpsw_val;
+            bpc_val  = ( uint32_t ) R_BSP_GET_BPC();
+            bpsw_val = ( uint32_t ) R_BSP_GET_BPSW();
+            vStartupTracePutString( "[phase8b] undef BPC=0x" );
+            prvPhase8bTraceUndefRegister( "", bpc_val );
+            vStartupTracePutString( " BPSW=0x" );
+            prvPhase8bTraceUndefRegister( "", bpsw_val );
+            vStartupTracePutString( "\r\n" );
+        }
+
         /* Dump INTB to verify vector table base is correct. */
         vStartupTracePutString( "[phase8b] undef intb=0x" );
         prvPhase8bTraceUndefRegister( "", ( uint32_t ) R_BSP_GET_INTB() );
