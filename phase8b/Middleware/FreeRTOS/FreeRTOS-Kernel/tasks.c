@@ -5761,6 +5761,8 @@ static portTASK_FUNCTION( prvIdleTask, pvParameters )
     /* Stop warnings. */
     ( void ) pvParameters;
 
+    vStartupTracePutString( "[phase8b] idle task entered\r\n" );
+
     /** THIS IS THE RTOS IDLE TASK - WHICH IS CREATED AUTOMATICALLY WHEN THE
      * SCHEDULER IS STARTED. **/
 

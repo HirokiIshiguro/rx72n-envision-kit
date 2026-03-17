@@ -753,6 +753,8 @@
         /* Just to avoid compiler warnings. */
         ( void ) pvParameters;
 
+        vStartupTracePutString( "[phase8b] timer task entered\r\n" );
+
         #if ( configUSE_DAEMON_TASK_STARTUP_HOOK == 1 )
         {
             /* Allow the application writer to execute some code in the context of
