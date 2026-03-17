@@ -410,6 +410,20 @@ BaseType_t xPortStartScheduler( void )
             vStartupTracePutString( "\r\n" );
         }
 
+        /* Dump all IEN registers just before RTE — this is the last chance
+         * to observe which interrupt sources are armed before the first task
+         * context switch re-enables interrupts via PSW. */
+        {
+            uint32_t ien_idx;
+            vStartupTracePutString( "[phase8b] pre-RTE IER[0..31]=" );
+            for( ien_idx = 0; ien_idx < 32U; ien_idx++ )
+            {
+                vStartupTracePutString( " " );
+                vStartupTracePutHex32( ( uint32_t ) ICU.IER[ ien_idx ].BYTE );
+            }
+            vStartupTracePutString( "\r\n" );
+        }
+
         prvPhase8bTraceFirstTaskFrame();
 
         prvPhase8bTraceIerAndIntb();

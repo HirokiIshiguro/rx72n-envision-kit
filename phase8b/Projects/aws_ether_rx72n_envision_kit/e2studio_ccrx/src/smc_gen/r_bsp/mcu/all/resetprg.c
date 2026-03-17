@@ -226,6 +226,18 @@ R_BSP_POR_FUNCTION(R_BSP_STARTUP_FUNCTION)
     /* Initialize the Interrupt Table Register */
     R_BSP_SET_INTB(R_BSP_SECTOP_INTVECTTBL);
 
+    /* When the bootloader hands off via direct jump (not software reset),
+     * ICU IEN bits from the bootloader's peripheral usage may persist.
+     * Clear all IEN registers to prevent stale interrupt enables from
+     * firing before the app has registered its own ISRs. */
+    {
+        uint32_t ien_clr_idx;
+        for( ien_clr_idx = 0; ien_clr_idx < 32; ien_clr_idx++ )
+        {
+            ICU.IER[ ien_clr_idx ].BYTE = 0x00;
+        }
+    }
+
 #ifdef BSP_MCU_EXCEPTION_TABLE
     /* Initialize the Exception Table Register */
     R_BSP_SET_EXTB(R_BSP_SECTOP_EXCEPTVECTTBL);

@@ -1134,6 +1134,20 @@ R_BSP_ATTRIB_INTERRUPT void undefined_interrupt_source_isr(void)
         vStartupTracePutString( " be0=0x" );
         prvPhase8bTraceUndefRegister( "", ICU.GRPBE0.LONG );
         vStartupTracePutString( "\r\n" );
+
+        /* Dump all 32 IEN registers to identify which interrupt sources are
+         * still enabled.  This is the key diagnostic: if any IEN bit is set
+         * for a vector that the app has not registered, a stale bootloader
+         * IEN bit is the root cause. */
+        {
+            uint32_t ien_idx;
+            vStartupTracePutString( "[phase8b] undef IER[0..31]=" );
+            for( ien_idx = 0; ien_idx < 32U; ien_idx++ )
+            {
+                prvPhase8bTraceUndefRegister( " ", ICU.IER[ ien_idx ].BYTE );
+            }
+            vStartupTracePutString( "\r\n" );
+        }
     }
 
     g_phase8b_undefined_interrupt_trace_count++;
