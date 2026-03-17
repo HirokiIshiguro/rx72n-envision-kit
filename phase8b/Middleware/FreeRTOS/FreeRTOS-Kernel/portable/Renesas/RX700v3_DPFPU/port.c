@@ -161,7 +161,7 @@ static void prvPhase8bTraceIerAndIntb( void )
     uint8_t ucIer;
 
     vStartupTracePutString( "[phase8b] INTB=0x" );
-    vStartupTracePutHex32( ( uint32_t ) __get_intb() );
+    vStartupTracePutHex32( ( uint32_t ) R_BSP_GET_INTB() );
     vStartupTracePutString( "\r\n" );
 
     vStartupTracePutString( "[phase8b] IER:" );
