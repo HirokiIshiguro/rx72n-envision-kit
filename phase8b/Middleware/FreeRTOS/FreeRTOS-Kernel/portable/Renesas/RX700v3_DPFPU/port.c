@@ -88,6 +88,8 @@ const BaseType_t * p_vSoftwareInterruptEntry = &vSoftwareInterruptEntry;
  */
 static void prvStartFirstTask( void );
 static void prvPhase8bTraceFirstTaskFrame( void );
+static void prvPhase8bTraceIerAndIntb( void );
+static void prvPhase8bClearAllIer( void );
 
 /*
  * Software interrupt handler.  Performs the actual context switch (saving and
@@ -151,6 +153,49 @@ static void prvPhase8bTraceFirstTaskFrame( void )
     vStartupTracePutString( " r1=0x" );
     vStartupTracePutHex32( pxFirstTaskStack[ 8 ] );
     vStartupTracePutString( "\r\n" );
+}
+
+static void prvPhase8bTraceIerAndIntb( void )
+{
+    uint32_t i;
+    uint8_t ucIer;
+
+    vStartupTracePutString( "[phase8b] INTB=0x" );
+    vStartupTracePutHex32( ( uint32_t ) __get_intb() );
+    vStartupTracePutString( "
+" );
+
+    vStartupTracePutString( "[phase8b] IER:" );
+    for( i = 0; i < 32; i++ )
+    {
+        ucIer = ICU.IER[ i ].BYTE;
+        if( ucIer != 0 )
+        {
+            vStartupTracePutString( " [" );
+            vStartupTracePutHex32( i );
+            vStartupTracePutString( "]=0x" );
+            vStartupTracePutHex32( ucIer );
+        }
+    }
+    vStartupTracePutString( "
+" );
+}
+
+static void prvPhase8bClearAllIer( void )
+{
+    uint32_t i;
+
+    vStartupTracePutString( "[phase8b] clearing all IER+IR
+" );
+    for( i = 0; i < 32; i++ )
+    {
+        ICU.IER[ i ].BYTE = 0;
+    }
+
+    for( i = 0; i < 256; i++ )
+    {
+        ICU.IR[ i ].BYTE = 0;
+    }
 }
 
 /*-----------------------------------------------------------*/
@@ -366,6 +411,13 @@ BaseType_t xPortStartScheduler( void )
         }
 
         prvPhase8bTraceFirstTaskFrame();
+
+        prvPhase8bTraceIerAndIntb();
+
+#if BSP_CFG_PHASE8B_3B_SKIP_MCU_CLOCK_SETUP != 0
+        prvPhase8bClearAllIer();
+#endif
+
         prvStartFirstTask();
     }
 
