@@ -199,6 +199,12 @@ extern void vOutputString( const char * pcMessage );
 #define traceRETURN_xTaskCreateStatic( xReturn ) \
     vStartupTracePutString( "[phase8b] trace return xTaskCreateStatic\r\n" )
 
+#define traceENTER_vTaskEnterCritical() \
+    vStartupTracePutString( "[phase8b] trace enter vTaskEnterCritical\r\n" )
+
+#define traceRETURN_vTaskEnterCritical() \
+    vStartupTracePutString( "[phase8b] trace return vTaskEnterCritical\r\n" )
+
 #define traceMALLOC( pvAddress, uiSize ) \
     vStartupTracePutString( "[phase8b] trace malloc\r\n" )
 

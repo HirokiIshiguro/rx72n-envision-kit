@@ -2027,6 +2027,7 @@ static void prvInitialiseNewTask( TaskFunction_t pxTaskCode,
         /* Ensure interrupts don't access the task lists while the lists are being
          * updated. */
         taskENTER_CRITICAL();
+        vStartupTracePutString( "[phase8b] trace after taskENTER_CRITICAL\r\n" );
         {
             uxCurrentNumberOfTasks = ( UBaseType_t ) ( uxCurrentNumberOfTasks + 1U );
 
@@ -2042,6 +2043,7 @@ static void prvInitialiseNewTask( TaskFunction_t pxTaskCode,
                      * initialisation required.  We will not recover if this call
                      * fails, but we will report the failure. */
                     prvInitialiseTaskLists();
+                    vStartupTracePutString( "[phase8b] trace after prvInitialiseTaskLists\r\n" );
                 }
                 else
                 {
@@ -2081,10 +2083,13 @@ static void prvInitialiseNewTask( TaskFunction_t pxTaskCode,
             traceTASK_CREATE( pxNewTCB );
 
             prvAddTaskToReadyList( pxNewTCB );
+            vStartupTracePutString( "[phase8b] trace after prvAddTaskToReadyList\r\n" );
 
             portSETUP_TCB( pxNewTCB );
+            vStartupTracePutString( "[phase8b] trace after portSETUP_TCB\r\n" );
         }
         taskEXIT_CRITICAL();
+        vStartupTracePutString( "[phase8b] trace after taskEXIT_CRITICAL\r\n" );
 
         if( xSchedulerRunning != pdFALSE )
         {

@@ -46,42 +46,55 @@
 #elif BSP_CFG_SCI_UART_TERMINAL_CHANNEL == (0)
 #define U_SCI_UART_CLI_PINSET()  R_SCI_PinSet_SCI0()
 #define U_SCI_UART_CLI_SCI_CH          SCI_CH0
+#define U_SCI_UART_CLI_REG             SCI0
 #elif BSP_CFG_SCI_UART_TERMINAL_CHANNEL == (1)
 #define U_SCI_UART_CLI_PINSET()  R_SCI_PinSet_SCI1()
 #define U_SCI_UART_CLI_SCI_CH          SCI_CH1
+#define U_SCI_UART_CLI_REG             SCI1
 #elif BSP_CFG_SCI_UART_TERMINAL_CHANNEL == (2)
 #define U_SCI_UART_CLI_PINSET()  R_SCI_PinSet_SCI2()
 #define U_SCI_UART_CLI_SCI_CH          SCI_CH2
+#define U_SCI_UART_CLI_REG             SCI2
 #elif BSP_CFG_SCI_UART_TERMINAL_CHANNEL == (3)
 #define U_SCI_UART_CLI_PINSET()  R_SCI_PinSet_SCI3()
 #define U_SCI_UART_CLI_SCI_CH          SCI_CH3
+#define U_SCI_UART_CLI_REG             SCI3
 #elif BSP_CFG_SCI_UART_TERMINAL_CHANNEL == (4)
 #define U_SCI_UART_CLI_PINSET()  R_SCI_PinSet_SCI4()
 #define U_SCI_UART_CLI_SCI_CH          SCI_CH4
+#define U_SCI_UART_CLI_REG             SCI4
 #elif BSP_CFG_SCI_UART_TERMINAL_CHANNEL == (5)
 #define U_SCI_UART_CLI_PINSET()  R_SCI_PinSet_SCI5()
 #define U_SCI_UART_CLI_SCI_CH          SCI_CH5
+#define U_SCI_UART_CLI_REG             SCI5
 #elif BSP_CFG_SCI_UART_TERMINAL_CHANNEL == (6)
 #define U_SCI_UART_CLI_PINSET()  R_SCI_PinSet_SCI6()
 #define U_SCI_UART_CLI_SCI_CH          SCI_CH6
+#define U_SCI_UART_CLI_REG             SCI6
 #elif BSP_CFG_SCI_UART_TERMINAL_CHANNEL == (7)
 #define U_SCI_UART_CLI_PINSET()  R_SCI_PinSet_SCI7()
 #define U_SCI_UART_CLI_SCI_CH          SCI_CH7
+#define U_SCI_UART_CLI_REG             SCI7
 #elif BSP_CFG_SCI_UART_TERMINAL_CHANNEL == (8)
 #define U_SCI_UART_CLI_PINSET()  R_SCI_PinSet_SCI8()
 #define U_SCI_UART_CLI_SCI_CH          SCI_CH8
+#define U_SCI_UART_CLI_REG             SCI8
 #elif BSP_CFG_SCI_UART_TERMINAL_CHANNEL == (9)
 #define U_SCI_UART_CLI_PINSET()  R_SCI_PinSet_SCI9()
 #define U_SCI_UART_CLI_SCI_CH          SCI_CH9
+#define U_SCI_UART_CLI_REG             SCI9
 #elif BSP_CFG_SCI_UART_TERMINAL_CHANNEL == (10)
 #define U_SCI_UART_CLI_PINSET()  R_SCI_PinSet_SCI10()
 #define U_SCI_UART_CLI_SCI_CH          SCI_CH10
+#define U_SCI_UART_CLI_REG             SCI10
 #elif BSP_CFG_SCI_UART_TERMINAL_CHANNEL == (11)
 #define U_SCI_UART_CLI_PINSET()  R_SCI_PinSet_SCI11()
 #define U_SCI_UART_CLI_SCI_CH          SCI_CH11
+#define U_SCI_UART_CLI_REG             SCI11
 #elif BSP_CFG_SCI_UART_TERMINAL_CHANNEL == (12)
 #define U_SCI_UART_CLI_PINSET()  R_SCI_PinSet_SCI12()
 #define U_SCI_UART_CLI_SCI_CH          SCI_CH12
+#define U_SCI_UART_CLI_REG             SCI12
 #else
 #error "Error! Invalid setting for MY_BSP_CFG_SERIAL_TERM_SCI in r_bsp_config.h"
 #endif
@@ -106,8 +119,6 @@ void vSerialSciCallback( void *pvArgs );
 void CLI_Close(void);
 
 #define serialSTARTUP_TRACE_RETRY_LIMIT    ( 200000UL )
-
-static uint16_t usStartupTraceTxCapacity = 0;
 
 static sci_err_t prvEnsureSerialPortOpen( void )
 {
@@ -135,31 +146,6 @@ static sci_err_t prvEnsureSerialPortOpen( void )
                        &xSerialSciHandle );
 }
 
-static BaseType_t xStartupTraceWaitForTxBytes( uint16_t usTargetFreeBytes,
-                                               uint16_t * pusBytesFree )
-{
-    uint32_t ulRetry = serialSTARTUP_TRACE_RETRY_LIMIT;
-
-    do
-    {
-        if( SCI_SUCCESS != R_SCI_Control( xSerialSciHandle,
-                                          SCI_CMD_TX_Q_BYTES_FREE,
-                                          pusBytesFree ) )
-        {
-            return pdFALSE;
-        }
-
-        if( *pusBytesFree >= usTargetFreeBytes )
-        {
-            return pdTRUE;
-        }
-
-        R_BSP_NOP();
-    } while( ulRetry-- > 0 );
-
-    return pdFALSE;
-}
-
 void CLI_Support_Settings(void)
 {
     ( void ) prvEnsureSerialPortOpen();
@@ -171,7 +157,6 @@ void CLI_Close(void)
     {
         R_SCI_Close( xSerialSciHandle );
         xSerialSciHandle = 0;
-        usStartupTraceTxCapacity = 0;
     }
 }
 
@@ -234,8 +219,7 @@ xComPortHandle xSerialPortInitMinimal( unsigned long ulWantedBaud, unsigned port
 void vStartupTracePutString( const char * pcMessage )
 {
     const uint8_t * pucMessage = ( const uint8_t * ) pcMessage;
-    uint16_t usBytesFree = 0;
-    size_t xRemaining;
+    uint32_t ulRetry;
 
     if( ( NULL == pcMessage ) || ( '\0' == pcMessage[ 0 ] ) )
     {
@@ -247,50 +231,28 @@ void vStartupTracePutString( const char * pcMessage )
         return;
     }
 
-    if( 0 == usStartupTraceTxCapacity )
+    while( '\0' != *pucMessage )
     {
-        if( pdFALSE == xStartupTraceWaitForTxBytes( 1, &usStartupTraceTxCapacity ) )
+        ulRetry = serialSTARTUP_TRACE_RETRY_LIMIT;
+
+        while( ( 0 == U_SCI_UART_CLI_REG.SSR.BIT.TDRE ) && ( ulRetry-- > 0 ) )
         {
-            return;
-        }
-    }
-
-    xRemaining = strlen( pcMessage );
-
-    while( xRemaining > 0 )
-    {
-        sci_err_t xSendErr;
-        uint16_t usChunkLength;
-        uint32_t ulRetry = serialSTARTUP_TRACE_RETRY_LIMIT;
-
-        if( pdFALSE == xStartupTraceWaitForTxBytes( 1, &usBytesFree ) )
-        {
-            return;
-        }
-
-        usChunkLength = ( uint16_t ) ( ( xRemaining < usBytesFree ) ? xRemaining : usBytesFree );
-
-        do
-        {
-            xSendErr = R_SCI_Send( xSerialSciHandle, ( uint8_t * ) pucMessage, usChunkLength );
-            if( SCI_SUCCESS == xSendErr )
-            {
-                break;
-            }
-
             R_BSP_NOP();
-        } while( ulRetry-- > 0 );
+        }
 
-        if( SCI_SUCCESS != xSendErr )
+        if( 0 == ulRetry )
         {
             return;
         }
 
-        pucMessage += usChunkLength;
-        xRemaining -= usChunkLength;
+        U_SCI_UART_CLI_REG.TDR = *pucMessage++;
     }
 
-    ( void ) xStartupTraceWaitForTxBytes( usStartupTraceTxCapacity, &usBytesFree );
+    ulRetry = serialSTARTUP_TRACE_RETRY_LIMIT;
+    while( ( 0 == U_SCI_UART_CLI_REG.SSR.BIT.TEND ) && ( ulRetry-- > 0 ) )
+    {
+        R_BSP_NOP();
+    }
 }
 
 /* Function required in order to link UARTCommandConsole.c - which is used by
