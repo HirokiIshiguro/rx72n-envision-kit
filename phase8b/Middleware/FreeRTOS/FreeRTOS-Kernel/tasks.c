@@ -1262,6 +1262,8 @@ static void prvAddNewTaskToReadyList( TCB_t * pxNewTCB ) PRIVILEGED_FUNCTION;
     {
         TCB_t * pxNewTCB;
 
+        vStartupTracePutString( "[phase8b] trace enter prvCreateStaticTask\r\n" );
+
         configASSERT( puxStackBuffer != NULL );
         configASSERT( pxTaskBuffer != NULL );
 
@@ -1802,6 +1804,8 @@ static void prvInitialiseNewTask( TaskFunction_t pxTaskCode,
     StackType_t * pxTopOfStack;
     UBaseType_t x;
 
+    vStartupTracePutString( "[phase8b] trace enter prvInitialiseNewTask\r\n" );
+
     #if ( portUSING_MPU_WRAPPERS == 1 )
         /* Should the task be created in privileged mode? */
         BaseType_t xRunPrivileged;
@@ -2018,6 +2022,8 @@ static void prvInitialiseNewTask( TaskFunction_t pxTaskCode,
 
     static void prvAddNewTaskToReadyList( TCB_t * pxNewTCB )
     {
+        vStartupTracePutString( "[phase8b] trace enter prvAddNewTaskToReadyList\r\n" );
+
         /* Ensure interrupts don't access the task lists while the lists are being
          * updated. */
         taskENTER_CRITICAL();
