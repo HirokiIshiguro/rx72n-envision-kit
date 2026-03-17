@@ -340,6 +340,31 @@ BaseType_t xPortStartScheduler( void )
 
         /* Start the first task. */
         vStartupTracePutString( "[phase8b] scheduler first task start\r\n" );
+
+        /* Diagnostic: verify INTB points to app vector table, not bootloader's. */
+        {
+            uint32_t intb_val = ( uint32_t ) R_BSP_GET_INTB();
+            uint32_t * pvecTable = ( uint32_t * ) intb_val;
+
+            vStartupTracePutString( "[phase8b] intb=0x" );
+            vStartupTracePutHex32( intb_val );
+            vStartupTracePutString( "\r\n" );
+
+            /* Vector #27 = SWINT, should match &vSoftwareInterruptEntry.
+             * Vector #28 = CMT0_CMI0, should match &vTickISR. */
+            vStartupTracePutString( "[phase8b] vec27(swint)=0x" );
+            vStartupTracePutHex32( pvecTable[ 27 ] );
+            vStartupTracePutString( " expect=0x" );
+            vStartupTracePutHex32( ( uint32_t ) &vSoftwareInterruptEntry );
+            vStartupTracePutString( "\r\n" );
+
+            vStartupTracePutString( "[phase8b] vec28(cmt0)=0x" );
+            vStartupTracePutHex32( pvecTable[ 28 ] );
+            vStartupTracePutString( " expect=0x" );
+            vStartupTracePutHex32( ( uint32_t ) vTickISR );
+            vStartupTracePutString( "\r\n" );
+        }
+
         prvPhase8bTraceFirstTaskFrame();
         prvStartFirstTask();
     }

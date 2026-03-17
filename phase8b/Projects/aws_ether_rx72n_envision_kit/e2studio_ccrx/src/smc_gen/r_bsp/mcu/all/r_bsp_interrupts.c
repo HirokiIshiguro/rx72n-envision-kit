@@ -1100,6 +1100,11 @@ R_BSP_ATTRIB_INTERRUPT void undefined_interrupt_source_isr(void)
 
     if( g_phase8b_undefined_interrupt_trace_count < 4U )
     {
+        /* Dump INTB to verify vector table base is correct. */
+        vStartupTracePutString( "[phase8b] undef intb=0x" );
+        prvPhase8bTraceUndefRegister( "", ( uint32_t ) R_BSP_GET_INTB() );
+        vStartupTracePutString( "\r\n" );
+
         vStartupTracePutString( "[phase8b] undef irq ir swint=0x" );
         prvPhase8bTraceUndefRegister( "", IR( ICU, SWINT ) );
         vStartupTracePutString( " cmt0=0x" );
