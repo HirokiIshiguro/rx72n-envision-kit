@@ -39,6 +39,9 @@ Configuration Options
    Change to the settings for the user board.
 */
 
+/* ③'b diagnostic switch. Normal builds must keep this at 0. */
+#define BSP_CFG_BOOT_LOADER_SOFTWARE_RESET_HANDOFF   (0)
+
 /* Start up select
    0 = Enable BSP startup program.
    1 = Disable BSP startup program. (e.g. Using user startup program.)
@@ -779,4 +782,3 @@ NOTE: The RAM areas are not contiguous.It is separated by 512 KB each.
 #define MY_BSP_CFG_SERIAL_TERM_SCI_INTERRUPT_PRIORITY   (15)
 
 #endif /* R_BSP_CONFIG_REF_HEADER_FILE */
-

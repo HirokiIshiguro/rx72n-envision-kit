@@ -28,7 +28,10 @@ $legacyProjectsPath = $LegacyProjectsPath -replace "/", "\"
 $phase8bProjectsPath = $Phase8bProjectsPath -replace "/", "\"
 $logFile = [System.IO.Path]::GetFullPath($LogFile)
 $shortRoot = "C:\rx72n-phase8b-3b-src"
+$skipClockSetup = if ($env:PHASE8B_3B_SKIP_MCU_CLOCK_SETUP) { $env:PHASE8B_3B_SKIP_MCU_CLOCK_SETUP -eq "true" } else { $false }
+$forceSoftwareResetHandoff = if ($env:PHASE8B_3B_FORCE_SOFTWARE_RESET_HANDOFF) { $env:PHASE8B_3B_FORCE_SOFTWARE_RESET_HANDOFF -eq "true" } else { $true }
 $appBspConfigPath = Join-Path $projectRoot "$phase8bProjectsPath\aws_ether_rx72n_envision_kit\e2studio_ccrx\src\smc_gen\r_config\r_bsp_config.h"
+$legacyBootBspConfigPath = Join-Path $projectRoot "$legacyProjectsPath\boot_loader\src\smc_gen\r_config\r_bsp_config.h"
 $projectDefinitions = @(
     @{
         Name = "rx72n_boot_loader"
@@ -59,18 +62,32 @@ if (-not (Test-Path $appBspConfigPath)) {
     throw "phase8b app BSP config not found: $appBspConfigPath"
 }
 
+$fileSnapshots[$legacyBootBspConfigPath] = Get-Content $legacyBootBspConfigPath -Raw
 $fileSnapshots[$appBspConfigPath] = Get-Content $appBspConfigPath -Raw
 
+$desiredAppSkipFlag = if ($skipClockSetup) { '(1)' } else { '(0)' }
 $appBspConfig = $fileSnapshots[$appBspConfigPath] -replace `
-    '#define BSP_CFG_PHASE8B_3B_SKIP_MCU_CLOCK_SETUP\s+\(0\)', `
-    '#define BSP_CFG_PHASE8B_3B_SKIP_MCU_CLOCK_SETUP   (1)'
+    '#define BSP_CFG_PHASE8B_3B_SKIP_MCU_CLOCK_SETUP\s+\([01]\)', `
+    "#define BSP_CFG_PHASE8B_3B_SKIP_MCU_CLOCK_SETUP   $desiredAppSkipFlag"
 
 if ($appBspConfig -eq $fileSnapshots[$appBspConfigPath]) {
-    throw "Failed to enable BSP_CFG_PHASE8B_3B_SKIP_MCU_CLOCK_SETUP in $appBspConfigPath"
+    throw "Failed to set BSP_CFG_PHASE8B_3B_SKIP_MCU_CLOCK_SETUP in $appBspConfigPath"
 }
 
 [System.IO.File]::WriteAllText($appBspConfigPath, $appBspConfig, [System.Text.UTF8Encoding]::new($false))
-Write-Host "Enabled 3b diag clock-setup bypass: $appBspConfigPath"
+Write-Host "Set 3b diag clock-setup bypass=$skipClockSetup : $appBspConfigPath"
+
+$desiredBootHandoffFlag = if ($forceSoftwareResetHandoff) { '(1)' } else { '(0)' }
+$legacyBootBspConfig = $fileSnapshots[$legacyBootBspConfigPath] -replace `
+    '#define BSP_CFG_BOOT_LOADER_SOFTWARE_RESET_HANDOFF\s+\([01]\)', `
+    "#define BSP_CFG_BOOT_LOADER_SOFTWARE_RESET_HANDOFF   $desiredBootHandoffFlag"
+
+if ($legacyBootBspConfig -eq $fileSnapshots[$legacyBootBspConfigPath]) {
+    throw "Failed to set BSP_CFG_BOOT_LOADER_SOFTWARE_RESET_HANDOFF in $legacyBootBspConfigPath"
+}
+
+[System.IO.File]::WriteAllText($legacyBootBspConfigPath, $legacyBootBspConfig, [System.Text.UTF8Encoding]::new($false))
+Write-Host "Set 3b diag software-reset handoff=$forceSoftwareResetHandoff : $legacyBootBspConfigPath"
 
 foreach ($project in $projectDefinitions) {
     $hardwareDebug = Join-Path $projectRoot $project.HardwareDebug

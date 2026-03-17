@@ -265,6 +265,9 @@ void main(void)
 		result_secure_boot = secure_boot();
 		if (BOOT_LOADER_SUCCESS == result_secure_boot)
 		{
+#if BSP_CFG_BOOT_LOADER_SOFTWARE_RESET_HANDOFF != 0
+			software_reset();
+#else
 			/* stop all interrupt completely */
 			set_psw(0);
 			stop_bootloader_10us_timer();
@@ -275,6 +278,7 @@ void main(void)
 			addr = *(uint32_t*)USER_RESET_VECTOR_ADDRESS;
 			((void (*)())addr)();
 			while(1); /* infinite loop */
+#endif
 		}
 		else if (BOOT_LOADER_FAIL == result_secure_boot)
 		{
