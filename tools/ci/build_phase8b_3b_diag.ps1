@@ -37,6 +37,7 @@ $projectDefinitions = @(
         Name = "rx72n_boot_loader"
         ImportPath = "$legacyProjectsPath\boot_loader"
         HardwareDebug = "$legacyProjectsPath\boot_loader\HardwareDebug"
+        RcpcPath = "$legacyProjectsPath\boot_loader\rx72n_boot_loader.rcpc"
     },
     @{
         Name = "boot_loader_rx72n_envision_kit"

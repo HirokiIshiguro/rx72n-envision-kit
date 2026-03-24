@@ -36,6 +36,7 @@
 #endif
 
 #include <stdio.h>
+#include "r_bsp_config.h"
 
 extern void vStartupTracePutString( const char * pcMessage );
 

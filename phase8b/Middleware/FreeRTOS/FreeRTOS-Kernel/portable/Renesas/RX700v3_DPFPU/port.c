@@ -41,6 +41,8 @@
 #include "string.h"
 
 /* Hardware specifics. */
+#include "r_bsp_config.h"
+
 #if ( configINCLUDE_PLATFORM_H_INSTEAD_OF_IODEFINE_H == 1 )
 
     #include "platform.h"
