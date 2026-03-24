@@ -66,6 +66,8 @@ Typedef definitions
 Exported global variables (to be accessed by other files)
 ***********************************************************************************************************************/
 extern volatile uint32_t ulPhase8bStartFirstTaskStage;
+extern volatile uint32_t ulPhase8bStartFirstTaskCurrentTcb;
+extern volatile uint32_t ulPhase8bStartFirstTaskTopOfStack;
 
 /***********************************************************************************************************************
 Private global variables and functions
@@ -1117,11 +1119,17 @@ R_BSP_ATTRIB_INTERRUPT void undefined_interrupt_source_isr(void)
 
         vStartupTracePutString( "[phase8b] undef start_first_task_stage=0x" );
         prvPhase8bTraceUndefRegister( "", ulPhase8bStartFirstTaskStage );
+        vStartupTracePutString( " current_tcb=0x" );
+        prvPhase8bTraceUndefRegister( "", ulPhase8bStartFirstTaskCurrentTcb );
+        vStartupTracePutString( " top_of_stack=0x" );
+        prvPhase8bTraceUndefRegister( "", ulPhase8bStartFirstTaskTopOfStack );
         vStartupTracePutString( "\r\n" );
 
-        /* Dump INTB to verify vector table base is correct. */
+        /* Dump INTB/FINTV to verify exception vectors are not stale. */
         vStartupTracePutString( "[phase8b] undef intb=0x" );
         prvPhase8bTraceUndefRegister( "", ( uint32_t ) R_BSP_GET_INTB() );
+        vStartupTracePutString( " fintv=0x" );
+        prvPhase8bTraceUndefRegister( "", ( uint32_t ) R_BSP_GET_FINTV() );
         vStartupTracePutString( "\r\n" );
 
         vStartupTracePutString( "[phase8b] undef irq ir swint=0x" );

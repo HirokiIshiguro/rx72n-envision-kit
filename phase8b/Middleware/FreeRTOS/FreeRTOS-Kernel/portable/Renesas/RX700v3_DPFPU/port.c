@@ -82,6 +82,8 @@
 extern BaseType_t vSoftwareInterruptEntry;
 const BaseType_t * p_vSoftwareInterruptEntry = &vSoftwareInterruptEntry;
 volatile uint32_t ulPhase8bStartFirstTaskStage = 0U;
+volatile uint32_t ulPhase8bStartFirstTaskCurrentTcb = 0U;
+volatile uint32_t ulPhase8bStartFirstTaskTopOfStack = 0U;
 
 /*-----------------------------------------------------------*/
 
@@ -430,6 +432,8 @@ BaseType_t xPortStartScheduler( void )
 #endif
 
         ulPhase8bStartFirstTaskStage = 0U;
+        ulPhase8bStartFirstTaskCurrentTcb = 0U;
+        ulPhase8bStartFirstTaskTopOfStack = 0U;
         prvStartFirstTask();
     }
 
@@ -475,7 +479,15 @@ static void prvStartFirstTask( void )
      * pxCurrentTCB is currently pointing to. */
     MOV.L # _pxCurrentTCB, R15
     MOV.L [ R15 ], R15
+    MOV.L # _ulPhase8bStartFirstTaskCurrentTcb, R14
+    MOV.L R15, [ R14 ]
     MOV.L [ R15 ], R0
+    MOV.L # _ulPhase8bStartFirstTaskTopOfStack, R14
+    MOV.L R0, [ R14 ]
+
+    MOV.L # _ulPhase8bStartFirstTaskStage, R14
+    MOV.L # 3, R15
+    MOV.L R15, [ R14 ]
 
 
     /* Restore the registers from the stack of the task pointed to by
@@ -527,7 +539,7 @@ static void prvStartFirstTask( void )
     MVTC R15, FPSW
 
     MOV.L # _ulPhase8bStartFirstTaskStage, R14
-    MOV.L # 3, R15
+    MOV.L # 4, R15
     MOV.L R15, [ R14 ]
 
     /* R1 to R15 - R0 is not included as it is the SP. */
