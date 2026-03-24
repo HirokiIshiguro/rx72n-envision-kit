@@ -81,6 +81,7 @@
  * as a library. */
 extern BaseType_t vSoftwareInterruptEntry;
 const BaseType_t * p_vSoftwareInterruptEntry = &vSoftwareInterruptEntry;
+volatile uint32_t ulPhase8bStartFirstTaskStage = 0U;
 
 /*-----------------------------------------------------------*/
 
@@ -428,6 +429,7 @@ BaseType_t xPortStartScheduler( void )
         prvPhase8bClearAllIer();
 #endif
 
+        ulPhase8bStartFirstTaskStage = 0U;
         prvStartFirstTask();
     }
 
@@ -455,10 +457,18 @@ static void prvStartFirstTask( void )
 {
 #ifndef __CDT_PARSER__
 
+    MOV.L # _ulPhase8bStartFirstTaskStage, R14
+    MOV.L # 1, R15
+    MOV.L R15, [ R14 ]
+
     /* When starting the scheduler there is nothing that needs moving to the
      * interrupt stack because the function is not called from an interrupt.
      * Just ensure the current stack is the user stack. */
     SETPSW U
+
+    MOV.L # _ulPhase8bStartFirstTaskStage, R14
+    MOV.L # 2, R15
+    MOV.L R15, [ R14 ]
 
 
     /* Obtain the location of the stack associated with which ever task
@@ -515,6 +525,10 @@ static void prvStartFirstTask( void )
 
     /* Floating point status word. */
     MVTC R15, FPSW
+
+    MOV.L # _ulPhase8bStartFirstTaskStage, R14
+    MOV.L # 3, R15
+    MOV.L R15, [ R14 ]
 
     /* R1 to R15 - R0 is not included as it is the SP. */
     POPM R1-R15

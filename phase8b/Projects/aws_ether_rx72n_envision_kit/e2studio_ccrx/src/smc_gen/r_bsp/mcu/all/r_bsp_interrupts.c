@@ -65,6 +65,7 @@ Typedef definitions
 /***********************************************************************************************************************
 Exported global variables (to be accessed by other files)
 ***********************************************************************************************************************/
+extern volatile uint32_t ulPhase8bStartFirstTaskStage;
 
 /***********************************************************************************************************************
 Private global variables and functions
@@ -1113,6 +1114,10 @@ R_BSP_ATTRIB_INTERRUPT void undefined_interrupt_source_isr(void)
             prvPhase8bTraceUndefRegister( "", bpsw_val );
             vStartupTracePutString( "\r\n" );
         }
+
+        vStartupTracePutString( "[phase8b] undef start_first_task_stage=0x" );
+        prvPhase8bTraceUndefRegister( "", ulPhase8bStartFirstTaskStage );
+        vStartupTracePutString( "\r\n" );
 
         /* Dump INTB to verify vector table base is correct. */
         vStartupTracePutString( "[phase8b] undef intb=0x" );
