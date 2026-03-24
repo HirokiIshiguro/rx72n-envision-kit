@@ -183,18 +183,11 @@ static void prvPhase8bTraceIerAndIntb( void )
 
 static void prvPhase8bClearAllIer( void )
 {
-    uint32_t i;
-
-    vStartupTracePutString( "[phase8b] clearing all IER+IR\r\n" );
-    for( i = 0; i < 32; i++ )
-    {
-        ICU.IER[ i ].BYTE = 0;
-    }
-
-    for( i = 0; i < 256; i++ )
-    {
-        ICU.IR[ i ].BYTE = 0;
-    }
+    /* The previous full ICU sweep started triggering the undefined interrupt
+     * handler before prvStartFirstTask() / RTE. Keep the hook so the log makes
+     * that behavior explicit, but stop mutating ICU state until the sweep is
+     * narrowed to known-safe registers. */
+    vStartupTracePutString( "[phase8b] skip IER+IR sweep (self-trigger suspected)\r\n" );
 }
 
 /*-----------------------------------------------------------*/
