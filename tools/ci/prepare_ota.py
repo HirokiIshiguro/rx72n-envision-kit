@@ -7,9 +7,25 @@ that previously ran in the prepare_ota CI job.
 
 import argparse
 import os
+import shutil
 import subprocess
 import sys
 import time
+
+
+def find_rfp_cli(hint: str) -> str:
+    """Resolve rfp-cli executable path."""
+    found = shutil.which(hint)
+    if found:
+        return found
+    if sys.platform == "win32":
+        for candidate in [
+            r"C:\Program Files\Renesas Electronics\Programming Tools\Renesas Flash Programmer V3\rfp-cli.exe",
+            r"C:\Program Files (x86)\Renesas Electronics\Programming Tools\Renesas Flash Programmer V3\rfp-cli.exe",
+        ]:
+            if os.path.isfile(candidate):
+                return candidate
+    return hint
 
 
 def run(cmd, **kwargs):
@@ -39,17 +55,19 @@ def main():
     p.add_argument("--project-dir", default=os.environ.get("CI_PROJECT_DIR", "."))
     args = p.parse_args()
 
+    rfp = find_rfp_cli(args.rfp_cli)
+
     # --- Step 1: Flash boot_loader ---
     if not os.path.isfile(args.mot):
         print(f"ERROR: boot_loader.mot not found: {args.mot}", file=sys.stderr)
         sys.exit(1)
 
     print("=== Flash boot_loader (OTA) ===", flush=True)
-    run([args.rfp_cli, "-device", "RX72x", "-tool", args.rfp_tool,
+    run([rfp, "-device", "RX72x", "-tool", args.rfp_tool,
          "-if", "fine", "-speed", args.rfp_speed,
          "-auth", "id", "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF",
          "-erase-chip", "-noquery"])
-    run([args.rfp_cli, "-device", "RX72x", "-tool", args.rfp_tool,
+    run([rfp, "-device", "RX72x", "-tool", args.rfp_tool,
          "-if", "fine", "-speed", args.rfp_speed,
          "-auth", "id", "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF",
          "-p", args.mot, "-v", "-run", "-noquery"])
