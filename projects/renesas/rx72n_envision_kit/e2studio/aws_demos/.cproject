@@ -76,7 +76,7 @@
 									<listOptionValue builtIn="false" value="${ProjDirPath}/../../../../../vendors/renesas/rx_driver_package/v125/r_s12ad_rx"/>
 									<listOptionValue builtIn="false" value="${ProjDirPath}/../../../../../vendors/renesas/rx_driver_package/v125/r_s12ad_rx/src"/>
 									<listOptionValue builtIn="false" value="${ProjDirPath}/../../../../../vendors/renesas/rx_driver_package/v125/r_s12ad_rx/src/targets/rx72n"/>
-									<listOptionValue builtIn="false" value="${ProjDirPath}/../../../../../freertos_kernel/portable/Renesas/RX600v2"/>
+									<listOptionValue builtIn="false" value="${ProjDirPath}/../../../../../freertos_kernel/portable/Renesas/RX700v3_DPFPU"/>
 									<listOptionValue builtIn="false" value="${ProjDirPath}/../../../../../vendors/renesas/boards/rx72n-envision-kit/aws_demos/config_files"/>
 									<listOptionValue builtIn="false" value="${ProjDirPath}/../../../../../vendors/renesas/boards/rx72n-envision-kit/aws_demos/application_code/renesas_code"/>
 									<listOptionValue builtIn="false" value="&quot;${ProjDirPath}/../../../../../vendors/renesas/boards/rx72n-envision-kit/aws_demos/application_code/renesas_code/utility&quot;"/>
@@ -314,7 +314,7 @@
 								<option id="com.renesas.cdt.managedbuild.renesas.ccrx.linker.option.memoryType.724620881" name="アドレス範囲指定方法 (-cpu(アドレス範囲指定方法))" superClass="com.renesas.cdt.managedbuild.renesas.ccrx.linker.option.memoryType" useByScannerDiscovery="false" value="com.renesas.cdt.managedbuild.renesas.ccrx.linker.option.memoryType.autoSpecify" valueType="enumerated"/>
 								<option id="com.renesas.cdt.managedbuild.renesas.ccrx.linker.option.show.2130183465" name="リスト・ファイルの内容 (-show)" superClass="com.renesas.cdt.managedbuild.renesas.ccrx.linker.option.show" useByScannerDiscovery="false" value="com.renesas.cdt.managedbuild.renesas.ccrx.linker.option.show.all" valueType="enumerated"/>
 								<option IS_BUILTIN_EMPTY="false" IS_VALUE_EMPTY="false" id="com.renesas.cdt.managedbuild.renesas.ccrx.linker.option.noneLinkageOrderList.611606135" name="(リンク順序のリスト) (-input/-library/-binary)" superClass="com.renesas.cdt.managedbuild.renesas.ccrx.linker.option.noneLinkageOrderList" useByScannerDiscovery="false" valueType="stringList">
-									<listOptionValue builtIn="false" value="&quot;.\freertos_kernel/portable/Renesas/RX600v2\port_asm.obj&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;.\freertos_kernel/portable/Renesas/RX700v3_DPFPU\port_asm.obj&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;.\application_code\main.obj&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;.\application_code/renesas_code\gui_task.obj&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;.\application_code/renesas_code/guibuilder_output\FirmwareUpdateViaSDCardDLG.obj&quot;"/>
@@ -354,7 +354,7 @@
 									<listOptionValue builtIn="false" value="&quot;.\freertos_kernel\event_groups.obj&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;.\freertos_kernel\list.obj&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;.\freertos_kernel/portable/MemMang\heap_4.obj&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;.\freertos_kernel/portable/Renesas/RX600v2\port.obj&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;.\freertos_kernel/portable/Renesas/RX700v3_DPFPU\port.obj&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;.\freertos_kernel\queue.obj&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;.\freertos_kernel\stream_buffer.obj&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;.\freertos_kernel\tasks.obj&quot;"/>
