@@ -20,12 +20,14 @@ def find_rfp_cli(hint: str) -> str:
     if found:
         return found
     if sys.platform == "win32":
-        for candidate in [
-            r"C:\Program Files\Renesas Electronics\Programming Tools\Renesas Flash Programmer V3\rfp-cli.exe",
-            r"C:\Program Files (x86)\Renesas Electronics\Programming Tools\Renesas Flash Programmer V3\rfp-cli.exe",
+        import glob
+        for pattern in [
+            r"C:\Program Files\Renesas Electronics\Programming Tools\Renesas Flash Programmer*\rfp-cli.exe",
+            r"C:\Program Files (x86)\Renesas Electronics\Programming Tools\Renesas Flash Programmer*\rfp-cli.exe",
         ]:
-            if os.path.isfile(candidate):
-                return candidate
+            matches = glob.glob(pattern)
+            if matches:
+                return matches[0]
     return hint
 
 

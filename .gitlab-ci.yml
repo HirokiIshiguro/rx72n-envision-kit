@@ -576,6 +576,7 @@ provision_aws_credentials:
       python "$CI_PROJECT_DIR/tools/ci/provision_aws.py"
       --device-id "$DEVICE_ID"
       --codesigner-cert "$CI_PROJECT_DIR/sample_keys/secp256r1.crt"
+      --command-port "$COMMAND_PORT"
       --project-dir "$CI_PROJECT_DIR"
 
 health_aws_demos_startup:
@@ -628,6 +629,10 @@ confirm_aws_mqtt:
     - >-
       python "$CI_PROJECT_DIR/tools/ci/confirm_aws_mqtt.py"
       --device-id "$DEVICE_ID"
+      --uart-port "$UART_PORT"
+      --uart-baud "$UART_BAUD_RATE"
+      --command-port "$COMMAND_PORT"
+      --command-baud "$COMMAND_BAUD_RATE"
       --project-dir "$CI_PROJECT_DIR"
 
 test_sd_update:
@@ -653,6 +658,10 @@ test_sd_update:
       python "$CI_PROJECT_DIR/tools/ci/test_sd_update.py"
       --device-id "$DEVICE_ID"
       --rsu "$CI_PROJECT_DIR/userprog_$DEVICE_ID.rsu"
+      --uart-port "$UART_PORT"
+      --uart-baud "$UART_BAUD_RATE"
+      --command-port "$COMMAND_PORT"
+      --command-baud "$COMMAND_BAUD_RATE"
       --project-dir "$CI_PROJECT_DIR"
 
 # ==============================================================================

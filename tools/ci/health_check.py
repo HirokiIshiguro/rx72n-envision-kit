@@ -10,6 +10,9 @@ import os
 import subprocess
 import sys
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from resolve_serial_port import resolve_port
+
 
 def main():
     p = argparse.ArgumentParser(description=__doc__)
@@ -24,12 +27,13 @@ def main():
 
     print("=== aws_demos Startup Health Check ===", flush=True)
 
+    command_port = resolve_port(args.command_port)
     health_script = os.path.join(
         args.project_dir, "test_scripts", "uart_test", "check_device_health.py")
     cmd = [
         sys.executable, health_script,
         "command-prompt",
-        "--port", args.command_port,
+        "--port", command_port,
         "--baud", args.command_baud,
         "--initial-wait", "3",
         "--prompt-timeout", "60",

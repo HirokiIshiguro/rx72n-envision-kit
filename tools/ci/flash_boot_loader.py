@@ -11,6 +11,10 @@ import shutil
 import subprocess
 import sys
 
+# Add tools/ci to path so we can import resolve_serial_port
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from resolve_serial_port import resolve_port
+
 
 def find_rfp_cli(hint: str) -> str:
     """Resolve rfp-cli executable path."""
@@ -18,12 +22,15 @@ def find_rfp_cli(hint: str) -> str:
     if found:
         return found
     if sys.platform == "win32":
-        for candidate in [
-            r"C:\Program Files\Renesas Electronics\Programming Tools\Renesas Flash Programmer V3\rfp-cli.exe",
-            r"C:\Program Files (x86)\Renesas Electronics\Programming Tools\Renesas Flash Programmer V3\rfp-cli.exe",
+        import glob
+        # Search for rfp-cli in standard Renesas install locations
+        for pattern in [
+            r"C:\Program Files\Renesas Electronics\Programming Tools\Renesas Flash Programmer*\rfp-cli.exe",
+            r"C:\Program Files (x86)\Renesas Electronics\Programming Tools\Renesas Flash Programmer*\rfp-cli.exe",
         ]:
-            if os.path.isfile(candidate):
-                return candidate
+            matches = glob.glob(pattern)
+            if matches:
+                return matches[0]
     return hint
 
 
@@ -82,12 +89,13 @@ def main():
     print("Flash completed successfully. Boot loader is running.", flush=True)
 
     if args.run_healthcheck.lower() == "true":
+        uart_port = resolve_port(args.uart_port)
         health_script = os.path.join(
             args.project_dir, "test_scripts", "uart_test", "check_device_health.py")
         cmd = [
             sys.executable, health_script,
             "boot-banner",
-            "--port", args.uart_port,
+            "--port", uart_port,
             "--baud", args.uart_baud,
             "--expect", "RX72N secure boot program",
             "--expect", 'send "userprog.rsu" via UART.',

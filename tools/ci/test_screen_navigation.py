@@ -10,6 +10,9 @@ import os
 import subprocess
 import sys
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from resolve_serial_port import resolve_port
+
 
 def main():
     p = argparse.ArgumentParser(description=__doc__)
@@ -18,14 +21,15 @@ def main():
     p.add_argument("--project-dir", default=os.environ.get("CI_PROJECT_DIR", "."))
     args = p.parse_args()
 
+    command_port = resolve_port(args.command_port)
     print("=== Screen Navigation Test ===", flush=True)
-    print(f"  Port: {args.command_port} @ {args.command_baud}bps")
+    print(f"  Port: {command_port} @ {args.command_baud}bps")
 
     test_script = os.path.join(
         args.project_dir, "test_scripts", "uart_test", "test_touch_navigation.py")
     cmd = [
         sys.executable, test_script,
-        "--cmd-port", args.command_port,
+        "--cmd-port", command_port,
         "--cmd-baud", args.command_baud,
         "--timeout", "30",
         "--prompt-timeout", "30",

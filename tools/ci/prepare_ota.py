@@ -12,6 +12,9 @@ import subprocess
 import sys
 import time
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from resolve_serial_port import resolve_port
+
 
 def find_rfp_cli(hint: str) -> str:
     """Resolve rfp-cli executable path."""
@@ -19,12 +22,14 @@ def find_rfp_cli(hint: str) -> str:
     if found:
         return found
     if sys.platform == "win32":
-        for candidate in [
-            r"C:\Program Files\Renesas Electronics\Programming Tools\Renesas Flash Programmer V3\rfp-cli.exe",
-            r"C:\Program Files (x86)\Renesas Electronics\Programming Tools\Renesas Flash Programmer V3\rfp-cli.exe",
+        import glob
+        for pattern in [
+            r"C:\Program Files\Renesas Electronics\Programming Tools\Renesas Flash Programmer*\rfp-cli.exe",
+            r"C:\Program Files (x86)\Renesas Electronics\Programming Tools\Renesas Flash Programmer*\rfp-cli.exe",
         ]:
-            if os.path.isfile(candidate):
-                return candidate
+            matches = glob.glob(pattern)
+            if matches:
+                return matches[0]
     return hint
 
 
@@ -56,6 +61,12 @@ def main():
     args = p.parse_args()
 
     rfp = find_rfp_cli(args.rfp_cli)
+
+    # Resolve serial ports for current platform
+    if args.uart_port:
+        args.uart_port = resolve_port(args.uart_port)
+    if args.command_port:
+        args.command_port = resolve_port(args.command_port)
 
     # --- Step 1: Flash boot_loader ---
     if not os.path.isfile(args.mot):

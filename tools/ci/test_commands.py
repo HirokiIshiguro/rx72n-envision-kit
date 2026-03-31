@@ -10,6 +10,9 @@ import os
 import subprocess
 import sys
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from resolve_serial_port import resolve_port
+
 
 def main():
     p = argparse.ArgumentParser(description=__doc__)
@@ -19,14 +22,15 @@ def main():
     p.add_argument("--project-dir", default=os.environ.get("CI_PROJECT_DIR", "."))
     args = p.parse_args()
 
+    command_port = resolve_port(args.command_port)
     print("=== UART Command-Response Test ===", flush=True)
-    print(f"  Port: {args.command_port} @ {args.command_baud}bps")
+    print(f"  Port: {command_port} @ {args.command_baud}bps")
 
     test_script = os.path.join(
         args.project_dir, "test_scripts", "uart_test", "test_aws_demos_commands.py")
     cmd = [
         sys.executable, test_script,
-        "--port", args.command_port,
+        "--port", command_port,
         "--baud", args.command_baud,
         "--timeout", args.command_timeout,
         "--prompt-timeout", "60",
