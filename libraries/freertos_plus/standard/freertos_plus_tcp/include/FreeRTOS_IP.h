@@ -279,6 +279,8 @@
         #define pdFALSE_SIGNED      pdFALSE
         #define pdTRUE_UNSIGNED     ( 1U )
         #define pdFALSE_UNSIGNED    ( 0U )
+    #endif
+    #ifndef ipFALSE_BOOL
         #define ipTRUE_BOOL         ( 1 == 1 )
         #define ipFALSE_BOOL        ( 1 == 2 )
     #endif
