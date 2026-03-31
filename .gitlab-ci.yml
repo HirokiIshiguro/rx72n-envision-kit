@@ -947,73 +947,18 @@ prepare_ota:
   dependencies:
     - build_ota
   script:
-    - |
-      set -euo pipefail
-      if [[ "${RUN_OTA_TEST:-false}" == "true" || "${RUN_OTA_BOUNDARY_ONLY:-false}" == "true" ]]; then
-        python3 "$CI_PROJECT_DIR/tools/ci/ota_boundary_reservation.py" \
-          --action acquire \
-          --device-id "$DEVICE_ID" \
-          --owner "${CI_PROJECT_ID}:${CI_PIPELINE_ID}:${DEVICE_ID}" \
-          --project-id "${CI_PROJECT_ID}" \
-          --pipeline-id "${CI_PIPELINE_ID}" \
-          --pipeline-url "${CI_PIPELINE_URL:-}" \
-          --ref "${CI_COMMIT_REF_NAME:-}" \
-          --state-dir "${OTA_BOUNDARY_RESERVATION_ROOT}" \
-          --stale-seconds "${OTA_BOUNDARY_RESERVATION_STALE_SECONDS}"
-      fi
-      snapshot_log="$CI_PROJECT_DIR/prepare_ota_hardware_state.log"
-      : > "$snapshot_log"
-      mot="$CI_PROJECT_DIR/$E2STUDIO_PROJECTS/boot_loader/HardwareDebug/rx72n_boot_loader.mot"
-      if [[ ! -f "$mot" ]]; then
-        echo "ERROR: boot_loader.mot not found: $mot"
-        exit 1
-      fi
-      echo "=== Flash boot_loader (OTA) ==="
-      "$RFP_CLI" -device RX72x -tool "$RFP_TOOL" -if fine -speed "$RFP_SPEED" \
-        -auth id FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF -erase-chip -noquery
-      "$RFP_CLI" -device RX72x -tool "$RFP_TOOL" -if fine -speed "$RFP_SPEED" \
-        -auth id FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF -p "$mot" -v -run -noquery
-      echo "Boot loader flashed successfully."
-      if [[ "${PREPARE_OTA_STOP_AFTER:-}" == "flash" ]]; then
-        echo "[INFO] PREPARE_OTA_STOP_AFTER=flash: stopping after boot_loader flash."
-        exit 0
-      fi
-    - |
-      set -euo pipefail
-      rsu="$CI_PROJECT_DIR/ota_v1.rsu"
-      if [[ ! -f "$rsu" ]]; then
-        echo "ERROR: ota_v1.rsu not found"
-        exit 1
-      fi
-      echo "=== UART Download v1 (OTA firmware) ==="
-      echo "  RSU:  $rsu ($(stat -c%s "$rsu") bytes)"
-      echo "  Port: $UART_PORT @ ${UART_BAUD_RATE}bps"
-      python3 "$CI_PROJECT_DIR/test_scripts/uart_test/test_uart_download.py" \
-        --rsu "$rsu" --port "$UART_PORT" --baud "$UART_BAUD_RATE" \
-        --timeout 300 --diag --wait-for-ready --ready-timeout 60
-      if [[ "${PREPARE_OTA_STOP_AFTER:-}" == "uart" ]]; then
-        echo "[INFO] PREPARE_OTA_STOP_AFTER=uart: stopping after UART download."
-        exit 0
-      fi
-    - |
-      set -euo pipefail
-      echo "=== AWS IoT Core Provisioning (with code signer cert) ==="
-      echo "  Device ID: $DEVICE_ID"
-      python3 "$CI_PROJECT_DIR/test_scripts/uart_test/provision_aws.py" \
-        --device-id "$DEVICE_ID" \
-        --codesigner-cert "$CI_PROJECT_DIR/sample_keys/secp256r1.crt"
-      if [[ "${PREPARE_OTA_STOP_AFTER:-}" == "provision" ]]; then
-        echo "[INFO] PREPARE_OTA_STOP_AFTER=provision: stopping after provisioning."
-        exit 0
-      fi
-    - |
-      set -euo pipefail
-      echo "=== Resetting device ==="
-      python3 "$CI_PROJECT_DIR/tools/ci/send_serial_command.py" \
-        --port "$COMMAND_PORT" --baud "$COMMAND_BAUD_RATE" \
-        --command reset --delay-after 1
-      echo "Reset command sent. Waiting for OTA Agent startup..."
-      sleep 10
+    - >-
+      python "$CI_PROJECT_DIR/tools/ci/prepare_ota.py"
+      --mot "$CI_PROJECT_DIR/$E2STUDIO_PROJECTS/boot_loader/HardwareDebug/rx72n_boot_loader.mot"
+      --rsu "$CI_PROJECT_DIR/ota_v1.rsu"
+      --uart-port "$UART_PORT"
+      --uart-baud "$UART_BAUD_RATE"
+      --command-port "$COMMAND_PORT"
+      --command-baud "$COMMAND_BAUD_RATE"
+      --device-id "$DEVICE_ID"
+      --codesigner-cert "$CI_PROJECT_DIR/sample_keys/secp256r1.crt"
+      --stop-after "$PREPARE_OTA_STOP_AFTER"
+      --project-dir "$CI_PROJECT_DIR"
   artifacts:
     when: always
     paths:
@@ -1091,30 +1036,19 @@ ota_monitor:
   dependencies: []
   script:
     - |
-      set -euo pipefail
-      printf '{}\n' > "$CI_PROJECT_DIR/ota_monitor_results.json"
-      printf 'monitor started\n' > "$CI_PROJECT_DIR/ota_monitor.log"
-      python3 "$CI_PROJECT_DIR/tools/ci/ota_boundary_reservation.py" \
-        --action assert \
-        --device-id "$DEVICE_ID" \
-        --owner "${CI_PROJECT_ID}:${CI_PIPELINE_ID}:${DEVICE_ID}" \
-        --project-id "${CI_PROJECT_ID}" \
-        --pipeline-id "${CI_PIPELINE_ID}" \
-        --pipeline-url "${CI_PIPELINE_URL:-}" \
-        --ref "${CI_COMMIT_REF_NAME:-}" \
-        --state-dir "${OTA_BOUNDARY_RESERVATION_ROOT}" \
-        --stale-seconds "${OTA_BOUNDARY_RESERVATION_STALE_SECONDS}"
-      v2=$((CI_PIPELINE_IID * 2 + 1))
-      monitor_results="$CI_PROJECT_DIR/ota_monitor_results_${DEVICE_ID}.json"
-      monitor_log="$CI_PROJECT_DIR/ota_monitor_${DEVICE_ID}.log"
-      echo "=== AWS IoT OTA Monitor ==="
-      echo "  Expected version build: $v2"
-      python3 -u "$CI_PROJECT_DIR/test_scripts/uart_test/test_ota.py" \
-        --mode monitor \
-        --device-id "$DEVICE_ID" \
-        --expected-build "$v2" \
-        --timeout 600 \
-        --monitor-results-out "$monitor_results" | tee "$monitor_log"
+      $ErrorActionPreference = "Stop"
+      $v2 = [int]$env:CI_PIPELINE_IID * 2 + 1
+      $monitorResults = "$env:CI_PROJECT_DIR/ota_monitor_results_$env:DEVICE_ID.json"
+      $monitorLog = "$env:CI_PROJECT_DIR/ota_monitor_$env:DEVICE_ID.log"
+      Write-Host "=== AWS IoT OTA Monitor ==="
+      Write-Host "  Expected version build: $v2"
+      python -u "$env:CI_PROJECT_DIR/test_scripts/uart_test/test_ota.py" `
+        --mode monitor `
+        --device-id $env:DEVICE_ID `
+        --expected-build $v2 `
+        --timeout 600 `
+        --monitor-results-out $monitorResults 2>&1 | Tee-Object -FilePath $monitorLog
+      if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
   artifacts:
     when: always
     paths:
