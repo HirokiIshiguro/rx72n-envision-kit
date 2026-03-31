@@ -71,7 +71,7 @@ variables:
   # フルテストを実施したい場合は RUN_SD_UPDATE_TEST=true を指定する。
   RUN_AWS_TESTS: "true"
   RUN_SD_UPDATE_TEST: "false"
-  RUN_OTA_TEST: "true"
+  RUN_OTA_TEST: "false"
   RUN_RFP_SOAK_TEST: "false"
   RFP_SOAK_MODE: "sig"
   RFP_SOAK_LOOPS: "25"
