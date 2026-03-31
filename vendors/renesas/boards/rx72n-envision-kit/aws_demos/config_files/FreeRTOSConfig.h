@@ -1,6 +1,7 @@
 /*
- * FreeRTOS Kernel V10.3.0
+ * FreeRTOS Kernel V11.1.0
  * Copyright (C) 2020 Amazon.com, Inc. or its affiliates.  All Rights Reserved.
+ * Modifications Copyright (C) 2024-2025 Renesas Electronics Corporation or its affiliates.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
  * this software and associated documentation files (the "Software"), to deal in
@@ -26,7 +27,8 @@
 #ifndef FREERTOS_CONFIG_H
 #define FREERTOS_CONFIG_H
 
-#include "serial_term_uart.h"
+#include <stdio.h>
+#include "r_bsp_config.h"
 
 /* Unity includes. */
 #if defined(FREERTOS_ENABLE_UNIT_TESTS)
@@ -66,9 +68,14 @@
 #define configQUEUE_REGISTRY_SIZE                  0
 #define configUSE_APPLICATION_TASK_TAG             0
 #define configUSE_COUNTING_SEMAPHORES              1
-#define configUSE_ALTERNATIVE_API                  0
 #define configNUM_THREAD_LOCAL_STORAGE_POINTERS    3      /* FreeRTOS+FAT requires 2 pointers if a CWD is supported. */
 #define configRECORD_STACK_HIGH_ADDRESS            1
+
+/* Task notification settings. */
+#define configTASK_NOTIFICATION_ARRAY_ENTRIES      4
+
+/* DPFPU support: 2 = all tasks have DPFPU context (backward compatible). */
+#define configUSE_TASK_DPFPU_SUPPORT               2
 
 #define configUSE_DAEMON_TASK_STARTUP_HOOK 1
 
@@ -77,16 +84,16 @@
 #define configUSE_QUEUE_SETS			1
 
 /* Hook function related definitions. */
-#define configUSE_TICK_HOOK                        0
-#define configUSE_IDLE_HOOK                        0
+#define configUSE_TICK_HOOK                        1
+#define configUSE_IDLE_HOOK                        1
 #define configUSE_MALLOC_FAILED_HOOK               1
-#define configCHECK_FOR_STACK_OVERFLOW             0      /* Not applicable to the Win32 port. */
+#define configCHECK_FOR_STACK_OVERFLOW             2
 
 /* Software timer related definitions. */
 #define configUSE_TIMERS                           1
 #define configTIMER_TASK_PRIORITY                  ( 6 )
 #define configTIMER_QUEUE_LENGTH                   5
-#define configTIMER_TASK_STACK_DEPTH               ( configMINIMAL_STACK_SIZE * 6 )
+#define configTIMER_TASK_STACK_DEPTH           (configMINIMAL_STACK_SIZE)
 
 /* The interrupt priority used by the kernel itself for the tick interrupt and
 the pended interrupt.  This would normally be the lowest priority. */
@@ -95,7 +102,7 @@ the pended interrupt.  This would normally be the lowest priority. */
 /* The maximum interrupt priority from which FreeRTOS API calls can be made.
 Interrupts that use a priority above this will not be effected by anything the
 kernel is doing. */
-#define configMAX_SYSCALL_INTERRUPT_PRIORITY    15
+#define configMAX_SYSCALL_INTERRUPT_PRIORITY    4
 
 /* The peripheral used to generate the tick interrupt is configured as part of
 the application code.  This constant should be set to the vector number of the
@@ -175,7 +182,9 @@ extern void vLoggingPrint( const char * pcMessage );
 #define configPRINT( X )     vLoggingPrint( X )
 
 /* Map the logging task's printf to the board specific output function. */
-#define configPRINT_STRING( x )    uart_string_printf( x )
+extern void vOutputString( const char * pcMessage );
+/* Map the logging task's printf to the board specific output function. */
+#define configPRINT_STRING( x )    vOutputString(x)
 
 /* Sets the length of the buffers into which logging messages are written - so
  * also defines the maximum length of each log message. */
@@ -277,10 +286,10 @@ uint32_t ulRand(void);
 #define configRAND32()    ulRand()
 
 /* The platform FreeRTOS is running on. */
-#define configPLATFORM_NAME    "RenesasRX65N"
+#define configPLATFORM_NAME    "RenesasRX72N"
 
 /* Header required for the tracealyzer recorder library. */
-#include "trcRecorder.h"
+//#include "trcRecorder.h"
 
 /* When the FIT configurator or the Smart Configurator is used, platform.h has to be used. */
 #define configINCLUDE_PLATFORM_H_INSTEAD_OF_IODEFINE_H  1
