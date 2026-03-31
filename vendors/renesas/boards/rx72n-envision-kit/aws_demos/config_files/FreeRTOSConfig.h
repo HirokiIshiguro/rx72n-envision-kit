@@ -27,8 +27,7 @@
 #ifndef FREERTOS_CONFIG_H
 #define FREERTOS_CONFIG_H
 
-#include <stdio.h>
-#include "r_bsp_config.h"
+#include "serial_term_uart.h"
 
 /* Unity includes. */
 #if defined(FREERTOS_ENABLE_UNIT_TESTS)
@@ -160,6 +159,10 @@ void vConfigureTimerForRunTimeStats( void );
  * functions. */
 #define configUSE_STATS_FORMATTING_FUNCTIONS    1
 
+/* Include freertos_tasks_c_additions.h at the end of tasks.c to provide
+ * vTaskGetCombinedRunTimeStats (CPU load with reset capability). */
+#define configINCLUDE_FREERTOS_TASK_C_ADDITIONS_H    1
+
 #if defined(ENABLE_UNIT_TESTS) || defined(FREERTOS_ENABLE_UNIT_TESTS)
 /* unity testing */
 #define configASSERT( x ) do { if( ( x ) == 0 ) TEST_ABORT(); } while( 0 )
@@ -182,9 +185,7 @@ extern void vLoggingPrint( const char * pcMessage );
 #define configPRINT( X )     vLoggingPrint( X )
 
 /* Map the logging task's printf to the board specific output function. */
-extern void vOutputString( const char * pcMessage );
-/* Map the logging task's printf to the board specific output function. */
-#define configPRINT_STRING( x )    vOutputString(x)
+#define configPRINT_STRING( x )    uart_string_printf( x )
 
 /* Sets the length of the buffers into which logging messages are written - so
  * also defines the maximum length of each log message. */
