@@ -48,8 +48,8 @@ void vTaskClearUsage(void) {
 	/* Clear runtime counter for each task in the Suspended state. */
 	vTaskClearUsageSingleList(&xSuspendedTaskList);
 #endif
-	ulTaskSwitchedInTime = 0;
-	ulTotalRunTime = 0;
+	ulTaskSwitchedInTime[ 0 ] = 0;
+	ulTotalRunTime[ 0 ] = 0;
 	vConfigureTimerForRunTimeStats();
 	xTaskResumeAll();
 }
@@ -128,8 +128,8 @@ void vTaskGetCombinedRunTimeStats( char* pcWriteBuffer,  UBaseType_t uxClear)
 
         if(uxClear)
         {
-            ulTaskSwitchedInTime = 0;
-            ulTotalRunTime = 0;
+            ulTaskSwitchedInTime[ 0 ] = 0;
+            ulTotalRunTime[ 0 ] = 0;
         }
         vPortFree( pxTaskStatusArray );
     }
