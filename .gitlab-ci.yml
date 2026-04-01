@@ -937,7 +937,7 @@ ota_create_job:
         --rsu "$env:CI_PROJECT_DIR\ota_v2.rsu" `
         --s3-bucket "$env:OTA_S3_BUCKET" `
         --ota-role-arn "$env:OTA_ROLE_ARN" `
-        --create-start-delay 15 `
+        --create-start-delay 45 `
         --metadata-out $metadataFile
   artifacts:
     when: always
