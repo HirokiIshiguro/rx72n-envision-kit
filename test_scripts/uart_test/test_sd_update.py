@@ -132,6 +132,13 @@ def upload_rsu_to_sdcard(ser, rsu_path, filename="userprog.rsu"):
     else:
         print("[WARN] SD card readiness check inconclusive, proceeding anyway")
 
+    # sdcard list のレスポンスを完全にドレイン
+    ser.reset_input_buffer()
+    time.sleep(1)
+    ser.read(ser.in_waiting or 1)
+    ser.reset_input_buffer()
+    time.sleep(0.3)
+
     # sdcard write コマンド送信
     cmd = f"sdcard write {filename} {file_size}"
     ser.reset_input_buffer()
@@ -140,7 +147,7 @@ def upload_rsu_to_sdcard(ser, rsu_path, filename="userprog.rsu"):
     ser.flush()
 
     # READY 待ち (コマンドエコー + READY <chunk_size>)
-    response = wait_for_marker(ser, "READY", timeout=10)
+    response = wait_for_marker(ser, "READY", timeout=30)
     if response is None:
         print("[FAIL] Timeout waiting for READY response")
         return False
