@@ -76,7 +76,7 @@ variables:
   RFP_SOAK_MODE: "sig"
   RFP_SOAK_LOOPS: "25"
   RFP_SOAK_SLEEP_SECONDS: "1"
-  RUN_HW_HEALTHCHECK: "false"
+  RUN_HW_HEALTHCHECK: "true"
   # BUILD_USE_SOURCE_MAC_ADDR: "true" の場合のみビルド前に FreeRTOSConfig.h の
   # configMAC_ADDR* を書き換える。通常は dataflash の MAC override を使うため
   # "false" のままにし、build artifact を 3 台で共通化する。
