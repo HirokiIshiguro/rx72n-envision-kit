@@ -113,6 +113,7 @@ def main():
         sys.executable,
         os.path.join(args.project_dir, "test_scripts", "uart_test", "provision_aws.py"),
         "--device-id", args.device_id,
+        "--port", args.command_port,
     ]
     if args.codesigner_cert:
         provision_cmd += ["--codesigner-cert", args.codesigner_cert]
