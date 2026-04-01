@@ -922,22 +922,8 @@ ota_create_job:
     - build_ota
   script:
     - |
-      $owner = "$($env:CI_PROJECT_ID):$($env:CI_PIPELINE_ID):$($env:DEVICE_ID)"
-      $leaseArgs = @(
-        '-u',
-        "$env:CI_PROJECT_DIR\tools\ci\ota_boundary_reservation.py",
-        '--action', 'assert',
-        '--device-id', "$env:DEVICE_ID",
-        '--owner', $owner,
-        '--project-id', "$env:CI_PROJECT_ID",
-        '--pipeline-id', "$env:CI_PIPELINE_ID",
-        '--pipeline-url', "$env:CI_PIPELINE_URL",
-        '--ref', "$env:CI_COMMIT_REF_NAME",
-        '--state-dir', "$env:OTA_BOUNDARY_RESERVATION_ROOT",
-        '--stale-seconds', "$env:OTA_BOUNDARY_RESERVATION_STALE_SECONDS"
-      )
-      & python @leaseArgs
-      if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      # OTA boundary reservation は Windows 単体構成では不要
+      # (resource_group で直列化済み。Pi 3台並列構成で必要だった機構)
       $v2 = [int]$env:CI_PIPELINE_IID * 2 + 1
       $metadataFile = "$env:CI_PROJECT_DIR\ota_job_metadata_$env:DEVICE_ID.json"
       Write-Host "=== AWS IoT OTA Create Job ==="
@@ -1021,51 +1007,26 @@ ota_finalize:
     - ota_monitor
   script:
     - |
-      $owner = "$($env:CI_PROJECT_ID):$($env:CI_PIPELINE_ID):$($env:DEVICE_ID)"
-      $leaseReleaseArgs = @(
-        '-u',
-        "$env:CI_PROJECT_DIR\tools\ci\ota_boundary_reservation.py",
-        '--action', 'release',
-        '--device-id', "$env:DEVICE_ID",
-        '--owner', $owner,
-        '--project-id', "$env:CI_PROJECT_ID",
-        '--pipeline-id', "$env:CI_PIPELINE_ID",
-        '--pipeline-url', "$env:CI_PIPELINE_URL",
-        '--ref', "$env:CI_COMMIT_REF_NAME",
-        '--state-dir', "$env:OTA_BOUNDARY_RESERVATION_ROOT",
-        '--stale-seconds', "$env:OTA_BOUNDARY_RESERVATION_STALE_SECONDS"
-      )
       $metadataFile = "$env:CI_PROJECT_DIR\ota_job_metadata_$env:DEVICE_ID.json"
       $monitorResultsFile = "$env:CI_PROJECT_DIR\ota_monitor_results_$env:DEVICE_ID.json"
       $finalizeLogFile = "$env:CI_PROJECT_DIR\ota_finalize_$env:DEVICE_ID.log"
-      $finalExit = 0
-      try {
-        if (-not (Test-Path $metadataFile) -or -not (Test-Path $monitorResultsFile)) {
-          @(
-            "Skipping ota_finalize because prerequisite files are missing.",
-            "DEVICE_ID=$env:DEVICE_ID",
-            "metadata_exists=$([bool](Test-Path $metadataFile))",
-            "monitor_results_exists=$([bool](Test-Path $monitorResultsFile))"
-          ) | Set-Content -Encoding UTF8 $finalizeLogFile
-          Write-Host "Skipping ota_finalize because prerequisite files are missing."
-          Write-Host "  metadata: $metadataFile"
-          Write-Host "  monitor : $monitorResultsFile"
-        } else {
-          & python -u "$env:CI_PROJECT_DIR\test_scripts\uart_test\test_ota.py" `
-            --mode finalize `
-            --metadata-in $metadataFile `
-            --monitor-results-in $monitorResultsFile 2>&1 | Tee-Object -FilePath $finalizeLogFile
-          if ($LASTEXITCODE -ne 0) {
-            $finalExit = $LASTEXITCODE
-          }
-        }
-      } finally {
-        & python @leaseReleaseArgs
-        if ($LASTEXITCODE -ne 0) {
-          Write-Warning "OTA boundary lease release failed for $env:DEVICE_ID (exit=$LASTEXITCODE)."
-        }
+      if (-not (Test-Path $metadataFile) -or -not (Test-Path $monitorResultsFile)) {
+        @(
+          "Skipping ota_finalize because prerequisite files are missing.",
+          "DEVICE_ID=$env:DEVICE_ID",
+          "metadata_exists=$([bool](Test-Path $metadataFile))",
+          "monitor_results_exists=$([bool](Test-Path $monitorResultsFile))"
+        ) | Set-Content -Encoding UTF8 $finalizeLogFile
+        Write-Host "Skipping ota_finalize because prerequisite files are missing."
+        Write-Host "  metadata: $metadataFile"
+        Write-Host "  monitor : $monitorResultsFile"
+      } else {
+        & python -u "$env:CI_PROJECT_DIR\test_scripts\uart_test\test_ota.py" `
+          --mode finalize `
+          --metadata-in $metadataFile `
+          --monitor-results-in $monitorResultsFile 2>&1 | Tee-Object -FilePath $finalizeLogFile
+        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       }
-      exit $finalExit
   artifacts:
     when: always
     paths:
