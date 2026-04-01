@@ -115,6 +115,23 @@ def upload_rsu_to_sdcard(ser, rsu_path, filename="userprog.rsu"):
     file_size = os.path.getsize(rsu_path)
     print(f"[UPLOAD] Transferring {filename} ({file_size} bytes, ~{file_size/1024:.0f} KB)")
 
+    # SD カード ready 確認 (sdcard_task の初期化完了を待つ)
+    print("[UPLOAD] Waiting for SD card ready (sdcard list)...")
+    for attempt in range(10):
+        ser.reset_input_buffer()
+        time.sleep(0.2)
+        ser.write(b"sdcard list\r\n")
+        resp = wait_for_marker(ser, "$", timeout=5)
+        if resp and (".rsu" in resp.lower() or ".mot" in resp.lower()
+                     or ".zip" in resp.lower() or ".htm" in resp.lower()
+                     or "sdcard list" in resp):
+            print(f"[UPLOAD] SD card ready (attempt {attempt + 1})")
+            break
+        print(f"[UPLOAD] SD card not ready yet (attempt {attempt + 1})")
+        time.sleep(3)
+    else:
+        print("[WARN] SD card readiness check inconclusive, proceeding anyway")
+
     # sdcard write コマンド送信
     cmd = f"sdcard write {filename} {file_size}"
     ser.reset_input_buffer()
