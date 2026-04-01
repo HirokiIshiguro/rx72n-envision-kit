@@ -45,7 +45,7 @@ variables:
   DEVICE_ID: "rx72n-01"
   # rfp-cli のツール指定。PC 直結では e2l:<S/N> で対象 E2 Lite を明示指定。
   # 複数 E2 Lite が接続されている場合、generic "e2l" だと誤ったボードに書き込む。
-  RFP_TOOL: "e2l:OBE110008"
+  RFP_TOOL: "e2l"
   DEVICE_RESOURCE_GROUP: "rx72n-device"
   # Git サブモジュール初期化（coreSNTP 等の外部ライブラリ）
   GIT_SUBMODULE_STRATEGY: recursive
@@ -109,7 +109,10 @@ variables:
 
 .pc_device_job:
   tags:
-    - run_ishiguro_machine
+    - exec-shell
+    - os-linux
+    - hw-raspi
+    - dev-rx72n-02
   resource_group: $DEVICE_RESOURCE_GROUP
 
 .pc_flash_job:
@@ -117,11 +120,11 @@ variables:
 
 .pc_pyserial_job:
   before_script:
-    - python -m pip install --quiet --user pyserial
+    - source "$CI_PROJECT_DIR/tools/ci/activate_pi_python.sh"
 
 .pc_crypto_serial_job:
   before_script:
-    - python -m pip install --quiet --user pyserial cryptography
+    - source "$CI_PROJECT_DIR/tools/ci/activate_pi_python.sh"
 
 .windows_ota_aws_job:
   tags:
@@ -341,7 +344,7 @@ flash_boot_loader:
       artifacts: true
   script:
     - >-
-      python "$CI_PROJECT_DIR/tools/ci/flash_boot_loader.py"
+      python3 "$CI_PROJECT_DIR/tools/ci/flash_boot_loader.py"
       --mot "$CI_PROJECT_DIR/$E2STUDIO_PROJECTS/boot_loader/HardwareDebug/rx72n_boot_loader.mot"
       --rfp-cli "$RFP_CLI"
       --rfp-tool "$RFP_TOOL"
@@ -370,7 +373,7 @@ rfp_soak_test:
       artifacts: true
   script:
     - >-
-      python "$CI_PROJECT_DIR/tools/ci/rfp_soak_test.py"
+      python3 "$CI_PROJECT_DIR/tools/ci/rfp_soak_test.py"
       --output-dir "$CI_PROJECT_DIR/rfp_soak_$DEVICE_ID"
       --loops "$RFP_SOAK_LOOPS"
       --sleep-seconds "$RFP_SOAK_SLEEP_SECONDS"
@@ -410,7 +413,7 @@ download_aws_demos:
     RSU_SEQ_NO: "1"
   script:
     - >-
-      python "$CI_PROJECT_DIR/tools/ci/download_aws_demos.py"
+      python3 "$CI_PROJECT_DIR/tools/ci/download_aws_demos.py"
       --mot "$CI_PROJECT_DIR/$E2STUDIO_PROJECTS/aws_demos/HardwareDebug/aws_demos.mot"
       --key "$CI_PROJECT_DIR/sample_keys/secp256r1.privatekey"
       --rsu-out "$CI_PROJECT_DIR/userprog_$DEVICE_ID.rsu"
@@ -474,7 +477,7 @@ health_aws_demos_startup:
     - job: download_aws_demos
   script:
     - >-
-      python "$CI_PROJECT_DIR/tools/ci/health_check.py"
+      python3 "$CI_PROJECT_DIR/tools/ci/health_check.py"
       --command-port "$COMMAND_PORT"
       --command-baud "$COMMAND_BAUD_RATE"
       --project-dir "$CI_PROJECT_DIR"
@@ -519,7 +522,7 @@ test_commands:
     COMMAND_TIMEOUT: "10"
   script:
     - >-
-      python "$CI_PROJECT_DIR/tools/ci/test_commands.py"
+      python3 "$CI_PROJECT_DIR/tools/ci/test_commands.py"
       --command-port "$COMMAND_PORT"
       --command-baud "$COMMAND_BAUD_RATE"
       --command-timeout "$COMMAND_TIMEOUT"
@@ -545,7 +548,7 @@ test_screen_navigation:
     - job: test_commands
   script:
     - >-
-      python "$CI_PROJECT_DIR/tools/ci/test_screen_navigation.py"
+      python3 "$CI_PROJECT_DIR/tools/ci/test_screen_navigation.py"
       --command-port "$COMMAND_PORT"
       --command-baud "$COMMAND_BAUD_RATE"
       --project-dir "$CI_PROJECT_DIR"
@@ -577,7 +580,7 @@ provision_aws_credentials:
       artifacts: false
   script:
     - >-
-      python "$CI_PROJECT_DIR/tools/ci/provision_aws.py"
+      python3 "$CI_PROJECT_DIR/tools/ci/provision_aws.py"
       --device-id "$DEVICE_ID"
       --codesigner-cert "$CI_PROJECT_DIR/sample_keys/secp256r1.crt"
       --command-port "$COMMAND_PORT"
@@ -597,7 +600,7 @@ health_aws_demos_startup:
       artifacts: false
   script:
     - >-
-      python "$CI_PROJECT_DIR/tools/ci/health_check.py"
+      python3 "$CI_PROJECT_DIR/tools/ci/health_check.py"
       --command-port "$COMMAND_PORT"
       --command-baud "$COMMAND_BAUD_RATE"
       --project-dir "$CI_PROJECT_DIR"
@@ -632,7 +635,7 @@ confirm_aws_mqtt:
     when: script_failure
   script:
     - >-
-      python "$CI_PROJECT_DIR/tools/ci/confirm_aws_mqtt.py"
+      python3 "$CI_PROJECT_DIR/tools/ci/confirm_aws_mqtt.py"
       --device-id "$DEVICE_ID"
       --uart-port "$UART_PORT"
       --uart-baud "$UART_BAUD_RATE"
@@ -662,7 +665,7 @@ test_sd_update:
       artifacts: true
   script:
     - >-
-      python "$CI_PROJECT_DIR/tools/ci/test_sd_update.py"
+      python3 "$CI_PROJECT_DIR/tools/ci/test_sd_update.py"
       --device-id "$DEVICE_ID"
       --rsu "$CI_PROJECT_DIR/userprog_$DEVICE_ID.rsu"
       --uart-port "$UART_PORT"
@@ -886,7 +889,7 @@ prepare_ota:
     - build_ota
   script:
     - >-
-      python "$CI_PROJECT_DIR/tools/ci/prepare_ota.py"
+      python3 "$CI_PROJECT_DIR/tools/ci/prepare_ota.py"
       --mot "$CI_PROJECT_DIR/$E2STUDIO_PROJECTS/boot_loader/HardwareDebug/rx72n_boot_loader.mot"
       --rsu "$CI_PROJECT_DIR/ota_v1.rsu"
       --uart-port "$UART_PORT"
@@ -960,25 +963,24 @@ ota_monitor:
   dependencies: []
   script:
     - |
-      $ErrorActionPreference = "Stop"
-      $v2 = [int]$env:CI_PIPELINE_IID * 2 + 1
-      $monitorResults = "$env:CI_PROJECT_DIR/ota_monitor_results_$env:DEVICE_ID.json"
-      $monitorLog = "$env:CI_PROJECT_DIR/ota_monitor_$env:DEVICE_ID.log"
-      $logPort = python -c "import sys; sys.path.insert(0,'$($env:CI_PROJECT_DIR -replace '\\','/')/tools/ci'); from resolve_serial_port import resolve_port; print(resolve_port('$env:UART_PORT'))"
-      $cmdPort = python -c "import sys; sys.path.insert(0,'$($env:CI_PROJECT_DIR -replace '\\','/')/tools/ci'); from resolve_serial_port import resolve_port; print(resolve_port('$env:COMMAND_PORT'))"
-      Write-Host "=== AWS IoT OTA Monitor ==="
-      Write-Host "  Expected version build: $v2"
-      Write-Host "  Log port: $logPort"
-      Write-Host "  Cmd port: $cmdPort"
-      python -u "$env:CI_PROJECT_DIR/test_scripts/uart_test/test_ota.py" `
-        --mode monitor `
-        --device-id $env:DEVICE_ID `
-        --expected-build $v2 `
-        --timeout 600 `
-        --log-port $logPort `
-        --cmd-port $cmdPort `
-        --monitor-results-out $monitorResults 2>&1 | Tee-Object -FilePath $monitorLog
-      if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      set -euo pipefail
+      v2=$(( CI_PIPELINE_IID * 2 + 1 ))
+      monitorResults="$CI_PROJECT_DIR/ota_monitor_results_$DEVICE_ID.json"
+      monitorLog="$CI_PROJECT_DIR/ota_monitor_$DEVICE_ID.log"
+      logPort=$(python3 -c "import sys; sys.path.insert(0,'$CI_PROJECT_DIR/tools/ci'); from resolve_serial_port import resolve_port; print(resolve_port('$UART_PORT'))")
+      cmdPort=$(python3 -c "import sys; sys.path.insert(0,'$CI_PROJECT_DIR/tools/ci'); from resolve_serial_port import resolve_port; print(resolve_port('$COMMAND_PORT'))")
+      echo "=== AWS IoT OTA Monitor ==="
+      echo "  Expected version build: $v2"
+      echo "  Log port: $logPort"
+      echo "  Cmd port: $cmdPort"
+      python3 -u "$CI_PROJECT_DIR/test_scripts/uart_test/test_ota.py" \
+        --mode monitor \
+        --device-id "$DEVICE_ID" \
+        --expected-build "$v2" \
+        --timeout 600 \
+        --log-port "$logPort" \
+        --cmd-port "$cmdPort" \
+        --monitor-results-out "$monitorResults" 2>&1 | tee "$monitorLog"
   artifacts:
     when: always
     paths:
