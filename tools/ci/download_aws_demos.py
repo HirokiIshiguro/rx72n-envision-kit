@@ -59,8 +59,7 @@ def main():
         args.project_dir, "test_scripts", "uart_test", "test_uart_download.py")
     run([sys.executable, download_script,
          "--rsu", args.rsu_out, "--port", uart_port, "--baud", args.uart_baud,
-         "--timeout", args.timeout, "--diag",
-         "--wait-for-ready", "--ready-timeout", "60"])
+         "--timeout", args.timeout, "--diag"])
 
 
 if __name__ == "__main__":

@@ -43,8 +43,9 @@ variables:
   COMMAND_BAUD_RATE: "115200"
   # デバイス ID（device_config.json で定義、複数デバイス時に切り替え）
   DEVICE_ID: "rx72n-01"
-  # rfp-cli のツール指定。PC 直結では e2l (E2 Lite) を使用。
-  RFP_TOOL: "e2l"
+  # rfp-cli のツール指定。PC 直結では e2l:<S/N> で対象 E2 Lite を明示指定。
+  # 複数 E2 Lite が接続されている場合、generic "e2l" だと誤ったボードに書き込む。
+  RFP_TOOL: "e2l:OBE110008"
   DEVICE_RESOURCE_GROUP: "rx72n-device"
   # Git サブモジュール初期化（coreSNTP 等の外部ライブラリ）
   GIT_SUBMODULE_STRATEGY: recursive
