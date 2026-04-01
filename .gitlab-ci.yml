@@ -103,6 +103,9 @@ variables:
   #   "uart"     : UART download 完了で停止
   #   "provision": provisioning 完了で停止
   PREPARE_OTA_STOP_AFTER: ""
+  # OTA boundary reservation (cross-pipeline 干渉防止)
+  OTA_BOUNDARY_RESERVATION_ROOT: "C:\\tmp\\gitlab-ota-boundary"
+  OTA_BOUNDARY_RESERVATION_STALE_SECONDS: "1800"
 
 .pc_device_job:
   tags:
