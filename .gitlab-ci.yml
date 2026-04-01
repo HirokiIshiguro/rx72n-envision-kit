@@ -975,13 +975,19 @@ ota_monitor:
       $v2 = [int]$env:CI_PIPELINE_IID * 2 + 1
       $monitorResults = "$env:CI_PROJECT_DIR/ota_monitor_results_$env:DEVICE_ID.json"
       $monitorLog = "$env:CI_PROJECT_DIR/ota_monitor_$env:DEVICE_ID.log"
+      $logPort = python -c "import sys; sys.path.insert(0,'$($env:CI_PROJECT_DIR -replace '\\','/')/tools/ci'); from resolve_serial_port import resolve_port; print(resolve_port('$env:UART_PORT'))"
+      $cmdPort = python -c "import sys; sys.path.insert(0,'$($env:CI_PROJECT_DIR -replace '\\','/')/tools/ci'); from resolve_serial_port import resolve_port; print(resolve_port('$env:COMMAND_PORT'))"
       Write-Host "=== AWS IoT OTA Monitor ==="
       Write-Host "  Expected version build: $v2"
+      Write-Host "  Log port: $logPort"
+      Write-Host "  Cmd port: $cmdPort"
       python -u "$env:CI_PROJECT_DIR/test_scripts/uart_test/test_ota.py" `
         --mode monitor `
         --device-id $env:DEVICE_ID `
         --expected-build $v2 `
         --timeout 600 `
+        --log-port $logPort `
+        --cmd-port $cmdPort `
         --monitor-results-out $monitorResults 2>&1 | Tee-Object -FilePath $monitorLog
       if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
   artifacts:
