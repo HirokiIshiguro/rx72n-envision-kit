@@ -120,11 +120,11 @@ variables:
 
 .pc_pyserial_job:
   before_script:
-    - source "$CI_PROJECT_DIR/tools/ci/activate_pi_python.sh"
+    - source "$CI_PROJECT_DIR/tools/ci/activate_pi_python.sh" pyserial
 
 .pc_crypto_serial_job:
   before_script:
-    - source "$CI_PROJECT_DIR/tools/ci/activate_pi_python.sh"
+    - source "$CI_PROJECT_DIR/tools/ci/activate_pi_python.sh" pyserial cryptography
 
 .windows_ota_aws_job:
   tags:
