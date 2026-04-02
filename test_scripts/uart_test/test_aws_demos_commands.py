@@ -195,7 +195,7 @@ class CommandTester:
             str: 応答文字列（エコーバック・プロンプト含む）
             None: 受信失敗
         """
-        self.drain_input(settle_time=0.5)
+        self.drain_input(settle_time=1.5, max_time=5.0)
         self.ser.write((cmd + "\r\n").encode("utf-8"))
         self.ser.flush()
         return self.read_until_idle(cmd_echo=cmd)
