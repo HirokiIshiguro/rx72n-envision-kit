@@ -118,16 +118,21 @@ def sync_uart(ser):
 def send_command(ser, cmd, timeout=15):
     """コマンドを送信し、MCU の応答が止まるまで読む (read-until-idle)
 
-    MCU が応答を送り終えると UART が idle になる。0.5 秒間新しいデータが
-    来なければ応答完了と判断する。バナーやプロンプトのパース不要。
+    MCU が応答を送り終えると UART が idle になる。idle_threshold 秒間
+    新しいデータが来なければ応答完了と判断する。
+
+    COM6 (RL78/G1C) の MCU→PC 間欠受信障害により、データが断続的に
+    到着する場合がある。特に dataflash read のような長い応答では
+    バースト間に 0.5 秒以上の空白が生じることがあるため、
+    idle threshold は 1.5 秒に設定する。
     """
-    drain_input(ser, settle_time=0.3)
+    drain_input(ser, settle_time=0.5)
     ser.write((cmd + "\r\n").encode("utf-8"))
     ser.flush()
 
     buf = b""
     last_data_time = time.time()
-    IDLE_THRESHOLD = 0.5  # 0.5秒間データが来なければ完了
+    IDLE_THRESHOLD = 1.5  # 1.5秒間データが来なければ完了
     start = time.time()
     while (time.time() - start) < timeout:
         n = ser.in_waiting
@@ -519,11 +524,17 @@ def main():
         # COM6 (RL78/G1C) の MCU→PC 間欠受信障害により STORE_SUCCESS 応答が
         # 消失する既知問題がある。個々の STEP の STORE_SUCCESS は参考情報とし、
         # 最終判定は dataflash read の読み戻しで行う。
+        #
+        # PEM ストリーミング後、MCU はまだ応答を送信中の場合がある。
+        # COM6 の間欠受信障害により遅延到着するデータを完全にドレインするため
+        # settle_time を十分に取る。
         print()
         print("[VERIFY] Reading dataflash contents for verification")
-        drain_input(ser, settle_time=2.0)
+        # PEM ストリーミング後の残留応答を完全にドレインし、
+        # MCU との同期を再確立する
+        sync_uart(ser)
 
-        response = send_command(ser, "dataflash read", timeout=10)
+        response = send_command(ser, "dataflash read", timeout=30)
         df_content = ""
         if response:
             masked_response = mask_sensitive_output(response)

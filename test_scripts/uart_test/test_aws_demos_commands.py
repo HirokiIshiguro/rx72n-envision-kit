@@ -78,8 +78,12 @@ class CommandTester:
     def read_until_idle(self, timeout=None):
         """MCU の応答が止まるまで読む (read-until-idle)
 
-        MCU が応答を送り終えると UART が idle になる。0.5 秒間新しいデータが
-        来なければ応答完了と判断する。バナーやプロンプトのパース不要。
+        MCU が応答を送り終えると UART が idle になる。idle_threshold 秒間
+        新しいデータが来なければ応答完了と判断する。
+
+        COM6 (RL78/G1C) の MCU→PC 間欠受信障害により、データが断続的に
+        到着する場合がある。0.5 秒では dataflash read 等の長い応答で
+        バースト間の空白を応答完了と誤判定するため、1.5 秒に設定する。
 
         Returns:
             str: 受信データ全体
@@ -89,7 +93,7 @@ class CommandTester:
             timeout = self.timeout
         buf = b""
         last_data_time = time.time()
-        IDLE_THRESHOLD = 0.5
+        IDLE_THRESHOLD = 1.5
         start = time.time()
         while (time.time() - start) < timeout:
             n = self.ser.in_waiting
@@ -150,8 +154,11 @@ class CommandTester:
     def send_command(self, cmd):
         """コマンドを送信し、応答を取得する (read-until-idle)
 
-        送信前に短い drain で残留データをクリアし、
+        送信前に drain で残留データをクリアし、
         コマンド送信後は MCU の応答が止まるまで読み続ける。
+
+        COM6 の間欠受信障害では前コマンドの応答が遅延到着する場合がある。
+        drain settle_time を十分に取ることで応答ブリーディングを防止する。
 
         Args:
             cmd: コマンド文字列（改行なし）
@@ -160,7 +167,7 @@ class CommandTester:
             str: 応答文字列（エコーバック・プロンプト含む）
             None: 受信失敗
         """
-        self.drain_input(settle_time=0.3)
+        self.drain_input(settle_time=0.5)
         self.ser.write((cmd + "\r\n").encode("utf-8"))
         self.ser.flush()
         return self.read_until_idle()
