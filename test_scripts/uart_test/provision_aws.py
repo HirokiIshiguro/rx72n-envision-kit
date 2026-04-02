@@ -195,16 +195,14 @@ def send_pem_streaming(ser, cmd, pem_content, timeout=90):
     print(f"[SEND] {cmd}")
     print(f"[INFO] PEM size: {len(pem_content)} bytes")
 
-    # コマンド送信前にバッファをクリア
-    ser.reset_input_buffer()
-    time.sleep(0.3)
+    # コマンド送信前に完全ドレイン（前のコマンドの残留応答を排出）
+    drain_input(ser, settle_time=2.0)
     ser.write((cmd + "\r\n").encode("utf-8"))
     ser.flush()
     time.sleep(1.0)  # コマンド処理待ち（MCU が PEM 受信モードに入るまで）
 
-    # エコーバックを読み捨て（非破壊的: 短時間のみ）
-    if ser.in_waiting > 0:
-        ser.read(ser.in_waiting)
+    # エコーバックを読み捨て
+    drain_input(ser, settle_time=0.5)
 
     # PEM 内容を正規化 (CRLF → LF)
     pem_normalized = pem_content.replace("\r\n", "\n")
