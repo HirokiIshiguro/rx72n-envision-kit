@@ -422,6 +422,8 @@ download_aws_demos:
       --seq-no "$RSU_SEQ_NO"
       --uart-port "$UART_PORT"
       --uart-baud "$UART_BAUD_RATE"
+      --rfp-cli "$RFP_CLI"
+      --rfp-tool "$RFP_TOOL"
       --project-dir "$CI_PROJECT_DIR"
   artifacts:
     paths:
