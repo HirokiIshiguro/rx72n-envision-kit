@@ -10,17 +10,9 @@ import os
 import subprocess
 import sys
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from resolve_serial_port import resolve_port
-
-
-def run(cmd, **kwargs):
-    """Run a command and exit on failure."""
-    print(f"  > {' '.join(cmd)}", flush=True)
-    result = subprocess.run(cmd, **kwargs)
-    if result.returncode != 0:
-        print(f"ERROR: command exited with {result.returncode}", file=sys.stderr)
-        sys.exit(result.returncode)
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "runner-handle"))
+from runner_handle.serial_port import resolve_port
+from runner_handle.rfp_cli import run_or_exit
 
 
 def main():
@@ -46,7 +38,7 @@ def main():
     print(f"  Seq: {args.seq_no}")
 
     mot_to_rsu = os.path.join(args.project_dir, "tools", "mcu-tool-rx", "mot_to_rsu.py")
-    run([sys.executable, mot_to_rsu,
+    run_or_exit([sys.executable, mot_to_rsu,
          "--mot", args.mot, "--key", args.key,
          "-o", args.rsu_out, "--seq-no", args.seq_no])
 
@@ -57,7 +49,7 @@ def main():
 
     download_script = os.path.join(
         args.project_dir, "test_scripts", "uart_test", "test_uart_download.py")
-    run([sys.executable, download_script,
+    run_or_exit([sys.executable, download_script,
          "--rsu", args.rsu_out, "--port", uart_port, "--baud", args.uart_baud,
          "--timeout", args.timeout, "--diag"])
 

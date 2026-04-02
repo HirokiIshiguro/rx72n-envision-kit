@@ -10,8 +10,8 @@ import os
 import subprocess
 import sys
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from resolve_serial_port import resolve_port
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "runner-handle"))
+from runner_handle.serial_port import resolve_port
 
 
 def main():

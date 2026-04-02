@@ -8,3 +8,6 @@
 [submodule "tools/provisioning"]
 	path = tools/provisioning
 	url = https://shelty2.servegame.com/oss/experiment/generic/scripts/python/provisioning.git
+[submodule "tools/runner-handle"]
+	path = tools/runner-handle
+	url = https://shelty2.servegame.com/oss/experiment/generic/scripts/python/gitlab-runner-handle.git

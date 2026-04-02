@@ -8,27 +8,12 @@ import argparse
 import datetime
 import os
 import re
-import shutil
 import subprocess
 import sys
 import time
 
-
-def find_rfp_cli(hint: str) -> str:
-    """Resolve rfp-cli executable path."""
-    found = shutil.which(hint)
-    if found:
-        return found
-    if sys.platform == "win32":
-        import glob
-        for pattern in [
-            r"C:\Program Files\Renesas Electronics\Programming Tools\Renesas Flash Programmer*\rfp-cli.exe",
-            r"C:\Program Files (x86)\Renesas Electronics\Programming Tools\Renesas Flash Programmer*\rfp-cli.exe",
-        ]:
-            matches = glob.glob(pattern)
-            if matches:
-                return matches[0]
-    return hint
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "runner-handle"))
+from runner_handle.rfp_cli import find_rfp_cli
 
 
 def run_capture(cmd):

@@ -7,40 +7,12 @@ that previously ran in the flash_boot_loader CI job.
 
 import argparse
 import os
-import shutil
 import subprocess
 import sys
 
-# Add tools/ci to path so we can import resolve_serial_port
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from resolve_serial_port import resolve_port
-
-
-def find_rfp_cli(hint: str) -> str:
-    """Resolve rfp-cli executable path."""
-    found = shutil.which(hint)
-    if found:
-        return found
-    if sys.platform == "win32":
-        import glob
-        # Search for rfp-cli in standard Renesas install locations
-        for pattern in [
-            r"C:\Program Files\Renesas Electronics\Programming Tools\Renesas Flash Programmer*\rfp-cli.exe",
-            r"C:\Program Files (x86)\Renesas Electronics\Programming Tools\Renesas Flash Programmer*\rfp-cli.exe",
-        ]:
-            matches = glob.glob(pattern)
-            if matches:
-                return matches[0]
-    return hint
-
-
-def run(cmd, **kwargs):
-    """Run a command and exit on failure."""
-    print(f"  > {' '.join(cmd)}", flush=True)
-    result = subprocess.run(cmd, **kwargs)
-    if result.returncode != 0:
-        print(f"ERROR: command exited with {result.returncode}", file=sys.stderr)
-        sys.exit(result.returncode)
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "runner-handle"))
+from runner_handle.serial_port import resolve_port
+from runner_handle.rfp_cli import find_rfp_cli, run_or_exit
 
 
 def main():
@@ -76,12 +48,12 @@ def main():
     print(f"  Tool:    {args.rfp_tool}")
     print(f"  I/F:     FINE")
 
-    run([rfp, "-device", "RX72x", "-tool", args.rfp_tool,
+    run_or_exit([rfp, "-device", "RX72x", "-tool", args.rfp_tool,
          "-if", "fine", "-speed", args.rfp_speed,
          "-auth", "id", "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF",
          "-erase-chip", "-noquery"])
 
-    run([rfp, "-device", "RX72x", "-tool", args.rfp_tool,
+    run_or_exit([rfp, "-device", "RX72x", "-tool", args.rfp_tool,
          "-if", "fine", "-speed", args.rfp_speed,
          "-auth", "id", "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF",
          "-p", args.mot, "-v", "-run", "-noquery"])

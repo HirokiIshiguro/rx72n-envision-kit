@@ -7,39 +7,13 @@ that previously ran in the prepare_ota CI job.
 
 import argparse
 import os
-import shutil
 import subprocess
 import sys
 import time
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from resolve_serial_port import resolve_port
-
-
-def find_rfp_cli(hint: str) -> str:
-    """Resolve rfp-cli executable path."""
-    found = shutil.which(hint)
-    if found:
-        return found
-    if sys.platform == "win32":
-        import glob
-        for pattern in [
-            r"C:\Program Files\Renesas Electronics\Programming Tools\Renesas Flash Programmer*\rfp-cli.exe",
-            r"C:\Program Files (x86)\Renesas Electronics\Programming Tools\Renesas Flash Programmer*\rfp-cli.exe",
-        ]:
-            matches = glob.glob(pattern)
-            if matches:
-                return matches[0]
-    return hint
-
-
-def run(cmd, **kwargs):
-    """Run a command and exit on failure."""
-    print(f"  > {' '.join(cmd)}", flush=True)
-    result = subprocess.run(cmd, **kwargs)
-    if result.returncode != 0:
-        print(f"ERROR: command exited with {result.returncode}", file=sys.stderr)
-        sys.exit(result.returncode)
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "runner-handle"))
+from runner_handle.serial_port import resolve_port
+from runner_handle.rfp_cli import find_rfp_cli, run_or_exit
 
 
 def main():
@@ -75,11 +49,11 @@ def main():
         sys.exit(1)
 
     print("=== Flash boot_loader (OTA) ===", flush=True)
-    run([rfp, "-device", "RX72x", "-tool", args.rfp_tool,
+    run_or_exit([rfp, "-device", "RX72x", "-tool", args.rfp_tool,
          "-if", "fine", "-speed", args.rfp_speed,
          "-auth", "id", "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF",
          "-erase-chip", "-noquery"])
-    run([rfp, "-device", "RX72x", "-tool", args.rfp_tool,
+    run_or_exit([rfp, "-device", "RX72x", "-tool", args.rfp_tool,
          "-if", "fine", "-speed", args.rfp_speed,
          "-auth", "id", "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF",
          "-p", args.mot, "-v", "-run", "-noquery"])
@@ -98,7 +72,7 @@ def main():
     print("=== UART Download v1 (OTA firmware) ===", flush=True)
     print(f"  RSU:  {args.rsu} ({rsu_size} bytes)")
     print(f"  Port: {args.uart_port} @ {args.uart_baud}bps")
-    run([sys.executable,
+    run_or_exit([sys.executable,
          os.path.join(args.project_dir, "test_scripts", "uart_test", "test_uart_download.py"),
          "--rsu", args.rsu, "--port", args.uart_port, "--baud", args.uart_baud,
          "--timeout", "300", "--diag", "--wait-for-ready", "--ready-timeout", "60"])
@@ -128,8 +102,8 @@ def main():
 
     # --- Step 4: Reset ---
     print("=== Resetting device ===", flush=True)
-    run([sys.executable,
-         os.path.join(args.project_dir, "tools", "ci", "send_serial_command.py"),
+    run_or_exit([sys.executable,
+         os.path.join(args.project_dir, "tools", "runner-handle", "scripts", "send_serial_command.py"),
          "--port", args.command_port, "--baud", args.command_baud,
          "--command", "reset", "--delay-after", "1"])
     print("Reset command sent. Waiting for OTA Agent startup...")
