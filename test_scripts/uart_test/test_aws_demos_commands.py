@@ -76,14 +76,12 @@ class CommandTester:
             print(f"[INFO] Closed {self.port}")
 
     def read_until_prompt(self, timeout=None):
-        """プロンプト '$ ' が来るまで読み取る
+        """プロンプト '\\n$ ' が来るまで読み取る
 
-        MCU のプロンプトパターン: "RX72N Envision Kit\\r\\n$ "
-        エコーバック行やバナー中の "$" を誤検出しないよう、
-        受信バッファの末尾が "\\n$ " で終わることを確認する。
-
-        プロンプト検出後、MCU がまだ送信中のデータを回収するため
-        短時間の追加読み取りを行う。
+        MCU のプロンプトシーケンス:
+          "RX72N Envision Kit\\r\\n$ "
+        末尾の "\\n$ " (改行 + ドル + スペース) をバイトパターンとして
+        検出する。base64 中の '$' やエコーバック行との誤検出を防ぐ。
 
         Returns:
             str: プロンプトまでの受信データ（プロンプト含む）
@@ -93,63 +91,35 @@ class CommandTester:
             timeout = self.timeout
         buf = b""
         start = time.time()
-        prompt_found = False
         while (time.time() - start) < timeout:
             n = self.ser.in_waiting
             if n > 0:
-                chunk = self.ser.read(n)
-                buf += chunk
-                decoded = buf.decode("utf-8", errors="replace")
-                # プロンプト検出: 末尾が "\n$ " または単独の "$ " で終わる
-                # ただしエコーバック行（送信コマンドを含む行）は除外
-                tail = decoded[-20:] if len(decoded) > 20 else decoded
-                if tail.rstrip().endswith("$"):
-                    # "\n$" パターンで終わっているか確認
-                    # （エコーバック途中の "$" と区別）
-                    stripped = decoded.rstrip()
-                    last_newline = stripped.rfind("\n")
-                    if last_newline >= 0:
-                        last_line = stripped[last_newline + 1:].strip()
-                        if last_line == "$" or last_line == "RX72N Envision Kit":
-                            prompt_found = True
-                            break
-                    elif stripped == "$":
-                        prompt_found = True
-                        break
+                buf += self.ser.read(n)
+                # バイトパターンで検出: \n$ (改行+ドル+スペース)
+                if b"\n$ " in buf or buf.endswith(b"\n$ ") or buf.endswith(b"\n$"):
+                    return buf.decode("utf-8", errors="replace")
             else:
                 time.sleep(0.05)
-
-        if prompt_found:
-            # プロンプト検出後、MCU がまだ送信中のデータを回収する
-            settle_end = time.time() + 0.3
-            while time.time() < settle_end:
-                if self.ser.in_waiting > 0:
-                    buf += self.ser.read(self.ser.in_waiting)
-                    settle_end = time.time() + 0.3
-                else:
-                    time.sleep(0.02)
-            return buf.decode("utf-8", errors="replace")
-
         # タイムアウト — 読めた分を返す
         if buf:
             return buf.decode("utf-8", errors="replace")
         return None
 
-    def drain_input(self, settle_time=0.5):
+    def drain_input(self, settle_time=1.0):
         """受信バッファを完全にドレインする
 
         MCU がまだデータを送信中の場合、reset_input_buffer() だけでは
         不十分。一定時間データが来なくなるまで読み捨てる。
-        settle_time はデータ沈黙の判定閾値。MCU のバースト送信（cpuload
-        reset 等で 1000文字以上）が断続的に来る場合があるため、十分な
-        長さが必要。
+        MCU のバースト送信（cpuload reset で 1113 文字等）は 115200bps
+        で約 100ms かかるが、MCU 側の処理で断続的になるため 1.0s の
+        沈黙確認が必要。
         """
         self.ser.reset_input_buffer()
         deadline = time.time() + settle_time
         while time.time() < deadline:
             if self.ser.in_waiting > 0:
                 self.ser.read(self.ser.in_waiting)
-                deadline = time.time() + settle_time  # データが来たらリセット
+                deadline = time.time() + settle_time
             else:
                 time.sleep(0.05)
 
@@ -274,10 +244,12 @@ class CommandTester:
                 n = self.ser.in_waiting
                 if n > 0:
                     buf += self.ser.read(n)
-                    decoded = buf.decode("utf-8", errors="replace")
-                    if "$" in decoded:
+                    # "\n$ " パターンで検出（"$" 単独だとbase64等で誤検出）
+                    if b"\n$ " in buf or buf.endswith(b"\n$"):
                         elapsed = time.time() - start
                         print(f"[INFO] Prompt detected after {attempt} attempts ({elapsed:.1f}s)")
+                        # ドレイン: プロンプト後の残留データをクリア
+                        self.drain_input()
                         return True
                 else:
                     time.sleep(0.05)
