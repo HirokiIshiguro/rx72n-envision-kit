@@ -971,8 +971,8 @@ ota_monitor:
       v2=$(( CI_PIPELINE_IID * 2 + 1 ))
       monitorResults="$CI_PROJECT_DIR/ota_monitor_results_$DEVICE_ID.json"
       monitorLog="$CI_PROJECT_DIR/ota_monitor_$DEVICE_ID.log"
-      logPort=$(python3 -c "import sys; sys.path.insert(0,'$CI_PROJECT_DIR/tools/ci'); from resolve_serial_port import resolve_port; print(resolve_port('$UART_PORT'))")
-      cmdPort=$(python3 -c "import sys; sys.path.insert(0,'$CI_PROJECT_DIR/tools/ci'); from resolve_serial_port import resolve_port; print(resolve_port('$COMMAND_PORT'))")
+      logPort=$(python3 -c "import sys; sys.path.insert(0,'$CI_PROJECT_DIR/tools/runner-handle'); from runner_handle.serial_port import resolve_port; print(resolve_port('$UART_PORT'))")
+      cmdPort=$(python3 -c "import sys; sys.path.insert(0,'$CI_PROJECT_DIR/tools/runner-handle'); from runner_handle.serial_port import resolve_port; print(resolve_port('$COMMAND_PORT'))")
       echo "=== AWS IoT OTA Monitor ==="
       echo "  Expected version build: $v2"
       echo "  Log port: $logPort"

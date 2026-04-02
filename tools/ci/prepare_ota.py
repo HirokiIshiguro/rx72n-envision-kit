@@ -94,7 +94,7 @@ def main():
         provision_cmd += ["--codesigner-cert", args.codesigner_cert]
     if args.mac_address:
         provision_cmd += ["--mac-address", args.mac_address]
-    run(provision_cmd)
+    run_or_exit(provision_cmd)
 
     if args.stop_after == "provision":
         print("[INFO] stop-after=provision: stopping after provisioning.")
