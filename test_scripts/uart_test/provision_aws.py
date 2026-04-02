@@ -63,10 +63,11 @@ def wait_for_prompt(ser, timeout=30):
             n = ser.in_waiting
             if n > 0:
                 buf += ser.read(n)
-                decoded = buf.decode("utf-8", errors="replace")
-                if "$" in decoded:
+                # "\n$ " パターンで検出
+                if b"\n$ " in buf or buf.endswith(b"\n$"):
                     elapsed = time.time() - start
                     print(f"[INFO] Prompt detected after {attempt} attempts ({elapsed:.1f}s)")
+                    drain_input(ser)
                     return True
             else:
                 time.sleep(0.05)
@@ -75,11 +76,11 @@ def wait_for_prompt(ser, timeout=30):
     return False
 
 
-def drain_input(ser, settle_time=0.5):
+def drain_input(ser, settle_time=1.0):
     """受信バッファを完全にドレインする
 
     MCU のバースト送信が断続的に来る場合があるため、settle_time は
-    十分な長さ (0.5s) を確保する。
+    十分な長さ (1.0s) を確保する。
     """
     ser.reset_input_buffer()
     deadline = time.time() + settle_time
@@ -91,7 +92,7 @@ def drain_input(ser, settle_time=0.5):
             time.sleep(0.05)
 
 
-def send_command(ser, cmd, timeout=10):
+def send_command(ser, cmd, timeout=15):
     """コマンドを送信し応答を取得する"""
     drain_input(ser)
     ser.write((cmd + "\r\n").encode("utf-8"))
@@ -102,24 +103,10 @@ def send_command(ser, cmd, timeout=10):
     while (time.time() - start) < timeout:
         n = ser.in_waiting
         if n > 0:
-            chunk = ser.read(n)
-            buf += chunk
-            decoded = buf.decode("utf-8", errors="replace")
-            # プロンプト検出: 末尾行が "$" 単独であること
-            stripped = decoded.rstrip()
-            last_newline = stripped.rfind("\n")
-            if last_newline >= 0:
-                last_line = stripped[last_newline + 1:].strip()
-                if last_line == "$":
-                    # プロンプト後の追加データを回収
-                    settle_end = time.time() + 0.3
-                    while time.time() < settle_end:
-                        if ser.in_waiting > 0:
-                            buf += ser.read(ser.in_waiting)
-                            settle_end = time.time() + 0.3
-                        else:
-                            time.sleep(0.02)
-                    return buf.decode("utf-8", errors="replace")
+            buf += ser.read(n)
+            # "\n$ " パターンでプロンプト検出
+            if b"\n$ " in buf or buf.endswith(b"\n$"):
+                return buf.decode("utf-8", errors="replace")
         else:
             time.sleep(0.05)
     if buf:
@@ -179,34 +166,30 @@ def send_pem_streaming(ser, cmd, pem_content, timeout=45):
     # 行単位で送信（MCU の SCI キュー溢れ防止）
     #
     # MCU の serial_terminal_task は xQueueReceive で 1 文字ずつ受信し
-    # sci_buffer (2048B) に蓄積する。PEM データはエコーバックされない
-    # (PEM 受信モード中は echo off) が、終端マーカー検出後の応答
-    # ("stored data into dataflash correctly.") は通常通りエコーされる。
+    # sci_buffer (2048B) に蓄積する。PEM 受信モード中はエコーバックなし。
+    # 終端マーカー検出後に dataflash 書き込み → 結果メッセージを送信。
+    #
+    # 送信中はエコーバック読み捨てを行わない（OS の serial buffer に任せる）。
+    # Linux の serial buffer は通常 4096 bytes で、PEM (最大 ~1700 bytes)
+    # には十分。
     lines = pem_normalized.split("\n")
     sent = 0
     for i, line in enumerate(lines):
-        # 最終行が空の場合もLFは送る（終端マーカーに必要）
         data = line + "\n" if i < len(lines) - 1 else line
         if not data:
             continue
         ser.write(data.encode("utf-8"))
         ser.flush()
         sent += len(data)
-        # 行間ディレイ: MCU が文字を xQueueReceive で処理する時間を確保
-        # 115200bps では 1行(64文字)の送信に約5.5ms。MCU 側の処理に
-        # 余裕を持たせるため行ごとに 100ms 待つ
+        # 行間ディレイ: MCU の xQueueReceive 処理に余裕を持たせる
         time.sleep(0.1)
 
     print(f"[INFO] Sent {sent} characters")
 
-    # MCU が終端マーカーを検出し dataflash 書き込みを完了するまで待つ
-    # dataflash dual-plane write は数百ms、最大で 2 秒程度かかる
-    time.sleep(3.0)
-
-    # 成功/失敗メッセージを待つ
-    # MCU は書き込み完了後に "stored data into dataflash correctly.\r\n$ "
-    # を送信する。エコーバック残留がある場合もあるので、受信した全データ
-    # の中から成功/失敗メッセージを探す
+    # 送信完了後、MCU が終端マーカーを検出し dataflash に書き込み、
+    # 結果メッセージを送信するまで待つ。
+    # OS buffer に溜まったデータ（もしあれば）も含めて全て読み取り、
+    # STORE_SUCCESS / STORE_FAIL を探す。
     buf = b""
     start = time.time()
     while (time.time() - start) < timeout:
@@ -226,7 +209,7 @@ def send_pem_streaming(ser, cmd, pem_content, timeout=45):
     decoded = buf.decode("utf-8", errors="replace") if buf else ""
     print(f"[FAIL] Timeout waiting for store result")
     if decoded:
-        print(f"[DEBUG] Received: {decoded[-300:]}")
+        print(f"[DEBUG] Received ({len(decoded)} chars): {decoded[-300:]}")
     return False
 
 
