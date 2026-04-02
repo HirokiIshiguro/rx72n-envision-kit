@@ -76,14 +76,14 @@ class CommandTester:
             print(f"[INFO] Closed {self.port}")
 
     def read_until_idle(self, timeout=None):
-        """MCU の応答が止まるまで読む (read-until-idle)
+        """MCU の応答が止まるまで読む (read-until-prompt + idle fallback)
 
-        MCU が応答を送り終えると UART が idle になる。idle_threshold 秒間
-        新しいデータが来なければ応答完了と判断する。
+        COM6 (RL78/G1C) の MCU→PC 間欠受信障害により、長い応答（dataflash
+        read 等）が断続的に到着する。idle 検出だけでは応答途中で切れるため、
+        プロンプト "\\n$ " を応答完了の第一検出マーカーとする。
 
-        COM6 (RL78/G1C) の MCU→PC 間欠受信障害により、データが断続的に
-        到着する場合がある。0.5 秒では dataflash read 等の長い応答で
-        バースト間の空白を応答完了と誤判定するため、1.5 秒に設定する。
+        プロンプトが検出できない場合（COM6 障害でプロンプトが消失した場合）は
+        idle_threshold 秒間データなしで応答完了と判断する（フォールバック）。
 
         Returns:
             str: 受信データ全体
@@ -100,6 +100,9 @@ class CommandTester:
             if n > 0:
                 buf += self.ser.read(n)
                 last_data_time = time.time()
+                # プロンプト検出: MCU が応答を送り終え次のコマンド待ち状態
+                if b"\n$ " in buf or buf.endswith(b"\n$"):
+                    return buf.decode("utf-8", errors="replace")
             else:
                 if buf and (time.time() - last_data_time) >= IDLE_THRESHOLD:
                     return buf.decode("utf-8", errors="replace")

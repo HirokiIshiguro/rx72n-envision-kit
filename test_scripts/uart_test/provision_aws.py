@@ -116,15 +116,14 @@ def sync_uart(ser):
 
 
 def send_command(ser, cmd, timeout=15):
-    """コマンドを送信し、MCU の応答が止まるまで読む (read-until-idle)
+    """コマンドを送信し、MCU の応答が止まるまで読む (read-until-prompt + idle fallback)
 
-    MCU が応答を送り終えると UART が idle になる。idle_threshold 秒間
-    新しいデータが来なければ応答完了と判断する。
+    COM6 (RL78/G1C) の MCU→PC 間欠受信障害により、長い応答（dataflash
+    read 等）が断続的に到着する。idle 検出だけでは応答途中で切れるため、
+    プロンプト "\\n$ " を応答完了の第一検出マーカーとする。
 
-    COM6 (RL78/G1C) の MCU→PC 間欠受信障害により、データが断続的に
-    到着する場合がある。特に dataflash read のような長い応答では
-    バースト間に 0.5 秒以上の空白が生じることがあるため、
-    idle threshold は 1.5 秒に設定する。
+    プロンプトが検出できない場合（COM6 障害でプロンプトが消失した場合）は
+    idle_threshold 秒間データなしで応答完了と判断する（フォールバック）。
     """
     drain_input(ser, settle_time=0.5)
     ser.write((cmd + "\r\n").encode("utf-8"))
@@ -132,13 +131,16 @@ def send_command(ser, cmd, timeout=15):
 
     buf = b""
     last_data_time = time.time()
-    IDLE_THRESHOLD = 1.5  # 1.5秒間データが来なければ完了
+    IDLE_THRESHOLD = 1.5  # フォールバック: 1.5秒間データが来なければ完了
     start = time.time()
     while (time.time() - start) < timeout:
         n = ser.in_waiting
         if n > 0:
             buf += ser.read(n)
             last_data_time = time.time()
+            # プロンプト検出: MCU が応答を送り終え次のコマンド待ち状態
+            if b"\n$ " in buf or buf.endswith(b"\n$"):
+                return buf.decode("utf-8", errors="replace")
         else:
             if buf and (time.time() - last_data_time) >= IDLE_THRESHOLD:
                 return buf.decode("utf-8", errors="replace")
@@ -525,16 +527,20 @@ def main():
         # 消失する既知問題がある。個々の STEP の STORE_SUCCESS は参考情報とし、
         # 最終判定は dataflash read の読み戻しで行う。
         #
-        # PEM ストリーミング後、MCU はまだ応答を送信中の場合がある。
-        # COM6 の間欠受信障害により遅延到着するデータを完全にドレインするため
-        # settle_time を十分に取る。
+        # PEM ストリーミング後、MCU は遅延した STORE_SUCCESS やエコーの
+        # 残りを COM6 経由で断続的に送信し続ける。sync_uart() の 3s drain
+        # + version コマンドだけでは不十分なケースがあったため、
+        # 二段構えのドレインで確実に枯渇させる:
+        #   1. 5秒の長時間ドレイン（PEM echo + STORE_SUCCESS の遅延分）
+        #   2. sync_uart()（version コマンドで MCU 状態を確定）
+        #   3. dataflash read は idle 3.0s で応答完了を判定
         print()
         print("[VERIFY] Reading dataflash contents for verification")
-        # PEM ストリーミング後の残留応答を完全にドレインし、
-        # MCU との同期を再確立する
+        print("[INFO] Draining residual PEM/STORE_SUCCESS responses...", flush=True)
+        drain_input(ser, settle_time=5.0)
         sync_uart(ser)
 
-        response = send_command(ser, "dataflash read", timeout=30)
+        response = send_command(ser, "dataflash read", timeout=60)
         df_content = ""
         if response:
             masked_response = mask_sensitive_output(response)
