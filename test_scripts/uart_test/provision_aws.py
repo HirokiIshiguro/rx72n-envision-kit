@@ -112,6 +112,13 @@ def sync_uart(ser):
         else:
             time.sleep(0.05)
     drain_input(ser, settle_time=1.0)
+    # 同期後にダミーコマンドで残留応答を完全排出する。
+    # wait_for_prompt() のポーリングで蓄積した応答が version 応答に
+    # 混じると、後続の最初のコマンド（STEP 1）でエコーバックしか
+    # 返らない問題が起きるため、ここで確実にフラッシュする。
+    ser.write(b"version\r\n")
+    ser.flush()
+    drain_input(ser, settle_time=2.0)
     print("[INFO] MCU synchronized.", flush=True)
 
 
