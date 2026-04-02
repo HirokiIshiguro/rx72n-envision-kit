@@ -78,6 +78,9 @@ class CommandTester:
     def read_until_prompt(self, timeout=None):
         """プロンプト '$ ' が来るまで読み取る
 
+        プロンプト検出後、MCU がまだ送信中のデータを回収するため
+        短時間の追加読み取りを行う。
+
         Returns:
             str: プロンプトまでの受信データ（プロンプト含む）
             None: タイムアウト
@@ -86,6 +89,7 @@ class CommandTester:
             timeout = self.timeout
         buf = b""
         start = time.time()
+        prompt_found = False
         while (time.time() - start) < timeout:
             n = self.ser.in_waiting
             if n > 0:
@@ -94,9 +98,23 @@ class CommandTester:
                 # プロンプト検出（"$ " で終わる）
                 decoded = buf.decode("utf-8", errors="replace")
                 if decoded.rstrip().endswith("$") or "$ " in decoded.split("\n")[-1]:
-                    return decoded
+                    prompt_found = True
+                    break
             else:
                 time.sleep(0.05)
+
+        if prompt_found:
+            # プロンプト検出後、MCU がまだ送信中のデータを回収する
+            # (長い応答の末尾がプロンプトの直前に来る場合がある)
+            settle_end = time.time() + 0.2
+            while time.time() < settle_end:
+                if self.ser.in_waiting > 0:
+                    buf += self.ser.read(self.ser.in_waiting)
+                    settle_end = time.time() + 0.2
+                else:
+                    time.sleep(0.02)
+            return buf.decode("utf-8", errors="replace")
+
         # タイムアウト — 読めた分を返す
         if buf:
             return buf.decode("utf-8", errors="replace")

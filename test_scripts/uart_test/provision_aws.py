@@ -160,6 +160,11 @@ def send_pem_streaming(ser, cmd, pem_content, timeout=45):
         pem_normalized += "\n"
 
     # 行単位で送信（MCU の SCI キュー溢れ防止）
+    #
+    # MCU の serial_terminal_task は xQueueReceive で 1 文字ずつ受信し
+    # sci_buffer (2048B) に蓄積する。PEM データはエコーバックされない
+    # (PEM 受信モード中は echo off) が、終端マーカー検出後の応答
+    # ("stored data into dataflash correctly.") は通常通りエコーされる。
     lines = pem_normalized.split("\n")
     sent = 0
     for i, line in enumerate(lines):
@@ -170,19 +175,21 @@ def send_pem_streaming(ser, cmd, pem_content, timeout=45):
         ser.write(data.encode("utf-8"))
         ser.flush()
         sent += len(data)
-        # エコーバック読み捨て（バッファ溢れ防止）
-        if ser.in_waiting > 0:
-            ser.read(ser.in_waiting)
-        # 行間ディレイ: MCU が文字を処理する時間を確保
-        time.sleep(0.05)
+        # 行間ディレイ: MCU が文字を xQueueReceive で処理する時間を確保
+        # 115200bps では 1行(64文字)の送信に約5.5ms。MCU 側の処理に
+        # 余裕を持たせるため行ごとに 100ms 待つ
+        time.sleep(0.1)
 
     print(f"[INFO] Sent {sent} characters")
 
-    # MCU が dataflash 書き込みを完了するまで待つ
-    # 終端マーカー検出 → dataflash write は数百ms かかる
-    time.sleep(1.0)
+    # MCU が終端マーカーを検出し dataflash 書き込みを完了するまで待つ
+    # dataflash dual-plane write は数百ms、最大で 2 秒程度かかる
+    time.sleep(3.0)
 
     # 成功/失敗メッセージを待つ
+    # MCU は書き込み完了後に "stored data into dataflash correctly.\r\n$ "
+    # を送信する。エコーバック残留がある場合もあるので、受信した全データ
+    # の中から成功/失敗メッセージを探す
     buf = b""
     start = time.time()
     while (time.time() - start) < timeout:
@@ -202,7 +209,7 @@ def send_pem_streaming(ser, cmd, pem_content, timeout=45):
     decoded = buf.decode("utf-8", errors="replace") if buf else ""
     print(f"[FAIL] Timeout waiting for store result")
     if decoded:
-        print(f"[DEBUG] Received: {decoded[:300]}")
+        print(f"[DEBUG] Received: {decoded[-300:]}")
     return False
 
 
