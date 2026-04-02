@@ -80,11 +80,12 @@ class CommandTester:
 
         MCU のコマンド応答シーケンス:
           1. エコーバック: "command\\r\\n$ "  ← 1つ目のプロンプト（受理）
-          2. 処理結果:    "result...\\r\\nRX72N Envision Kit\\r\\n$ "  ← 2つ目
+          2. 処理結果:    "result...\\r\\n$ "  ← 2つ目のプロンプト（完了）
 
         expect_echo が指定された場合:
-          エコーバック検出後、"RX72N Envision Kit" バナーの出現を待つ。
-          バナーは結果出力後にのみ送信されるため、確実に2つ目のプロンプト。
+          エコーバック検出後、2つ目のプロンプト "\\n$ " を待つ。
+          エコー部分に含まれる最初のプロンプトは数えず、エコー以降に
+          現れるプロンプトで応答完了と判断する。
         expect_echo が None の場合:
           最初の \\n$ で返す（初期プロンプト検出等）。
 
@@ -96,30 +97,33 @@ class CommandTester:
             timeout = self.timeout
         buf = b""
         echo_seen = False
-        prompt_seen_at = None  # プロンプト検出時刻
-        IDLE_AFTER_PROMPT = 0.3  # プロンプト後の idle 確認時間
+        echo_end_pos = 0  # エコー検出時のバッファ位置
         start = time.time()
         while (time.time() - start) < timeout:
             n = self.ser.in_waiting
             if n > 0:
                 buf += self.ser.read(n)
-                prompt_seen_at = None  # 新データが来たらリセット
 
                 if not echo_seen:
                     decoded = buf.decode("utf-8", errors="replace")
                     if expect_echo is None or expect_echo in decoded:
                         echo_seen = True
+                        # エコー検出時点の最後のプロンプト位置を記録
+                        # この時点のバッファ末尾以降に来るプロンプトが
+                        # 結果出力後のプロンプト
+                        echo_end_pos = len(buf)
 
-                # エコー検出後、プロンプト "\n$ " を検出
-                if echo_seen and (b"\n$ " in buf or buf.endswith(b"\n$")):
-                    prompt_seen_at = time.time()
+                if expect_echo is None:
+                    # 初期プロンプト検出: 最初の \n$ で返す
+                    if b"\n$ " in buf or buf.endswith(b"\n$"):
+                        return buf.decode("utf-8", errors="replace")
+                elif echo_seen:
+                    # エコー検出後: echo_end_pos 以降に新しいプロンプトが
+                    # 現れたら結果出力完了と判断する
+                    after_echo = buf[echo_end_pos:]
+                    if b"\n$ " in after_echo or after_echo.endswith(b"\n$"):
+                        return buf.decode("utf-8", errors="replace")
             else:
-                # プロンプト検出後、IDLE_AFTER_PROMPT 秒間追加データが
-                # 来なければ、MCU の応答が完了したと判断する。
-                # エコー直後のプロンプトの場合、すぐに結果データが続くため
-                # idle にはならない。
-                if prompt_seen_at and (time.time() - prompt_seen_at) >= IDLE_AFTER_PROMPT:
-                    return buf.decode("utf-8", errors="replace")
                 time.sleep(0.02)
         if buf:
             return buf.decode("utf-8", errors="replace")

@@ -125,10 +125,10 @@ def sync_uart(ser):
 def send_command(ser, cmd, timeout=15):
     """コマンドを送信し、結果出力完了を待つ
 
-    エコーバック検出後、プロンプト "\\n$ " を検出し、さらに短い idle
-    期間 (0.3s) を待って追加データが来ないことを確認して返す。
-    エコー直後のプロンプトではすぐに結果データが続くため idle に
-    ならず、結果出力後のプロンプトで初めて idle が成立する。
+    エコーバック検出後、2つ目のプロンプト "\\n$ " を待つ。
+    MCU はコマンド受理時にエコー + プロンプトを返し、処理完了後に
+    結果 + プロンプトを返す。エコー検出位置以降に新しいプロンプトが
+    現れたら結果出力完了と判断する。
     """
     drain_input(ser)
     ser.write((cmd + "\r\n").encode("utf-8"))
@@ -136,23 +136,22 @@ def send_command(ser, cmd, timeout=15):
 
     buf = b""
     echo_seen = False
-    prompt_seen_at = None
-    IDLE_AFTER_PROMPT = 0.3
+    echo_end_pos = 0
     start = time.time()
     while (time.time() - start) < timeout:
         n = ser.in_waiting
         if n > 0:
             buf += ser.read(n)
-            prompt_seen_at = None  # 新データでリセット
             if not echo_seen:
                 decoded = buf.decode("utf-8", errors="replace")
                 if cmd[:20] in decoded:
                     echo_seen = True
-            if echo_seen and (b"\n$ " in buf or buf.endswith(b"\n$")):
-                prompt_seen_at = time.time()
+                    echo_end_pos = len(buf)
+            if echo_seen:
+                after_echo = buf[echo_end_pos:]
+                if b"\n$ " in after_echo or after_echo.endswith(b"\n$"):
+                    return buf.decode("utf-8", errors="replace")
         else:
-            if prompt_seen_at and (time.time() - prompt_seen_at) >= IDLE_AFTER_PROMPT:
-                return buf.decode("utf-8", errors="replace")
             time.sleep(0.02)
     if buf:
         return buf.decode("utf-8", errors="replace")
@@ -178,11 +177,11 @@ def send_simple_value(ser, cmd, timeout=15):
             decoded = buf.decode("utf-8", errors="replace")
             if STORE_SUCCESS in decoded:
                 print(f"[OK] {STORE_SUCCESS}")
-                drain_input(ser, settle_time=0.5)
+                drain_input(ser, settle_time=1.0)
                 return True
             if STORE_FAIL in decoded:
                 print(f"[FAIL] {STORE_FAIL}")
-                drain_input(ser, settle_time=0.5)
+                drain_input(ser, settle_time=1.0)
                 return False
         else:
             time.sleep(0.05)
@@ -208,30 +207,39 @@ def send_pem_streaming(ser, cmd, pem_content, timeout=90):
     print(f"[SEND] {cmd}")
     print(f"[INFO] PEM size: {len(pem_content)} bytes")
 
+    # 前コマンドの残留応答を確実に排出
+    drain_input(ser, settle_time=1.0)
+
     # コマンド送信
-    ser.reset_input_buffer()
-    time.sleep(0.2)
     ser.write((cmd + "\r\n").encode("utf-8"))
     ser.flush()
 
     # MCU が PEM 受信モードに入るまで待つ。
-    # エコーバック（コマンド文字列）が返ってくるのを待ち、
-    # その後データが止まったら PEM 受信モードに入ったと判断する。
+    # コマンドのエコーバック + プロンプト "\n$ " が返るのを待つ。
+    # プロンプト検出後、MCU は次の入力として PEM データを待っている。
     echo_buf = b""
+    cmd_short = cmd[:20]
     echo_start = time.time()
+    prompt_detected = False
     while (time.time() - echo_start) < 5.0:
         if ser.in_waiting > 0:
             echo_buf += ser.read(ser.in_waiting)
-            time.sleep(0.1)
-        elif echo_buf:
-            # データが来て、その後止まった → MCU がPEM待ちに入った
-            time.sleep(0.3)
-            if ser.in_waiting == 0:
+            decoded = echo_buf.decode("utf-8", errors="replace")
+            # コマンドエコーとプロンプトの両方を確認
+            if cmd_short in decoded and ("\n$ " in decoded or decoded.endswith("\n$")):
+                prompt_detected = True
+                # プロンプト後の短い安定待ち
+                time.sleep(0.2)
+                # 追加データがあれば読み捨て
+                if ser.in_waiting > 0:
+                    echo_buf += ser.read(ser.in_waiting)
                 break
         else:
             time.sleep(0.05)
     if echo_buf:
         print(f"[INFO] Echo drained: {len(echo_buf)} bytes")
+    if not prompt_detected:
+        print(f"[WARN] Prompt not detected after command, proceeding anyway")
 
     # PEM 内容を正規化 (CRLF → LF)
     pem_normalized = pem_content.replace("\r\n", "\n")
