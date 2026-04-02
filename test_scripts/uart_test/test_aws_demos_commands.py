@@ -75,12 +75,17 @@ class CommandTester:
             self.ser.close()
             print(f"[INFO] Closed {self.port}")
 
-    def read_until_idle(self, timeout=None):
+    def read_until_idle(self, timeout=None, cmd_echo=None):
         """MCU の応答が止まるまで読む (read-until-prompt + idle fallback)
 
         COM6 (RL78/G1C) の MCU→PC 間欠受信障害により、長い応答（dataflash
         read 等）が断続的に到着する。idle 検出だけでは応答途中で切れるため、
         プロンプト "\\n$ " を応答完了の第一検出マーカーとする。
+
+        重要: 前コマンドの応答が遅延到着した場合、その中のプロンプトを
+        今回のコマンドの完了と誤認するリスクがある。cmd_echo が指定されて
+        いる場合、そのエコーバックを検出してから初めてプロンプトを
+        応答完了マーカーとして認識する。
 
         プロンプトが検出できない場合（COM6 障害でプロンプトが消失した場合）は
         idle_threshold 秒間データなしで応答完了と判断する（フォールバック）。
@@ -94,15 +99,20 @@ class CommandTester:
         buf = b""
         last_data_time = time.time()
         IDLE_THRESHOLD = 1.5
+        echo_found = cmd_echo is None  # cmd_echo 未指定なら即座にプロンプト検出有効
+        cmd_echo_bytes = cmd_echo.encode("utf-8") if cmd_echo else None
         start = time.time()
         while (time.time() - start) < timeout:
             n = self.ser.in_waiting
             if n > 0:
                 buf += self.ser.read(n)
                 last_data_time = time.time()
-                # プロンプト検出: MCU が応答を送り終え次のコマンド待ち状態
-                if b"\n$ " in buf or buf.endswith(b"\n$"):
-                    return buf.decode("utf-8", errors="replace")
+                if not echo_found and cmd_echo_bytes in buf:
+                    echo_found = True
+                # エコー検出後のみプロンプトを応答完了として認識
+                if echo_found:
+                    if b"\n$ " in buf or buf.endswith(b"\n$"):
+                        return buf.decode("utf-8", errors="replace")
             else:
                 if buf and (time.time() - last_data_time) >= IDLE_THRESHOLD:
                     return buf.decode("utf-8", errors="replace")
@@ -155,13 +165,14 @@ class CommandTester:
         print("[INFO] MCU synchronized.", flush=True)
 
     def send_command(self, cmd):
-        """コマンドを送信し、応答を取得する (read-until-idle)
+        """コマンドを送信し、応答を取得する (read-until-prompt)
 
-        送信前に drain で残留データをクリアし、
-        コマンド送信後は MCU の応答が止まるまで読み続ける。
+        送信前に drain で残留データをクリアし、コマンド送信後は
+        エコーバック検出 → プロンプト検出で応答完了を判定する。
 
-        COM6 の間欠受信障害では前コマンドの応答が遅延到着する場合がある。
-        drain settle_time を十分に取ることで応答ブリーディングを防止する。
+        COM6 の間欠受信障害では前コマンドの応答が遅延到着し、その中の
+        プロンプトを今回の応答完了と誤認するリスクがある。cmd_echo を
+        read_until_idle に渡すことで、エコー検出前のプロンプトを無視する。
 
         Args:
             cmd: コマンド文字列（改行なし）
@@ -173,7 +184,7 @@ class CommandTester:
         self.drain_input(settle_time=0.5)
         self.ser.write((cmd + "\r\n").encode("utf-8"))
         self.ser.flush()
-        return self.read_until_idle()
+        return self.read_until_idle(cmd_echo=cmd)
 
     def send_command_with_retry(self, cmd):
         """リトライ付きコマンド送信

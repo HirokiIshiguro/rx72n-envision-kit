@@ -120,7 +120,12 @@ def send_command(ser, cmd, timeout=15):
 
     COM6 (RL78/G1C) の MCU→PC 間欠受信障害により、長い応答（dataflash
     read 等）が断続的に到着する。idle 検出だけでは応答途中で切れるため、
-    プロンプト "\\n$ " を応答完了の第一検出マーカーとする。
+    コマンドのエコーバックを検出してからプロンプト "\\n$ " を
+    応答完了マーカーとする。
+
+    前コマンドの応答が遅延到着した場合、その中のプロンプトを今回の
+    コマンドの完了と誤認するリスクを防ぐため、エコー検出前のプロンプトは
+    無視する。
 
     プロンプトが検出できない場合（COM6 障害でプロンプトが消失した場合）は
     idle_threshold 秒間データなしで応答完了と判断する（フォールバック）。
@@ -132,15 +137,20 @@ def send_command(ser, cmd, timeout=15):
     buf = b""
     last_data_time = time.time()
     IDLE_THRESHOLD = 1.5  # フォールバック: 1.5秒間データが来なければ完了
+    echo_found = False
+    cmd_bytes = cmd.encode("utf-8")
     start = time.time()
     while (time.time() - start) < timeout:
         n = ser.in_waiting
         if n > 0:
             buf += ser.read(n)
             last_data_time = time.time()
-            # プロンプト検出: MCU が応答を送り終え次のコマンド待ち状態
-            if b"\n$ " in buf or buf.endswith(b"\n$"):
-                return buf.decode("utf-8", errors="replace")
+            if not echo_found and cmd_bytes in buf:
+                echo_found = True
+            # エコー検出後のみプロンプトを応答完了として認識
+            if echo_found:
+                if b"\n$ " in buf or buf.endswith(b"\n$"):
+                    return buf.decode("utf-8", errors="replace")
         else:
             if buf and (time.time() - last_data_time) >= IDLE_THRESHOLD:
                 return buf.decode("utf-8", errors="replace")
@@ -528,19 +538,45 @@ def main():
         # 最終判定は dataflash read の読み戻しで行う。
         #
         # PEM ストリーミング後、MCU は遅延した STORE_SUCCESS やエコーの
-        # 残りを COM6 経由で断続的に送信し続ける。sync_uart() の 3s drain
-        # + version コマンドだけでは不十分なケースがあったため、
-        # 二段構えのドレインで確実に枯渇させる:
-        #   1. 5秒の長時間ドレイン（PEM echo + STORE_SUCCESS の遅延分）
-        #   2. sync_uart()（version コマンドで MCU 状態を確定）
-        #   3. dataflash read は idle 3.0s で応答完了を判定
+        # 残りを COM6 経由で断続的に送信し続ける。send_command() の
+        # prompt 検出を使うと、残留プロンプトを dataflash read の応答完了と
+        # 誤認する。そのため、ここでは独自の読み取りロジックを使う:
+        #   1. 10秒の超長ドレイン（遅延 STORE_SUCCESS + PEM echo を枯渇）
+        #   2. dataflash read を送信
+        #   3. "dataflash read" エコーバック検出を待つ
+        #   4. エコー検出後のデータを、プロンプト "\n$ " まで読む
         print()
         print("[VERIFY] Reading dataflash contents for verification")
-        print("[INFO] Draining residual PEM/STORE_SUCCESS responses...", flush=True)
-        drain_input(ser, settle_time=5.0)
-        sync_uart(ser)
+        print("[INFO] Draining residual PEM/STORE_SUCCESS responses (10s)...", flush=True)
+        drain_input(ser, settle_time=10.0)
 
-        response = send_command(ser, "dataflash read", timeout=60)
+        # dataflash read を送信
+        ser.write(b"dataflash read\r\n")
+        ser.flush()
+
+        # エコーバック "dataflash read" を待ちつつ、プロンプトで終了を判定
+        buf = b""
+        echo_found = False
+        df_start = time.time()
+        while (time.time() - df_start) < 60:
+            n = ser.in_waiting
+            if n > 0:
+                buf += ser.read(n)
+                if not echo_found and b"dataflash read" in buf:
+                    echo_found = True
+                # エコー検出後にプロンプトが来たら応答完了
+                if echo_found and b"\n$ " in buf[buf.find(b"dataflash read"):]:
+                    break
+            else:
+                time.sleep(0.05)
+        response = buf.decode("utf-8", errors="replace") if buf else None
+        if response:
+            # エコーバック行より後ろだけを応答として扱う
+            idx = response.find("dataflash read")
+            if idx >= 0:
+                nl = response.find("\n", idx)
+                if nl >= 0:
+                    response = response[nl + 1:]
         df_content = ""
         if response:
             masked_response = mask_sensitive_output(response)
