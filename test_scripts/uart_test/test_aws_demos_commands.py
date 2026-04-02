@@ -102,6 +102,21 @@ class CommandTester:
             return buf.decode("utf-8", errors="replace")
         return None
 
+    def drain_input(self, settle_time=0.3):
+        """受信バッファを完全にドレインする
+
+        MCU がまだデータを送信中の場合、reset_input_buffer() だけでは
+        不十分。一定時間データが来なくなるまで読み捨てる。
+        """
+        self.ser.reset_input_buffer()
+        deadline = time.time() + settle_time
+        while time.time() < deadline:
+            if self.ser.in_waiting > 0:
+                self.ser.read(self.ser.in_waiting)
+                deadline = time.time() + settle_time  # データが来たらリセット
+            else:
+                time.sleep(0.05)
+
     def send_command(self, cmd):
         """コマンドを送信し、応答を取得する
 
@@ -112,9 +127,8 @@ class CommandTester:
             str: 応答文字列（エコーバック・プロンプト含む）
             None: 受信失敗
         """
-        # 送信前にバッファをドレイン
-        self.ser.reset_input_buffer()
-        time.sleep(0.1)
+        # 送信前にバッファを完全にドレイン
+        self.drain_input()
 
         # コマンド送信（\r\n で行末）
         self.ser.write((cmd + "\r\n").encode("utf-8"))

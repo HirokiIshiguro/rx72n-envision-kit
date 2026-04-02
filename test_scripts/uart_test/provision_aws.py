@@ -75,10 +75,21 @@ def wait_for_prompt(ser, timeout=30):
     return False
 
 
+def drain_input(ser, settle_time=0.3):
+    """受信バッファを完全にドレインする"""
+    ser.reset_input_buffer()
+    deadline = time.time() + settle_time
+    while time.time() < deadline:
+        if ser.in_waiting > 0:
+            ser.read(ser.in_waiting)
+            deadline = time.time() + settle_time
+        else:
+            time.sleep(0.05)
+
+
 def send_command(ser, cmd, timeout=10):
     """コマンドを送信し応答を取得する"""
-    ser.reset_input_buffer()
-    time.sleep(0.1)
+    drain_input(ser)
     ser.write((cmd + "\r\n").encode("utf-8"))
     ser.flush()
 
@@ -118,22 +129,26 @@ def send_simple_value(ser, cmd, timeout=10):
         return STORE_SUCCESS in response
 
 
-def send_pem_streaming(ser, cmd, pem_content, timeout=30):
+def send_pem_streaming(ser, cmd, pem_content, timeout=45):
     """PEM ストリーミング入力でデータフラッシュに書き込む
 
     1. コマンドを送信 (改行付き)
-    2. PEM 内容を 1 文字ずつ送信 (LF のみ)
+    2. PEM 内容を行単位で送信 (LF のみ、行間にディレイ)
     3. 成功メッセージを待つ
+
+    MCU 側の serial_terminal_task は xQueueReceive で 1 文字ずつ受信し
+    sci_buffer (2048B) に蓄積する。終端マーカー検出後に dataflash へ書き込む。
+    送信速度が速すぎると SCI キューが溢れるため、行単位でペーシングする。
     """
     print(f"[SEND] {cmd}")
     print(f"[INFO] PEM size: {len(pem_content)} bytes")
 
     # コマンド送信
     ser.reset_input_buffer()
-    time.sleep(0.1)
+    time.sleep(0.2)
     ser.write((cmd + "\r\n").encode("utf-8"))
     ser.flush()
-    time.sleep(0.5)  # コマンド処理待ち
+    time.sleep(0.8)  # コマンド処理待ち（MCU が PEM 受信モードに入るまで）
 
     # エコーバックを読み捨て
     if ser.in_waiting > 0:
@@ -144,20 +159,28 @@ def send_pem_streaming(ser, cmd, pem_content, timeout=30):
     if not pem_normalized.endswith("\n"):
         pem_normalized += "\n"
 
-    # 1 文字ずつ送信
+    # 行単位で送信（MCU の SCI キュー溢れ防止）
+    lines = pem_normalized.split("\n")
     sent = 0
-    for ch in pem_normalized:
-        ser.write(ch.encode("utf-8"))
+    for i, line in enumerate(lines):
+        # 最終行が空の場合もLFは送る（終端マーカーに必要）
+        data = line + "\n" if i < len(lines) - 1 else line
+        if not data:
+            continue
+        ser.write(data.encode("utf-8"))
         ser.flush()
-        sent += 1
+        sent += len(data)
         # エコーバック読み捨て（バッファ溢れ防止）
         if ser.in_waiting > 0:
             ser.read(ser.in_waiting)
-        # 改行ごとに小さなディレイ
-        if ch == "\n":
-            time.sleep(0.01)
+        # 行間ディレイ: MCU が文字を処理する時間を確保
+        time.sleep(0.05)
 
     print(f"[INFO] Sent {sent} characters")
+
+    # MCU が dataflash 書き込みを完了するまで待つ
+    # 終端マーカー検出 → dataflash write は数百ms かかる
+    time.sleep(1.0)
 
     # 成功/失敗メッセージを待つ
     buf = b""
@@ -174,7 +197,7 @@ def send_pem_streaming(ser, cmd, pem_content, timeout=30):
                 print(f"[FAIL] {STORE_FAIL}")
                 return False
         else:
-            time.sleep(0.05)
+            time.sleep(0.1)
 
     decoded = buf.decode("utf-8", errors="replace") if buf else ""
     print(f"[FAIL] Timeout waiting for store result")
@@ -360,12 +383,11 @@ def main():
 
         # プロンプト復帰待ち
         time.sleep(0.5)
-        ser.reset_input_buffer()
+        drain_input(ser)
         ser.write(b"\r\n")
         ser.flush()
-        time.sleep(0.5)
-        if ser.in_waiting > 0:
-            ser.read(ser.in_waiting)
+        time.sleep(0.3)
+        drain_input(ser)
 
         print()
         print(f"[STEP 2/{total_steps}] Setting IoT Thing name")
@@ -392,12 +414,11 @@ def main():
             step_index += 1
 
             time.sleep(0.5)
-            ser.reset_input_buffer()
+            drain_input(ser)
             ser.write(b"\r\n")
             ser.flush()
-            time.sleep(0.5)
-            if ser.in_waiting > 0:
-                ser.read(ser.in_waiting)
+            time.sleep(0.3)
+            drain_input(ser)
 
         print()
         print(f"[STEP {step_index}/{total_steps}] Writing client certificate")
@@ -407,12 +428,11 @@ def main():
         step_index += 1
 
         time.sleep(1.0)
-        ser.reset_input_buffer()
+        drain_input(ser)
         ser.write(b"\r\n")
         ser.flush()
-        time.sleep(0.5)
-        if ser.in_waiting > 0:
-            ser.read(ser.in_waiting)
+        time.sleep(0.3)
+        drain_input(ser)
 
         print()
         print(f"[STEP {step_index}/{total_steps}] Writing client private key")
@@ -442,12 +462,11 @@ def main():
         print()
         print("[VERIFY] Reading dataflash contents")
         time.sleep(1.0)
-        ser.reset_input_buffer()
+        drain_input(ser)
         ser.write(b"\r\n")
         ser.flush()
-        time.sleep(0.5)
-        if ser.in_waiting > 0:
-            ser.read(ser.in_waiting)
+        time.sleep(0.3)
+        drain_input(ser)
 
         response = send_command(ser, "dataflash read", timeout=10)
         if response:
