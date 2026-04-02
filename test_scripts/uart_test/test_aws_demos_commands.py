@@ -75,32 +75,54 @@ class CommandTester:
             self.ser.close()
             print(f"[INFO] Closed {self.port}")
 
-    def read_until_prompt(self, timeout=None):
-        """プロンプト '\\n$ ' が来るまで読み取る
+    def read_until_prompt(self, timeout=None, expect_echo=None):
+        """コマンド応答の完了（2つ目のプロンプト）を待つ
 
-        MCU のプロンプトシーケンス:
-          "RX72N Envision Kit\\r\\n$ "
-        末尾の "\\n$ " (改行 + ドル + スペース) をバイトパターンとして
-        検出する。base64 中の '$' やエコーバック行との誤検出を防ぐ。
+        MCU のコマンド応答シーケンス:
+          1. エコーバック: "command\\r\\n$ "  ← 1つ目のプロンプト（コマンド受理）
+          2. 処理結果:    "result...\\r\\nRX72N Envision Kit\\r\\n$ "  ← 2つ目のプロンプト
+
+        expect_echo が指定された場合、そのテキストを含むエコーバック行を
+        検出してから、次の \\n$ を結果プロンプトとして待つ。
+        expect_echo が None の場合は従来通り最初の \\n$ で返す。
 
         Returns:
-            str: プロンプトまでの受信データ（プロンプト含む）
+            str: プロンプトまでの受信データ
             None: タイムアウト
         """
         if timeout is None:
             timeout = self.timeout
         buf = b""
+        echo_seen = (expect_echo is None)  # echo 不要なら最初から True
         start = time.time()
         while (time.time() - start) < timeout:
             n = self.ser.in_waiting
             if n > 0:
                 buf += self.ser.read(n)
-                # バイトパターンで検出: \n$ (改行+ドル+スペース)
-                if b"\n$ " in buf or buf.endswith(b"\n$ ") or buf.endswith(b"\n$"):
-                    return buf.decode("utf-8", errors="replace")
+                decoded = buf.decode("utf-8", errors="replace")
+                # エコーバック検出
+                if not echo_seen and expect_echo in decoded:
+                    echo_seen = True
+                    # エコーバック直後の \n$ は 1 つ目のプロンプト。
+                    # ここから先の \n$ を待つため、現在位置を記録
+                    continue
+                # エコーバックを見た後の \n$ が結果プロンプト
+                if echo_seen and b"\n$ " in buf:
+                    # 2つ目のプロンプトが含まれているか確認
+                    # expect_echo が指定されている場合、エコー後の2つ目を探す
+                    if expect_echo is not None:
+                        # エコー行以降で \n$ を探す
+                        echo_pos = decoded.find(expect_echo)
+                        after_echo = decoded[echo_pos + len(expect_echo):]
+                        # after_echo 内で \n$ が2回出現 = エコー直後 + 結果
+                        # after_echo 内で \n$ が1回以上出現し、最後が \n$ で終わる
+                        prompt_count = after_echo.count("\n$ ")
+                        if prompt_count >= 2 or (prompt_count >= 1 and after_echo.rstrip().endswith("$")):
+                            return decoded
+                    else:
+                        return decoded
             else:
                 time.sleep(0.05)
-        # タイムアウト — 読めた分を返す
         if buf:
             return buf.decode("utf-8", errors="replace")
         return None
@@ -126,6 +148,11 @@ class CommandTester:
     def send_command(self, cmd):
         """コマンドを送信し、応答を取得する
 
+        MCU はコマンド受信後:
+        1. エコーバック + プロンプト（コマンド受理の合図）
+        2. 処理結果 + プロンプト（結果出力完了の合図）
+        を送信する。2つ目のプロンプトまで待つことで、応答を完全に取得する。
+
         Args:
             cmd: コマンド文字列（改行なし）
 
@@ -140,8 +167,8 @@ class CommandTester:
         self.ser.write((cmd + "\r\n").encode("utf-8"))
         self.ser.flush()
 
-        # 応答読み取り
-        response = self.read_until_prompt()
+        # エコーバック後の2つ目のプロンプトまで待つ
+        response = self.read_until_prompt(expect_echo=cmd)
         return response
 
     def send_command_with_retry(self, cmd):

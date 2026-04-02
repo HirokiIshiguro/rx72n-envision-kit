@@ -93,20 +93,38 @@ def drain_input(ser, settle_time=1.0):
 
 
 def send_command(ser, cmd, timeout=15):
-    """コマンドを送信し応答を取得する"""
+    """コマンドを送信し、エコーバック後の結果プロンプトまで待つ
+
+    MCU はコマンド受信後:
+    1. エコーバック + プロンプト（コマンド受理）
+    2. 処理結果 + プロンプト（結果出力完了）
+    を送信する。送信コマンドのエコーを検出した後、2つ目のプロンプトを待つ。
+    """
     drain_input(ser)
     ser.write((cmd + "\r\n").encode("utf-8"))
     ser.flush()
 
     buf = b""
+    echo_seen = False
+    prompt_after_echo = 0
     start = time.time()
     while (time.time() - start) < timeout:
         n = ser.in_waiting
         if n > 0:
             buf += ser.read(n)
-            # "\n$ " パターンでプロンプト検出
-            if b"\n$ " in buf or buf.endswith(b"\n$"):
-                return buf.decode("utf-8", errors="replace")
+            decoded = buf.decode("utf-8", errors="replace")
+            if not echo_seen and cmd[:20] in decoded:
+                echo_seen = True
+            if echo_seen:
+                # エコー以降の \n$ 出現回数を数える
+                echo_pos = decoded.find(cmd[:20])
+                after = decoded[echo_pos:]
+                count = after.count("\n$ ")
+                # 末尾が \n$ で終わる場合もカウント
+                if after.rstrip().endswith("$") and "\n" in after[-5:]:
+                    count += 1
+                if count >= 2:
+                    return decoded
         else:
             time.sleep(0.05)
     if buf:
