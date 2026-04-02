@@ -115,6 +115,30 @@ def upload_rsu_to_sdcard(ser, rsu_path, filename="userprog.rsu"):
     file_size = os.path.getsize(rsu_path)
     print(f"[UPLOAD] Transferring {filename} ({file_size} bytes, ~{file_size/1024:.0f} KB)")
 
+    # SD カード ready 確認 (sdcard_task の初期化完了を待つ)
+    print("[UPLOAD] Waiting for SD card ready (sdcard list)...")
+    for attempt in range(10):
+        ser.reset_input_buffer()
+        time.sleep(0.2)
+        ser.write(b"sdcard list\r\n")
+        resp = wait_for_marker(ser, "$", timeout=5)
+        if resp and (".rsu" in resp.lower() or ".mot" in resp.lower()
+                     or ".zip" in resp.lower() or ".htm" in resp.lower()
+                     or "sdcard list" in resp):
+            print(f"[UPLOAD] SD card ready (attempt {attempt + 1})")
+            break
+        print(f"[UPLOAD] SD card not ready yet (attempt {attempt + 1})")
+        time.sleep(3)
+    else:
+        print("[WARN] SD card readiness check inconclusive, proceeding anyway")
+
+    # sdcard list のレスポンスを完全にドレイン
+    ser.reset_input_buffer()
+    time.sleep(1)
+    ser.read(ser.in_waiting or 1)
+    ser.reset_input_buffer()
+    time.sleep(0.3)
+
     # sdcard write コマンド送信
     cmd = f"sdcard write {filename} {file_size}"
     ser.reset_input_buffer()
@@ -123,7 +147,7 @@ def upload_rsu_to_sdcard(ser, rsu_path, filename="userprog.rsu"):
     ser.flush()
 
     # READY 待ち (コマンドエコー + READY <chunk_size>)
-    response = wait_for_marker(ser, "READY", timeout=10)
+    response = wait_for_marker(ser, "READY", timeout=30)
     if response is None:
         print("[FAIL] Timeout waiting for READY response")
         return False
@@ -499,7 +523,10 @@ def main():
         sys.exit(1)
 
     rsu_size = os.path.getsize(args.rsu)
-    rsu_filename = os.path.basename(args.rsu)
+    # SD カードの FAT ファイルシステムは 8.3 形式のみ対応 (R_TFAT は LFN 非サポート)。
+    # CI では userprog_rx72n-01.rsu のような長いファイル名が渡されるため、
+    # SD カード上のファイル名は常に userprog.rsu (8.3 準拠) を使用する。
+    rsu_filename = "userprog.rsu"
 
     print("=" * 60)
     print("[INFO] SD Card Firmware Update Integration Test")
