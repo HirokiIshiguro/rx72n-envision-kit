@@ -96,21 +96,10 @@ def sync_uart(ser):
     """MCU との同期を確立する
 
     wait_for_prompt() のポーリングで MCU に送った複数の \\r\\n に対する
-    応答をすべてドレインし、2段階 sync で確実に同期する。
-
-    Phase 1: ドレイン + ダミー version 送信で残留応答を全て流す
-    Phase 2: 再ドレイン + 2回目の version 送信で正しく同期を確認
+    応答をすべてドレインし、version コマンドで同期を確認する。
     """
-    import re
     print("[INFO] Synchronizing with MCU...", flush=True)
-
-    # Phase 1: 残留応答を全て排出
     drain_input(ser, settle_time=3.0)
-    ser.write(b"version\r\n")
-    ser.flush()
-    drain_input(ser, settle_time=3.0)
-
-    # Phase 2: クリーンな状態で sync
     ser.write(b"version\r\n")
     ser.flush()
     buf = b""
@@ -118,12 +107,11 @@ def sync_uart(ser):
     while (time.time() - start) < 10:
         if ser.in_waiting > 0:
             buf += ser.read(ser.in_waiting)
-            decoded = buf.decode("utf-8", errors="replace")
-            if re.search(r'v\d+\.\d+', decoded) and "RX72N Envision Kit" in decoded:
+            if b"RX72N Envision Kit" in buf and b"version" in buf:
                 break
         else:
             time.sleep(0.05)
-    drain_input(ser, settle_time=2.0)
+    drain_input(ser, settle_time=1.0)
     print("[INFO] MCU synchronized.", flush=True)
 
 
@@ -195,14 +183,16 @@ def send_pem_streaming(ser, cmd, pem_content, timeout=90):
     print(f"[SEND] {cmd}")
     print(f"[INFO] PEM size: {len(pem_content)} bytes")
 
-    # コマンド送信前に完全ドレイン（前のコマンドの残留応答を排出）
-    drain_input(ser, settle_time=2.0)
+    # コマンド送信
+    ser.reset_input_buffer()
+    time.sleep(0.2)
     ser.write((cmd + "\r\n").encode("utf-8"))
     ser.flush()
-    time.sleep(1.0)  # コマンド処理待ち（MCU が PEM 受信モードに入るまで）
+    time.sleep(0.8)  # コマンド処理待ち（MCU が PEM 受信モードに入るまで）
 
     # エコーバックを読み捨て
-    drain_input(ser, settle_time=0.5)
+    if ser.in_waiting > 0:
+        ser.read(ser.in_waiting)
 
     # PEM 内容を正規化 (CRLF → LF)
     pem_normalized = pem_content.replace("\r\n", "\n")

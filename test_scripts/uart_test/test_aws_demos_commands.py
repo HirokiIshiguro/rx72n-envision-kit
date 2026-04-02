@@ -143,42 +143,29 @@ class CommandTester:
         """MCU との同期を確立する
 
         wait_for_prompt() のポーリングで MCU に複数の \\r\\n を送信する
-        ため、MCU は各々に対して応答を返す。2段階 sync で確実に同期する:
-
-        Phase 1: ドレイン + ダミー version 送信で残留応答を全て流す
-        Phase 2: 再ドレイン + 2回目の version 送信で正しく応答を確認
-
-        2回目の version は残留が全てなくなった状態で送信されるため、
-        応答中の "v" + 数字で始まるバージョン文字列を確実に検出できる。
+        ため、MCU は各々に対して応答を返す。全応答が送信し終わるまで
+        3秒ドレインし、その後 "version" コマンドを sync マーカーとして
+        送信。version 応答の完了（バナー検出）を確認することで、
+        MCU がキューをすべて処理済みであることを保証する。
         """
         print("[INFO] Synchronizing with MCU...", flush=True)
-
-        # Phase 1: 残留応答を全て排出
+        # MCU がポーリング応答を全て送り終わるまで待つ
         self.drain_input(settle_time=3.0)
-        # ダミー version 送信（残留応答が混じっていても OK）
+        # sync コマンド送信
         self.ser.write(b"version\r\n")
         self.ser.flush()
-        # ダミー応答 + 残留を全て読み捨て
-        self.drain_input(settle_time=3.0)
-
-        # Phase 2: クリーンな状態で sync
-        self.ser.write(b"version\r\n")
-        self.ser.flush()
-        # version 応答として "v" + 数字のバージョン文字列を待つ
+        # version 応答 + バナーを待つ
         buf = b""
         start = time.time()
         while (time.time() - start) < 10:
             if self.ser.in_waiting > 0:
                 buf += self.ser.read(self.ser.in_waiting)
-                decoded = buf.decode("utf-8", errors="replace")
-                # バージョン文字列 (例: v2.0.2) とバナーの両方を確認
-                import re
-                if re.search(r'v\d+\.\d+', decoded) and "RX72N Envision Kit" in decoded:
+                if b"RX72N Envision Kit" in buf and b"version" in buf:
                     break
             else:
                 time.sleep(0.05)
-        # 最終ドレイン
-        self.drain_input(settle_time=2.0)
+        # 追加ドレイン
+        self.drain_input(settle_time=1.0)
         print("[INFO] MCU synchronized.", flush=True)
 
     def send_command(self, cmd):
