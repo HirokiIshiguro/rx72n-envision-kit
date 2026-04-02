@@ -20,6 +20,7 @@ def main():
     p.add_argument("--codesigner-cert", default=None,
                     help="Path to code signer certificate")
     p.add_argument("--command-port", default=os.environ.get("COMMAND_PORT"))
+    p.add_argument("--mac-address", default=os.environ.get("MAC_ADDR"))
     p.add_argument("--project-dir", default=os.environ.get("CI_PROJECT_DIR", "."))
     args = p.parse_args()
 
@@ -37,6 +38,8 @@ def main():
     if args.command_port:
         cmd_port = resolve_port(args.command_port)
         cmd += ["--port", cmd_port]
+    if args.mac_address:
+        cmd += ["--mac-address", args.mac_address]
 
     print(f"  > {' '.join(cmd)}", flush=True)
     result = subprocess.run(cmd)
