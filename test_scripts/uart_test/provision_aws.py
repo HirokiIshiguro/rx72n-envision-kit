@@ -188,11 +188,25 @@ def send_pem_streaming(ser, cmd, pem_content, timeout=90):
     time.sleep(0.2)
     ser.write((cmd + "\r\n").encode("utf-8"))
     ser.flush()
-    time.sleep(0.8)  # コマンド処理待ち（MCU が PEM 受信モードに入るまで）
 
-    # エコーバックを読み捨て
-    if ser.in_waiting > 0:
-        ser.read(ser.in_waiting)
+    # MCU が PEM 受信モードに入るまで待つ。
+    # エコーバック（コマンド文字列）が返ってくるのを待ち、
+    # その後データが止まったら PEM 受信モードに入ったと判断する。
+    echo_buf = b""
+    echo_start = time.time()
+    while (time.time() - echo_start) < 5.0:
+        if ser.in_waiting > 0:
+            echo_buf += ser.read(ser.in_waiting)
+            time.sleep(0.1)
+        elif echo_buf:
+            # データが来て、その後止まった → MCU がPEM待ちに入った
+            time.sleep(0.3)
+            if ser.in_waiting == 0:
+                break
+        else:
+            time.sleep(0.05)
+    if echo_buf:
+        print(f"[INFO] Echo drained: {len(echo_buf)} bytes")
 
     # PEM 内容を正規化 (CRLF → LF)
     pem_normalized = pem_content.replace("\r\n", "\n")
