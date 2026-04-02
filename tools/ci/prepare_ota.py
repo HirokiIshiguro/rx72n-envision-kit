@@ -55,6 +55,7 @@ def main():
     p.add_argument("--command-baud", default=os.environ.get("COMMAND_BAUD_RATE", "115200"))
     p.add_argument("--device-id", default=os.environ.get("DEVICE_ID", "rx72n-01"))
     p.add_argument("--codesigner-cert", default=None)
+    p.add_argument("--mac-address", default=os.environ.get("MAC_ADDR"))
     p.add_argument("--stop-after", default=os.environ.get("PREPARE_OTA_STOP_AFTER", ""),
                     choices=["", "flash", "uart", "provision"])
     p.add_argument("--project-dir", default=os.environ.get("CI_PROJECT_DIR", "."))
@@ -117,6 +118,8 @@ def main():
     ]
     if args.codesigner_cert:
         provision_cmd += ["--codesigner-cert", args.codesigner_cert]
+    if args.mac_address:
+        provision_cmd += ["--mac-address", args.mac_address]
     run(provision_cmd)
 
     if args.stop_after == "provision":

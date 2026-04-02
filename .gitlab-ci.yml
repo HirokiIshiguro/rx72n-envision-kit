@@ -43,6 +43,9 @@ variables:
   COMMAND_BAUD_RATE: "115200"
   # デバイス ID（device_config.json で定義、複数デバイス時に切り替え）
   DEVICE_ID: "rx72n-01"
+  # デバイス固有 MAC アドレス（dataflash に書き込み、Ethernet PHY の MAC フィルタに使用）
+  # 同一ネットワーク上の複数デバイスで MAC が衝突するとパケットロス・MQTT 切断の原因になる
+  MAC_ADDR: "76:90:50:00:79:01"
   # rfp-cli のツール指定。PC 直結では e2l:<S/N> で対象 E2 Lite を明示指定。
   # 複数 E2 Lite が接続されている場合、generic "e2l" だと誤ったボードに書き込む。
   RFP_TOOL: "e2l:OBE110008"
@@ -581,6 +584,7 @@ provision_aws_credentials:
       --device-id "$DEVICE_ID"
       --codesigner-cert "$CI_PROJECT_DIR/sample_keys/secp256r1.crt"
       --command-port "$COMMAND_PORT"
+      --mac-address "$MAC_ADDR"
       --project-dir "$CI_PROJECT_DIR"
 
 health_aws_demos_startup:
@@ -895,6 +899,7 @@ prepare_ota:
       --command-baud "$COMMAND_BAUD_RATE"
       --device-id "$DEVICE_ID"
       --codesigner-cert "$CI_PROJECT_DIR/sample_keys/secp256r1.crt"
+      --mac-address "$MAC_ADDR"
       --stop-after "$PREPARE_OTA_STOP_AFTER"
       --project-dir "$CI_PROJECT_DIR"
   artifacts:
