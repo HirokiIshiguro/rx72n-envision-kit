@@ -553,8 +553,8 @@ def main():
         #   4. エコー検出後のデータを、プロンプト "\n$ " まで読む
         print()
         print("[VERIFY] Reading dataflash contents for verification")
-        print("[INFO] Draining residual PEM/STORE_SUCCESS responses (10s)...", flush=True)
-        drain_input(ser, settle_time=10.0)
+        print("[INFO] Draining residual PEM/STORE_SUCCESS responses...", flush=True)
+        drain_input(ser, settle_time=3.0)
 
         # dataflash read を送信
         ser.write(b"dataflash read\r\n")
