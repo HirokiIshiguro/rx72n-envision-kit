@@ -76,51 +76,48 @@ class CommandTester:
             print(f"[INFO] Closed {self.port}")
 
     def read_until_prompt(self, timeout=None, expect_echo=None):
-        """コマンド応答の完了（2つ目のプロンプト）を待つ
+        """コマンド応答の完了を待つ
 
         MCU のコマンド応答シーケンス:
-          1. エコーバック: "command\\r\\n$ "  ← 1つ目のプロンプト（コマンド受理）
-          2. 処理結果:    "result...\\r\\nRX72N Envision Kit\\r\\n$ "  ← 2つ目のプロンプト
+          1. エコーバック: "command\\r\\n$ "  ← 1つ目のプロンプト（受理）
+          2. 処理結果:    "result...\\r\\nRX72N Envision Kit\\r\\n$ "  ← 2つ目
 
-        expect_echo が指定された場合、そのテキストを含むエコーバック行を
-        検出してから、次の \\n$ を結果プロンプトとして待つ。
-        expect_echo が None の場合は従来通り最初の \\n$ で返す。
+        expect_echo が指定された場合:
+          エコーバック検出後、"RX72N Envision Kit" バナーの出現を待つ。
+          バナーは結果出力後にのみ送信されるため、確実に2つ目のプロンプト。
+        expect_echo が None の場合:
+          最初の \\n$ で返す（初期プロンプト検出等）。
 
         Returns:
-            str: プロンプトまでの受信データ
+            str: 受信データ全体
             None: タイムアウト
         """
         if timeout is None:
             timeout = self.timeout
         buf = b""
-        echo_seen = (expect_echo is None)  # echo 不要なら最初から True
+        echo_seen = (expect_echo is None)
         start = time.time()
         while (time.time() - start) < timeout:
             n = self.ser.in_waiting
             if n > 0:
                 buf += self.ser.read(n)
                 decoded = buf.decode("utf-8", errors="replace")
-                # エコーバック検出
+
                 if not echo_seen and expect_echo in decoded:
                     echo_seen = True
-                    # エコーバック直後の \n$ は 1 つ目のプロンプト。
-                    # ここから先の \n$ を待つため、現在位置を記録
-                    continue
-                # エコーバックを見た後の \n$ が結果プロンプト
-                if echo_seen and b"\n$ " in buf:
-                    # 2つ目のプロンプトが含まれているか確認
-                    # expect_echo が指定されている場合、エコー後の2つ目を探す
+
+                if echo_seen:
                     if expect_echo is not None:
-                        # エコー行以降で \n$ を探す
+                        # エコーバック後に "RX72N Envision Kit" バナーが
+                        # 出現したら結果出力完了。バナーはコマンド結果の
+                        # 後にのみ送信される（エコーバック直後には出ない）
                         echo_pos = decoded.find(expect_echo)
-                        after_echo = decoded[echo_pos + len(expect_echo):]
-                        # after_echo 内で \n$ が2回出現 = エコー直後 + 結果
-                        # after_echo 内で \n$ が1回以上出現し、最後が \n$ で終わる
-                        prompt_count = after_echo.count("\n$ ")
-                        if prompt_count >= 2 or (prompt_count >= 1 and after_echo.rstrip().endswith("$")):
+                        after = decoded[echo_pos + len(expect_echo):]
+                        if "RX72N Envision Kit" in after:
                             return decoded
                     else:
-                        return decoded
+                        if b"\n$ " in buf or buf.endswith(b"\n$"):
+                            return decoded
             else:
                 time.sleep(0.05)
         if buf:
