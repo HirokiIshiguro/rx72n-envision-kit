@@ -484,12 +484,6 @@ def main():
         )
 
         tester.run_test(
-            "dataflash_read", "dataflash read",
-            check_dataflash_read,
-            "全設定データ読み出し"
-        )
-
-        tester.run_test(
             "timezone", "timezone UTC+09:00",
             check_timezone,
             "タイムゾーン設定 (JST)"
@@ -505,6 +499,14 @@ def main():
             "touch_coord", "touch 0 0",
             check_touch_coord,
             "疑似タッチイベント (座標指定 0,0)"
+        )
+
+        # dataflash read は数 KB の PEM データを出力し、COM6 の間欠送信で
+        # 後続コマンドに残留データが流入するため、最後に実行する
+        tester.run_test(
+            "dataflash_read", "dataflash read",
+            check_dataflash_read,
+            "全設定データ読み出し"
         )
 
         if not args.skip_erase:
