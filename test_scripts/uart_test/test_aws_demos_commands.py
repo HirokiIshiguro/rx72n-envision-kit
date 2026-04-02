@@ -78,6 +78,10 @@ class CommandTester:
     def read_until_prompt(self, timeout=None):
         """プロンプト '$ ' が来るまで読み取る
 
+        MCU のプロンプトパターン: "RX72N Envision Kit\\r\\n$ "
+        エコーバック行やバナー中の "$" を誤検出しないよう、
+        受信バッファの末尾が "\\n$ " で終わることを確認する。
+
         プロンプト検出後、MCU がまだ送信中のデータを回収するため
         短時間の追加読み取りを行う。
 
@@ -95,22 +99,33 @@ class CommandTester:
             if n > 0:
                 chunk = self.ser.read(n)
                 buf += chunk
-                # プロンプト検出（"$ " で終わる）
                 decoded = buf.decode("utf-8", errors="replace")
-                if decoded.rstrip().endswith("$") or "$ " in decoded.split("\n")[-1]:
-                    prompt_found = True
-                    break
+                # プロンプト検出: 末尾が "\n$ " または単独の "$ " で終わる
+                # ただしエコーバック行（送信コマンドを含む行）は除外
+                tail = decoded[-20:] if len(decoded) > 20 else decoded
+                if tail.rstrip().endswith("$"):
+                    # "\n$" パターンで終わっているか確認
+                    # （エコーバック途中の "$" と区別）
+                    stripped = decoded.rstrip()
+                    last_newline = stripped.rfind("\n")
+                    if last_newline >= 0:
+                        last_line = stripped[last_newline + 1:].strip()
+                        if last_line == "$" or last_line == "RX72N Envision Kit":
+                            prompt_found = True
+                            break
+                    elif stripped == "$":
+                        prompt_found = True
+                        break
             else:
                 time.sleep(0.05)
 
         if prompt_found:
             # プロンプト検出後、MCU がまだ送信中のデータを回収する
-            # (長い応答の末尾がプロンプトの直前に来る場合がある)
-            settle_end = time.time() + 0.2
+            settle_end = time.time() + 0.3
             while time.time() < settle_end:
                 if self.ser.in_waiting > 0:
                     buf += self.ser.read(self.ser.in_waiting)
-                    settle_end = time.time() + 0.2
+                    settle_end = time.time() + 0.3
                 else:
                     time.sleep(0.02)
             return buf.decode("utf-8", errors="replace")
@@ -120,11 +135,14 @@ class CommandTester:
             return buf.decode("utf-8", errors="replace")
         return None
 
-    def drain_input(self, settle_time=0.3):
+    def drain_input(self, settle_time=0.5):
         """受信バッファを完全にドレインする
 
         MCU がまだデータを送信中の場合、reset_input_buffer() だけでは
         不十分。一定時間データが来なくなるまで読み捨てる。
+        settle_time はデータ沈黙の判定閾値。MCU のバースト送信（cpuload
+        reset 等で 1000文字以上）が断続的に来る場合があるため、十分な
+        長さが必要。
         """
         self.ser.reset_input_buffer()
         deadline = time.time() + settle_time
