@@ -95,44 +95,32 @@ class CommandTester:
         if timeout is None:
             timeout = self.timeout
         buf = b""
-        echo_seen = (expect_echo is None)
+        echo_seen = False
+        prompt_seen_at = None  # プロンプト検出時刻
+        IDLE_AFTER_PROMPT = 0.3  # プロンプト後の idle 確認時間
         start = time.time()
         while (time.time() - start) < timeout:
             n = self.ser.in_waiting
             if n > 0:
                 buf += self.ser.read(n)
-                decoded = buf.decode("utf-8", errors="replace")
+                prompt_seen_at = None  # 新データが来たらリセット
 
-                if not echo_seen and expect_echo in decoded:
-                    echo_seen = True
+                if not echo_seen:
+                    decoded = buf.decode("utf-8", errors="replace")
+                    if expect_echo is None or expect_echo in decoded:
+                        echo_seen = True
 
-                if echo_seen:
-                    # エコー検出後、最後のデータが "\n$ " で終わるか
-                    # (= MCU がプロンプトを出力し終えた) を判定する。
-                    # バナー検出は不安定なため使わない。
-                    if b"\n$ " in buf[buf.rfind(b"\n$ " if b"\n$ " in buf else b""):] or buf.endswith(b"\n$ ") or buf.endswith(b"\n$"):
-                        # エコー直後のプロンプトではなく結果後のプロンプトを
-                        # 待つため、エコー以降に結果データがあることを確認
-                        echo_pos = decoded.find(expect_echo) if expect_echo else 0
-                        after = decoded[echo_pos + (len(expect_echo) if expect_echo else 0):]
-                        # プロンプトが2回以上あるか、結果を含むプロンプトがあるか
-                        prompt_positions = []
-                        pos = 0
-                        while True:
-                            idx = after.find("\n$ ", pos)
-                            if idx == -1:
-                                break
-                            prompt_positions.append(idx)
-                            pos = idx + 3
-                        if after.rstrip().endswith("\n$"):
-                            prompt_positions.append(len(after))
-                        if len(prompt_positions) >= 2:
-                            return decoded
-                        # プロンプト1つでも、その前にバナーがあれば結果完了
-                        if len(prompt_positions) >= 1 and "RX72N Envision Kit" in after:
-                            return decoded
+                # エコー検出後、プロンプト "\n$ " を検出
+                if echo_seen and (b"\n$ " in buf or buf.endswith(b"\n$")):
+                    prompt_seen_at = time.time()
             else:
-                time.sleep(0.05)
+                # プロンプト検出後、IDLE_AFTER_PROMPT 秒間追加データが
+                # 来なければ、MCU の応答が完了したと判断する。
+                # エコー直後のプロンプトの場合、すぐに結果データが続くため
+                # idle にはならない。
+                if prompt_seen_at and (time.time() - prompt_seen_at) >= IDLE_AFTER_PROMPT:
+                    return buf.decode("utf-8", errors="replace")
+                time.sleep(0.02)
         if buf:
             return buf.decode("utf-8", errors="replace")
         return None

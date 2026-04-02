@@ -125,14 +125,10 @@ def sync_uart(ser):
 def send_command(ser, cmd, timeout=15):
     """コマンドを送信し、結果出力完了を待つ
 
-    MCU はコマンド受信後:
-    1. エコーバック + "RX72N Envision Kit" バナー + プロンプト ($ )
-    2. 処理結果 + "RX72N Envision Kit" バナー + プロンプト ($ )
-    を送信する。
-
-    応答完了の判定には、エコーバック検出後に**2回目の** "\\n$ " を
-    待つ。1回目はエコーバック直後のプロンプト、2回目が結果出力後の
-    プロンプトである。
+    エコーバック検出後、プロンプト "\\n$ " を検出し、さらに短い idle
+    期間 (0.3s) を待って追加データが来ないことを確認して返す。
+    エコー直後のプロンプトではすぐに結果データが続くため idle に
+    ならず、結果出力後のプロンプトで初めて idle が成立する。
     """
     drain_input(ser)
     ser.write((cmd + "\r\n").encode("utf-8"))
@@ -140,27 +136,24 @@ def send_command(ser, cmd, timeout=15):
 
     buf = b""
     echo_seen = False
-    prompt_count = 0
+    prompt_seen_at = None
+    IDLE_AFTER_PROMPT = 0.3
     start = time.time()
     while (time.time() - start) < timeout:
         n = ser.in_waiting
         if n > 0:
             buf += ser.read(n)
-            decoded = buf.decode("utf-8", errors="replace")
-            if not echo_seen and cmd[:20] in decoded:
-                echo_seen = True
-            if echo_seen:
-                # エコー以降のプロンプト ("\n$ ") の出現回数を数える
-                echo_pos = decoded.find(cmd[:20])
-                after = decoded[echo_pos + len(cmd[:20]):]
-                prompt_count = after.count("\n$ ")
-                # "\n$" で終わるケースも考慮
-                if after.rstrip().endswith("\n$"):
-                    prompt_count += 1
-                if prompt_count >= 2:
-                    return decoded
+            prompt_seen_at = None  # 新データでリセット
+            if not echo_seen:
+                decoded = buf.decode("utf-8", errors="replace")
+                if cmd[:20] in decoded:
+                    echo_seen = True
+            if echo_seen and (b"\n$ " in buf or buf.endswith(b"\n$")):
+                prompt_seen_at = time.time()
         else:
-            time.sleep(0.05)
+            if prompt_seen_at and (time.time() - prompt_seen_at) >= IDLE_AFTER_PROMPT:
+                return buf.decode("utf-8", errors="replace")
+            time.sleep(0.02)
     if buf:
         return buf.decode("utf-8", errors="replace")
     return None
