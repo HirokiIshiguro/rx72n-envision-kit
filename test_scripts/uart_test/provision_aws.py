@@ -75,8 +75,12 @@ def wait_for_prompt(ser, timeout=30):
     return False
 
 
-def drain_input(ser, settle_time=0.3):
-    """受信バッファを完全にドレインする"""
+def drain_input(ser, settle_time=0.5):
+    """受信バッファを完全にドレインする
+
+    MCU のバースト送信が断続的に来る場合があるため、settle_time は
+    十分な長さ (0.5s) を確保する。
+    """
     ser.reset_input_buffer()
     deadline = time.time() + settle_time
     while time.time() < deadline:
@@ -101,8 +105,21 @@ def send_command(ser, cmd, timeout=10):
             chunk = ser.read(n)
             buf += chunk
             decoded = buf.decode("utf-8", errors="replace")
-            if "$ " in decoded.split("\n")[-1] or decoded.rstrip().endswith("$"):
-                return decoded
+            # プロンプト検出: 末尾行が "$" 単独であること
+            stripped = decoded.rstrip()
+            last_newline = stripped.rfind("\n")
+            if last_newline >= 0:
+                last_line = stripped[last_newline + 1:].strip()
+                if last_line == "$":
+                    # プロンプト後の追加データを回収
+                    settle_end = time.time() + 0.3
+                    while time.time() < settle_end:
+                        if ser.in_waiting > 0:
+                            buf += ser.read(ser.in_waiting)
+                            settle_end = time.time() + 0.3
+                        else:
+                            time.sleep(0.02)
+                    return buf.decode("utf-8", errors="replace")
         else:
             time.sleep(0.05)
     if buf:
@@ -110,7 +127,7 @@ def send_command(ser, cmd, timeout=10):
     return None
 
 
-def send_simple_value(ser, cmd, timeout=10):
+def send_simple_value(ser, cmd, timeout=15):
     """単純な値コマンド (endpoint, thing name) を送信し成功を確認"""
     print(f"[SEND] {cmd}")
     response = send_command(ser, cmd, timeout)
@@ -125,7 +142,7 @@ def send_simple_value(ser, cmd, timeout=10):
         print(f"[FAIL] {STORE_FAIL}")
         return False
     else:
-        print(f"[WARN] Unexpected response: {response[:200]}")
+        print(f"[WARN] Unexpected response: {response[-200:]}")
         return STORE_SUCCESS in response
 
 
