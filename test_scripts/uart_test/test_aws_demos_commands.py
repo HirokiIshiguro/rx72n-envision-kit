@@ -100,6 +100,7 @@ class CommandTester:
         last_data_time = time.time()
         IDLE_THRESHOLD = 1.5
         echo_found = cmd_echo is None  # cmd_echo 未指定なら即座にプロンプト検出有効
+        echo_end_pos = 0  # cmd_echo 未指定時は先頭からプロンプト検出
         cmd_echo_bytes = cmd_echo.encode("utf-8") if cmd_echo else None
         start = time.time()
         while (time.time() - start) < timeout:
@@ -109,10 +110,19 @@ class CommandTester:
                 last_data_time = time.time()
                 if not echo_found and cmd_echo_bytes in buf:
                     echo_found = True
-                # エコー検出後のみプロンプトを応答完了として認識
+                    # エコー位置を記録（エコーの末尾以降でのみプロンプトを探す）
+                    echo_end_pos = buf.find(cmd_echo_bytes) + len(cmd_echo_bytes)
+                # エコー検出後、エコー位置より後ろでのみプロンプトを認識
+                # これにより、エコー行の直後にある前コマンドの残留プロンプトを
+                # スキップし、実際の応答の後のプロンプトだけを捕捉する
                 if echo_found:
-                    if b"\n$ " in buf or buf.endswith(b"\n$"):
-                        return buf.decode("utf-8", errors="replace")
+                    after_echo = buf[echo_end_pos:]
+                    # エコー行の改行を超えた位置で "\n$ " を探す
+                    first_nl = after_echo.find(b"\n")
+                    if first_nl >= 0:
+                        after_first_line = after_echo[first_nl:]
+                        if b"\n$ " in after_first_line or after_first_line.endswith(b"\n$"):
+                            return buf.decode("utf-8", errors="replace")
             else:
                 if buf and (time.time() - last_data_time) >= IDLE_THRESHOLD:
                     return buf.decode("utf-8", errors="replace")
