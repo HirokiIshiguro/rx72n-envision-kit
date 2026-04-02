@@ -523,7 +523,10 @@ def main():
         sys.exit(1)
 
     rsu_size = os.path.getsize(args.rsu)
-    rsu_filename = os.path.basename(args.rsu)
+    # SD カードの FAT ファイルシステムは 8.3 形式のみ対応 (R_TFAT は LFN 非サポート)。
+    # CI では userprog_rx72n-01.rsu のような長いファイル名が渡されるため、
+    # SD カード上のファイル名は常に userprog.rsu (8.3 準拠) を使用する。
+    rsu_filename = "userprog.rsu"
 
     print("=" * 60)
     print("[INFO] SD Card Firmware Update Integration Test")
