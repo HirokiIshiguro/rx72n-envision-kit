@@ -129,9 +129,6 @@ class CommandTester:
 
         MCU がまだデータを送信中の場合、reset_input_buffer() だけでは
         不十分。一定時間データが来なくなるまで読み捨てる。
-        MCU のバースト送信（cpuload reset で 1113 文字等）は 115200bps
-        で約 100ms かかるが、MCU 側の処理で断続的になるため 1.0s の
-        沈黙確認が必要。
         """
         self.ser.reset_input_buffer()
         deadline = time.time() + settle_time
@@ -141,6 +138,35 @@ class CommandTester:
                 deadline = time.time() + settle_time
             else:
                 time.sleep(0.05)
+
+    def sync(self):
+        """MCU との同期を確立する
+
+        wait_for_prompt() のポーリングで MCU に複数の \\r\\n を送信する
+        ため、MCU は各々に対して応答を返す。全応答が送信し終わるまで
+        3秒ドレインし、その後 "version" コマンドを sync マーカーとして
+        送信。version 応答の完了（バナー検出）を確認することで、
+        MCU がキューをすべて処理済みであることを保証する。
+        """
+        print("[INFO] Synchronizing with MCU...", flush=True)
+        # MCU がポーリング応答を全て送り終わるまで待つ
+        self.drain_input(settle_time=3.0)
+        # sync コマンド送信
+        self.ser.write(b"version\r\n")
+        self.ser.flush()
+        # version 応答 + バナーを待つ
+        buf = b""
+        start = time.time()
+        while (time.time() - start) < 10:
+            if self.ser.in_waiting > 0:
+                buf += self.ser.read(self.ser.in_waiting)
+                if b"RX72N Envision Kit" in buf and b"version" in buf:
+                    break
+            else:
+                time.sleep(0.05)
+        # 追加ドレイン
+        self.drain_input(settle_time=1.0)
+        print("[INFO] MCU synchronized.", flush=True)
 
     def send_command(self, cmd):
         """コマンドを送信し、応答を取得する
@@ -426,6 +452,9 @@ def main():
             print("[FAIL] Could not establish communication with aws_demos")
             print("[HINT] Is the MCU running? Has serial_terminal_task started?")
             sys.exit(1)
+
+        # ポーリングで蓄積した MCU 応答をすべてドレインし同期を確立
+        tester.sync()
 
         # --- テスト実行 ---
 
