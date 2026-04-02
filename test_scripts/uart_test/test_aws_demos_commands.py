@@ -98,9 +98,10 @@ class CommandTester:
             timeout = self.timeout
         buf = b""
         last_data_time = time.time()
-        IDLE_THRESHOLD = 1.5
-        echo_found = cmd_echo is None  # cmd_echo 未指定なら即座にプロンプト検出有効
-        echo_end_pos = 0  # cmd_echo 未指定時は先頭からプロンプト検出
+        IDLE_THRESHOLD = 2.0
+        echo_found = cmd_echo is None
+        echo_found_time = time.time() if cmd_echo is None else None
+        ECHO_GRACE = 1.0  # エコー検出後、この秒数はプロンプト検出を抑制
         cmd_echo_bytes = cmd_echo.encode("utf-8") if cmd_echo else None
         start = time.time()
         while (time.time() - start) < timeout:
@@ -108,21 +109,15 @@ class CommandTester:
             if n > 0:
                 buf += self.ser.read(n)
                 last_data_time = time.time()
-                if not echo_found and cmd_echo_bytes in buf:
+                if not echo_found and cmd_echo_bytes and cmd_echo_bytes in buf:
                     echo_found = True
-                    # エコー位置を記録（エコーの末尾以降でのみプロンプトを探す）
-                    echo_end_pos = buf.find(cmd_echo_bytes) + len(cmd_echo_bytes)
-                # エコー検出後、エコー位置より後ろでのみプロンプトを認識
-                # これにより、エコー行の直後にある前コマンドの残留プロンプトを
-                # スキップし、実際の応答の後のプロンプトだけを捕捉する
-                if echo_found:
-                    after_echo = buf[echo_end_pos:]
-                    # エコー行の改行を超えた位置で "\n$ " を探す
-                    first_nl = after_echo.find(b"\n")
-                    if first_nl >= 0:
-                        after_first_line = after_echo[first_nl:]
-                        if b"\n$ " in after_first_line or after_first_line.endswith(b"\n$"):
-                            return buf.decode("utf-8", errors="replace")
+                    echo_found_time = time.time()
+                # エコー検出後、猶予期間を経てからプロンプト検出を有効化。
+                # 前コマンドの残留プロンプトがエコー直後に混在するのを回避。
+                if (echo_found and echo_found_time and
+                        (time.time() - echo_found_time) >= ECHO_GRACE):
+                    if b"\n$ " in buf or buf.endswith(b"\n$"):
+                        return buf.decode("utf-8", errors="replace")
             else:
                 if buf and (time.time() - last_data_time) >= IDLE_THRESHOLD:
                     return buf.decode("utf-8", errors="replace")
