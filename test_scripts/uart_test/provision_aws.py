@@ -92,6 +92,30 @@ def drain_input(ser, settle_time=1.0):
             time.sleep(0.05)
 
 
+def fence_sync(ser):
+    """コマンド送信前のフェンス同期
+
+    空行 \\r\\n を送信し、MCU の応答を待つ。
+    応答のバナー "RX72N Envision Kit" またはプロンプト "\\n$ " を
+    確認してからバッファをクリアし、stale データを確実に排出する。
+    """
+    ser.write(b"\r\n")
+    ser.flush()
+    buf = b""
+    start = time.time()
+    while (time.time() - start) < 5.0:
+        if ser.in_waiting > 0:
+            buf += ser.read(ser.in_waiting)
+            if b"RX72N Envision Kit" in buf or (b"\n$ " in buf and len(buf) > 5):
+                break
+        else:
+            time.sleep(0.05)
+    time.sleep(0.2)
+    if ser.in_waiting > 0:
+        ser.read(ser.in_waiting)
+    ser.reset_input_buffer()
+
+
 def sync_uart(ser):
     """MCU との同期を確立する
 
@@ -139,8 +163,7 @@ def send_command(ser, cmd, timeout=15):
     エコーバック検出後、エコーテキストより後ろに現れる
     "RX72N Envision Kit" バナーで結果出力完了を判断する。
     """
-    drain_input(ser)
-    ser.reset_input_buffer()
+    fence_sync(ser)
     ser.write((cmd + "\r\n").encode("utf-8"))
     ser.flush()
 
@@ -182,8 +205,7 @@ def send_simple_value(ser, cmd, timeout=15):
     直接待つ。MCU の応答タイミングが不安定でもマーカーさえ届けば判定できる。
     """
     print(f"[SEND] {cmd}")
-    drain_input(ser)
-    ser.reset_input_buffer()
+    fence_sync(ser)
     ser.write((cmd + "\r\n").encode("utf-8"))
     ser.flush()
 
@@ -226,7 +248,7 @@ def send_pem_streaming(ser, cmd, pem_content, timeout=90):
     print(f"[INFO] PEM size: {len(pem_content)} bytes")
 
     # 前コマンドの残留応答を確実に排出
-    drain_input(ser, settle_time=1.0)
+    fence_sync(ser)
 
     # コマンド送信
     ser.write((cmd + "\r\n").encode("utf-8"))

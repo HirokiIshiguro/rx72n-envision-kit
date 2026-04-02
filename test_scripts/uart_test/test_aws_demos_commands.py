@@ -197,17 +197,40 @@ class CommandTester:
         self.ser.reset_input_buffer()
         print("[INFO] MCU synchronized.", flush=True)
 
+    def fence_sync(self):
+        """コマンド送信前のフェンス同期
+
+        空行 \\r\\n を送信し、MCU の "command not found" 応答を待つ。
+        この応答の "RX72N Envision Kit" バナーを確認してから
+        バッファをクリアすることで、stale データを確実に排出する。
+        """
+        self.ser.write(b"\r\n")
+        self.ser.flush()
+        buf = b""
+        start = time.time()
+        while (time.time() - start) < 5.0:
+            if self.ser.in_waiting > 0:
+                buf += self.ser.read(self.ser.in_waiting)
+                if b"RX72N Envision Kit" in buf:
+                    break
+            else:
+                time.sleep(0.05)
+        # バナー検出後にプロンプトまで少し待つ
+        time.sleep(0.2)
+        if self.ser.in_waiting > 0:
+            self.ser.read(self.ser.in_waiting)
+        self.ser.reset_input_buffer()
+
     def send_command(self, cmd):
         """コマンドを送信し、応答を取得する
 
         MCU はコマンド受信後:
         1. エコーバック + プロンプト（コマンド受理の合図）
-        2. 処理結果 + プロンプト（結果出力完了の合図）
-        を送信する。2つ目のプロンプトまで待つことで、応答を完全に取得する。
+        2. 処理結果 + "RX72N Envision Kit" + プロンプト（結果出力完了）
+        を送信する。バナー検出で応答完了を判断する。
 
-        重要: drain_input + reset_input_buffer で送信前のバッファを
-        完全にクリアする。これにより read_until_prompt は送信後に
-        受信したデータのみを処理する。
+        送信前に fence_sync() で stale データを排出し、
+        受信バッファを完全にクリアした状態でコマンドを送信する。
 
         Args:
             cmd: コマンド文字列（改行なし）
@@ -216,16 +239,14 @@ class CommandTester:
             str: 応答文字列（エコーバック・プロンプト含む）
             None: 受信失敗
         """
-        # 送信前にバッファを完全にドレイン
-        self.drain_input()
-        # OS バッファも含めて完全クリア
-        self.ser.reset_input_buffer()
+        # fence sync で stale データを排出
+        self.fence_sync()
 
         # コマンド送信（\r\n で行末）
         self.ser.write((cmd + "\r\n").encode("utf-8"))
         self.ser.flush()
 
-        # エコーバック後の2つ目のプロンプトまで待つ
+        # エコーバック後のバナーで応答完了を検出
         response = self.read_until_prompt(expect_echo=cmd)
         return response
 
