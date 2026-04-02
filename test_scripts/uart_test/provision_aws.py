@@ -92,6 +92,29 @@ def drain_input(ser, settle_time=1.0):
             time.sleep(0.05)
 
 
+def sync_uart(ser):
+    """MCU との同期を確立する
+
+    wait_for_prompt() のポーリングで MCU に送った複数の \\r\\n に対する
+    応答をすべてドレインし、version コマンドで同期を確認する。
+    """
+    print("[INFO] Synchronizing with MCU...", flush=True)
+    drain_input(ser, settle_time=3.0)
+    ser.write(b"version\r\n")
+    ser.flush()
+    buf = b""
+    start = time.time()
+    while (time.time() - start) < 10:
+        if ser.in_waiting > 0:
+            buf += ser.read(ser.in_waiting)
+            if b"RX72N Envision Kit" in buf and b"version" in buf:
+                break
+        else:
+            time.sleep(0.05)
+    drain_input(ser, settle_time=1.0)
+    print("[INFO] MCU synchronized.", flush=True)
+
+
 def send_command(ser, cmd, timeout=15):
     """コマンドを送信し、結果出力完了を待つ
 
@@ -393,6 +416,9 @@ def main():
             print("[FAIL] Could not detect prompt")
             sys.exit(1)
 
+        # ポーリングで蓄積した MCU 応答をすべてドレインし同期確立
+        sync_uart(ser)
+
         # --- プロビジョニング実行 ---
 
         print()
@@ -401,27 +427,11 @@ def main():
             ser, f"dataflash write aws mqttbrokerendpoint {args.endpoint}", args.timeout
         )
 
-        # プロンプト復帰待ち
-        time.sleep(0.5)
-        drain_input(ser)
-        ser.write(b"\r\n")
-        ser.flush()
-        time.sleep(0.3)
-        drain_input(ser)
-
         print()
         print(f"[STEP 2/{total_steps}] Setting IoT Thing name")
         results["thing_name"] = send_simple_value(
             ser, f"dataflash write aws iotthingname {args.thing_name}", args.timeout
         )
-
-        time.sleep(0.5)
-        ser.reset_input_buffer()
-        ser.write(b"\r\n")
-        ser.flush()
-        time.sleep(0.5)
-        if ser.in_waiting > 0:
-            ser.read(ser.in_waiting)
 
         step_index = 3
 
@@ -433,60 +443,33 @@ def main():
             )
             step_index += 1
 
-            time.sleep(0.5)
-            drain_input(ser)
-            ser.write(b"\r\n")
-            ser.flush()
-            time.sleep(0.3)
-            drain_input(ser)
-
         print()
         print(f"[STEP {step_index}/{total_steps}] Writing client certificate")
         results["certificate"] = send_pem_streaming(
-            ser, "dataflash write aws clientcertificate", cert_pem, timeout=30
+            ser, "dataflash write aws clientcertificate", cert_pem
         )
         step_index += 1
-
-        time.sleep(1.0)
-        drain_input(ser)
-        ser.write(b"\r\n")
-        ser.flush()
-        time.sleep(0.3)
-        drain_input(ser)
 
         print()
         print(f"[STEP {step_index}/{total_steps}] Writing client private key")
         results["private_key"] = send_pem_streaming(
-            ser, "dataflash write aws clientprivatekey", key_pem, timeout=30
+            ser, "dataflash write aws clientprivatekey", key_pem
         )
         step_index += 1
 
         # Step 5 (OTA): コード署名証明書
         if codesigner_pem:
-            time.sleep(1.0)
-            ser.reset_input_buffer()
-            ser.write(b"\r\n")
-            ser.flush()
-            time.sleep(0.5)
-            if ser.in_waiting > 0:
-                ser.read(ser.in_waiting)
-
             print()
             print(f"[STEP {step_index}/{total_steps}] Writing code signer certificate (OTA)")
             results["codesigner_cert"] = send_pem_streaming(
                 ser, "dataflash write aws codesignercertificate",
-                codesigner_pem, timeout=30
+                codesigner_pem
             )
 
         # --- 確認: dataflash read ---
         print()
         print("[VERIFY] Reading dataflash contents")
-        time.sleep(1.0)
-        drain_input(ser)
-        ser.write(b"\r\n")
-        ser.flush()
-        time.sleep(0.3)
-        drain_input(ser)
+        drain_input(ser, settle_time=2.0)
 
         response = send_command(ser, "dataflash read", timeout=10)
         if response:
