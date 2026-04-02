@@ -107,16 +107,29 @@ class CommandTester:
                     echo_seen = True
 
                 if echo_seen:
-                    if expect_echo is not None:
-                        # エコーバック後に "RX72N Envision Kit" バナーが
-                        # 出現したら結果出力完了。バナーはコマンド結果の
-                        # 後にのみ送信される（エコーバック直後には出ない）
-                        echo_pos = decoded.find(expect_echo)
-                        after = decoded[echo_pos + len(expect_echo):]
-                        if "RX72N Envision Kit" in after:
+                    # エコー検出後、最後のデータが "\n$ " で終わるか
+                    # (= MCU がプロンプトを出力し終えた) を判定する。
+                    # バナー検出は不安定なため使わない。
+                    if b"\n$ " in buf[buf.rfind(b"\n$ " if b"\n$ " in buf else b""):] or buf.endswith(b"\n$ ") or buf.endswith(b"\n$"):
+                        # エコー直後のプロンプトではなく結果後のプロンプトを
+                        # 待つため、エコー以降に結果データがあることを確認
+                        echo_pos = decoded.find(expect_echo) if expect_echo else 0
+                        after = decoded[echo_pos + (len(expect_echo) if expect_echo else 0):]
+                        # プロンプトが2回以上あるか、結果を含むプロンプトがあるか
+                        prompt_positions = []
+                        pos = 0
+                        while True:
+                            idx = after.find("\n$ ", pos)
+                            if idx == -1:
+                                break
+                            prompt_positions.append(idx)
+                            pos = idx + 3
+                        if after.rstrip().endswith("\n$"):
+                            prompt_positions.append(len(after))
+                        if len(prompt_positions) >= 2:
                             return decoded
-                    else:
-                        if b"\n$ " in buf or buf.endswith(b"\n$"):
+                        # プロンプト1つでも、その前にバナーがあれば結果完了
+                        if len(prompt_positions) >= 1 and "RX72N Envision Kit" in after:
                             return decoded
             else:
                 time.sleep(0.05)
@@ -166,6 +179,10 @@ class CommandTester:
                 time.sleep(0.05)
         # 追加ドレイン
         self.drain_input(settle_time=1.0)
+        # 2回目の version + drain で残留応答を完全排出
+        self.ser.write(b"version\r\n")
+        self.ser.flush()
+        self.drain_input(settle_time=2.0)
         print("[INFO] MCU synchronized.", flush=True)
 
     def send_command(self, cmd):

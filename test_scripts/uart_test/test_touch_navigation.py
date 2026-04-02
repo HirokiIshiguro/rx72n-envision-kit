@@ -73,6 +73,9 @@ def main():
             print("[FAIL] Could not establish communication with aws_demos")
             sys.exit(1)
 
+        # ポーリングで蓄積した応答をドレインし同期確立
+        tester.sync()
+
         # --- Step 1: Screen 00 → Screen 01 遷移 (touch any × 2) ---
         print()
         print("[STEP] Screen 00 → Screen 01 navigation (touch any × 2)")

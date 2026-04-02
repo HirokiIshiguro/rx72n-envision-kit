@@ -167,22 +167,38 @@ def send_command(ser, cmd, timeout=15):
 
 
 def send_simple_value(ser, cmd, timeout=15):
-    """単純な値コマンド (endpoint, thing name) を送信し成功を確認"""
-    print(f"[SEND] {cmd}")
-    response = send_command(ser, cmd, timeout)
-    if response is None:
-        print(f"[FAIL] No response")
-        return False
+    """単純な値コマンド (endpoint, thing name) を送信し成功を確認
 
-    if STORE_SUCCESS in response:
-        print(f"[OK] {STORE_SUCCESS}")
-        return True
-    elif STORE_FAIL in response:
-        print(f"[FAIL] {STORE_FAIL}")
-        return False
-    else:
-        print(f"[WARN] Unexpected response: {response[-200:]}")
-        return STORE_SUCCESS in response
+    send_command() のバナー/プロンプト検出を経由せず、成功・失敗マーカーを
+    直接待つ。MCU の応答タイミングが不安定でもマーカーさえ届けば判定できる。
+    """
+    print(f"[SEND] {cmd}")
+    drain_input(ser)
+    ser.write((cmd + "\r\n").encode("utf-8"))
+    ser.flush()
+
+    buf = b""
+    start = time.time()
+    while (time.time() - start) < timeout:
+        if ser.in_waiting > 0:
+            buf += ser.read(ser.in_waiting)
+            decoded = buf.decode("utf-8", errors="replace")
+            if STORE_SUCCESS in decoded:
+                print(f"[OK] {STORE_SUCCESS}")
+                drain_input(ser, settle_time=0.5)
+                return True
+            if STORE_FAIL in decoded:
+                print(f"[FAIL] {STORE_FAIL}")
+                drain_input(ser, settle_time=0.5)
+                return False
+        else:
+            time.sleep(0.05)
+
+    decoded = buf.decode("utf-8", errors="replace") if buf else ""
+    print(f"[FAIL] Timeout waiting for store result")
+    if decoded:
+        print(f"[DEBUG] Received ({len(decoded)} chars): {decoded[-200:]}")
+    return False
 
 
 def send_pem_streaming(ser, cmd, pem_content, timeout=90):
