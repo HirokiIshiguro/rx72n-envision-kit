@@ -156,13 +156,14 @@ class CommandTester:
     def sync(self):
         """MCU との同期を確立する
 
-        wait_for_prompt() のポーリングで MCU に複数の \\r\\n を送信する
-        ため、MCU は各々に対して応答を返す。全応答が送信し終わるまで
-        3秒ドレインし、その後 "version" コマンドを sync マーカーとして
-        送信。version 応答の完了（バナー検出）を確認する。
+        provision ジョブが大量の PEM データを書き込んだ場合、
+        RL78/G1C USB シリアルバッファに数 KB の残留データがある。
+        ジョブ間でポートを開き直しても RL78/G1C バッファはクリアされない。
+        10 秒の長めドレインで残留データを排出してから version で同期する。
         """
         print("[INFO] Synchronizing with MCU...", flush=True)
-        self.drain_input(settle_time=3.0)
+        print("[INFO] Draining residual data from previous job (up to 10s)...", flush=True)
+        self.drain_input(settle_time=3.0, max_time=10.0)
         self.ser.write(b"version\r\n")
         self.ser.flush()
         buf = b""
