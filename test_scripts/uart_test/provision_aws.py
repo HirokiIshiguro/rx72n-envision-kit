@@ -126,10 +126,13 @@ def send_command(ser, cmd, timeout=15):
     """コマンドを送信し、結果出力完了を待つ
 
     MCU はコマンド受信後:
-    1. エコーバック + プロンプト（コマンド受理）
-    2. 処理結果 + "RX72N Envision Kit" バナー + プロンプト
-    を送信する。エコー検出後に "RX72N Envision Kit" バナーが
-    出現したら結果出力完了と判断する。
+    1. エコーバック + "RX72N Envision Kit" バナー + プロンプト ($ )
+    2. 処理結果 + "RX72N Envision Kit" バナー + プロンプト ($ )
+    を送信する。
+
+    応答完了の判定には、エコーバック検出後に**2回目の** "\\n$ " を
+    待つ。1回目はエコーバック直後のプロンプト、2回目が結果出力後の
+    プロンプトである。
     """
     drain_input(ser)
     ser.write((cmd + "\r\n").encode("utf-8"))
@@ -137,6 +140,7 @@ def send_command(ser, cmd, timeout=15):
 
     buf = b""
     echo_seen = False
+    prompt_count = 0
     start = time.time()
     while (time.time() - start) < timeout:
         n = ser.in_waiting
@@ -146,9 +150,14 @@ def send_command(ser, cmd, timeout=15):
             if not echo_seen and cmd[:20] in decoded:
                 echo_seen = True
             if echo_seen:
+                # エコー以降のプロンプト ("\n$ ") の出現回数を数える
                 echo_pos = decoded.find(cmd[:20])
                 after = decoded[echo_pos + len(cmd[:20]):]
-                if "RX72N Envision Kit" in after:
+                prompt_count = after.count("\n$ ")
+                # "\n$" で終わるケースも考慮
+                if after.rstrip().endswith("\n$"):
+                    prompt_count += 1
+                if prompt_count >= 2:
                     return decoded
         else:
             time.sleep(0.05)
