@@ -75,21 +75,11 @@ class CommandTester:
             self.ser.close()
             print(f"[INFO] Closed {self.port}")
 
-    def read_until_prompt(self, timeout=None, expect_echo=None):
-        """コマンド応答の完了を待つ
+    def read_until_idle(self, timeout=None):
+        """MCU の応答が止まるまで読む (read-until-idle)
 
-        MCU のコマンド応答シーケンス:
-          1. エコーバック: "command\\r\\n$ "  ← 1つ目のプロンプト（受理）
-          2. 処理結果:    "result...\\r\\nRX72N Envision Kit\\r\\n$ "  ← 2つ目
-
-        expect_echo が指定された場合:
-          エコーバック検出後、エコーテキストより後ろに現れる
-          "RX72N Envision Kit" バナーで結果出力完了を判断する。
-          バナーは結果出力後にのみ送信されるため信頼性が高い。
-          send_command() は事前に reset_input_buffer() で stale data
-          をクリアしているが、念のためバナー位置もチェックする。
-        expect_echo が None の場合:
-          最初の \\n$ で返す（初期プロンプト検出等）。
+        MCU が応答を送り終えると UART が idle になる。0.5 秒間新しいデータが
+        来なければ応答完了と判断する。バナーやプロンプトのパース不要。
 
         Returns:
             str: 受信データ全体
@@ -98,41 +88,25 @@ class CommandTester:
         if timeout is None:
             timeout = self.timeout
         buf = b""
-        echo_seen = False
-        echo_pos = -1
+        last_data_time = time.time()
+        IDLE_THRESHOLD = 0.5
         start = time.time()
         while (time.time() - start) < timeout:
             n = self.ser.in_waiting
             if n > 0:
                 buf += self.ser.read(n)
-                decoded = buf.decode("utf-8", errors="replace")
-
-                if expect_echo is None:
-                    # 初期プロンプト検出: 最初の \n$ で返す
-                    if "\n$ " in decoded or decoded.endswith("\n$"):
-                        return decoded
-                else:
-                    if not echo_seen and expect_echo in decoded:
-                        echo_seen = True
-                        echo_pos = decoded.find(expect_echo)
-                    # エコー検出後、エコーより後ろのバナーで完了判断
-                    if echo_seen:
-                        after_echo = decoded[echo_pos + len(expect_echo):]
-                        if "RX72N Envision Kit" in after_echo:
-                            # バナー検出後、プロンプトまで少し待つ
-                            deadline = time.time() + 0.3
-                            while time.time() < deadline:
-                                if self.ser.in_waiting > 0:
-                                    buf += self.ser.read(
-                                        self.ser.in_waiting)
-                                else:
-                                    time.sleep(0.02)
-                            return buf.decode("utf-8", errors="replace")
+                last_data_time = time.time()
             else:
+                if buf and (time.time() - last_data_time) >= IDLE_THRESHOLD:
+                    return buf.decode("utf-8", errors="replace")
                 time.sleep(0.02)
         if buf:
             return buf.decode("utf-8", errors="replace")
         return None
+
+    def read_until_prompt(self, timeout=None, expect_echo=None):
+        """後方互換ラッパー。read_until_idle() に委譲。"""
+        return self.read_until_idle(timeout=timeout)
 
     def drain_input(self, settle_time=1.0):
         """受信バッファを完全にドレインする
@@ -155,19 +129,12 @@ class CommandTester:
         wait_for_prompt() のポーリングで MCU に複数の \\r\\n を送信する
         ため、MCU は各々に対して応答を返す。全応答が送信し終わるまで
         3秒ドレインし、その後 "version" コマンドを sync マーカーとして
-        送信。version 応答の完了（バナー検出）を確認することで、
-        MCU がキューをすべて処理済みであることを保証する。
-
-        最後に OS シリアルバッファもクリアし、後続コマンドが
-        stale データを読まないことを保証する。
+        送信。version 応答の完了（バナー検出）を確認する。
         """
         print("[INFO] Synchronizing with MCU...", flush=True)
-        # MCU がポーリング応答を全て送り終わるまで待つ
         self.drain_input(settle_time=3.0)
-        # sync コマンド送信
         self.ser.write(b"version\r\n")
         self.ser.flush()
-        # version 応答 + バナーを待つ
         buf = b""
         start = time.time()
         while (time.time() - start) < 10:
@@ -177,60 +144,14 @@ class CommandTester:
                     break
             else:
                 time.sleep(0.05)
-        # 追加ドレイン
-        self.drain_input(settle_time=1.0)
-        # 2回目の version で残留応答を完全排出
-        self.ser.write(b"version\r\n")
-        self.ser.flush()
-        # version 応答 + バナーを明示的に待つ
-        buf2 = b""
-        start2 = time.time()
-        while (time.time() - start2) < 10:
-            if self.ser.in_waiting > 0:
-                buf2 += self.ser.read(self.ser.in_waiting)
-                if b"RX72N Envision Kit" in buf2:
-                    break
-            else:
-                time.sleep(0.05)
-        # 最終ドレイン + OS バッファクリア
         self.drain_input(settle_time=2.0)
-        self.ser.reset_input_buffer()
         print("[INFO] MCU synchronized.", flush=True)
 
-    def fence_sync(self):
-        """コマンド送信前のフェンス同期
-
-        空行 \\r\\n を送信し、MCU の "command not found" 応答を待つ。
-        この応答の "RX72N Envision Kit" バナーを確認してから
-        バッファをクリアすることで、stale データを確実に排出する。
-        """
-        self.ser.write(b"\r\n")
-        self.ser.flush()
-        buf = b""
-        start = time.time()
-        while (time.time() - start) < 5.0:
-            if self.ser.in_waiting > 0:
-                buf += self.ser.read(self.ser.in_waiting)
-                if b"RX72N Envision Kit" in buf:
-                    break
-            else:
-                time.sleep(0.05)
-        # バナー検出後にプロンプトまで少し待つ
-        time.sleep(0.2)
-        if self.ser.in_waiting > 0:
-            self.ser.read(self.ser.in_waiting)
-        self.ser.reset_input_buffer()
-
     def send_command(self, cmd):
-        """コマンドを送信し、応答を取得する
+        """コマンドを送信し、応答を取得する (read-until-idle)
 
-        MCU はコマンド受信後:
-        1. エコーバック + プロンプト（コマンド受理の合図）
-        2. 処理結果 + "RX72N Envision Kit" + プロンプト（結果出力完了）
-        を送信する。バナー検出で応答完了を判断する。
-
-        送信前に fence_sync() で stale データを排出し、
-        受信バッファを完全にクリアした状態でコマンドを送信する。
+        送信前に短い drain で残留データをクリアし、
+        コマンド送信後は MCU の応答が止まるまで読み続ける。
 
         Args:
             cmd: コマンド文字列（改行なし）
@@ -239,16 +160,10 @@ class CommandTester:
             str: 応答文字列（エコーバック・プロンプト含む）
             None: 受信失敗
         """
-        # fence sync で stale データを排出
-        self.fence_sync()
-
-        # コマンド送信（\r\n で行末）
+        self.drain_input(settle_time=0.3)
         self.ser.write((cmd + "\r\n").encode("utf-8"))
         self.ser.flush()
-
-        # エコーバック後のバナーで応答完了を検出
-        response = self.read_until_prompt(expect_echo=cmd)
-        return response
+        return self.read_until_idle()
 
     def send_command_with_retry(self, cmd):
         """リトライ付きコマンド送信

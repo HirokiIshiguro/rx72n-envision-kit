@@ -92,37 +92,11 @@ def drain_input(ser, settle_time=1.0):
             time.sleep(0.05)
 
 
-def fence_sync(ser):
-    """コマンド送信前のフェンス同期
-
-    空行 \\r\\n を送信し、MCU の応答を待つ。
-    応答のバナー "RX72N Envision Kit" またはプロンプト "\\n$ " を
-    確認してからバッファをクリアし、stale データを確実に排出する。
-    """
-    ser.write(b"\r\n")
-    ser.flush()
-    buf = b""
-    start = time.time()
-    while (time.time() - start) < 5.0:
-        if ser.in_waiting > 0:
-            buf += ser.read(ser.in_waiting)
-            if b"RX72N Envision Kit" in buf or (b"\n$ " in buf and len(buf) > 5):
-                break
-        else:
-            time.sleep(0.05)
-    time.sleep(0.2)
-    if ser.in_waiting > 0:
-        ser.read(ser.in_waiting)
-    ser.reset_input_buffer()
-
-
 def sync_uart(ser):
     """MCU との同期を確立する
 
     wait_for_prompt() のポーリングで MCU に送った複数の \\r\\n に対する
     応答をすべてドレインし、version コマンドで同期を確認する。
-    最後に OS シリアルバッファもクリアし、後続コマンドが stale データ
-    を読まないことを保証する。
     """
     print("[INFO] Synchronizing with MCU...", flush=True)
     drain_input(ser, settle_time=3.0)
@@ -137,61 +111,32 @@ def sync_uart(ser):
                 break
         else:
             time.sleep(0.05)
-    drain_input(ser, settle_time=1.0)
-    # 同期後にダミーコマンドで残留応答を完全排出する。
-    ser.write(b"version\r\n")
-    ser.flush()
-    # 2回目の version のバナーを明示的に待つ
-    buf2 = b""
-    start2 = time.time()
-    while (time.time() - start2) < 10:
-        if ser.in_waiting > 0:
-            buf2 += ser.read(ser.in_waiting)
-            if b"RX72N Envision Kit" in buf2:
-                break
-        else:
-            time.sleep(0.05)
-    # 最終ドレイン + OS バッファクリア
     drain_input(ser, settle_time=2.0)
-    ser.reset_input_buffer()
     print("[INFO] MCU synchronized.", flush=True)
 
 
 def send_command(ser, cmd, timeout=15):
-    """コマンドを送信し、結果出力完了を待つ
+    """コマンドを送信し、MCU の応答が止まるまで読む (read-until-idle)
 
-    エコーバック検出後、エコーテキストより後ろに現れる
-    "RX72N Envision Kit" バナーで結果出力完了を判断する。
+    MCU が応答を送り終えると UART が idle になる。0.5 秒間新しいデータが
+    来なければ応答完了と判断する。バナーやプロンプトのパース不要。
     """
-    fence_sync(ser)
+    drain_input(ser, settle_time=0.3)
     ser.write((cmd + "\r\n").encode("utf-8"))
     ser.flush()
 
     buf = b""
-    echo_seen = False
-    echo_pos = -1
-    cmd_short = cmd[:20]
+    last_data_time = time.time()
+    IDLE_THRESHOLD = 0.5  # 0.5秒間データが来なければ完了
     start = time.time()
     while (time.time() - start) < timeout:
         n = ser.in_waiting
         if n > 0:
             buf += ser.read(n)
-            decoded = buf.decode("utf-8", errors="replace")
-            if not echo_seen and cmd_short in decoded:
-                echo_seen = True
-                echo_pos = decoded.find(cmd_short)
-            if echo_seen:
-                after_echo = decoded[echo_pos + len(cmd_short):]
-                if "RX72N Envision Kit" in after_echo:
-                    # バナー検出後、プロンプトまで少し待つ
-                    deadline = time.time() + 0.3
-                    while time.time() < deadline:
-                        if ser.in_waiting > 0:
-                            buf += ser.read(ser.in_waiting)
-                        else:
-                            time.sleep(0.02)
-                    return buf.decode("utf-8", errors="replace")
+            last_data_time = time.time()
         else:
+            if buf and (time.time() - last_data_time) >= IDLE_THRESHOLD:
+                return buf.decode("utf-8", errors="replace")
             time.sleep(0.02)
     if buf:
         return buf.decode("utf-8", errors="replace")
@@ -205,7 +150,7 @@ def send_simple_value(ser, cmd, timeout=15):
     直接待つ。MCU の応答タイミングが不安定でもマーカーさえ届けば判定できる。
     """
     print(f"[SEND] {cmd}")
-    fence_sync(ser)
+    drain_input(ser, settle_time=0.3)
     ser.write((cmd + "\r\n").encode("utf-8"))
     ser.flush()
 
@@ -217,11 +162,11 @@ def send_simple_value(ser, cmd, timeout=15):
             decoded = buf.decode("utf-8", errors="replace")
             if STORE_SUCCESS in decoded:
                 print(f"[OK] {STORE_SUCCESS}")
-                drain_input(ser, settle_time=1.0)
+                drain_input(ser, settle_time=0.5)
                 return True
             if STORE_FAIL in decoded:
                 print(f"[FAIL] {STORE_FAIL}")
-                drain_input(ser, settle_time=1.0)
+                drain_input(ser, settle_time=0.5)
                 return False
         else:
             time.sleep(0.05)
@@ -247,8 +192,8 @@ def send_pem_streaming(ser, cmd, pem_content, timeout=90):
     print(f"[SEND] {cmd}")
     print(f"[INFO] PEM size: {len(pem_content)} bytes")
 
-    # 前コマンドの残留応答を確実に排出
-    fence_sync(ser)
+    # 前コマンドの残留応答を排出
+    drain_input(ser, settle_time=0.3)
 
     # コマンド送信
     ser.write((cmd + "\r\n").encode("utf-8"))
