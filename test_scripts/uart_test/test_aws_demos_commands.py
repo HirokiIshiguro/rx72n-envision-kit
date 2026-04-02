@@ -135,18 +135,21 @@ class CommandTester:
         """後方互換ラッパー。read_until_idle() に委譲。"""
         return self.read_until_idle(timeout=timeout)
 
-    def drain_input(self, settle_time=1.0):
+    def drain_input(self, settle_time=1.0, max_time=None):
         """受信バッファを完全にドレインする
 
-        MCU がまだデータを送信中の場合、reset_input_buffer() だけでは
-        不十分。一定時間データが来なくなるまで読み捨てる。
+        settle_time 秒間データが来なくなるまで読み捨てる。
+        max_time を超えたら強制終了（COM6 間欠送信で無限ドレイン防止）。
         """
+        if max_time is None:
+            max_time = settle_time * 5
         self.ser.reset_input_buffer()
-        deadline = time.time() + settle_time
-        while time.time() < deadline:
+        hard_deadline = time.time() + max_time
+        soft_deadline = time.time() + settle_time
+        while time.time() < soft_deadline and time.time() < hard_deadline:
             if self.ser.in_waiting > 0:
                 self.ser.read(self.ser.in_waiting)
-                deadline = time.time() + settle_time
+                soft_deadline = time.time() + settle_time
             else:
                 time.sleep(0.05)
 
