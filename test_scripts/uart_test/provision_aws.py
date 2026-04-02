@@ -126,9 +126,9 @@ def send_command(ser, cmd, timeout=15):
     """コマンドを送信し、結果出力完了を待つ
 
     エコーバック検出後、2つ目のプロンプト "\\n$ " を待つ。
-    MCU はコマンド受理時にエコー + プロンプトを返し、処理完了後に
-    結果 + プロンプトを返す。エコー検出位置以降に新しいプロンプトが
-    現れたら結果出力完了と判断する。
+    MCU はコマンド受理時に「エコー + プロンプト」を返し、処理完了後に
+    「結果 + プロンプト」を返す。エコーテキスト直後の最初のプロンプト
+    を見つけ、その後にさらにプロンプトが現れたら結果出力完了。
     """
     drain_input(ser)
     ser.write((cmd + "\r\n").encode("utf-8"))
@@ -136,21 +136,27 @@ def send_command(ser, cmd, timeout=15):
 
     buf = b""
     echo_seen = False
-    echo_end_pos = 0
+    first_prompt_pos = -1
+    cmd_short = cmd[:20]
     start = time.time()
     while (time.time() - start) < timeout:
         n = ser.in_waiting
         if n > 0:
             buf += ser.read(n)
+            decoded = buf.decode("utf-8", errors="replace")
             if not echo_seen:
-                decoded = buf.decode("utf-8", errors="replace")
-                if cmd[:20] in decoded:
+                if cmd_short in decoded:
                     echo_seen = True
-                    echo_end_pos = len(buf)
-            if echo_seen:
-                after_echo = buf[echo_end_pos:]
-                if b"\n$ " in after_echo or after_echo.endswith(b"\n$"):
-                    return buf.decode("utf-8", errors="replace")
+            if echo_seen and first_prompt_pos < 0:
+                echo_idx = decoded.find(cmd_short)
+                search_start = echo_idx + len(cmd_short)
+                p = decoded.find("\n$ ", search_start)
+                if p >= 0:
+                    first_prompt_pos = p + 3
+            if first_prompt_pos >= 0:
+                after_first = decoded[first_prompt_pos:]
+                if "\n$ " in after_first or after_first.endswith("\n$"):
+                    return decoded
         else:
             time.sleep(0.02)
     if buf:
@@ -215,31 +221,32 @@ def send_pem_streaming(ser, cmd, pem_content, timeout=90):
     ser.flush()
 
     # MCU が PEM 受信モードに入るまで待つ。
-    # コマンドのエコーバック + プロンプト "\n$ " が返るのを待つ。
-    # プロンプト検出後、MCU は次の入力として PEM データを待っている。
+    # PEM コマンドはプロンプト "\n$ " を返さずに直接 PEM 受信モードに
+    # 入る。エコーバック（コマンド文字列）が返ってくるのを待ち、
+    # その後データが止まったら PEM 受信モードに入ったと判断する。
     echo_buf = b""
     cmd_short = cmd[:20]
     echo_start = time.time()
-    prompt_detected = False
+    echo_detected = False
     while (time.time() - echo_start) < 5.0:
         if ser.in_waiting > 0:
             echo_buf += ser.read(ser.in_waiting)
-            decoded = echo_buf.decode("utf-8", errors="replace")
-            # コマンドエコーとプロンプトの両方を確認
-            if cmd_short in decoded and ("\n$ " in decoded or decoded.endswith("\n$")):
-                prompt_detected = True
-                # プロンプト後の短い安定待ち
-                time.sleep(0.2)
-                # 追加データがあれば読み捨て
-                if ser.in_waiting > 0:
-                    echo_buf += ser.read(ser.in_waiting)
+            if not echo_detected:
+                decoded = echo_buf.decode("utf-8", errors="replace")
+                if cmd_short in decoded:
+                    echo_detected = True
+            time.sleep(0.1)
+        elif echo_detected:
+            # エコー検出済みでデータが止まった → PEM待ちに入った
+            time.sleep(0.5)
+            if ser.in_waiting > 0:
+                echo_buf += ser.read(ser.in_waiting)
+            else:
                 break
         else:
             time.sleep(0.05)
     if echo_buf:
         print(f"[INFO] Echo drained: {len(echo_buf)} bytes")
-    if not prompt_detected:
-        print(f"[WARN] Prompt not detected after command, proceeding anyway")
 
     # PEM 内容を正規化 (CRLF → LF)
     pem_normalized = pem_content.replace("\r\n", "\n")
