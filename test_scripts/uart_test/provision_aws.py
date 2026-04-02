@@ -118,16 +118,16 @@ def sync_uart(ser):
 def send_command(ser, cmd, timeout=15):
     """コマンドを送信し、MCU の応答が止まるまで読む (read-until-idle)
 
-    MCU が応答を送り終えると UART が idle になる。0.5 秒間新しいデータが
+    MCU が応答を送り終えると UART が idle になる。1.0 秒間新しいデータが
     来なければ応答完了と判断する。バナーやプロンプトのパース不要。
     """
-    drain_input(ser, settle_time=0.3)
+    drain_input(ser, settle_time=0.5)
     ser.write((cmd + "\r\n").encode("utf-8"))
     ser.flush()
 
     buf = b""
     last_data_time = time.time()
-    IDLE_THRESHOLD = 0.5  # 0.5秒間データが来なければ完了
+    IDLE_THRESHOLD = 1.0  # 1.0秒間データが来なければ完了
     start = time.time()
     while (time.time() - start) < timeout:
         n = ser.in_waiting
@@ -150,7 +150,7 @@ def send_simple_value(ser, cmd, timeout=15):
     直接待つ。MCU の応答タイミングが不安定でもマーカーさえ届けば判定できる。
     """
     print(f"[SEND] {cmd}")
-    drain_input(ser, settle_time=0.3)
+    drain_input(ser, settle_time=0.5)
     ser.write((cmd + "\r\n").encode("utf-8"))
     ser.flush()
 
@@ -193,7 +193,7 @@ def send_pem_streaming(ser, cmd, pem_content, timeout=90):
     print(f"[INFO] PEM size: {len(pem_content)} bytes")
 
     # 前コマンドの残留応答を排出
-    drain_input(ser, settle_time=0.3)
+    drain_input(ser, settle_time=1.0)
 
     # コマンド送信
     ser.write((cmd + "\r\n").encode("utf-8"))
@@ -203,6 +203,8 @@ def send_pem_streaming(ser, cmd, pem_content, timeout=90):
     # PEM コマンドはプロンプト "\n$ " を返さずに直接 PEM 受信モードに
     # 入る。エコーバック（コマンド文字列）が返ってくるのを待ち、
     # その後データが止まったら PEM 受信モードに入ったと判断する。
+    # settle 待ちを 1.0s に延長し、MCU が確実に PEM 受信モードに遷移
+    # してからデータ送信を開始する。
     echo_buf = b""
     cmd_short = cmd[:20]
     echo_start = time.time()
@@ -217,7 +219,8 @@ def send_pem_streaming(ser, cmd, pem_content, timeout=90):
             time.sleep(0.1)
         elif echo_detected:
             # エコー検出済みでデータが止まった → PEM待ちに入った
-            time.sleep(0.5)
+            # 1.0s 待って完全に idle であることを確認
+            time.sleep(1.0)
             if ser.in_waiting > 0:
                 echo_buf += ser.read(ser.in_waiting)
             else:

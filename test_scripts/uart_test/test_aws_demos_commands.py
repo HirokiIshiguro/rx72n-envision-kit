@@ -78,7 +78,7 @@ class CommandTester:
     def read_until_idle(self, timeout=None):
         """MCU の応答が止まるまで読む (read-until-idle)
 
-        MCU が応答を送り終えると UART が idle になる。0.5 秒間新しいデータが
+        MCU が応答を送り終えると UART が idle になる。1.0 秒間新しいデータが
         来なければ応答完了と判断する。バナーやプロンプトのパース不要。
 
         Returns:
@@ -89,7 +89,7 @@ class CommandTester:
             timeout = self.timeout
         buf = b""
         last_data_time = time.time()
-        IDLE_THRESHOLD = 0.5
+        IDLE_THRESHOLD = 1.0
         start = time.time()
         while (time.time() - start) < timeout:
             n = self.ser.in_waiting
@@ -160,7 +160,7 @@ class CommandTester:
             str: 応答文字列（エコーバック・プロンプト含む）
             None: 受信失敗
         """
-        self.drain_input(settle_time=0.3)
+        self.drain_input(settle_time=0.5)
         self.ser.write((cmd + "\r\n").encode("utf-8"))
         self.ser.flush()
         return self.read_until_idle()
