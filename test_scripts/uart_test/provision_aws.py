@@ -118,16 +118,16 @@ def sync_uart(ser):
 def send_command(ser, cmd, timeout=15):
     """コマンドを送信し、MCU の応答が止まるまで読む (read-until-idle)
 
-    MCU が応答を送り終えると UART が idle になる。1.0 秒間新しいデータが
+    MCU が応答を送り終えると UART が idle になる。0.5 秒間新しいデータが
     来なければ応答完了と判断する。バナーやプロンプトのパース不要。
     """
-    drain_input(ser, settle_time=0.5)
+    drain_input(ser, settle_time=0.3)
     ser.write((cmd + "\r\n").encode("utf-8"))
     ser.flush()
 
     buf = b""
     last_data_time = time.time()
-    IDLE_THRESHOLD = 1.0  # 1.0秒間データが来なければ完了
+    IDLE_THRESHOLD = 0.5  # 0.5秒間データが来なければ完了
     start = time.time()
     while (time.time() - start) < timeout:
         n = ser.in_waiting
@@ -149,8 +149,8 @@ def send_simple_value(ser, cmd, timeout=15):
     send_command() のバナー/プロンプト検出を経由せず、成功・失敗マーカーを
     直接待つ。MCU の応答タイミングが不安定でもマーカーさえ届けば判定できる。
     """
-    print(f"[SEND] {cmd}")
-    drain_input(ser, settle_time=0.5)
+    print(f"[SEND] {cmd}", flush=True)
+    drain_input(ser, settle_time=0.3)
     ser.write((cmd + "\r\n").encode("utf-8"))
     ser.flush()
 
@@ -161,24 +161,24 @@ def send_simple_value(ser, cmd, timeout=15):
             buf += ser.read(ser.in_waiting)
             decoded = buf.decode("utf-8", errors="replace")
             if STORE_SUCCESS in decoded:
-                print(f"[OK] {STORE_SUCCESS}")
+                print(f"[OK] {STORE_SUCCESS}", flush=True)
                 drain_input(ser, settle_time=0.5)
                 return True
             if STORE_FAIL in decoded:
-                print(f"[FAIL] {STORE_FAIL}")
+                print(f"[FAIL] {STORE_FAIL}", flush=True)
                 drain_input(ser, settle_time=0.5)
                 return False
         else:
             time.sleep(0.05)
 
     decoded = buf.decode("utf-8", errors="replace") if buf else ""
-    print(f"[FAIL] Timeout waiting for store result")
+    print(f"[FAIL] Timeout waiting for store result", flush=True)
     if decoded:
-        print(f"[DEBUG] Received ({len(decoded)} chars): {decoded[-200:]}")
+        print(f"[DEBUG] Received ({len(decoded)} chars): {decoded[-200:]}", flush=True)
     return False
 
 
-def send_pem_streaming(ser, cmd, pem_content, timeout=90):
+def send_pem_streaming(ser, cmd, pem_content, timeout=20):
     """PEM ストリーミング入力でデータフラッシュに書き込む
 
     1. コマンドを送信 (改行付き)
@@ -189,11 +189,11 @@ def send_pem_streaming(ser, cmd, pem_content, timeout=90):
     sci_buffer (2048B) に蓄積する。終端マーカー検出後に dataflash へ書き込む。
     送信速度が速すぎると SCI キューが溢れるため、行単位でペーシングする。
     """
-    print(f"[SEND] {cmd}")
-    print(f"[INFO] PEM size: {len(pem_content)} bytes")
+    print(f"[SEND] {cmd}", flush=True)
+    print(f"[INFO] PEM size: {len(pem_content)} bytes", flush=True)
 
     # 前コマンドの残留応答を排出
-    drain_input(ser, settle_time=1.0)
+    drain_input(ser, settle_time=0.5)
 
     # コマンド送信
     ser.write((cmd + "\r\n").encode("utf-8"))
@@ -203,8 +203,6 @@ def send_pem_streaming(ser, cmd, pem_content, timeout=90):
     # PEM コマンドはプロンプト "\n$ " を返さずに直接 PEM 受信モードに
     # 入る。エコーバック（コマンド文字列）が返ってくるのを待ち、
     # その後データが止まったら PEM 受信モードに入ったと判断する。
-    # settle 待ちを 1.0s に延長し、MCU が確実に PEM 受信モードに遷移
-    # してからデータ送信を開始する。
     echo_buf = b""
     cmd_short = cmd[:20]
     echo_start = time.time()
@@ -219,8 +217,7 @@ def send_pem_streaming(ser, cmd, pem_content, timeout=90):
             time.sleep(0.1)
         elif echo_detected:
             # エコー検出済みでデータが止まった → PEM待ちに入った
-            # 1.0s 待って完全に idle であることを確認
-            time.sleep(1.0)
+            time.sleep(0.5)
             if ser.in_waiting > 0:
                 echo_buf += ser.read(ser.in_waiting)
             else:
@@ -228,7 +225,7 @@ def send_pem_streaming(ser, cmd, pem_content, timeout=90):
         else:
             time.sleep(0.05)
     if echo_buf:
-        print(f"[INFO] Echo drained: {len(echo_buf)} bytes")
+        print(f"[INFO] Echo drained: {len(echo_buf)} bytes", flush=True)
 
     # PEM 内容を正規化 (CRLF → LF)
     pem_normalized = pem_content.replace("\r\n", "\n")
@@ -262,32 +259,42 @@ def send_pem_streaming(ser, cmd, pem_content, timeout=90):
         # 行間ディレイ: MCU の xQueueReceive 処理に余裕を持たせる
         time.sleep(0.1)
 
-    print(f"[INFO] Sent {sent} characters")
+    # 最終行送信後、OS のシリアル送信バッファが完全にワイヤ上に
+    # 送出されるまで待つ。115200bps で最終行（~27 bytes）の送信には
+    # 約 2.3ms だが、Linux tty ドライバのバッファリングにより
+    # flush() 完了後もハードウェア FIFO に残留する場合がある。
+    time.sleep(0.5)
+    ser.flush()
+
+    print(f"[INFO] Sent {sent} characters", flush=True)
 
     # 送信完了後、MCU が終端マーカーを検出し dataflash に書き込み、
     # 結果メッセージを送信するまで待つ。
     # OS buffer に溜まったデータ（もしあれば）も含めて全て読み取り、
     # STORE_SUCCESS / STORE_FAIL を探す。
+    # タイムアウトは 20s に短縮（MCU は終端マーカー検出後即座に応答する。
+    # 20s で来なければ PEM データが不完全で MCU が待ち状態。
+    # 90s だとジョブタイムアウト 3 分を超過する）。
     buf = b""
     start = time.time()
-    while (time.time() - start) < timeout:
+    while (time.time() - start) < min(timeout, 20):
         n = ser.in_waiting
         if n > 0:
             buf += ser.read(n)
             decoded = buf.decode("utf-8", errors="replace")
             if STORE_SUCCESS in decoded:
-                print(f"[OK] {STORE_SUCCESS}")
+                print(f"[OK] {STORE_SUCCESS}", flush=True)
                 return True
             if STORE_FAIL in decoded:
-                print(f"[FAIL] {STORE_FAIL}")
+                print(f"[FAIL] {STORE_FAIL}", flush=True)
                 return False
         else:
             time.sleep(0.1)
 
     decoded = buf.decode("utf-8", errors="replace") if buf else ""
-    print(f"[FAIL] Timeout waiting for store result")
+    print(f"[FAIL] Timeout waiting for store result", flush=True)
     if decoded:
-        print(f"[DEBUG] Received ({len(decoded)} chars): {decoded[-300:]}")
+        print(f"[DEBUG] Received ({len(decoded)} chars): {decoded[-300:]}", flush=True)
     return False
 
 
