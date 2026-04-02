@@ -208,12 +208,18 @@ def send_pem_streaming(ser, cmd, pem_content, timeout=90):
     # 送信中はエコーバック読み捨てを行わない（OS の serial buffer に任せる）。
     # Linux の serial buffer は通常 4096 bytes で、PEM (最大 ~1700 bytes)
     # には十分。
+    # split("\n") で行分割すると、末尾が "\n" の場合は最終要素が空文字列になる。
+    # 旧ロジックでは最終要素に "\n" を付与しなかったため、PEM 末尾が
+    # "-----END CERTIFICATE-----" で終わり最終 "\n" が欠落する可能性があった。
+    # MCU の終端マーカー検出は "-----END CERTIFICATE-----\n" (LF 含む) なので、
+    # 全行に "\n" を付与し、末尾空文字列はスキップする方式に変更する。
     lines = pem_normalized.split("\n")
     sent = 0
-    for i, line in enumerate(lines):
-        data = line + "\n" if i < len(lines) - 1 else line
-        if not data:
+    for line in lines:
+        if line == "" and sent > 0:
+            # split による末尾空文字列 → スキップ（LF は前行で送信済み）
             continue
+        data = line + "\n"
         ser.write(data.encode("utf-8"))
         ser.flush()
         sent += len(data)
