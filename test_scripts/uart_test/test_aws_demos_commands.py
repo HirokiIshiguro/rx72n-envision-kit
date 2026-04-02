@@ -98,7 +98,7 @@ class CommandTester:
             timeout = self.timeout
         buf = b""
         last_data_time = time.time()
-        IDLE_THRESHOLD = 2.0
+        IDLE_THRESHOLD = 2.0  # cmd_echo 未指定時のみ使用
         echo_found = cmd_echo is None
         echo_found_time = time.time() if cmd_echo is None else None
         ECHO_GRACE = 1.0  # エコー検出後、この秒数はプロンプト検出を抑制
@@ -113,13 +113,15 @@ class CommandTester:
                     echo_found = True
                     echo_found_time = time.time()
                 # エコー検出後、猶予期間を経てからプロンプト検出を有効化。
-                # 前コマンドの残留プロンプトがエコー直後に混在するのを回避。
                 if (echo_found and echo_found_time and
                         (time.time() - echo_found_time) >= ECHO_GRACE):
                     if b"\n$ " in buf or buf.endswith(b"\n$"):
                         return buf.decode("utf-8", errors="replace")
             else:
-                if buf and (time.time() - last_data_time) >= IDLE_THRESHOLD:
+                # cmd_echo 指定時は idle fallback を使わない。
+                # COM6 の間欠送信で応答途中のギャップを idle と誤判定するのを防ぐ。
+                # プロンプト検出 or timeout で終了する。
+                if cmd_echo is None and buf and (time.time() - last_data_time) >= IDLE_THRESHOLD:
                     return buf.decode("utf-8", errors="replace")
                 time.sleep(0.02)
         if buf:
