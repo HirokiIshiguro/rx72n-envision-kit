@@ -97,6 +97,8 @@ def sync_uart(ser):
 
     wait_for_prompt() のポーリングで MCU に送った複数の \\r\\n に対する
     応答をすべてドレインし、version コマンドで同期を確認する。
+    最後に OS シリアルバッファもクリアし、後続コマンドが stale データ
+    を読まないことを保証する。
     """
     print("[INFO] Synchronizing with MCU...", flush=True)
     drain_input(ser, settle_time=3.0)
@@ -113,30 +115,38 @@ def sync_uart(ser):
             time.sleep(0.05)
     drain_input(ser, settle_time=1.0)
     # 同期後にダミーコマンドで残留応答を完全排出する。
-    # wait_for_prompt() のポーリングで蓄積した応答が version 応答に
-    # 混じると、後続の最初のコマンド（STEP 1）でエコーバックしか
-    # 返らない問題が起きるため、ここで確実にフラッシュする。
     ser.write(b"version\r\n")
     ser.flush()
+    # 2回目の version のバナーを明示的に待つ
+    buf2 = b""
+    start2 = time.time()
+    while (time.time() - start2) < 10:
+        if ser.in_waiting > 0:
+            buf2 += ser.read(ser.in_waiting)
+            if b"RX72N Envision Kit" in buf2:
+                break
+        else:
+            time.sleep(0.05)
+    # 最終ドレイン + OS バッファクリア
     drain_input(ser, settle_time=2.0)
+    ser.reset_input_buffer()
     print("[INFO] MCU synchronized.", flush=True)
 
 
 def send_command(ser, cmd, timeout=15):
     """コマンドを送信し、結果出力完了を待つ
 
-    エコーバック検出後、2つ目のプロンプト "\\n$ " を待つ。
-    MCU はコマンド受理時に「エコー + プロンプト」を返し、処理完了後に
-    「結果 + プロンプト」を返す。エコーテキスト直後の最初のプロンプト
-    を見つけ、その後にさらにプロンプトが現れたら結果出力完了。
+    エコーバック検出後、エコーテキストより後ろに現れる
+    "RX72N Envision Kit" バナーで結果出力完了を判断する。
     """
     drain_input(ser)
+    ser.reset_input_buffer()
     ser.write((cmd + "\r\n").encode("utf-8"))
     ser.flush()
 
     buf = b""
     echo_seen = False
-    first_prompt_pos = -1
+    echo_pos = -1
     cmd_short = cmd[:20]
     start = time.time()
     while (time.time() - start) < timeout:
@@ -144,19 +154,20 @@ def send_command(ser, cmd, timeout=15):
         if n > 0:
             buf += ser.read(n)
             decoded = buf.decode("utf-8", errors="replace")
-            if not echo_seen:
-                if cmd_short in decoded:
-                    echo_seen = True
-            if echo_seen and first_prompt_pos < 0:
-                echo_idx = decoded.find(cmd_short)
-                search_start = echo_idx + len(cmd_short)
-                p = decoded.find("\n$ ", search_start)
-                if p >= 0:
-                    first_prompt_pos = p + 3
-            if first_prompt_pos >= 0:
-                after_first = decoded[first_prompt_pos:]
-                if "\n$ " in after_first or after_first.endswith("\n$"):
-                    return decoded
+            if not echo_seen and cmd_short in decoded:
+                echo_seen = True
+                echo_pos = decoded.find(cmd_short)
+            if echo_seen:
+                after_echo = decoded[echo_pos + len(cmd_short):]
+                if "RX72N Envision Kit" in after_echo:
+                    # バナー検出後、プロンプトまで少し待つ
+                    deadline = time.time() + 0.3
+                    while time.time() < deadline:
+                        if ser.in_waiting > 0:
+                            buf += ser.read(ser.in_waiting)
+                        else:
+                            time.sleep(0.02)
+                    return buf.decode("utf-8", errors="replace")
         else:
             time.sleep(0.02)
     if buf:
@@ -172,6 +183,7 @@ def send_simple_value(ser, cmd, timeout=15):
     """
     print(f"[SEND] {cmd}")
     drain_input(ser)
+    ser.reset_input_buffer()
     ser.write((cmd + "\r\n").encode("utf-8"))
     ser.flush()
 

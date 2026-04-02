@@ -80,12 +80,14 @@ class CommandTester:
 
         MCU のコマンド応答シーケンス:
           1. エコーバック: "command\\r\\n$ "  ← 1つ目のプロンプト（受理）
-          2. 処理結果:    "result...\\r\\n$ "  ← 2つ目のプロンプト（完了）
+          2. 処理結果:    "result...\\r\\nRX72N Envision Kit\\r\\n$ "  ← 2つ目
 
         expect_echo が指定された場合:
-          エコーバック文字列の直後に 1つ目のプロンプトが来る。
-          その1つ目のプロンプト以降にさらにプロンプトが現れたら
-          結果出力完了と判断する。
+          エコーバック検出後、エコーテキストより後ろに現れる
+          "RX72N Envision Kit" バナーで結果出力完了を判断する。
+          バナーは結果出力後にのみ送信されるため信頼性が高い。
+          send_command() は事前に reset_input_buffer() で stale data
+          をクリアしているが、念のためバナー位置もチェックする。
         expect_echo が None の場合:
           最初の \\n$ で返す（初期プロンプト検出等）。
 
@@ -97,40 +99,34 @@ class CommandTester:
             timeout = self.timeout
         buf = b""
         echo_seen = False
-        first_prompt_pos = -1  # 最初のプロンプト（エコー後）の位置
+        echo_pos = -1
         start = time.time()
         while (time.time() - start) < timeout:
             n = self.ser.in_waiting
             if n > 0:
                 buf += self.ser.read(n)
+                decoded = buf.decode("utf-8", errors="replace")
 
                 if expect_echo is None:
                     # 初期プロンプト検出: 最初の \n$ で返す
-                    if b"\n$ " in buf or buf.endswith(b"\n$"):
-                        return buf.decode("utf-8", errors="replace")
+                    if "\n$ " in decoded or decoded.endswith("\n$"):
+                        return decoded
                 else:
-                    if not echo_seen:
-                        decoded = buf.decode("utf-8", errors="replace")
-                        if expect_echo in decoded:
-                            echo_seen = True
-
-                    if echo_seen and first_prompt_pos < 0:
-                        # エコーテキストの直後に来る最初のプロンプトを探す
-                        decoded = buf.decode("utf-8", errors="replace")
-                        echo_idx = decoded.find(expect_echo)
-                        # エコーテキスト以降で最初の "\n$ " を探す
-                        prompt_search_start = echo_idx + len(expect_echo)
-                        p = decoded.find("\n$ ", prompt_search_start)
-                        if p >= 0:
-                            # 1つ目のプロンプト検出。この直後(+3)以降に
-                            # 2つ目のプロンプトが来るのを待つ
-                            first_prompt_pos = p + 3  # "\n$ " の長さ分
-
-                    if first_prompt_pos >= 0:
-                        # 1つ目のプロンプト以降で2つ目のプロンプトを探す
-                        decoded = buf.decode("utf-8", errors="replace")
-                        after_first = decoded[first_prompt_pos:]
-                        if "\n$ " in after_first or after_first.endswith("\n$"):
+                    if not echo_seen and expect_echo in decoded:
+                        echo_seen = True
+                        echo_pos = decoded.find(expect_echo)
+                    # エコー検出後、エコーより後ろのバナーで完了判断
+                    if echo_seen:
+                        after_echo = decoded[echo_pos + len(expect_echo):]
+                        if "RX72N Envision Kit" in after_echo:
+                            # バナー検出後、プロンプトまで少し待つ
+                            deadline = time.time() + 0.3
+                            while time.time() < deadline:
+                                if self.ser.in_waiting > 0:
+                                    buf += self.ser.read(
+                                        self.ser.in_waiting)
+                                else:
+                                    time.sleep(0.02)
                             return buf.decode("utf-8", errors="replace")
             else:
                 time.sleep(0.02)
@@ -161,6 +157,9 @@ class CommandTester:
         3秒ドレインし、その後 "version" コマンドを sync マーカーとして
         送信。version 応答の完了（バナー検出）を確認することで、
         MCU がキューをすべて処理済みであることを保証する。
+
+        最後に OS シリアルバッファもクリアし、後続コマンドが
+        stale データを読まないことを保証する。
         """
         print("[INFO] Synchronizing with MCU...", flush=True)
         # MCU がポーリング応答を全て送り終わるまで待つ
@@ -180,10 +179,22 @@ class CommandTester:
                 time.sleep(0.05)
         # 追加ドレイン
         self.drain_input(settle_time=1.0)
-        # 2回目の version + drain で残留応答を完全排出
+        # 2回目の version で残留応答を完全排出
         self.ser.write(b"version\r\n")
         self.ser.flush()
+        # version 応答 + バナーを明示的に待つ
+        buf2 = b""
+        start2 = time.time()
+        while (time.time() - start2) < 10:
+            if self.ser.in_waiting > 0:
+                buf2 += self.ser.read(self.ser.in_waiting)
+                if b"RX72N Envision Kit" in buf2:
+                    break
+            else:
+                time.sleep(0.05)
+        # 最終ドレイン + OS バッファクリア
         self.drain_input(settle_time=2.0)
+        self.ser.reset_input_buffer()
         print("[INFO] MCU synchronized.", flush=True)
 
     def send_command(self, cmd):
@@ -194,6 +205,10 @@ class CommandTester:
         2. 処理結果 + プロンプト（結果出力完了の合図）
         を送信する。2つ目のプロンプトまで待つことで、応答を完全に取得する。
 
+        重要: drain_input + reset_input_buffer で送信前のバッファを
+        完全にクリアする。これにより read_until_prompt は送信後に
+        受信したデータのみを処理する。
+
         Args:
             cmd: コマンド文字列（改行なし）
 
@@ -203,6 +218,8 @@ class CommandTester:
         """
         # 送信前にバッファを完全にドレイン
         self.drain_input()
+        # OS バッファも含めて完全クリア
+        self.ser.reset_input_buffer()
 
         # コマンド送信（\r\n で行末）
         self.ser.write((cmd + "\r\n").encode("utf-8"))
