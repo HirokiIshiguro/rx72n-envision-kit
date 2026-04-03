@@ -168,8 +168,8 @@ class CommandTester:
         10 秒の長めドレインで残留データを排出してから version で同期する。
         """
         print("[INFO] Synchronizing with MCU...", flush=True)
-        print("[INFO] Draining residual data from previous job (up to 10s)...", flush=True)
-        self.drain_input(settle_time=3.0, max_time=10.0)
+        print("[INFO] Draining residual data from previous job (up to 30s)...", flush=True)
+        self.drain_input(settle_time=3.0, max_time=30.0)
         self.ser.write(b"version\r\n")
         self.ser.flush()
         buf = b""
