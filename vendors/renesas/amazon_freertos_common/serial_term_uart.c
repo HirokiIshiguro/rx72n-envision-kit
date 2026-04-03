@@ -179,17 +179,22 @@ static void my_sci_callback(void *pArgs)
     if (SCI_EVT_RX_CHAR == p_args->event)
     {
         /* SCI7 一本化: 受信バイトをコマンドキューに投入。
-         * ログモード中にバイト受信 → コマンドモードに自動切替。 */
-        uint8_t byte = p_args->byte;
-        if (serial_mode == SERIAL_MODE_LOG)
+         * ログモード中にバイト受信 → コマンドモードに自動切替。
+         * R_SCI_Receive() で RX FIT ドライバのキューからバイトを取得。
+         * p_args->byte は "error occurred" 用で RX_CHAR では不定。 */
+        uint8_t byte;
+        if (R_SCI_Receive(my_sci_handle, &byte, 1) == SCI_SUCCESS)
         {
-            serial_mode = SERIAL_MODE_COMMAND;
-        }
-        if (xSerialTermQueue != NULL)
-        {
-            BaseType_t xHigherPriorityTaskWoken = pdFALSE;
-            xQueueSendFromISR(xSerialTermQueue, &byte, &xHigherPriorityTaskWoken);
-            portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+            if (serial_mode == SERIAL_MODE_LOG)
+            {
+                serial_mode = SERIAL_MODE_COMMAND;
+            }
+            if (xSerialTermQueue != NULL)
+            {
+                BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+                xQueueSendFromISR(xSerialTermQueue, &byte, &xHigherPriorityTaskWoken);
+                portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+            }
         }
     }
     else if (SCI_EVT_RXBUF_OVFL == p_args->event)
