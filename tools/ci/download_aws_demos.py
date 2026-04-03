@@ -34,6 +34,7 @@ def main():
     p.add_argument("--timeout", default="300")
     p.add_argument("--rfp-cli", default=os.environ.get("RFP_CLI", "rfp-cli"))
     p.add_argument("--rfp-tool", default=os.environ.get("RFP_TOOL", "e2l"))
+    p.add_argument("--rfp-speed", default=os.environ.get("RFP_SPEED", "750K"))
     p.add_argument("--project-dir", default=os.environ.get("CI_PROJECT_DIR", "."))
     args = p.parse_args()
 
@@ -61,7 +62,8 @@ def main():
     # boot_loader outputs the ready message on the already-opened UART.
     reset_cmd = (
         f"{args.rfp_cli} -device RX72x -tool {args.rfp_tool}"
-        f" -if fine -auth id FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"
+        f" -if fine -speed {args.rfp_speed}"
+        f" -auth id FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"
         f" -sig -run -noquery"
     )
     print(f"  Reset: {reset_cmd}")

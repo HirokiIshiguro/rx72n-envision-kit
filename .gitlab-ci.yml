@@ -424,6 +424,7 @@ download_aws_demos:
       --uart-baud "$UART_BAUD_RATE"
       --rfp-cli "$RFP_CLI"
       --rfp-tool "$RFP_TOOL"
+      --rfp-speed "${RFP_RESET_SPEED:-750K}"
       --project-dir "$CI_PROJECT_DIR"
   artifacts:
     paths:
