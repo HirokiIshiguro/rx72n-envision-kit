@@ -22,7 +22,7 @@ from test_aws_demos_commands import CommandTester  # noqa: E402
 DEFAULT_UART_PORT = os.environ.get("UART_PORT", "COM7")
 DEFAULT_UART_BAUD = int(os.environ.get("UART_BAUD_RATE", "921600"))
 DEFAULT_COMMAND_PORT = os.environ.get("COMMAND_PORT", "COM6")
-DEFAULT_COMMAND_BAUD = int(os.environ.get("COMMAND_BAUD_RATE", "115200"))
+DEFAULT_COMMAND_BAUD = int(os.environ.get("COMMAND_BAUD_RATE", "921600"))
 
 
 def list_ports() -> None:

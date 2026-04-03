@@ -38,7 +38,7 @@ from provisioning.security import mask_sensitive_output
 
 # --- 定数 ---
 DEFAULT_PORT = os.environ.get("COMMAND_PORT", "COM6")
-DEFAULT_BAUD = int(os.environ.get("COMMAND_BAUD_RATE", "115200"))
+DEFAULT_BAUD = int(os.environ.get("COMMAND_BAUD_RATE", "921600"))
 DEFAULT_TIMEOUT = 15
 
 PROMPT = "$ "

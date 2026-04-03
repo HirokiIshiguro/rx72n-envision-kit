@@ -28,7 +28,7 @@ import serial
 
 # --- 定数 ---
 DEFAULT_PORT = os.environ.get("COMMAND_PORT", "COM6")
-DEFAULT_BAUD = int(os.environ.get("COMMAND_BAUD_RATE", "115200"))
+DEFAULT_BAUD = int(os.environ.get("COMMAND_BAUD_RATE", "921600"))
 DEFAULT_TIMEOUT = 30
 
 # CommandTester を再利用 (同ディレクトリの test_aws_demos_commands.py)

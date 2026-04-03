@@ -30,7 +30,7 @@ import serial
 
 # --- デフォルト値 ---
 DEFAULT_CMD_PORT = os.environ.get("COMMAND_PORT", "COM10")
-DEFAULT_CMD_BAUD = int(os.environ.get("COMMAND_BAUD_RATE", "115200"))
+DEFAULT_CMD_BAUD = int(os.environ.get("COMMAND_BAUD_RATE", "921600"))
 DEFAULT_LOG_PORT = os.environ.get("UART_PORT", "COM7")
 DEFAULT_LOG_BAUD = int(os.environ.get("UART_BAUD_RATE", "921600"))
 DEFAULT_TIMEOUT = 120

@@ -38,9 +38,10 @@ variables:
   UART_PORT: "/dev/serial/by-id/usb-FTDI_FT232R_USB_UART_AV0KOEEG-if00-port0"
   UART_BAUD_RATE: "921600"
   UART_TIMEOUT_SEC: "30"
-  # Set #2 の COMMAND_PORT (CN8 USB Serial, SCI2, 115200bps)
-  COMMAND_PORT: "/dev/serial/by-id/usb-Renesas_Electronics_Corporation_Renesas_RSK_USB_Serial_Port_0000000000001-if00"
-  COMMAND_BAUD_RATE: "115200"
+  # SCI7 一本化: コマンドもログも同じ UART_PORT (FTDI, SCI7) を使用。
+  # COM6 (RL78/G1C, SCI2) は MCU→PC 間欠受信障害のため廃止。
+  COMMAND_PORT: "${UART_PORT}"
+  COMMAND_BAUD_RATE: "921600"
   # デバイス ID（device_config.json で定義、複数デバイス時に切り替え）
   DEVICE_ID: "rx72n-02"
   # デバイス固有 MAC アドレス（dataflash に書き込み、Ethernet PHY の MAC フィルタに使用）

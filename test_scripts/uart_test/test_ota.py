@@ -173,7 +173,7 @@ def load_device_defaults(args):
     if not args.cmd_port:
         args.cmd_port = device.get("command_port") or os.environ.get("COMMAND_PORT")
     if not args.cmd_baud:
-        args.cmd_baud = device.get("command_baud") or env_int("COMMAND_BAUD_RATE", 115200)
+        args.cmd_baud = device.get("command_baud") or env_int("COMMAND_BAUD_RATE", 921600)
     if not args.region:
         args.region = device.get("aws_region") or os.environ.get("AWS_DEFAULT_REGION") or "ap-northeast-1"
     if not args.thing_name:
@@ -1019,8 +1019,8 @@ def legacy_main():
             args.cmd_port = device.get("command_port")
         if not args.cmd_port:
             args.cmd_port = os.environ.get("COMMAND_PORT")
-        if args.cmd_baud == 115200:
-            args.cmd_baud = int(device.get("command_baud") or os.environ.get("COMMAND_BAUD_RATE") or 115200)
+        if args.cmd_baud == 921600:
+            args.cmd_baud = int(device.get("command_baud") or os.environ.get("COMMAND_BAUD_RATE") or 921600)
         if not args.region:
             args.region = device.get("aws_region", "ap-northeast-1")
         if not args.thing_name:
