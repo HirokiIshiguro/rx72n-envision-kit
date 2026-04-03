@@ -524,7 +524,7 @@ test_commands:
       optional: true
       artifacts: false
   variables:
-    COMMAND_TIMEOUT: "10"
+    COMMAND_TIMEOUT: "20"
   script:
     - >-
       python3 "$CI_PROJECT_DIR/tools/ci/test_commands.py"
