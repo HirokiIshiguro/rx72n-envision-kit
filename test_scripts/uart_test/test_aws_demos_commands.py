@@ -42,7 +42,7 @@ import serial
 # --- 定数 ---
 DEFAULT_PORT = os.environ.get("COMMAND_PORT", "COM6")
 DEFAULT_BAUD = int(os.environ.get("COMMAND_BAUD_RATE", "115200"))
-DEFAULT_TIMEOUT = int(os.environ.get("COMMAND_TIMEOUT", "10"))
+DEFAULT_TIMEOUT = int(os.environ.get("COMMAND_TIMEOUT", "20"))
 DEFAULT_RETRIES = 3
 
 PROMPT = "$ "
