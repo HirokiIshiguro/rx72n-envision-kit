@@ -110,7 +110,9 @@ class CommandTester:
                 last_data_time = time.time()
                 if not echo_found and cmd_echo_bytes and cmd_echo_bytes in buf:
                     echo_found = True
-                    echo_end_pos = buf.find(cmd_echo_bytes) + len(cmd_echo_bytes)
+                    # rfind で最後の出現を使う。stale data に同じテキストが
+                    # ある場合、find だと stale 側にヒットしてしまう。
+                    echo_end_pos = buf.rfind(cmd_echo_bytes) + len(cmd_echo_bytes)
                 if echo_found and cmd_echo_bytes:
                     # echo 以降の "\n$ " を数える。
                     # 1つ目 = echo ack (コマンド受理)
