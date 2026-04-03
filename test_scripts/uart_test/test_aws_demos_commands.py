@@ -201,7 +201,9 @@ class CommandTester:
             str: 応答文字列（エコーバック・プロンプト含む）
             None: 受信失敗
         """
-        self.drain_input(settle_time=1.5, max_time=5.0)
+        # drain を廃止。RL78/G1C の内部バッファにある旧データは
+        # drain で除去できない（PC 側到着が遅延するため）。
+        # 代わりに rfind + 2-prompt count で stale data を無視する。
         self.ser.write((cmd + "\r\n").encode("utf-8"))
         self.ser.flush()
         return self.read_until_idle(cmd_echo=cmd)
