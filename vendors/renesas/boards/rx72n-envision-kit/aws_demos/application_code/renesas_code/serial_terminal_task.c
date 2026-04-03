@@ -79,6 +79,7 @@ Typedef definitions
 #define COMMAND_TOUCH 6
 #define COMMAND_SDCARD 7
 #define COMMAND_NETWORK 8
+#define COMMAND_LOG 9
 
 #define DATA_FLASH_STORE_SUCCESS "stored data into dataflash correctly.\n"
 #define DATA_FLASH_STORE_FAIL "could not store data into dataflash.\n"
@@ -154,8 +155,9 @@ static void execute_command(uint8_t *command_line);
 static int32_t get_command_code(uint8_t *command);
 
 static sci_hdl_t sci_handle;
-static QueueHandle_t xQueue;
-static SemaphoreHandle_t xSemaphore;
+/* SCI7 一本化: serial_term_uart.c の my_sci_callback から参照される */
+QueueHandle_t xSerialTermQueue;
+SemaphoreHandle_t xSerialTermTxSerialTermTxSemaphore;
 static char *message_buffer;
 static uint32_t _10us_timer_count;
 
@@ -225,28 +227,22 @@ void serial_terminal_task( void * pvParameters )
     memset(arg4, 0, ARGUMENT4_SIZE);
     memset(message_buffer, 0, MESSAGE_BUFFER_SIZE);
 
-    R_SCI_PinSet_serial_term();
-
-    /* Set up the configuration data structure for asynchronous (UART) operation. */
-    sci_config.async.baud_rate    = MY_BSP_CFG_SERIAL_TERM_SCI_BITRATE;
-    sci_config.async.clk_src      = SCI_CLK_INT;
-    sci_config.async.data_size    = SCI_DATA_8BIT;
-    sci_config.async.parity_en    = SCI_PARITY_OFF;
-    sci_config.async.parity_type  = SCI_EVEN_PARITY;
-    sci_config.async.stop_bits    = SCI_STOPBITS_1;
-    sci_config.async.int_priority = MY_BSP_CFG_SERIAL_TERM_SCI_INTERRUPT_PRIORITY;    // 1=lowest, 15=highest
-    R_SCI_Open(SCI_CH_serial_term, SCI_MODE_ASYNC, &sci_config, sci_callback, &sci_handle);
+    /* SCI7 一本化: SCI7 は serial_term_uart.c の uart_config() で既に open 済み。
+     * handle を取得し、RX データは serial_term_uart.c の my_sci_callback() から
+     * xSerialTermQueue 経由で受信する。 */
+    extern sci_hdl_t uart_get_sci_handle(void);
+    sci_handle = uart_get_sci_handle();
 
     /* create queue */
-    xQueue = xQueueCreate(SERIAL_BUFFER_QUEUE_NUMBER, SERIAL_BUFFER_SIZE);
+    xSerialTermQueue = xQueueCreate(SERIAL_BUFFER_QUEUE_NUMBER, SERIAL_BUFFER_SIZE);
 
     /* create semaphore */
-    xSemaphore = xSemaphoreCreateBinary();
+    xSerialTermTxSemaphore = xSemaphoreCreateBinary();
 
     serial_terminal_putstring(task_info->hWin_serial_terminal, sci_handle, PROMPT);
     while(1)
     {
-        xQueueReceive(xQueue, &tmp, portMAX_DELAY);
+        xQueueReceive(xSerialTermQueue, &tmp, portMAX_DELAY);
         serial_terminal_putstring(task_info->hWin_serial_terminal, sci_handle, tmp);
         sci_buffer[current_buffer_pointer++] = tmp[0];
         if((tmp[0] == 0x0a) && (sci_buffer[current_buffer_pointer - 2] == 0x0d))
@@ -313,7 +309,7 @@ void serial_terminal_task( void * pvParameters )
                                     memset(sci_buffer, 0, SCI_BUFFER_SIZE);
                                     while(1)
                                     {
-                                        xQueueReceive(xQueue, &tmp, portMAX_DELAY);
+                                        xQueueReceive(xSerialTermQueue, &tmp, portMAX_DELAY);
                                         serial_terminal_putstring(task_info->hWin_serial_terminal, sci_handle, tmp);
                                         sci_buffer[current_buffer_pointer++] = tmp[0];
                                         if((strstr(sci_buffer, "-----END RSA PRIVATE KEY-----\n")) || (strstr(sci_buffer, "-----END CERTIFICATE-----\n")))
@@ -652,7 +648,7 @@ void serial_terminal_task( void * pvParameters )
                                 /* Receive binary data without echo */
                                 while(bytes_in_chunk < expected)
                                 {
-                                    xQueueReceive(xQueue, &tmp, portMAX_DELAY);
+                                    xQueueReceive(xSerialTermQueue, &tmp, portMAX_DELAY);
                                     sci_buffer[bytes_in_chunk++] = tmp[0];
                                 }
 
@@ -855,6 +851,14 @@ void serial_terminal_task( void * pvParameters )
                         }
                         break;
                     }
+                    case COMMAND_LOG:
+                    {
+                        /* SCI7 一本化: ログモードに復帰 */
+                        extern volatile int32_t serial_mode;
+                        serial_mode = SERIAL_MODE_LOG;
+                        serial_terminal_putstring(task_info->hWin_serial_terminal, sci_handle, "Returning to log mode.\r\n");
+                        break;
+                    }
                     default:
                         serial_terminal_putstring(task_info->hWin_serial_terminal, sci_handle, COMMAND_NOT_FOUND);
                         break;
@@ -918,6 +922,10 @@ static int32_t get_command_code(uint8_t *command)
     {
         return_code = COMMAND_NETWORK;
     }
+    else if(!strcmp((char*)command, "log"))
+    {
+        return_code = COMMAND_LOG;
+    }
     else
     {
         return_code = COMMAND_UNKNOWN;
@@ -955,7 +963,7 @@ static void serial_terminal_putstring(WM_HWIN hWin_handle, sci_hdl_t sci_handle,
         str_length -= transmit_length;
         string += transmit_length;
 
-        xSemaphoreTake(xSemaphore, portMAX_DELAY);
+        xSemaphoreTake(xSerialTermTxSemaphore, portMAX_DELAY);
 
     }
 
@@ -966,54 +974,11 @@ static void serial_terminal_putstring(WM_HWIN hWin_handle, sci_hdl_t sci_handle,
 
 }
 
+/* SCI7 一本化: SCI2 の callback は不要。RX/TX イベントは
+ * serial_term_uart.c の my_sci_callback() で処理される。 */
 static void sci_callback(void *pArgs)
 {
-    sci_cb_args_t   *args;
-    sci_err_t   sci_err;
-    uint8_t tmp;
-    static BaseType_t xHigherPriorityTaskWoken;
-
-    args = (sci_cb_args_t *)pArgs;
-
-    if (args->event == SCI_EVT_RX_CHAR)
-    {
-        /* From RXI interrupt; received character data is in args->byte */
-        nop();
-        sci_err = R_SCI_Receive(sci_handle, &tmp, 1);
-        if(sci_err == SCI_SUCCESS)
-        {
-            xQueueSendFromISR(xQueue, &tmp, NULL);
-        }
-    }
-    else if (args->event == SCI_EVT_RXBUF_OVFL)
-    {
-        /* From RXI interrupt; rx queue is full; 'lost' data is in args->byte
-           You will need to increase buffer size or reduce baud rate */
-        nop();
-    }
-    else if (args->event == SCI_EVT_OVFL_ERR)
-    {
-        /* From receiver overflow error interrupt; error data is in args->byte
-           Error condition is cleared in calling interrupt routine */
-        nop();
-    }
-    else if (args->event == SCI_EVT_FRAMING_ERR)
-    {
-        /* From receiver framing error interrupt; error data is in args->byte
-           Error condition is cleared in calling interrupt routine */
-        nop();
-    }
-    else if (args->event == SCI_EVT_PARITY_ERR)
-    {
-        /* From receiver parity error interrupt; error data is in args->byte
-           Error condition is cleared in calling interrupt routine */
-        nop();
-    }
-    else if (args->event == SCI_EVT_TEI)
-    {
-        xSemaphoreGiveFromISR( xSemaphore, &xHigherPriorityTaskWoken );
-    }
-    portYIELD_FROM_ISR( xHigherPriorityTaskWoken );
+    (void)pArgs;
 }
 
 void vConfigureTimerForRunTimeStats(void)

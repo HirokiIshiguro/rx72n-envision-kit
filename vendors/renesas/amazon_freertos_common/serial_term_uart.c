@@ -39,6 +39,9 @@ Includes   <System Includes> , "Project Includes"
 #include "platform.h"           // Located in the FIT BSP module
 #include "r_sci_rx_if.h"        // The SCI module API interface file.
 #include "r_pinset.h"
+#include "FreeRTOS.h"
+#include "queue.h"
+#include "semphr.h"
 
 /* for using Segger emWin */
 #include "GUI.h"
@@ -98,6 +101,14 @@ Includes   <System Includes> , "Project Includes"
  Exported global variables and functions (to be accessed by other files)
  *******************************************************************************/
 
+/* SCI7 一本化: ログモード ↔ コマンドモードの状態管理 */
+#define SERIAL_MODE_LOG     0
+#define SERIAL_MODE_COMMAND 1
+volatile int32_t serial_mode = SERIAL_MODE_LOG;
+
+/* serial_terminal_task.c で作成されるコマンド受信キュー */
+extern QueueHandle_t xSerialTermQueue;
+
 /*******************************************************************************
  Private variables and functions
  *******************************************************************************/
@@ -109,7 +120,7 @@ Private global variables and functions
 ******************************************************************************/
 static void my_sci_callback(void *pArgs);
 
-/* Handle storage. */
+/* Handle storage. Shared with serial_terminal_task via uart_get_sci_handle(). */
 sci_hdl_t     my_sci_handle;
 
 /*****************************************************************************
@@ -167,8 +178,19 @@ static void my_sci_callback(void *pArgs)
 
     if (SCI_EVT_RX_CHAR == p_args->event)
     {
-        /* From RXI interrupt; received character data is in p_args->byte */
-    	R_BSP_NOP();
+        /* SCI7 一本化: 受信バイトをコマンドキューに投入。
+         * ログモード中にバイト受信 → コマンドモードに自動切替。 */
+        uint8_t byte = p_args->byte;
+        if (serial_mode == SERIAL_MODE_LOG)
+        {
+            serial_mode = SERIAL_MODE_COMMAND;
+        }
+        if (xSerialTermQueue != NULL)
+        {
+            BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+            xQueueSendFromISR(xSerialTermQueue, &byte, &xHigherPriorityTaskWoken);
+            portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+        }
     }
     else if (SCI_EVT_RXBUF_OVFL == p_args->event)
     {
@@ -194,6 +216,19 @@ static void my_sci_callback(void *pArgs)
            Error condition is cleared in calling interrupt routine */
     	R_BSP_NOP();
     }
+    else if (SCI_EVT_TEI == p_args->event)
+    {
+        /* SCI7 一本化: 送信完了割り込み。
+         * serial_terminal_task の serial_terminal_putstring() が
+         * xSemaphore で送信完了を待っている。 */
+        extern SemaphoreHandle_t xSerialTermTxSemaphore;
+        if (xSerialTermTxSemaphore != NULL)
+        {
+            BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+            xSemaphoreGiveFromISR(xSerialTermTxSemaphore, &xHigherPriorityTaskWoken);
+            portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+        }
+    }
     else
     {
         /* Do nothing */
@@ -213,6 +248,13 @@ void uart_string_printf(char *pString)
     while(!task_info->gui_initialize_complete_flag)
     {
     	vTaskDelay(1);
+    }
+
+    /* コマンドモード中はログ出力を抑制。
+     * コマンド応答とログが混在するのを防ぐ。 */
+    if (serial_mode != SERIAL_MODE_LOG)
+    {
+        return;
     }
 
     str_length = (uint16_t)strlen(pString);
@@ -246,4 +288,16 @@ void uart_string_printf(char *pString)
     {
     	R_BSP_NOP(); //TODO error handling code
     }
+}
+
+/*****************************************************************************
+* Function Name: uart_get_sci_handle
+* Description  : Returns the SCI handle opened by uart_config().
+*                Used by serial_terminal_task to share the SCI7 port.
+* Arguments    : none
+* Return Value : sci_hdl_t handle
+******************************************************************************/
+sci_hdl_t uart_get_sci_handle(void)
+{
+    return my_sci_handle;
 }
