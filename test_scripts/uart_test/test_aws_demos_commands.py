@@ -98,10 +98,9 @@ class CommandTester:
             timeout = self.timeout
         buf = b""
         last_data_time = time.time()
-        IDLE_THRESHOLD = 2.0  # cmd_echo 未指定時のみ使用
+        IDLE_THRESHOLD = 2.0
         echo_found = cmd_echo is None
-        echo_found_time = time.time() if cmd_echo is None else None
-        ECHO_GRACE = 3.0  # エコー検出後、MCU 処理完了まで待つ（echo ack スキップ）
+        echo_end_pos = 0
         cmd_echo_bytes = cmd_echo.encode("utf-8") if cmd_echo else None
         start = time.time()
         while (time.time() - start) < timeout:
@@ -111,19 +110,25 @@ class CommandTester:
                 last_data_time = time.time()
                 if not echo_found and cmd_echo_bytes and cmd_echo_bytes in buf:
                     echo_found = True
-                    echo_found_time = time.time()
-                # エコー検出後、猶予期間を経てからプロンプト検出を有効化。
-                # 3s grace で MCU 処理完了を待つ。grace 終了時に
-                # バッファ内の最後のプロンプトが completion prompt。
-                if (echo_found and echo_found_time and
-                        (time.time() - echo_found_time) >= ECHO_GRACE):
+                    echo_end_pos = buf.find(cmd_echo_bytes) + len(cmd_echo_bytes)
+                if echo_found and cmd_echo_bytes:
+                    # echo 以降の "\n$ " を数える。
+                    # 1つ目 = echo ack (コマンド受理)
+                    # 2つ目 = completion (結果出力完了)
+                    after_echo = buf[echo_end_pos:]
+                    prompt_count = after_echo.count(b"\n$ ")
+                    if after_echo.endswith(b"\n$"):
+                        prompt_count += 1
+                    if prompt_count >= 2:
+                        return buf.decode("utf-8", errors="replace")
+                elif echo_found:
+                    # cmd_echo 未指定: 最初の \n$ で返す
                     if b"\n$ " in buf or buf.endswith(b"\n$"):
                         return buf.decode("utf-8", errors="replace")
             else:
-                # cmd_echo 指定時は idle fallback を使わない。
-                # COM6 の間欠送信で応答途中のギャップを idle と誤判定するのを防ぐ。
-                # プロンプト検出 or timeout で終了する。
-                if cmd_echo is None and buf and (time.time() - last_data_time) >= IDLE_THRESHOLD:
+                # idle fallback: 長時間データが来ない場合 (COM6 障害時)
+                if (echo_found and buf and
+                        (time.time() - last_data_time) >= IDLE_THRESHOLD):
                     return buf.decode("utf-8", errors="replace")
                 time.sleep(0.02)
         if buf:
