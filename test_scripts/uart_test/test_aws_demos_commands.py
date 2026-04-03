@@ -101,7 +101,7 @@ class CommandTester:
         IDLE_THRESHOLD = 2.0  # cmd_echo 未指定時のみ使用
         echo_found = cmd_echo is None
         echo_found_time = time.time() if cmd_echo is None else None
-        ECHO_GRACE = 1.0  # エコー検出後、この秒数はプロンプト検出を抑制
+        ECHO_GRACE = 3.0  # エコー検出後、MCU 処理完了まで待つ（echo ack スキップ）
         cmd_echo_bytes = cmd_echo.encode("utf-8") if cmd_echo else None
         start = time.time()
         while (time.time() - start) < timeout:
@@ -113,24 +113,12 @@ class CommandTester:
                     echo_found = True
                     echo_found_time = time.time()
                 # エコー検出後、猶予期間を経てからプロンプト検出を有効化。
+                # 3s grace で MCU 処理完了を待つ。grace 終了時に
+                # バッファ内の最後のプロンプトが completion prompt。
                 if (echo_found and echo_found_time and
                         (time.time() - echo_found_time) >= ECHO_GRACE):
                     if b"\n$ " in buf or buf.endswith(b"\n$"):
-                        # プロンプト検出後、0.5s 追加データが来ないか確認。
-                        # MCU は echo ack プロンプトの後にすぐ結果を送るため、
-                        # echo ack なら 0.5s 以内に追加データが来る。
-                        # completion プロンプトなら追加データは来ない。
-                        prompt_check = time.time()
-                        is_completion = True
-                        while (time.time() - prompt_check) < 0.5:
-                            if self.ser.in_waiting > 0:
-                                buf += self.ser.read(self.ser.in_waiting)
-                                is_completion = False
-                                break
-                            time.sleep(0.02)
-                        if is_completion:
-                            return buf.decode("utf-8", errors="replace")
-                        # echo ack だった → 読み続ける
+                        return buf.decode("utf-8", errors="replace")
             else:
                 # cmd_echo 指定時は idle fallback を使わない。
                 # COM6 の間欠送信で応答途中のギャップを idle と誤判定するのを防ぐ。
