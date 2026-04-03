@@ -145,6 +145,10 @@ Typedef definitions
 /******************************************************************************
  External variables
  ******************************************************************************/
+/* SCI7 一本化: serial_term_uart.c で定義されるモード変数 */
+extern volatile int32_t serial_mode;
+#define SERIAL_MODE_LOG     0
+#define SERIAL_MODE_COMMAND 1
 
 /******************************************************************************
  Private global variables
@@ -157,7 +161,7 @@ static int32_t get_command_code(uint8_t *command);
 static sci_hdl_t sci_handle;
 /* SCI7 一本化: serial_term_uart.c の my_sci_callback から参照される */
 QueueHandle_t xSerialTermQueue;
-SemaphoreHandle_t xSerialTermTxSerialTermTxSemaphore;
+SemaphoreHandle_t xSerialTermTxSemaphore;
 static char *message_buffer;
 static uint32_t _10us_timer_count;
 
