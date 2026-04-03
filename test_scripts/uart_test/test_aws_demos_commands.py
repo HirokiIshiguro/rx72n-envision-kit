@@ -116,7 +116,21 @@ class CommandTester:
                 if (echo_found and echo_found_time and
                         (time.time() - echo_found_time) >= ECHO_GRACE):
                     if b"\n$ " in buf or buf.endswith(b"\n$"):
-                        return buf.decode("utf-8", errors="replace")
+                        # プロンプト検出後、0.5s 追加データが来ないか確認。
+                        # MCU は echo ack プロンプトの後にすぐ結果を送るため、
+                        # echo ack なら 0.5s 以内に追加データが来る。
+                        # completion プロンプトなら追加データは来ない。
+                        prompt_check = time.time()
+                        is_completion = True
+                        while (time.time() - prompt_check) < 0.5:
+                            if self.ser.in_waiting > 0:
+                                buf += self.ser.read(self.ser.in_waiting)
+                                is_completion = False
+                                break
+                            time.sleep(0.02)
+                        if is_completion:
+                            return buf.decode("utf-8", errors="replace")
+                        # echo ack だった → 読み続ける
             else:
                 # cmd_echo 指定時は idle fallback を使わない。
                 # COM6 の間欠送信で応答途中のギャップを idle と誤判定するのを防ぐ。
