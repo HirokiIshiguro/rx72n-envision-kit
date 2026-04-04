@@ -121,10 +121,6 @@ class CommandTester:
         if timeout is None:
             timeout = self.timeout
         buf = b""
-        last_data_time = time.time()
-        # MCU のコマンド処理は 5-7 秒かかることがある（cpuload 計算等）。
-        # PROMPT 検出 (\n$) が優先で、IDLE は fallback。
-        IDLE_THRESHOLD = 10.0
         echo_found = cmd_echo is None
         echo_end_pos = 0
         cmd_echo_bytes = cmd_echo.encode("utf-8") if cmd_echo else None
@@ -133,7 +129,6 @@ class CommandTester:
             n = self.ser.in_waiting
             if n > 0:
                 buf += self.ser.read(n)
-                last_data_time = time.time()
                 if not echo_found and cmd_echo_bytes and cmd_echo_bytes in buf:
                     echo_found = True
                     # rfind で最後の出現を使う。stale data に同じテキストが
@@ -160,16 +155,9 @@ class CommandTester:
                     if b"\n$ " in buf or buf.endswith(b"\n$"):
                         return buf.decode("utf-8", errors="replace")
             else:
-                # idle fallback: 長時間データが来ない場合
-                if (echo_found and buf and
-                        (time.time() - last_data_time) >= IDLE_THRESHOLD):
-                    elapsed = time.time() - start
-                    print(f"[READ] IDLE exit: {len(buf)}B, {elapsed:.1f}s, "
-                          f"echo_found={echo_found}",
-                          flush=True)
-                    print(f"[READ]   raw[-200:]: {repr(buf[-200:].decode('utf-8', errors='replace'))}",
-                          flush=True)
-                    return buf.decode("utf-8", errors="replace")
+                # IDLE fallback 無効: PROMPT 検出のみに依存。
+                # MCU の応答速度がランごとに変動するため、固定 IDLE threshold は
+                # 信頼できない。TIMEOUT がセーフティネット。
                 time.sleep(0.02)
         elapsed = time.time() - start
         print(f"[READ] TIMEOUT exit: {len(buf)}B, {elapsed:.1f}s, "
