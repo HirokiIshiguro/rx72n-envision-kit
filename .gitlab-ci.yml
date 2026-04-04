@@ -500,7 +500,7 @@ test_commands:
   extends:
     - .pc_device_job
     - .pc_pyserial_job
-  timeout: 5 minutes
+  timeout: 15 minutes
   rules:
     - if: $RUN_RFP_SOAK_TEST == "true"
       when: never
@@ -520,11 +520,10 @@ test_commands:
     - job: health_aws_demos_startup
       optional: true
       artifacts: false
-    # provision 前に実行: MQTT 未接続のため serial_terminal_task が高速応答。
-    # provision 後は MQTT/TLS タスクが CPU を占有し応答に数分かかるため、
-    # コマンドテストは MQTT 接続前に完了させる。
+    # provision 前に実行。Ethernet/DHCP 初期化中でも serial_terminal_task が
+    # 応答に 20-60 秒かかることがあるため、タイムアウトを 60s に設定。
   variables:
-    COMMAND_TIMEOUT: "20"
+    COMMAND_TIMEOUT: "60"
   script:
     - >-
       python3 "$CI_PROJECT_DIR/tools/ci/test_commands.py"
