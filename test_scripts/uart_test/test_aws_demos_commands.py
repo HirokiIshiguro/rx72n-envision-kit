@@ -141,13 +141,13 @@ class CommandTester:
                     echo_end_pos = buf.rfind(cmd_echo_bytes) + len(cmd_echo_bytes)
                 if echo_found and cmd_echo_bytes:
                     # echo 以降の "\n$ " を数える。
-                    # 1つ目 = echo ack (コマンド受理)
-                    # 2つ目 = completion (結果出力完了)
+                    # SCI7 一本化: MCU は echo 後にプロンプトを 1 回だけ出力。
+                    # echo ack プロンプトは存在しない。
                     after_echo = buf[echo_end_pos:]
                     prompt_count = after_echo.count(b"\n$ ")
                     if after_echo.endswith(b"\n$"):
                         prompt_count += 1
-                    if prompt_count >= 2:
+                    if prompt_count >= 1:
                         elapsed = time.time() - start
                         print(f"[READ] PROMPT exit: {len(buf)}B, {elapsed:.1f}s, "
                               f"echo@{echo_end_pos}, prompts={prompt_count}",
