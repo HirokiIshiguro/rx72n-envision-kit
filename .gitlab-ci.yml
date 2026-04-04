@@ -499,7 +499,7 @@ test_commands:
   extends:
     - .pc_device_job
     - .pc_pyserial_job
-  timeout: 5 minutes
+  timeout: 25 minutes
   rules:
     - if: $RUN_RFP_SOAK_TEST == "true"
       when: never
@@ -525,7 +525,7 @@ test_commands:
       optional: true
       artifacts: false
   variables:
-    COMMAND_TIMEOUT: "20"
+    COMMAND_TIMEOUT: "120"
   script:
     - >-
       python3 "$CI_PROJECT_DIR/tools/ci/test_commands.py"

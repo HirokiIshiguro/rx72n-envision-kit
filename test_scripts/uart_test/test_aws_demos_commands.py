@@ -42,7 +42,7 @@ import serial
 # --- 定数 ---
 DEFAULT_PORT = os.environ.get("COMMAND_PORT", "COM6")
 DEFAULT_BAUD = int(os.environ.get("COMMAND_BAUD_RATE", "921600"))
-DEFAULT_TIMEOUT = int(os.environ.get("COMMAND_TIMEOUT", "20"))
+DEFAULT_TIMEOUT = int(os.environ.get("COMMAND_TIMEOUT", "120"))
 DEFAULT_RETRIES = 3
 
 PROMPT = "$ "
@@ -96,7 +96,10 @@ class CommandTester:
             timeout = self.timeout
         buf = b""
         last_data_time = time.time()
-        IDLE_THRESHOLD = 2.0
+        # SCI7 (FTDI) では MCU タスク飢餓で応答に数十秒かかることがある。
+        # idle fallback よりプロンプト検出 (\n$ × 2) を優先するため、
+        # idle threshold を十分大きく設定する。
+        IDLE_THRESHOLD = 30.0
         echo_found = cmd_echo is None
         echo_end_pos = 0
         cmd_echo_bytes = cmd_echo.encode("utf-8") if cmd_echo else None
