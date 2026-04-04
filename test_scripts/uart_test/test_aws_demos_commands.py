@@ -163,26 +163,43 @@ class CommandTester:
         """MCU との同期を確立する
 
         provision ジョブが大量の PEM データを書き込んだ場合、
-        RL78/G1C USB シリアルバッファに数 KB の残留データがある。
-        ジョブ間でポートを開き直しても RL78/G1C バッファはクリアされない。
-        10 秒の長めドレインで残留データを排出してから version で同期する。
+        FTDI USB シリアルバッファに数 KB の残留データがある。
+        ジョブ間でポートを開き直してもバッファはクリアされない。
+
+        Phase 1: 残留データを完全排出
+        Phase 2: CRLF 連打で partial command state をフラッシュ
+        Phase 3: OS バッファクリア後に version で同期確認
         """
         print("[INFO] Synchronizing with MCU...", flush=True)
-        print("[INFO] Draining residual data from previous job (up to 30s)...", flush=True)
+
+        # Phase 1: 残留データを排出
+        print("[INFO] Phase 1: Draining residual data (up to 30s)...", flush=True)
         self.drain_input(settle_time=3.0, max_time=30.0)
+
+        # Phase 2: CRLF を送って MCU 側の partial command をフラッシュ
+        print("[INFO] Phase 2: Flushing MCU command state...", flush=True)
+        for _ in range(5):
+            self.ser.write(b"\r\n")
+            self.ser.flush()
+            time.sleep(0.1)
+        self.drain_input(settle_time=2.0, max_time=10.0)
+
+        # Phase 3: OS バッファをクリアしてから version で同期確認
+        print("[INFO] Phase 3: Verifying sync with version command...", flush=True)
+        self.ser.reset_input_buffer()
         self.ser.write(b"version\r\n")
         self.ser.flush()
-        buf = b""
-        start = time.time()
-        while (time.time() - start) < 10:
-            if self.ser.in_waiting > 0:
-                buf += self.ser.read(self.ser.in_waiting)
-                if b"RX72N Envision Kit" in buf and b"version" in buf:
-                    break
-            else:
-                time.sleep(0.05)
-        self.drain_input(settle_time=2.0)
-        print("[INFO] MCU synchronized.", flush=True)
+        response = self.read_until_idle(cmd_echo="version", timeout=10)
+        if response and "v2.0." in response:
+            print("[INFO] MCU synchronized.", flush=True)
+        else:
+            detail = repr(response[:100]) if response else "None"
+            print(f"[WARN] Sync response: {detail}", flush=True)
+            # 追加ドレインで回復を試みる
+            self.drain_input(settle_time=2.0)
+
+        # 最終ドレイン
+        self.drain_input(settle_time=1.0)
 
     def send_command(self, cmd):
         """コマンドを送信し、応答を取得する (read-until-prompt)
@@ -328,10 +345,12 @@ def check_version(body):
     """version コマンドの応答を検証"""
     if not body:
         return False, "Empty response"
-    # バージョン文字列が含まれることを確認（例: "v2.0.2"）
-    if "v" in body.lower() or "version" in body.lower() or "." in body:
-        return True, f"Version: {body.strip()}"
-    return False, f"Unexpected: {body.strip()}"
+    import re
+    # バージョン文字列のパターンマッチ（例: "v2.0.2", "v1.0.0"）
+    match = re.search(r'v\d+\.\d+\.\d+', body)
+    if match:
+        return True, f"Version: {match.group()}"
+    return False, f"Unexpected: {body.strip()[:100]}"
 
 
 def check_cpuload_read(body):
