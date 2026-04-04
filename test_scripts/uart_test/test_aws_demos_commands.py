@@ -149,18 +149,36 @@ class CommandTester:
                     if after_echo.endswith(b"\n$"):
                         prompt_count += 1
                     if prompt_count >= 2:
+                        elapsed = time.time() - start
+                        print(f"[READ] PROMPT exit: {len(buf)}B, {elapsed:.1f}s, "
+                              f"echo@{echo_end_pos}, prompts={prompt_count}",
+                              flush=True)
+                        print(f"[READ]   raw[-200:]: {repr(buf[-200:].decode('utf-8', errors='replace'))}",
+                              flush=True)
                         return buf.decode("utf-8", errors="replace")
                 elif echo_found:
                     # cmd_echo 未指定: 最初の \n$ で返す
                     if b"\n$ " in buf or buf.endswith(b"\n$"):
                         return buf.decode("utf-8", errors="replace")
             else:
-                # idle fallback: 長時間データが来ない場合 (COM6 障害時)
+                # idle fallback: 長時間データが来ない場合
                 if (echo_found and buf and
                         (time.time() - last_data_time) >= IDLE_THRESHOLD):
+                    elapsed = time.time() - start
+                    print(f"[READ] IDLE exit: {len(buf)}B, {elapsed:.1f}s, "
+                          f"echo_found={echo_found}",
+                          flush=True)
+                    print(f"[READ]   raw[-200:]: {repr(buf[-200:].decode('utf-8', errors='replace'))}",
+                          flush=True)
                     return buf.decode("utf-8", errors="replace")
                 time.sleep(0.02)
+        elapsed = time.time() - start
+        print(f"[READ] TIMEOUT exit: {len(buf)}B, {elapsed:.1f}s, "
+              f"echo_found={echo_found}",
+              flush=True)
         if buf:
+            print(f"[READ]   raw[-200:]: {repr(buf[-200:].decode('utf-8', errors='replace'))}",
+                  flush=True)
             return buf.decode("utf-8", errors="replace")
         return None
 
