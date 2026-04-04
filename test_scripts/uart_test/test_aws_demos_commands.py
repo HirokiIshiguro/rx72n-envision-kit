@@ -581,12 +581,6 @@ def main():
         )
 
         tester.run_test(
-            "timezone", "timezone UTC+09:00",
-            check_timezone,
-            "タイムゾーン設定 (JST)"
-        )
-
-        tester.run_test(
             "touch_any", "touch any",
             check_touch_any,
             "疑似タッチイベント (画面中央 240,136)"
@@ -604,6 +598,14 @@ def main():
             "dataflash_read", "dataflash read",
             check_dataflash_read,
             "全設定データ読み出し"
+        )
+
+        # timezone は SNTP 同期等でネットワーク操作を伴い >60s かかることが
+        # あるため最後に実行。タイムアウトしても他テストに影響しない。
+        tester.run_test(
+            "timezone", "timezone UTC+09:00",
+            check_timezone,
+            "タイムゾーン設定 (JST)"
         )
 
         if not args.skip_erase:
