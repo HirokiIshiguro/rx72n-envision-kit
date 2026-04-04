@@ -16,6 +16,7 @@ def main() -> int:
     parser.add_argument("--codesigner-cert", default=None)
     parser.add_argument("--command-port", default=os.environ.get("COMMAND_PORT"))
     parser.add_argument("--mac-address", default=os.environ.get("MAC_ADDR"))
+    parser.add_argument("--allow-missing-write-confirmation", action="store_true")
     parser.add_argument("--project-dir", default=os.environ.get("CI_PROJECT_DIR", "."))
     args = parser.parse_args()
 
@@ -30,6 +31,8 @@ def main() -> int:
         cmd += ["--port", resolve_port(args.command_port)]
     if args.mac_address:
         cmd += ["--mac-address", args.mac_address]
+    if args.allow_missing_write_confirmation:
+        cmd += ["--allow-missing-write-confirmation"]
 
     print(f"  > {' '.join(cmd)}", flush=True)
     result = subprocess.run(cmd)

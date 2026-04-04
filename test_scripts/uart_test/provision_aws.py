@@ -287,6 +287,14 @@ def main():
                         help="Path to code signer certificate PEM file (OTA)")
     parser.add_argument("--mac-address", default=None,
                         help="Ethernet MAC address to store in dataflash")
+    parser.add_argument(
+        "--allow-missing-write-confirmation",
+        action="store_true",
+        help=(
+            "Return success even if some writes lack explicit UART confirmation. "
+            "Use only when a later functional test will validate provisioning."
+        ),
+    )
     args = parser.parse_args()
 
     # --device-id が指定された場合、device_config.json から設定を解決
@@ -506,9 +514,12 @@ def main():
         sys.exit(0)
     else:
         failed = [name for name, ok in results.items() if not ok]
-        print(f"[WARN] Missing write confirmation for: {', '.join(failed)}")
-        print("[WARN] Proceeding; confirm_aws_mqtt will perform functional validation.")
-        sys.exit(0)
+        if args.allow_missing_write_confirmation:
+            print(f"[WARN] Missing write confirmation for: {', '.join(failed)}")
+            print("[WARN] Proceeding; a later functional test must validate provisioning.")
+            sys.exit(0)
+        print(f"[FAIL] Missing write confirmation for: {', '.join(failed)}")
+        sys.exit(1)
 
 
 if __name__ == "__main__":
