@@ -64,9 +64,7 @@ class CommandTester:
     def open(self):
         """シリアルポートを開く"""
         self.ser = serial.Serial(self.port, self.baud, timeout=0)
-        # バッファをクリア
         time.sleep(0.1)
-        self.ser.reset_input_buffer()
         print(f"[INFO] Opened {self.port} at {self.baud} bps")
 
     def close(self):
@@ -181,47 +179,42 @@ class CommandTester:
     def sync(self):
         """MCU との同期を確立する
 
-        provision ジョブが大量の PEM データを書き込んだ場合、
-        FTDI USB シリアルバッファに数 KB の残留データがある。
-        ジョブ間でポートを開き直してもバッファはクリアされない。
+        provision ジョブ後、MCU の serial_terminal_putstring が前コマンドの
+        出力を完了していない場合がある。version コマンドを繰り返し送り、
+        クリーンな応答 (vX.Y.Z) が返るまでリトライする。
 
-        Phase 1: 残留データを完全排出
-        Phase 2: CRLF 連打で partial command state をフラッシュ
-        Phase 3: OS バッファクリア後に version で同期確認
+        各試行で version を送信し、応答を read_until_idle で取得。
+        stale データが混じっている間はリトライ。MCU のコマンドキューが
+        空になれば version の正しい応答が返る。
         """
+        import re
         print("[INFO] Synchronizing with MCU...", flush=True)
 
-        # Phase 1: 残留データを排出
-        # settle=5s: MCU の serial_terminal_putstring が TX リトライ中にポーズする
-        # 場合、ポートが開いてから FTDI がドレインし MCU TX バッファが空くまで
-        # 数秒かかることがある。5s の無音確認で完全排出を保証する。
-        print("[INFO] Phase 1: Draining residual data (settle=5s, max=60s)...", flush=True)
-        self.drain_input(settle_time=5.0, max_time=60.0, label="phase1")
+        # 初期ドレイン: ポートオープン直後の FTDI バッファ残留を排出
+        self.drain_input(settle_time=3.0, max_time=30.0, label="initial-drain")
 
-        # Phase 2: CRLF を送って MCU 側の partial command をフラッシュ
-        print("[INFO] Phase 2: Flushing MCU command state...", flush=True)
-        for _ in range(5):
-            self.ser.write(b"\r\n")
+        for attempt in range(1, 16):
+            # version 送信
+            self.ser.write(b"version\r\n")
             self.ser.flush()
-            time.sleep(0.1)
-        self.drain_input(settle_time=2.0, max_time=10.0, label="phase2")
 
-        # Phase 3: OS バッファをクリアしてから version で同期確認
-        print("[INFO] Phase 3: Verifying sync with version command...", flush=True)
-        self.ser.reset_input_buffer()
-        self.ser.write(b"version\r\n")
-        self.ser.flush()
-        response = self.read_until_idle(cmd_echo="version", timeout=10)
-        if response and "v2.0." in response:
-            print("[INFO] MCU synchronized.", flush=True)
-        else:
+            # 応答読み取り (echo + prompt 待ち、最大 10s)
+            response = self.read_until_idle(cmd_echo="version", timeout=10)
+
+            if response and re.search(r'v\d+\.\d+\.\d+', response):
+                # クリーンな version 応答を確認
+                ver = re.search(r'v\d+\.\d+\.\d+', response).group()
+                print(f"[INFO] MCU synchronized on attempt {attempt}. FW: {ver}", flush=True)
+                # 最終ドレインで prompt 後の残留をクリア
+                self.drain_input(settle_time=1.0)
+                return
+
+            # stale データ — ドレインしてリトライ
             detail = repr(response[:100]) if response else "None"
-            print(f"[WARN] Sync response: {detail}", flush=True)
-            # 追加ドレインで回復を試みる
-            self.drain_input(settle_time=2.0)
+            print(f"[WARN] Sync attempt {attempt}: {detail}", flush=True)
+            self.drain_input(settle_time=2.0, max_time=10.0, label=f"sync-retry-{attempt}")
 
-        # 最終ドレイン
-        self.drain_input(settle_time=1.0)
+        print("[WARN] Sync not achieved after 15 attempts — proceeding anyway", flush=True)
 
     def send_command(self, cmd):
         """コマンドを送信し、応答を取得する (read-until-prompt)
