@@ -500,7 +500,7 @@ test_commands:
   extends:
     - .pc_device_job
     - .pc_pyserial_job
-  timeout: 15 minutes
+  timeout: 45 minutes
   rules:
     - if: $RUN_RFP_SOAK_TEST == "true"
       when: never
@@ -520,10 +520,11 @@ test_commands:
     - job: health_aws_demos_startup
       optional: true
       artifacts: false
-    # provision 前に実行。Ethernet/DHCP 初期化中でも serial_terminal_task が
-    # 応答に 20-60 秒かかることがあるため、タイムアウトを 60s に設定。
+    # provision 前に実行。Ethernet/DHCP 初期化やネットワークタスク競合で
+    # serial_terminal_task の応答に 60-120 秒かかることがある。
+    # PROMPT 検出で即リターンするため、高速時は影響なし。
   variables:
-    COMMAND_TIMEOUT: "60"
+    COMMAND_TIMEOUT: "300"
   script:
     - >-
       python3 "$CI_PROJECT_DIR/tools/ci/test_commands.py"
