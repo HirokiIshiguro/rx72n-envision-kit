@@ -458,34 +458,6 @@ capture_after_download_aws_demos:
       - camera_capture/*.txt
     expire_in: 1 week
 
-health_aws_demos_startup:
-  stage: health
-  extends:
-    - .pc_device_job
-    - .pc_pyserial_job
-  timeout: 4 minutes
-  rules:
-    - if: $RUN_OTA_BOUNDARY_ONLY == "true"
-      when: never
-    - if: $RUN_OTA_ONLY == "true"
-      when: never
-    - if: $RUN_HW_HEALTHCHECK == "true"
-    - when: never
-  needs:
-    - job: download_aws_demos
-  script:
-    - >-
-      python3 "$CI_PROJECT_DIR/tools/ci/health_check.py"
-      --command-port "$COMMAND_PORT"
-      --command-baud "$COMMAND_BAUD_RATE"
-      --project-dir "$CI_PROJECT_DIR"
-  artifacts:
-    when: always
-    paths:
-      - aws_demos_hardware_state.log
-      - aws_demos_health.log
-    expire_in: 1 week
-
 test_commands:
   stage: smoke_test
   extends:
@@ -590,6 +562,10 @@ health_aws_demos_startup:
     - .pc_pyserial_job
   timeout: 4 minutes
   rules:
+    - if: $RUN_OTA_BOUNDARY_ONLY == "true"
+      when: never
+    - if: $RUN_OTA_ONLY == "true"
+      when: never
     - if: $RUN_HW_HEALTHCHECK == "true"
     - when: never
   needs:

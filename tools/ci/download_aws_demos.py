@@ -19,6 +19,9 @@ def main() -> int:
     parser.add_argument("--uart-port", default=os.environ.get("UART_PORT"))
     parser.add_argument("--uart-baud", default=os.environ.get("UART_BAUD_RATE", "921600"))
     parser.add_argument("--timeout", default="300")
+    parser.add_argument("--rfp-cli", default=os.environ.get("RFP_CLI", "rfp-cli"))
+    parser.add_argument("--rfp-tool", default=os.environ.get("RFP_TOOL", "e2l"))
+    parser.add_argument("--rfp-speed", default=os.environ.get("RFP_SPEED", "1500K"))
     parser.add_argument("--project-dir", default=os.environ.get("CI_PROJECT_DIR", "."))
     args = parser.parse_args()
 
@@ -52,6 +55,13 @@ def main() -> int:
     print(f"  RSU:  {args.rsu_out}")
     print(f"  Port: {uart_port} @ {args.uart_baud}bps")
     download_script = os.path.join(args.project_dir, "tools", "runner-handle", "scripts", "uart_download.py")
+    reset_cmd = (
+        f"{args.rfp_cli} -device RX72x -tool {args.rfp_tool}"
+        f" -if fine -speed {args.rfp_speed}"
+        f" -auth id FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"
+        f" -sig -run -noquery"
+    )
+    print(f"  Reset: {reset_cmd}")
     run_or_exit(
         [
             sys.executable,
@@ -65,6 +75,11 @@ def main() -> int:
             "--timeout",
             str(args.timeout),
             "--diag",
+            "--wait-for-ready",
+            "--ready-timeout",
+            "60",
+            "--reset-cmd",
+            reset_cmd,
         ]
     )
     return 0
