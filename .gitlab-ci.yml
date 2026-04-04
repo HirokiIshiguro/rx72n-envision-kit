@@ -12,6 +12,14 @@ stages:
   - ota_run
   - ota_finalize
 
+include:
+  - local: ".gitlab-ci.device-linux.yml"
+    rules:
+      - if: '$DEVICE_RUNNER_PLATFORM != "windows"'
+  - local: ".gitlab-ci.device-windows.yml"
+    rules:
+      - if: '$DEVICE_RUNNER_PLATFORM == "windows"'
+
 # MR パイプライン (merge_request_event) を抑止。
 # rules: 付きジョブと rules: なしジョブが混在すると、MR パイプラインで
 # needs: の依存先が見つからず即座に失敗するため、ブランチパイプラインのみ使用する。
@@ -19,9 +27,20 @@ workflow:
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
       when: never
+    - if: '$DEVICE_RUNNER_PLATFORM == "windows"'
+      variables:
+        DEVICE_ID: "rx72n-01"
+        MAC_ADDR: "${MAC_ADDR_ENVISION_KIT_RX72N1}"
+        UART_PORT: "COM7"
+        COMMAND_PORT: "COM10"
+        DEVICE_RESOURCE_GROUP: "rx72n-device-01"
     - when: always
 
 variables:
+  # Device runner switch:
+  #   linux   -> Raspberry Pi #2 + RX72N Envision Kit #2
+  #   windows -> ishiguro-pc + RX72N Envision Kit #1
+  DEVICE_RUNNER_PLATFORM: "linux"
   E2STUDIO: "C:\\Renesas\\e2_studio_2025_12\\eclipse\\e2studioc.exe"
   WORKSPACE: "C:\\workspace_rx72n"
   E2STUDIO_PROJECTS: "projects/renesas/rx72n_envision_kit/e2studio"
@@ -29,7 +48,8 @@ variables:
   RFP_CLI: "rfp-cli"
   RFP_SPEED: "1500K"
   # --- ハードウェア依存変数（hardware-config リポジトリの CI/CD Variables から取得） ---
-  # 単体運用は Raspberry Pi #2 + RX72N Envision Kit #2 を正とする。
+  # 既定は Linux device runner (Raspberry Pi #2 + RX72N Envision Kit #2)。
+  # DEVICE_RUNNER_PLATFORM=windows では ishiguro-pc + RX72N Envision Kit #1 へ切り替える。
   # 最新の台帳は hardware-config の CLAUDE.md を参照する。
   # E2 Lite シリアル番号 (ECN1 コネクタ)
   E2LITE_SERIAL: "${E2L_SERIAL_ENVISION_KIT_RX72N_ECN1}"
@@ -104,25 +124,6 @@ variables:
   #   "uart"     : UART download 完了で停止
   #   "provision": provisioning 完了で停止
   PREPARE_OTA_STOP_AFTER: ""
-
-.pc_device_job:
-  tags:
-    - exec-shell
-    - os-linux
-    - hw-raspi
-    - dev-rx72n-02
-  resource_group: $DEVICE_RESOURCE_GROUP
-
-.pc_flash_job:
-  extends: .pc_device_job
-
-.pc_pyserial_job:
-  before_script:
-    - source "$CI_PROJECT_DIR/tools/ci/activate_pi_python.sh" pyserial
-
-.pc_crypto_serial_job:
-  before_script:
-    - source "$CI_PROJECT_DIR/tools/ci/activate_pi_python.sh" pyserial cryptography
 
 .windows_ota_aws_job:
   tags:
@@ -324,106 +325,6 @@ build:
     expire_in: 1 week
 
 
-flash_boot_loader:
-  stage: flash_boot
-  extends:
-    - .pc_flash_job
-    - .pc_pyserial_job
-  rules:
-    - if: $RUN_RFP_SOAK_TEST == "true"
-      when: never
-    - if: $RUN_OTA_BOUNDARY_ONLY == "true"
-      when: never
-    - if: $RUN_OTA_ONLY == "true"
-      when: never
-    - when: always
-  needs:
-    - job: build
-      artifacts: true
-  script:
-    - >-
-      python3 "$CI_PROJECT_DIR/tools/ci/flash_boot_loader.py"
-      --mot "$CI_PROJECT_DIR/$E2STUDIO_PROJECTS/boot_loader/HardwareDebug/rx72n_boot_loader.mot"
-      --rfp-cli "$RFP_CLI"
-      --rfp-tool "$RFP_TOOL"
-      --rfp-speed "$RFP_SPEED"
-      --uart-port "$UART_PORT"
-      --uart-baud "$UART_BAUD_RATE"
-      --run-healthcheck "$RUN_HW_HEALTHCHECK"
-      --project-dir "$CI_PROJECT_DIR"
-  artifacts:
-    when: always
-    paths:
-      - boot_loader_hardware_state.log
-      - boot_loader_health.log
-    expire_in: 1 week
-
-rfp_soak_test:
-  stage: health
-  extends:
-    - .pc_flash_job
-  timeout: 30 minutes
-  rules:
-    - if: $RUN_RFP_SOAK_TEST == "true"
-    - when: never
-  needs:
-    - job: build
-      artifacts: true
-  script:
-    - >-
-      python3 "$CI_PROJECT_DIR/tools/ci/rfp_soak_test.py"
-      --output-dir "$CI_PROJECT_DIR/rfp_soak_$DEVICE_ID"
-      --loops "$RFP_SOAK_LOOPS"
-      --sleep-seconds "$RFP_SOAK_SLEEP_SECONDS"
-      --mode "$RFP_SOAK_MODE"
-      --device RX72x
-      --tool "$RFP_TOOL"
-      --speed "$RFP_SPEED"
-      --auth-id FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF
-      --rfp-cli "$RFP_CLI"
-      --mot "$CI_PROJECT_DIR/$E2STUDIO_PROJECTS/boot_loader/HardwareDebug/rx72n_boot_loader.mot"
-  artifacts:
-    when: always
-    paths:
-      - rfp_soak_${DEVICE_ID}/
-    expire_in: 1 week
-
-download_aws_demos:
-  stage: download
-  extends:
-    - .pc_flash_job
-    - .pc_crypto_serial_job
-  rules:
-    - if: $RUN_RFP_SOAK_TEST == "true"
-      when: never
-    - if: $RUN_OTA_BOUNDARY_ONLY == "true"
-      when: never
-    - if: $RUN_OTA_ONLY == "true"
-      when: never
-    - when: always
-  needs:
-    - job: build
-      artifacts: true
-    - job: flash_boot_loader
-      artifacts: false
-  variables:
-    # .rsu 生成に使うシーケンス番号（OTA 更新ごとに増加させる）
-    RSU_SEQ_NO: "1"
-  script:
-    - >-
-      python3 "$CI_PROJECT_DIR/tools/ci/download_aws_demos.py"
-      --mot "$CI_PROJECT_DIR/$E2STUDIO_PROJECTS/aws_demos/HardwareDebug/aws_demos.mot"
-      --key "$CI_PROJECT_DIR/sample_keys/secp256r1.privatekey"
-      --rsu-out "$CI_PROJECT_DIR/userprog_$DEVICE_ID.rsu"
-      --seq-no "$RSU_SEQ_NO"
-      --uart-port "$UART_PORT"
-      --uart-baud "$UART_BAUD_RATE"
-      --project-dir "$CI_PROJECT_DIR"
-  artifacts:
-    paths:
-      - userprog_${DEVICE_ID}.rsu
-    expire_in: 1 week
-
 capture_after_download_aws_demos:
   stage: observe
   extends:
@@ -457,195 +358,6 @@ capture_after_download_aws_demos:
       - camera_capture/*.jpg
       - camera_capture/*.txt
     expire_in: 1 week
-
-test_commands:
-  stage: smoke_test
-  extends:
-    - .pc_device_job
-    - .pc_pyserial_job
-  timeout: 45 minutes
-  rules:
-    - if: $RUN_RFP_SOAK_TEST == "true"
-      when: never
-    - if: $RUN_OTA_BOUNDARY_ONLY == "true"
-      when: never
-    - if: $RUN_HW_HEALTHCHECK == "true"
-      when: never
-    - if: $RUN_OTA_ONLY == "true"
-      when: never
-    - when: always
-  needs:
-    - job: download_aws_demos
-      artifacts: false
-    - job: capture_after_download_aws_demos
-      optional: true
-      artifacts: false
-    - job: health_aws_demos_startup
-      optional: true
-      artifacts: false
-  variables:
-    COMMAND_TIMEOUT: "300"
-  script:
-    - >-
-      python3 "$CI_PROJECT_DIR/tools/ci/test_commands.py"
-      --command-port "$COMMAND_PORT"
-      --command-baud "$COMMAND_BAUD_RATE"
-      --command-timeout "$COMMAND_TIMEOUT"
-      --project-dir "$CI_PROJECT_DIR"
-
-test_screen_navigation:
-  stage: smoke_test
-  extends:
-    - .pc_device_job
-    - .pc_pyserial_job
-  timeout: 3 minutes
-  rules:
-    - if: $RUN_RFP_SOAK_TEST == "true"
-      when: never
-    - if: $RUN_OTA_BOUNDARY_ONLY == "true"
-      when: never
-    - if: $RUN_HW_HEALTHCHECK == "true"
-      when: never
-    - if: $RUN_OTA_ONLY == "true"
-      when: never
-    - when: always
-  needs:
-    - job: test_commands
-  script:
-    - >-
-      python3 "$CI_PROJECT_DIR/tools/ci/test_screen_navigation.py"
-      --command-port "$COMMAND_PORT"
-      --command-baud "$COMMAND_BAUD_RATE"
-      --project-dir "$CI_PROJECT_DIR"
-
-provision_aws_credentials:
-  stage: provision
-  extends:
-    - .pc_device_job
-    - .pc_pyserial_job
-  timeout: 5 minutes
-  rules:
-    - if: $RUN_RFP_SOAK_TEST == "true"
-      when: never
-    - if: $RUN_OTA_BOUNDARY_ONLY == "true"
-      when: never
-    - if: $RUN_HW_HEALTHCHECK == "true"
-      when: never
-    - if: $RUN_OTA_ONLY == "true"
-      when: never
-    - if: $RUN_AWS_TESTS == "true"
-  needs:
-    - job: download_aws_demos
-      artifacts: false
-    - job: capture_after_download_aws_demos
-      optional: true
-      artifacts: false
-    - job: health_aws_demos_startup
-      optional: true
-      artifacts: false
-    - job: test_screen_navigation
-      artifacts: false
-  script:
-    - >-
-      python3 "$CI_PROJECT_DIR/tools/ci/provision_aws.py"
-      --device-id "$DEVICE_ID"
-      --codesigner-cert "$CI_PROJECT_DIR/sample_keys/secp256r1.crt"
-      --command-port "$COMMAND_PORT"
-      --mac-address "$MAC_ADDR"
-      --allow-missing-write-confirmation
-      --project-dir "$CI_PROJECT_DIR"
-
-health_aws_demos_startup:
-  stage: observe
-  extends:
-    - .pc_device_job
-    - .pc_pyserial_job
-  timeout: 4 minutes
-  rules:
-    - if: $RUN_OTA_BOUNDARY_ONLY == "true"
-      when: never
-    - if: $RUN_OTA_ONLY == "true"
-      when: never
-    - if: $RUN_HW_HEALTHCHECK == "true"
-    - when: never
-  needs:
-    - job: download_aws_demos
-      artifacts: false
-  script:
-    - >-
-      python3 "$CI_PROJECT_DIR/tools/ci/health_check.py"
-      --command-port "$COMMAND_PORT"
-      --command-baud "$COMMAND_BAUD_RATE"
-      --project-dir "$CI_PROJECT_DIR"
-  artifacts:
-    when: always
-    paths:
-      - aws_demos_hardware_state.log
-      - aws_demos_health.log
-    expire_in: 1 week
-
-confirm_aws_mqtt:
-  stage: test
-  extends:
-    - .pc_device_job
-    - .pc_pyserial_job
-  timeout: 5 minutes
-  rules:
-    - if: $RUN_RFP_SOAK_TEST == "true"
-      when: never
-    - if: $RUN_OTA_BOUNDARY_ONLY == "true"
-      when: never
-    - if: $RUN_HW_HEALTHCHECK == "true"
-      when: never
-    - if: $RUN_OTA_ONLY == "true"
-      when: never
-    - if: $RUN_AWS_TESTS == "true"
-  needs:
-    - job: test_screen_navigation
-      artifacts: false
-    - job: provision_aws_credentials
-      artifacts: false
-  retry:
-    max: 1
-    when: script_failure
-  script:
-    - >-
-      python3 "$CI_PROJECT_DIR/tools/ci/confirm_aws_mqtt.py"
-      --device-id "$DEVICE_ID"
-      --uart-port "$UART_PORT"
-      --uart-baud "$UART_BAUD_RATE"
-      --command-port "$COMMAND_PORT"
-      --command-baud "$COMMAND_BAUD_RATE"
-      --project-dir "$CI_PROJECT_DIR"
-
-test_sd_update:
-  stage: test
-  extends:
-    - .pc_device_job
-    - .pc_pyserial_job
-  timeout: 10 minutes
-  rules:
-    - if: $RUN_OTA_BOUNDARY_ONLY == "true"
-      when: never
-    - if: $RUN_HW_HEALTHCHECK == "true"
-      when: never
-    - if: $RUN_OTA_ONLY == "true"
-      when: never
-    - if: $RUN_AWS_TESTS == "true" && $RUN_SD_UPDATE_TEST == "true"
-  needs:
-    - job: confirm_aws_mqtt
-    - job: download_aws_demos
-      artifacts: true
-  script:
-    - >-
-      python3 "$CI_PROJECT_DIR/tools/ci/test_sd_update.py"
-      --device-id "$DEVICE_ID"
-      --rsu "$CI_PROJECT_DIR/userprog_$DEVICE_ID.rsu"
-      --uart-port "$UART_PORT"
-      --uart-baud "$UART_BAUD_RATE"
-      --command-port "$COMMAND_PORT"
-      --command-baud "$COMMAND_BAUD_RATE"
-      --project-dir "$CI_PROJECT_DIR"
 
 # ==============================================================================
 # Phase 7: AWS IoT OTA テスト
@@ -844,57 +556,6 @@ build_ota:
       - projects/renesas/rx72n_envision_kit/e2studio/boot_loader/HardwareDebug/*.mot
     expire_in: 1 week
 
-prepare_ota:
-  stage: ota_prepare
-  extends:
-    - .pc_flash_job
-    - .pc_crypto_serial_job
-  timeout: 5 minutes
-  rules:
-    - if: $RUN_PREPARE_OTA_ONLY == "true"
-    - if: $RUN_RFP_SOAK_TEST == "true"
-      when: never
-    - if: $RUN_HW_HEALTHCHECK == "true"
-      when: never
-    - if: $RUN_OTA_BOUNDARY_ONLY == "true"
-    - if: $RUN_OTA_TEST == "true"
-  dependencies:
-    - build_ota
-  script:
-    - |
-      set -euo pipefail
-      if [[ "${RUN_OTA_TEST:-false}" == "true" || "${RUN_OTA_BOUNDARY_ONLY:-false}" == "true" ]]; then
-        python3 "$CI_PROJECT_DIR/tools/ci/ota_boundary_reservation.py" \
-          --action acquire \
-          --device-id "$DEVICE_ID" \
-          --owner "${CI_PROJECT_ID}:${CI_PIPELINE_ID}:${DEVICE_ID}" \
-          --project-id "${CI_PROJECT_ID}" \
-          --pipeline-id "${CI_PIPELINE_ID}" \
-          --pipeline-url "${CI_PIPELINE_URL:-}" \
-          --ref "${CI_COMMIT_REF_NAME:-}" \
-          --state-dir "${OTA_BOUNDARY_RESERVATION_ROOT}" \
-          --stale-seconds "${OTA_BOUNDARY_RESERVATION_STALE_SECONDS}"
-      fi
-    - >-
-      python3 "$CI_PROJECT_DIR/tools/ci/prepare_ota.py"
-      --mot "$CI_PROJECT_DIR/$E2STUDIO_PROJECTS/boot_loader/HardwareDebug/rx72n_boot_loader.mot"
-      --rsu "$CI_PROJECT_DIR/ota_v1.rsu"
-      --uart-port "$UART_PORT"
-      --uart-baud "$UART_BAUD_RATE"
-      --command-port "$COMMAND_PORT"
-      --command-baud "$COMMAND_BAUD_RATE"
-      --device-id "$DEVICE_ID"
-      --codesigner-cert "$CI_PROJECT_DIR/sample_keys/secp256r1.crt"
-      --mac-address "$MAC_ADDR"
-      --stop-after "$PREPARE_OTA_STOP_AFTER"
-      --project-dir "$CI_PROJECT_DIR"
-  artifacts:
-    when: always
-    paths:
-      - prepare_ota_hardware_state.log
-    expire_in: 1 week
-
-
 ota_create_job:
   stage: ota_run
   extends:
@@ -945,55 +606,6 @@ ota_create_job:
     when: always
     paths:
       - ota_job_metadata_*.json
-    expire_in: 1 week
-
-ota_monitor:
-  stage: ota_run
-  extends:
-    - .pc_device_job
-    - .pc_pyserial_job
-  timeout: 15 minutes
-  rules:
-    - if: $RUN_PREPARE_OTA_ONLY == "true"
-      when: never
-    - if: $RUN_RFP_SOAK_TEST == "true"
-      when: never
-    - if: $RUN_HW_HEALTHCHECK == "true"
-      when: never
-    - if: $RUN_OTA_BOUNDARY_ONLY == "true"
-    - if: $RUN_OTA_TEST == "true"
-  dependencies: []
-  script:
-    - |
-      set -euo pipefail
-      printf '{}\n' > "$CI_PROJECT_DIR/ota_monitor_results.json"
-      printf 'monitor started\n' > "$CI_PROJECT_DIR/ota_monitor.log"
-      python3 "$CI_PROJECT_DIR/tools/ci/ota_boundary_reservation.py" \
-        --action assert \
-        --device-id "$DEVICE_ID" \
-        --owner "${CI_PROJECT_ID}:${CI_PIPELINE_ID}:${DEVICE_ID}" \
-        --project-id "${CI_PROJECT_ID}" \
-        --pipeline-id "${CI_PIPELINE_ID}" \
-        --pipeline-url "${CI_PIPELINE_URL:-}" \
-        --ref "${CI_COMMIT_REF_NAME:-}" \
-        --state-dir "${OTA_BOUNDARY_RESERVATION_ROOT}" \
-        --stale-seconds "${OTA_BOUNDARY_RESERVATION_STALE_SECONDS}"
-      v2=$((CI_PIPELINE_IID * 2 + 1))
-      monitor_results="$CI_PROJECT_DIR/ota_monitor_results_${DEVICE_ID}.json"
-      monitor_log="$CI_PROJECT_DIR/ota_monitor_${DEVICE_ID}.log"
-      echo "=== AWS IoT OTA Monitor ==="
-      echo "  Expected version build: $v2"
-      python3 -u "$CI_PROJECT_DIR/test_scripts/uart_test/test_ota.py" \
-        --mode monitor \
-        --device-id "$DEVICE_ID" \
-        --expected-build "$v2" \
-        --timeout 600 \
-        --monitor-results-out "$monitor_results" | tee "$monitor_log"
-  artifacts:
-    when: always
-    paths:
-      - ota_monitor_results_*.json
-      - ota_monitor_*.log
     expire_in: 1 week
 
 ota_finalize:
