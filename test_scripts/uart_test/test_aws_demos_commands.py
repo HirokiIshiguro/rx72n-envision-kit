@@ -554,6 +554,13 @@ def main():
         # ポーリングで蓄積した MCU 応答をすべてドレインし同期を確立
         tester.sync()
 
+        # ウォームアップ: sync 中の CRLF nudge が生成した "command not found"
+        # レスポンスが MCU→FTDI→USB パスで遅延到着する場合がある。
+        # version を送って応答（正常 or stale）を吸収し、drain で排出する。
+        print("[INFO] Warm-up: sending version to absorb stale data...", flush=True)
+        tester.send_command("version")
+        tester.drain_input(settle_time=5.0, max_time=30.0, label="post-warmup")
+
         # --- テスト実行 ---
 
         tester.run_test(
