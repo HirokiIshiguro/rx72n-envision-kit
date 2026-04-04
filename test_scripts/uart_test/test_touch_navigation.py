@@ -73,6 +73,11 @@ def main():
             print("[FAIL] Could not establish communication with aws_demos")
             sys.exit(1)
 
+        tester.sync()
+        print("[INFO] Warm-up: sending version to absorb stale data...", flush=True)
+        tester.send_command("version")
+        tester.drain_input(settle_time=5.0, max_time=30.0)
+
         # --- Step 1: Screen 00 → Screen 01 遷移 (touch any × 2) ---
         print()
         print("[STEP] Screen 00 → Screen 01 navigation (touch any × 2)")

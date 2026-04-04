@@ -571,6 +571,8 @@ provision_aws_credentials:
     - job: health_aws_demos_startup
       optional: true
       artifacts: false
+    - job: test_screen_navigation
+      artifacts: false
   script:
     - >-
       python3 "$CI_PROJECT_DIR/tools/ci/provision_aws.py"
@@ -623,6 +625,9 @@ confirm_aws_mqtt:
     - if: $RUN_AWS_TESTS == "true"
   needs:
     - job: test_screen_navigation
+      artifacts: false
+    - job: provision_aws_credentials
+      artifacts: false
   retry:
     max: 1
     when: script_failure
@@ -1123,4 +1128,3 @@ ota_release_reservation:
         Write-Warning "OTA boundary lease release failed for $env:DEVICE_ID (exit=$LASTEXITCODE)."
         exit 0
       }
-
