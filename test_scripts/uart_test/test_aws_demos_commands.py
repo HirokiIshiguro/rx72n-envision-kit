@@ -195,15 +195,15 @@ class CommandTester:
         self.ser.flush()
         print("[INFO] Sent 'version' — waiting for clean response (up to 90s)...", flush=True)
 
-        # stale データを読み飛ばしつつ version 応答を待つ
+        # stale データを読み飛ばしつつ version 応答を待つ。
+        # 再送は行わない — 追加 version がキューに溜まりテスト段階でずれるため。
+        # MCU が FreeRTOS タスク競合で出力に 60 秒以上かかることがある。
         buf = b""
         start = time.time()
-        last_data = time.time()
         while (time.time() - start) < 90:
             n = self.ser.in_waiting
             if n > 0:
                 buf += self.ser.read(n)
-                last_data = time.time()
                 # バッファ末尾 200 バイトで version パターンを検索
                 tail = buf[-200:]
                 m = re.search(rb'v\d+\.\d+\.\d+', tail)
@@ -216,12 +216,6 @@ class CommandTester:
                     self.drain_input(settle_time=3.0, max_time=15.0, label="post-sync")
                     return
             else:
-                # 10 秒以上無音で version が見つからない → もう 1 回送る
-                if buf and (time.time() - last_data) > 10:
-                    print("[INFO] MCU silent for 10s — resending 'version'...", flush=True)
-                    self.ser.write(b"version\r\n")
-                    self.ser.flush()
-                    last_data = time.time()
                 time.sleep(0.05)
 
         print(f"[WARN] Sync timeout after 90s ({len(buf)} bytes consumed)", flush=True)
