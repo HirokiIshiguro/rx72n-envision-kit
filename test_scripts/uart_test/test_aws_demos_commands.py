@@ -541,8 +541,9 @@ def main():
     try:
         tester.open()
 
-        # MCU 起動直後のノイズ回避
-        print(f"[INFO] Waiting {args.initial_wait}s for MCU to stabilize...")
+        # MCU 起動直後は DHCP/Ethernet 初期化で serial_terminal_task が
+        # 飢餓状態になる。DHCP 完了 (通常 5-15s) を待ってからテスト開始。
+        print(f"[INFO] Waiting {args.initial_wait}s for MCU to stabilize (DHCP)...")
         time.sleep(args.initial_wait)
 
         # プロンプトポーリング（serial_terminal_task が起動するまで待つ）

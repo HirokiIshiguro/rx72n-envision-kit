@@ -34,7 +34,7 @@ def main():
         "--baud", args.command_baud,
         "--timeout", args.command_timeout,
         "--prompt-timeout", "60",
-        "--initial-wait", "3",
+        "--initial-wait", "30",
         "--skip-erase",
     ]
     print(f"  > {' '.join(cmd)}", flush=True)
