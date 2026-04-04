@@ -65,7 +65,33 @@ class CommandTester:
         """シリアルポートを開く"""
         self.ser = serial.Serial(self.port, self.baud, timeout=0)
         time.sleep(0.1)
+        self._enable_low_latency()
         print(f"[INFO] Opened {self.port} at {self.baud} bps")
+
+    def _enable_low_latency(self):
+        """FTDI low-latency mode を有効化 (Linux)
+
+        FTDI FT232R はデフォルトで 16ms の latency timer を持ち、
+        ホスト側 TX がない間は USB IN 転送が遅延する。
+        low-latency mode (1ms) にすることで MCU 出力が即座に配送される。
+        これにより drain 中のデータ到着遅延を解消する。
+        """
+        try:
+            import sys
+            if sys.platform != "linux":
+                return
+            import array
+            import fcntl
+            TIOCGSERIAL = 0x541E
+            TIOCSSERIAL = 0x541F
+            ASYNC_LOW_LATENCY = 0x2000
+            buf = array.array("i", [0] * 64)
+            fcntl.ioctl(self.ser.fd, TIOCGSERIAL, buf)
+            buf[4] |= ASYNC_LOW_LATENCY
+            fcntl.ioctl(self.ser.fd, TIOCSSERIAL, buf)
+            print("[INFO] FTDI low-latency mode enabled", flush=True)
+        except Exception as e:
+            print(f"[INFO] Low-latency mode not available: {e}", flush=True)
 
     def close(self):
         """シリアルポートを閉じる"""
