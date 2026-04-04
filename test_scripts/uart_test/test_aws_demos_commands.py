@@ -179,32 +179,29 @@ class CommandTester:
     def sync(self):
         """MCU との同期を確立する
 
-        version コマンドを **1 回だけ** 送り、stale データを含む全受信を
-        読み飛ばしながら v\\d+\\.\\d+\\.\\d+ パターンが現れるのを待つ。
-        複数回 version を送ると MCU のコマンドキューに応答が蓄積し、
-        テスト段階でレスポンスずれの原因になるため、送信は 1 回限り。
+        version を 1 回送信し、stale データを読み飛ばしながら vN.N.N を待つ。
+        MQTT 接続後は FreeRTOS 高優先度タスクが serial_terminal_task を飢餓に
+        するため、定期的に CRLF を送ってタスクを活性化する。
+        空 CRLF はコマンド応答を生成しない（else ブランチ）ためキュー汚染なし。
         """
         import re
         print("[INFO] Synchronizing with MCU...", flush=True)
 
-        # 初期ドレイン: ポートオープン直後の FTDI バッファ残留を排出
+        # 初期ドレイン
         self.drain_input(settle_time=3.0, max_time=30.0, label="initial-drain")
 
         # version を 1 回だけ送信
         self.ser.write(b"version\r\n")
         self.ser.flush()
-        print("[INFO] Sent 'version' — waiting for clean response (up to 90s)...", flush=True)
+        print("[INFO] Sent 'version' — waiting for response (up to 120s)...", flush=True)
 
-        # stale データを読み飛ばしつつ version 応答を待つ。
-        # 再送は行わない — 追加 version がキューに溜まりテスト段階でずれるため。
-        # MCU が FreeRTOS タスク競合で出力に 60 秒以上かかることがある。
         buf = b""
         start = time.time()
-        while (time.time() - start) < 90:
+        last_nudge = time.time()
+        while (time.time() - start) < 120:
             n = self.ser.in_waiting
             if n > 0:
                 buf += self.ser.read(n)
-                # バッファ末尾 200 バイトで version パターンを検索
                 tail = buf[-200:]
                 m = re.search(rb'v\d+\.\d+\.\d+', tail)
                 if m:
@@ -212,13 +209,18 @@ class CommandTester:
                     elapsed = time.time() - start
                     print(f"[INFO] MCU synchronized. FW: {ver} "
                           f"({len(buf)} bytes consumed in {elapsed:.1f}s)", flush=True)
-                    # 同期後の残留データ（プロンプト等）を排出
                     self.drain_input(settle_time=3.0, max_time=15.0, label="post-sync")
                     return
             else:
+                # 5 秒おきに CRLF を送って serial_terminal_task を活性化
+                # 空 CRLF: echo のみ、コマンド応答なし
+                if (time.time() - last_nudge) > 5:
+                    self.ser.write(b"\r\n")
+                    self.ser.flush()
+                    last_nudge = time.time()
                 time.sleep(0.05)
 
-        print(f"[WARN] Sync timeout after 90s ({len(buf)} bytes consumed)", flush=True)
+        print(f"[WARN] Sync timeout after 120s ({len(buf)} bytes consumed)", flush=True)
         self.drain_input(settle_time=3.0, max_time=15.0, label="sync-timeout")
 
     def send_command(self, cmd):
