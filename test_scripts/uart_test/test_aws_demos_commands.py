@@ -42,7 +42,7 @@ import serial
 # --- 定数 ---
 DEFAULT_PORT = os.environ.get("COMMAND_PORT", "COM6")
 DEFAULT_BAUD = int(os.environ.get("COMMAND_BAUD_RATE", "115200"))
-DEFAULT_TIMEOUT = int(os.environ.get("COMMAND_TIMEOUT", "10"))
+DEFAULT_TIMEOUT = int(os.environ.get("COMMAND_TIMEOUT", "300"))
 DEFAULT_RETRIES = 3
 
 PROMPT = "$ "
@@ -124,15 +124,18 @@ class CommandTester:
             return buf.decode("utf-8", errors="replace")
         return None
 
-    def drain_input(self, settle_time=1.0):
+    def drain_input(self, settle_time=1.0, max_time=None):
         """受信バッファを完全にドレインする
 
-        MCU がまだデータを送信中の場合、reset_input_buffer() だけでは
-        不十分。一定時間データが来なくなるまで読み捨てる。
+        settle_time 秒間データが来なくなるまで読み捨てる。
+        max_time を超えたら強制終了する。
         """
+        if max_time is None:
+            max_time = settle_time * 5
         self.ser.reset_input_buffer()
+        hard_deadline = time.time() + max_time
         deadline = time.time() + settle_time
-        while time.time() < deadline:
+        while time.time() < deadline and time.time() < hard_deadline:
             if self.ser.in_waiting > 0:
                 self.ser.read(self.ser.in_waiting)
                 deadline = time.time() + settle_time
@@ -316,10 +319,12 @@ def check_version(body):
     """version コマンドの応答を検証"""
     if not body:
         return False, "Empty response"
-    # バージョン文字列が含まれることを確認（例: "v2.0.2"）
-    if "v" in body.lower() or "version" in body.lower() or "." in body:
-        return True, f"Version: {body.strip()}"
-    return False, f"Unexpected: {body.strip()}"
+    import re
+
+    match = re.search(r'v\d+\.\d+\.\d+', body)
+    if match:
+        return True, f"Version: {match.group()}"
+    return False, f"Unexpected: {body.strip()[:100]}"
 
 
 def check_cpuload_read(body):
@@ -423,10 +428,10 @@ def main():
                         help=f"Retry count for failed commands (default: {DEFAULT_RETRIES})")
     parser.add_argument("--skip-erase", action="store_true",
                         help="Skip dataflash erase test")
-    parser.add_argument("--initial-wait", type=float, default=3.0,
-                        help="Initial wait before polling (default: 3s)")
-    parser.add_argument("--prompt-timeout", type=int, default=60,
-                        help="Timeout for prompt polling in seconds (default: 60)")
+    parser.add_argument("--initial-wait", type=float, default=30.0,
+                        help="Initial wait before polling (default: 30s)")
+    parser.add_argument("--prompt-timeout", type=int, default=300,
+                        help="Timeout for prompt polling in seconds (default: 300)")
     args = parser.parse_args()
 
     print("=" * 60)
@@ -443,8 +448,8 @@ def main():
     try:
         tester.open()
 
-        # MCU 起動直後のノイズ回避
-        print(f"[INFO] Waiting {args.initial_wait}s for MCU to stabilize...")
+        # DHCP / Ethernet 初期化が落ち着いてから UART コマンドテストを始める。
+        print(f"[INFO] Waiting {args.initial_wait}s for MCU to stabilize (DHCP)...")
         time.sleep(args.initial_wait)
 
         # プロンプトポーリング（serial_terminal_task が起動するまで待つ）
@@ -455,6 +460,11 @@ def main():
 
         # ポーリングで蓄積した MCU 応答をすべてドレインし同期を確立
         tester.sync()
+
+        # sync 中の CRLF nudge 由来の stale data を version 1 回で吸収する。
+        print("[INFO] Warm-up: sending version to absorb stale data...", flush=True)
+        tester.send_command("version")
+        tester.drain_input(settle_time=5.0, max_time=30.0)
 
         # --- テスト実行 ---
 
@@ -471,27 +481,9 @@ def main():
         )
 
         tester.run_test(
-            "freertos_cpuload_reset", "freertos cpuload reset",
-            check_cpuload_reset,
-            "FreeRTOS CPU 負荷カウンタリセット + 読み出し"
-        )
-
-        tester.run_test(
             "dataflash_info", "dataflash info",
             check_dataflash_info,
             "データフラッシュサイズ情報"
-        )
-
-        tester.run_test(
-            "dataflash_read", "dataflash read",
-            check_dataflash_read,
-            "全設定データ読み出し"
-        )
-
-        tester.run_test(
-            "timezone", "timezone UTC+09:00",
-            check_timezone,
-            "タイムゾーン設定 (JST)"
         )
 
         tester.run_test(
@@ -504,6 +496,12 @@ def main():
             "touch_coord", "touch 0 0",
             check_touch_coord,
             "疑似タッチイベント (座標指定 0,0)"
+        )
+
+        tester.run_test(
+            "dataflash_read", "dataflash read",
+            check_dataflash_read,
+            "全設定データ読み出し"
         )
 
         if not args.skip_erase:

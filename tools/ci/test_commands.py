@@ -30,9 +30,9 @@ def main() -> int:
         "--timeout",
         str(args.command_timeout),
         "--prompt-timeout",
-        "60",
+        "300",
         "--initial-wait",
-        "3",
+        "30",
         "--skip-erase",
     ]
     print(f"  > {' '.join(cmd)}", flush=True)

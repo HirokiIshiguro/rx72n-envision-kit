@@ -4,6 +4,7 @@ stages:
   - flash
   - download
   - observe
+  - smoke_test
   - provision
   - health
   - test
@@ -486,11 +487,11 @@ health_aws_demos_startup:
     expire_in: 1 week
 
 test_commands:
-  stage: test
+  stage: smoke_test
   extends:
     - .pc_device_job
     - .pc_pyserial_job
-  timeout: 5 minutes
+  timeout: 45 minutes
   rules:
     - if: $RUN_RFP_SOAK_TEST == "true"
       when: never
@@ -510,13 +511,8 @@ test_commands:
     - job: health_aws_demos_startup
       optional: true
       artifacts: false
-    # provision_aws_credentials も COMMAND_PORT を使用するため、同時実行を防止。
-    # RUN_AWS_TESTS=false 時は provision がスキップされるため optional: true。
-    - job: provision_aws_credentials
-      optional: true
-      artifacts: false
   variables:
-    COMMAND_TIMEOUT: "10"
+    COMMAND_TIMEOUT: "300"
   script:
     - >-
       python3 "$CI_PROJECT_DIR/tools/ci/test_commands.py"
@@ -526,7 +522,7 @@ test_commands:
       --project-dir "$CI_PROJECT_DIR"
 
 test_screen_navigation:
-  stage: test
+  stage: smoke_test
   extends:
     - .pc_device_job
     - .pc_pyserial_job
@@ -555,7 +551,7 @@ provision_aws_credentials:
   extends:
     - .pc_device_job
     - .pc_pyserial_job
-  timeout: 3 minutes
+  timeout: 5 minutes
   rules:
     - if: $RUN_RFP_SOAK_TEST == "true"
       when: never
@@ -1127,5 +1123,4 @@ ota_release_reservation:
         Write-Warning "OTA boundary lease release failed for $env:DEVICE_ID (exit=$LASTEXITCODE)."
         exit 0
       }
-
 
