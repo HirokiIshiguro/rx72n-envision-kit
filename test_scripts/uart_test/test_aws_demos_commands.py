@@ -144,13 +144,16 @@ class CommandTester:
     def drain_input(self, settle_time=1.0, max_time=None, label=None):
         """受信バッファを完全にドレインする
 
-        settle_time 秒間データが来なくなるまで読み捨てる。
-        max_time を超えたら強制終了（間欠送信で無限ドレイン防止）。
+        settle_time 秒間データが来なくなるまで読み続ける。
+        MCU が serial_terminal_putstring のチャンク送信中にポーズする場合が
+        あるため、reset_input_buffer() は使わずに到着データを全て読み切る。
+        max_time を超えたら強制終了（無限ドレイン防止）。
         label が指定された場合、ドレインしたデータの先頭/末尾をダンプする。
         """
         if max_time is None:
             max_time = settle_time * 5
-        self.ser.reset_input_buffer()
+        # reset_input_buffer() を使わない — MCU が TX リトライ中に
+        # チャンクで到着するデータを取りこぼさないようにする
         hard_deadline = time.time() + max_time
         soft_deadline = time.time() + settle_time
         total_bytes = 0
@@ -159,18 +162,21 @@ class CommandTester:
             if self.ser.in_waiting > 0:
                 chunk = self.ser.read(self.ser.in_waiting)
                 total_bytes += len(chunk)
-                if label:
+                if label and len(dumped) < 4096:
                     dumped += chunk
                 soft_deadline = time.time() + settle_time
             else:
                 time.sleep(0.05)
-        if label and total_bytes > 0:
-            head = dumped[:200].decode("utf-8", errors="replace")
-            tail = dumped[-200:].decode("utf-8", errors="replace") if len(dumped) > 200 else ""
-            print(f"[DRAIN] {label}: {total_bytes} bytes drained", flush=True)
-            print(f"[DRAIN]   head: {repr(head)}", flush=True)
-            if tail:
-                print(f"[DRAIN]   tail: {repr(tail)}", flush=True)
+        if label:
+            if total_bytes > 0:
+                head = dumped[:200].decode("utf-8", errors="replace")
+                tail = dumped[-200:].decode("utf-8", errors="replace") if len(dumped) > 200 else ""
+                print(f"[DRAIN] {label}: {total_bytes} bytes drained", flush=True)
+                print(f"[DRAIN]   head: {repr(head)}", flush=True)
+                if tail:
+                    print(f"[DRAIN]   tail: {repr(tail)}", flush=True)
+            else:
+                print(f"[DRAIN] {label}: 0 bytes", flush=True)
 
     def sync(self):
         """MCU との同期を確立する
@@ -186,8 +192,11 @@ class CommandTester:
         print("[INFO] Synchronizing with MCU...", flush=True)
 
         # Phase 1: 残留データを排出
-        print("[INFO] Phase 1: Draining residual data (up to 30s)...", flush=True)
-        self.drain_input(settle_time=3.0, max_time=30.0, label="phase1")
+        # settle=5s: MCU の serial_terminal_putstring が TX リトライ中にポーズする
+        # 場合、ポートが開いてから FTDI がドレインし MCU TX バッファが空くまで
+        # 数秒かかることがある。5s の無音確認で完全排出を保証する。
+        print("[INFO] Phase 1: Draining residual data (settle=5s, max=60s)...", flush=True)
+        self.drain_input(settle_time=5.0, max_time=60.0, label="phase1")
 
         # Phase 2: CRLF を送って MCU 側の partial command をフラッシュ
         print("[INFO] Phase 2: Flushing MCU command state...", flush=True)
@@ -324,20 +333,26 @@ class CommandTester:
         print(f"[INFO] Polling for prompt (sending \\r\\n every 1s, timeout={timeout}s)...")
         start = time.time()
         attempt = 0
+        buf = b""
         while (time.time() - start) < timeout:
             attempt += 1
-            self.ser.reset_input_buffer()
+            # reset_input_buffer() を使わない — MCU が TX リトライ中に
+            # 到着するデータを捨てると同期が取れなくなるため。
+            # 代わりにバッファ内のデータを全て読み出す。
+            while self.ser.in_waiting > 0:
+                buf += self.ser.read(self.ser.in_waiting)
+            buf = buf[-4096:]  # メモリ保護
             self.ser.write(b"\r\n")
             self.ser.flush()
             # 1秒待ちつつ受信チェック
             poll_start = time.time()
-            buf = b""
             while (time.time() - poll_start) < 1.0:
                 n = self.ser.in_waiting
                 if n > 0:
                     buf += self.ser.read(n)
+                    buf = buf[-4096:]
                     # "\n$ " パターンで検出（"$" 単独だとbase64等で誤検出）
-                    if b"\n$ " in buf or buf.endswith(b"\n$"):
+                    if b"\n$ " in buf[-100:] or buf.endswith(b"\n$"):
                         elapsed = time.time() - start
                         print(f"[INFO] Prompt detected after {attempt} attempts ({elapsed:.1f}s)")
                         # ドレイン: プロンプト後の残留データをクリア
