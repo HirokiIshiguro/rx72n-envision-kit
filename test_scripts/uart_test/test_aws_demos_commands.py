@@ -141,23 +141,36 @@ class CommandTester:
         """後方互換ラッパー。read_until_idle() に委譲。"""
         return self.read_until_idle(timeout=timeout)
 
-    def drain_input(self, settle_time=1.0, max_time=None):
+    def drain_input(self, settle_time=1.0, max_time=None, label=None):
         """受信バッファを完全にドレインする
 
         settle_time 秒間データが来なくなるまで読み捨てる。
-        max_time を超えたら強制終了（COM6 間欠送信で無限ドレイン防止）。
+        max_time を超えたら強制終了（間欠送信で無限ドレイン防止）。
+        label が指定された場合、ドレインしたデータの先頭/末尾をダンプする。
         """
         if max_time is None:
             max_time = settle_time * 5
         self.ser.reset_input_buffer()
         hard_deadline = time.time() + max_time
         soft_deadline = time.time() + settle_time
+        total_bytes = 0
+        dumped = b""
         while time.time() < soft_deadline and time.time() < hard_deadline:
             if self.ser.in_waiting > 0:
-                self.ser.read(self.ser.in_waiting)
+                chunk = self.ser.read(self.ser.in_waiting)
+                total_bytes += len(chunk)
+                if label:
+                    dumped += chunk
                 soft_deadline = time.time() + settle_time
             else:
                 time.sleep(0.05)
+        if label and total_bytes > 0:
+            head = dumped[:200].decode("utf-8", errors="replace")
+            tail = dumped[-200:].decode("utf-8", errors="replace") if len(dumped) > 200 else ""
+            print(f"[DRAIN] {label}: {total_bytes} bytes drained", flush=True)
+            print(f"[DRAIN]   head: {repr(head)}", flush=True)
+            if tail:
+                print(f"[DRAIN]   tail: {repr(tail)}", flush=True)
 
     def sync(self):
         """MCU との同期を確立する
@@ -174,7 +187,7 @@ class CommandTester:
 
         # Phase 1: 残留データを排出
         print("[INFO] Phase 1: Draining residual data (up to 30s)...", flush=True)
-        self.drain_input(settle_time=3.0, max_time=30.0)
+        self.drain_input(settle_time=3.0, max_time=30.0, label="phase1")
 
         # Phase 2: CRLF を送って MCU 側の partial command をフラッシュ
         print("[INFO] Phase 2: Flushing MCU command state...", flush=True)
@@ -182,7 +195,7 @@ class CommandTester:
             self.ser.write(b"\r\n")
             self.ser.flush()
             time.sleep(0.1)
-        self.drain_input(settle_time=2.0, max_time=10.0)
+        self.drain_input(settle_time=2.0, max_time=10.0, label="phase2")
 
         # Phase 3: OS バッファをクリアしてから version で同期確認
         print("[INFO] Phase 3: Verifying sync with version command...", flush=True)
@@ -218,7 +231,7 @@ class CommandTester:
             str: 応答文字列（エコーバック・プロンプト含む）
             None: 受信失敗
         """
-        self.drain_input(settle_time=1.0, max_time=3.0)
+        self.drain_input(settle_time=1.0, max_time=3.0, label=f"pre-{cmd[:20]}")
         self.ser.write((cmd + "\r\n").encode("utf-8"))
         self.ser.flush()
         return self.read_until_idle(cmd_echo=cmd)
