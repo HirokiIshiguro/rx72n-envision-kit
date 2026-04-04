@@ -179,13 +179,10 @@ class CommandTester:
     def sync(self):
         """MCU との同期を確立する
 
-        provision ジョブ後、MCU の serial_terminal_putstring が前コマンドの
-        出力を完了していない場合がある。version コマンドを繰り返し送り、
-        クリーンな応答 (vX.Y.Z) が返るまでリトライする。
-
-        各試行で version を送信し、応答を read_until_idle で取得。
-        stale データが混じっている間はリトライ。MCU のコマンドキューが
-        空になれば version の正しい応答が返る。
+        version コマンドを **1 回だけ** 送り、stale データを含む全受信を
+        読み飛ばしながら v\\d+\\.\\d+\\.\\d+ パターンが現れるのを待つ。
+        複数回 version を送ると MCU のコマンドキューに応答が蓄積し、
+        テスト段階でレスポンスずれの原因になるため、送信は 1 回限り。
         """
         import re
         print("[INFO] Synchronizing with MCU...", flush=True)
@@ -193,28 +190,42 @@ class CommandTester:
         # 初期ドレイン: ポートオープン直後の FTDI バッファ残留を排出
         self.drain_input(settle_time=3.0, max_time=30.0, label="initial-drain")
 
-        for attempt in range(1, 16):
-            # version 送信
-            self.ser.write(b"version\r\n")
-            self.ser.flush()
+        # version を 1 回だけ送信
+        self.ser.write(b"version\r\n")
+        self.ser.flush()
+        print("[INFO] Sent 'version' — waiting for clean response (up to 90s)...", flush=True)
 
-            # 応答読み取り (echo + prompt 待ち、最大 10s)
-            response = self.read_until_idle(cmd_echo="version", timeout=10)
+        # stale データを読み飛ばしつつ version 応答を待つ
+        buf = b""
+        start = time.time()
+        last_data = time.time()
+        while (time.time() - start) < 90:
+            n = self.ser.in_waiting
+            if n > 0:
+                buf += self.ser.read(n)
+                last_data = time.time()
+                # バッファ末尾 200 バイトで version パターンを検索
+                tail = buf[-200:]
+                m = re.search(rb'v\d+\.\d+\.\d+', tail)
+                if m:
+                    ver = m.group().decode()
+                    elapsed = time.time() - start
+                    print(f"[INFO] MCU synchronized. FW: {ver} "
+                          f"({len(buf)} bytes consumed in {elapsed:.1f}s)", flush=True)
+                    # 同期後の残留データ（プロンプト等）を排出
+                    self.drain_input(settle_time=3.0, max_time=15.0, label="post-sync")
+                    return
+            else:
+                # 10 秒以上無音で version が見つからない → もう 1 回送る
+                if buf and (time.time() - last_data) > 10:
+                    print("[INFO] MCU silent for 10s — resending 'version'...", flush=True)
+                    self.ser.write(b"version\r\n")
+                    self.ser.flush()
+                    last_data = time.time()
+                time.sleep(0.05)
 
-            if response and re.search(r'v\d+\.\d+\.\d+', response):
-                # クリーンな version 応答を確認
-                ver = re.search(r'v\d+\.\d+\.\d+', response).group()
-                print(f"[INFO] MCU synchronized on attempt {attempt}. FW: {ver}", flush=True)
-                # 最終ドレインで prompt 後の残留をクリア
-                self.drain_input(settle_time=1.0)
-                return
-
-            # stale データ — ドレインしてリトライ
-            detail = repr(response[:100]) if response else "None"
-            print(f"[WARN] Sync attempt {attempt}: {detail}", flush=True)
-            self.drain_input(settle_time=2.0, max_time=10.0, label=f"sync-retry-{attempt}")
-
-        print("[WARN] Sync not achieved after 15 attempts — proceeding anyway", flush=True)
+        print(f"[WARN] Sync timeout after 90s ({len(buf)} bytes consumed)", flush=True)
+        self.drain_input(settle_time=3.0, max_time=15.0, label="sync-timeout")
 
     def send_command(self, cmd):
         """コマンドを送信し、応答を取得する (read-until-prompt)
