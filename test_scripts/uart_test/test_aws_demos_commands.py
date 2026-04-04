@@ -212,7 +212,12 @@ class CommandTester:
                     elapsed = time.time() - start
                     print(f"[INFO] MCU synchronized. FW: {ver} "
                           f"({len(buf)} bytes consumed in {elapsed:.1f}s)", flush=True)
-                    self.drain_input(settle_time=3.0, max_time=15.0, label="post-sync")
+                    # sync 中に送った CRLF nudge のレスポンスが MCU キューに
+                    # 残っている。MCU が全て処理し 30 秒の連続沈黙を確認するまで
+                    # 待つ。これでテスト開始時にキューが空であることを保証する。
+                    print("[INFO] Waiting for MCU queue to drain (settle=30s)...",
+                          flush=True)
+                    self.drain_input(settle_time=30.0, max_time=300.0, label="post-sync")
                     return
             else:
                 # 5 秒おきに CRLF を送って serial_terminal_task を活性化
