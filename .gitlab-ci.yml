@@ -4,6 +4,7 @@ stages:
   - flash
   - download
   - observe
+  - smoke_test    # MQTT 接続前の UART コマンドテスト（serial_terminal_task 高速）
   - provision
   - health
   - test
@@ -495,11 +496,11 @@ health_aws_demos_startup:
     expire_in: 1 week
 
 test_commands:
-  stage: test
+  stage: smoke_test
   extends:
     - .pc_device_job
     - .pc_pyserial_job
-  timeout: 25 minutes
+  timeout: 5 minutes
   rules:
     - if: $RUN_RFP_SOAK_TEST == "true"
       when: never
@@ -519,13 +520,11 @@ test_commands:
     - job: health_aws_demos_startup
       optional: true
       artifacts: false
-    # provision_aws_credentials も COMMAND_PORT を使用するため、同時実行を防止。
-    # RUN_AWS_TESTS=false 時は provision がスキップされるため optional: true。
-    - job: provision_aws_credentials
-      optional: true
-      artifacts: false
+    # provision 前に実行: MQTT 未接続のため serial_terminal_task が高速応答。
+    # provision 後は MQTT/TLS タスクが CPU を占有し応答に数分かかるため、
+    # コマンドテストは MQTT 接続前に完了させる。
   variables:
-    COMMAND_TIMEOUT: "120"
+    COMMAND_TIMEOUT: "20"
   script:
     - >-
       python3 "$CI_PROJECT_DIR/tools/ci/test_commands.py"
@@ -535,7 +534,7 @@ test_commands:
       --project-dir "$CI_PROJECT_DIR"
 
 test_screen_navigation:
-  stage: test
+  stage: smoke_test
   extends:
     - .pc_device_job
     - .pc_pyserial_job
