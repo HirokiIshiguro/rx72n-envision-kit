@@ -463,7 +463,8 @@ def main():
 
         # sync 中の CRLF nudge 由来の stale data を version 1 回で吸収する。
         print("[INFO] Warm-up: sending version to absorb stale data...", flush=True)
-        tester.send_command("version")
+        tester.ser.write(b"version\r\n")
+        tester.ser.flush()
         tester.drain_input(settle_time=5.0, max_time=30.0)
 
         # --- テスト実行 ---

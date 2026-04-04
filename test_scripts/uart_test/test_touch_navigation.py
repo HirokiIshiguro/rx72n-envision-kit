@@ -75,7 +75,8 @@ def main():
 
         tester.sync()
         print("[INFO] Warm-up: sending version to absorb stale data...", flush=True)
-        tester.send_command("version")
+        tester.ser.write(b"version\r\n")
+        tester.ser.flush()
         tester.drain_input(settle_time=5.0, max_time=30.0)
 
         # --- Step 1: Screen 00 → Screen 01 遷移 (touch any × 2) ---
