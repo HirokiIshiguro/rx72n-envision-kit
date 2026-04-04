@@ -122,7 +122,9 @@ class CommandTester:
             timeout = self.timeout
         buf = b""
         last_data_time = time.time()
-        IDLE_THRESHOLD = 2.0
+        # MQTT 未接続（smoke_test ステージ）では MCU は高速だが、
+        # cpuload 等の計算コマンドは 2 秒以上かかることがある。
+        IDLE_THRESHOLD = 5.0
         echo_found = cmd_echo is None
         echo_end_pos = 0
         cmd_echo_bytes = cmd_echo.encode("utf-8") if cmd_echo else None
