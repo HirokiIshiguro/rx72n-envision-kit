@@ -6,3 +6,7 @@ This documentation was migrated from the [GitHub Wiki](https://github.com/renesa
 
 - [English](en/README.md)
 - [日本語](ja/README.md)
+
+## Migration Notes / 移行メモ
+
+- [Custom RX72N Boot Loader Contract](custom-bootloader-contract.md)
