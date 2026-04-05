@@ -23,6 +23,9 @@ def main() -> int:
 
     command_port = resolve_port(args.command_port)
     test_script = os.path.join(args.project_dir, "test_scripts", "uart_test", "test_aws_demos_commands.py")
+    # Prompt polling already has its own long timeout. Per-command waits should
+    # stay short enough that one flaky response does not consume the whole job.
+    command_timeout = min(int(args.command_timeout), 20)
     reset_cmd = (
         f"\"{args.rfp_cli}\" -device RX72x -tool {args.rfp_tool}"
         f" -if fine -speed {args.rfp_speed}"
@@ -37,7 +40,9 @@ def main() -> int:
         "--baud",
         str(args.command_baud),
         "--timeout",
-        str(args.command_timeout),
+        str(command_timeout),
+        "--retries",
+        "2",
         "--prompt-timeout",
         "300",
         "--initial-wait",
