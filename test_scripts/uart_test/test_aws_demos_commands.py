@@ -217,6 +217,27 @@ class CommandTester:
                 time.sleep(1)
         return None
 
+    def send_command_body(self, cmd, retries=None, settle_time=0.5):
+        """Send a command and return only the parsed response body.
+
+        CN8 / SCI2 occasionally returns short fragments for the first read after
+        a command. Retry when the parsed body is empty or obviously truncated.
+        """
+        if retries is None:
+            retries = self.retries
+
+        last_body = ""
+        for attempt in range(1, retries + 1):
+            raw = self.send_command(cmd)
+            if raw is not None:
+                body = self.extract_response_body(raw, cmd)
+                last_body = body
+                if body and body.strip() not in {"t"}:
+                    return body
+            if attempt < retries:
+                time.sleep(settle_time)
+        return last_body
+
     def extract_response_body(self, raw_response, cmd):
         """応答からエコーバックとプロンプトを除去し、本体部分を抽出する
 
@@ -259,14 +280,13 @@ class CommandTester:
         if description:
             print(f"       {description}")
 
-        raw = self.send_command_with_retry(cmd)
+        body = self.send_command_body(cmd)
 
-        if raw is None:
+        if body is None or len(body.strip()) == 0:
             print(f"[WARN] {name}: No response received (COM6 intermittent RX issue?)")
             self.warnings += 1
             return
 
-        body = self.extract_response_body(raw, cmd)
         print(f"[RECV] Response body: {repr(body[:200])}")
 
         passed, detail = check_fn(body)
@@ -470,9 +490,8 @@ def main():
 
         # sync 中の CRLF nudge 由来の stale data を version 1 回で吸収する。
         print("[INFO] Warm-up: sending version to absorb stale data...", flush=True)
-        tester.ser.write(b"version\r\n")
-        tester.ser.flush()
-        tester.drain_input(settle_time=5.0, max_time=30.0)
+        warmup_body = tester.send_command_body("version", retries=2, settle_time=1.0)
+        print(f"[INFO] Warm-up response: {repr(warmup_body[:80])}")
 
         # --- テスト実行 ---
 
