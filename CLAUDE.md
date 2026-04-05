@@ -43,7 +43,7 @@ RX72N Envision Kit の全機能を試せるようにする。
 | 5 | e2studio 2024-01 / CC-RX v3.04 環境で既存機能の動作検証（AWS 接続、SD カードによるファームウェアアップデート、各種コマンドレスポンス） | 完了 (MR !20) |
 | 6 | e2studio 2025-12 / CC-RX v3.07 ツールチェーン更新 + 既存機能の動作検証 | 完了 (MR !21) |
 | 7 | AWS IoT OTA テスト自動化（S3 + OTA ジョブ → MQTT ダウンロード → 署名検証 → バンクスワップ → 自己テスト）（1台） | 完了 (MR !23) |
-| 8 | FreeRTOS LTS 最新版適用（[iot-reference-rx](https://github.com/renesas/iot-reference-rx) 最新リリースタグ）。作業リポジトリ: [iot-reference-rx (GitLab)](https://shelty2.servegame.com/oss/import/github/renesas/iot-reference-rx)。CK-RX65N V1 で先行構築（Phase 8a）→ RX72N に移植（Phase 8b）の2段階アプローチ。詳細計画は [iot-reference-rx の CLAUDE.md](https://shelty2.servegame.com/oss/import/github/renesas/iot-reference-rx/-/blob/main/CLAUDE.md) を参照 | 進行中 (Phase 8b-4 OTA 再検証, Issue #10) |
+| 8 | FreeRTOS LTS baseline 整列（[iot-reference-rx](https://github.com/renesas/iot-reference-rx) `v202406.01-LTS-rx-1.1.1` を参照）。作業リポジトリ: [iot-reference-rx (GitLab)](https://shelty2.servegame.com/oss/import/github/renesas/iot-reference-rx)。`master` 基準で RX72N 側のプリミティブを issue / branch / MR 単位に分割して進める。詳細計画は [`docs/freertos-primitive-migration-plan.md`](docs/freertos-primitive-migration-plan.md) を参照 | 進行中 (master 基準のプリミティブ分割。現行 runtime gate は MQTT のみ) |
 | 9 | AWS 接続を含む OTA テスト（1台、新 FW で再検証） | 予定 |
 | 10 | AWS 接続を含むフリートプロビジョニング テスト（1台。iot-reference-rx の FP デモを活用） | 予定 |
 | 11 | AWS 接続を含むセカンダリ MCU ファームウェアアップデート テスト（RX72N → FPB-RX140） | 予定 |
