@@ -210,6 +210,7 @@ provision_aws_credentials:
       --codesigner-cert "$env:CI_PROJECT_DIR\sample_keys\secp256r1.crt"
       --command-port "$env:COMMAND_PORT"
       --mac-address "$env:MAC_ADDR"
+      --allow-missing-write-confirmation
       --project-dir "$env:CI_PROJECT_DIR"
 
 health_aws_demos_startup:
