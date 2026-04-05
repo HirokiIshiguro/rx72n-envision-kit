@@ -6,7 +6,7 @@ import os
 import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "runner-handle"))
-from runner_handle.rfp_cli import run_or_exit
+from runner_handle.rfp_cli import find_rfp_cli, run_or_exit
 from runner_handle.serial_port import resolve_port
 
 
@@ -51,12 +51,13 @@ def main() -> int:
     )
 
     uart_port = resolve_port(args.uart_port)
+    rfp_cli = find_rfp_cli(args.rfp_cli)
     print("=== UART Download ===", flush=True)
     print(f"  RSU:  {args.rsu_out}")
     print(f"  Port: {uart_port} @ {args.uart_baud}bps")
     download_script = os.path.join(args.project_dir, "tools", "runner-handle", "scripts", "uart_download.py")
     reset_cmd = (
-        f"{args.rfp_cli} -device RX72x -tool {args.rfp_tool}"
+        f"\"{rfp_cli}\" -device RX72x -tool {args.rfp_tool}"
         f" -if fine -speed {args.rfp_speed}"
         f" -auth id FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"
         f" -sig -run -noquery"
