@@ -50,6 +50,10 @@ def main():
                         help="Initial wait before polling (default: 3s)")
     parser.add_argument("--prompt-timeout", type=int, default=60,
                         help="Timeout for prompt polling in seconds (default: 60)")
+    parser.add_argument("--reset-cmd", default=None,
+                        help="Optional reset command to execute after opening UART")
+    parser.add_argument("--reset-settle", type=float, default=0.2,
+                        help="Seconds to wait after reset command (default: 0.2)")
     args = parser.parse_args()
 
     print("=" * 60)
@@ -59,10 +63,12 @@ def main():
     print(f"[INFO]   Timeout  : {args.timeout}s")
     print("=" * 60)
 
-    tester = CommandTester(args.cmd_port, args.cmd_baud, args.timeout, retries=3)
+    tester = CommandTester(args.cmd_port, args.cmd_baud, args.timeout, retries=3,
+                           reset_cmd=args.reset_cmd, reset_settle=args.reset_settle)
 
     try:
         tester.open()
+        tester.trigger_reset()
 
         # MCU 起動直後のノイズ回避
         print(f"[INFO] Waiting {args.initial_wait}s for MCU to stabilize...")

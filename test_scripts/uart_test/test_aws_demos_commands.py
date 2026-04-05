@@ -34,6 +34,7 @@ aws_demos はコマンドターミナルを SCI2 (COM6, 115200bps) で提供す�
 
 import argparse
 import os
+import subprocess
 import sys
 import time
 
@@ -51,11 +52,13 @@ PROMPT = "$ "
 class CommandTester:
     """UART コマンドテスター"""
 
-    def __init__(self, port, baud, timeout, retries):
+    def __init__(self, port, baud, timeout, retries, reset_cmd=None, reset_settle=0.2):
         self.port = port
         self.baud = baud
         self.timeout = timeout
         self.retries = retries
+        self.reset_cmd = reset_cmd
+        self.reset_settle = reset_settle
         self.ser = None
         self.passed = 0
         self.failed = 0
@@ -74,6 +77,27 @@ class CommandTester:
         if self.ser and self.ser.is_open:
             self.ser.close()
             print(f"[INFO] Closed {self.port}")
+
+    def trigger_reset(self):
+        """Open済み UART で startup prompt を捕まえるために reset を後打ちする。"""
+        if not self.reset_cmd:
+            return
+        print(f"[INFO] Triggering reset command: {self.reset_cmd}")
+        result = subprocess.run(
+            self.reset_cmd,
+            shell=True,
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        if result.stdout.strip():
+            print(result.stdout.strip())
+        if result.stderr.strip():
+            print(result.stderr.strip())
+        if result.returncode != 0:
+            raise RuntimeError(f"reset command failed with exit status {result.returncode}")
+        if self.reset_settle > 0:
+            time.sleep(self.reset_settle)
 
     def read_until_prompt(self, timeout=None, expect_echo=None):
         """コマンド応答の完了を待つ
@@ -459,6 +483,10 @@ def main():
                         help="Initial wait before polling (default: 30s)")
     parser.add_argument("--prompt-timeout", type=int, default=300,
                         help="Timeout for prompt polling in seconds (default: 300)")
+    parser.add_argument("--reset-cmd", default=None,
+                        help="Optional reset command to execute after opening UART")
+    parser.add_argument("--reset-settle", type=float, default=0.2,
+                        help="Seconds to wait after reset command (default: 0.2)")
     args = parser.parse_args()
 
     print("=" * 60)
@@ -470,10 +498,12 @@ def main():
     print(f"[INFO]   Retries        : {args.retries}")
     print("=" * 60)
 
-    tester = CommandTester(args.port, args.baud, args.timeout, args.retries)
+    tester = CommandTester(args.port, args.baud, args.timeout, args.retries,
+                           reset_cmd=args.reset_cmd, reset_settle=args.reset_settle)
 
     try:
         tester.open()
+        tester.trigger_reset()
 
         # DHCP / Ethernet 初期化が落ち着いてから UART コマンドテストを始める。
         print(f"[INFO] Waiting {args.initial_wait}s for MCU to stabilize (DHCP)...")
