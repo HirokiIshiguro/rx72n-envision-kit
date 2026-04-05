@@ -194,14 +194,17 @@ StackType_t * pxPortInitialiseStack( StackType_t * pxTopOfStack,
     *pxTopOfStack = 0x44444444; /* Accumulator 0. */
     pxTopOfStack--;
     *pxTopOfStack = 0x55555555; /* Accumulator 0. */
-    pxTopOfStack--;
-    *pxTopOfStack = 0x66666666; /* Accumulator 0. */
 
     #if ( configUSE_TASK_DPFPU_SUPPORT == 1 )
         {
             /* The task will start without a DPFPU context.  A task that
              * uses the DPFPU hardware must call vPortTaskUsesDPFPU() before
-             * executing any floating point instructions. */
+             * executing any floating point instructions.
+             *
+             * On CCRX the compiler restores the first task through `com_opt4`,
+             * which places a return address into the lowest restored slot before
+             * issuing the final RTE. Keeping only five seeded accumulator words
+             * leaves the live FPSW/R1/PC/PSW slots aligned with that helper. */
             pxTopOfStack--;
             *pxTopOfStack = portNO_DPFPU_CONTEXT;
         }
@@ -460,8 +463,10 @@ static void prvYieldHandler( void )
     PUSH.L R15
     MVFACHI # 0, A0, R15
     PUSH.L R15
-    MVFACLO # 0, A0, R15 /* Low order word. */
-    PUSH.L R15
+    /* CCRX restores task contexts through `com_opt4`, which injects a return
+     * address before the accumulator/FPSW restore sequence. Leave A0 low word
+     * unsaved here so the pushed return address occupies that slot and the
+     * remaining saved words line up with the helper's pop order. */
 
     #if ( configUSE_TASK_DPFPU_SUPPORT == 1 )
 
