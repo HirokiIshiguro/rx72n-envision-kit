@@ -32,7 +32,7 @@ workflow:
         DEVICE_ID: "rx72n-01"
         MAC_ADDR: "${MAC_ADDR_ENVISION_KIT_RX72N1}"
         UART_PORT: "COM7"
-        COMMAND_PORT: "COM10"
+        COMMAND_PORT: "COM6"
         DEVICE_RESOURCE_GROUP: "rx72n-device-01"
     - when: always
 

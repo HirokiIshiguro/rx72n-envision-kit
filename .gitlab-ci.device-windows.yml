@@ -107,6 +107,9 @@ download_aws_demos:
       --seq-no "$env:RSU_SEQ_NO"
       --uart-port "$env:UART_PORT"
       --uart-baud "$env:UART_BAUD_RATE"
+      --rfp-cli "$env:RFP_CLI"
+      --rfp-tool "$env:RFP_TOOL"
+      --rfp-speed "$env:RFP_SPEED"
       --project-dir "$env:CI_PROJECT_DIR"
   artifacts:
     paths:
