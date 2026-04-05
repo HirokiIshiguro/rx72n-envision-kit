@@ -165,8 +165,10 @@ layout unless the boot loader contract is deliberately revised.
 
 ## Verification Contract
 
-The boot loader verifies the image using SHA-256 over the payload area after the
-first `0x200` bytes.
+The boot loader verifies the image using SHA-256 over the region that starts
+after the first `0x200` bytes. In the legacy RSU layout, that signed region is
+the descriptor (`0x200-0x2FF`) plus the code payload. The trailing data-flash
+payload is outside that signed region.
 
 For the current signed path:
 
