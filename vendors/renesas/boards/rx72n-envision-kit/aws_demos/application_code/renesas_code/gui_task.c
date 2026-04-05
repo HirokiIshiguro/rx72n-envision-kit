@@ -135,12 +135,9 @@ void gui_task( void * pvParameters )
      * all logging via configPRINTF is blocked. */
     task_info->gui_initialize_complete_flag = 1;
 
-    /* Notify all tasks that GUI initialization is complete.
-     * Originally this was triggered by the first LCD touch event
-     * (ID_SCREEN_00__APPW_NOTIFICATION_PIDPRESSED in ID_SCREEN_00_Slots.c).
-     * Moving it here removes the LCD touch dependency, enabling CI/CD
-     * automated testing and headless AWS IoT Core connectivity. */
-    xTaskNotifyGive(task_info->serial_terminal_task_handle);
+    /* Notify GUI-dependent tasks that GUI initialization is complete.
+     * serial_terminal_task no longer waits here because the CN8/SCl2 command
+     * path must be usable even when GUI init is delayed. */
     xTaskNotifyGive(task_info->task_manager_task_handle);
     xTaskNotifyGive(task_info->sdcard_task_handle);
     xTaskNotifyGive(task_info->serial_flash_task_handle);

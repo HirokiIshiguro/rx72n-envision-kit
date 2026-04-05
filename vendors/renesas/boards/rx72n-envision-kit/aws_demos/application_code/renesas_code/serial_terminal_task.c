@@ -206,8 +206,10 @@ void serial_terminal_task( void * pvParameters )
     uint8_t *label, *data;
     uint32_t label_length, data_length;
 
-    /* wait completing gui initializing */
-    ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
+    /* Bring up the command UART even if GUI initialization is delayed.
+     * CI uses this CLI on CN8/SCl2 to confirm startup and issue commands,
+     * so waiting on gui_task() here makes the whole command path disappear
+     * when GUI init stalls. */
 
     sci_buffer = pvPortMalloc(SCI_BUFFER_SIZE);
     command = pvPortMalloc(COMMAND_SIZE);
