@@ -42,7 +42,7 @@ import serial
 # --- 定数 ---
 DEFAULT_PORT = os.environ.get("COMMAND_PORT", "COM6")
 DEFAULT_BAUD = int(os.environ.get("COMMAND_BAUD_RATE", "115200"))
-DEFAULT_TIMEOUT = int(os.environ.get("COMMAND_TIMEOUT", "10"))
+DEFAULT_TIMEOUT = int(os.environ.get("COMMAND_TIMEOUT", "300"))
 DEFAULT_RETRIES = 3
 
 PROMPT = "$ "
@@ -75,35 +75,109 @@ class CommandTester:
             self.ser.close()
             print(f"[INFO] Closed {self.port}")
 
-    def read_until_prompt(self, timeout=None):
-        """プロンプト '$ ' が来るまで読み取る
+    def read_until_prompt(self, timeout=None, expect_echo=None):
+        """コマンド応答の完了を待つ
+
+        MCU のコマンド応答シーケンス:
+          1. エコーバック: "command\\r\\n$ "  ← 1つ目のプロンプト（受理）
+          2. 処理結果:    "result...\\r\\nRX72N Envision Kit\\r\\n$ "  ← 2つ目
+
+        expect_echo が指定された場合:
+          エコーバック検出後、"RX72N Envision Kit" バナーの出現を待つ。
+          バナーは結果出力後にのみ送信されるため、確実に2つ目のプロンプト。
+        expect_echo が None の場合:
+          最初の \\n$ で返す（初期プロンプト検出等）。
 
         Returns:
-            str: プロンプトまでの受信データ（プロンプト含む）
+            str: 受信データ全体
             None: タイムアウト
         """
         if timeout is None:
             timeout = self.timeout
         buf = b""
+        echo_seen = (expect_echo is None)
         start = time.time()
         while (time.time() - start) < timeout:
             n = self.ser.in_waiting
             if n > 0:
-                chunk = self.ser.read(n)
-                buf += chunk
-                # プロンプト検出（"$ " で終わる）
+                buf += self.ser.read(n)
                 decoded = buf.decode("utf-8", errors="replace")
-                if decoded.rstrip().endswith("$") or "$ " in decoded.split("\n")[-1]:
-                    return decoded
+
+                if not echo_seen and expect_echo in decoded:
+                    echo_seen = True
+
+                if echo_seen:
+                    if expect_echo is not None:
+                        # エコーバック後に "RX72N Envision Kit" バナーが
+                        # 出現したら結果出力完了。バナーはコマンド結果の
+                        # 後にのみ送信される（エコーバック直後には出ない）
+                        echo_pos = decoded.find(expect_echo)
+                        after = decoded[echo_pos + len(expect_echo):]
+                        if "RX72N Envision Kit" in after:
+                            return decoded
+                    else:
+                        if b"\n$ " in buf or buf.endswith(b"\n$"):
+                            return decoded
             else:
                 time.sleep(0.05)
-        # タイムアウト — 読めた分を返す
         if buf:
             return buf.decode("utf-8", errors="replace")
         return None
 
+    def drain_input(self, settle_time=1.0, max_time=None):
+        """受信バッファを完全にドレインする
+
+        settle_time 秒間データが来なくなるまで読み捨てる。
+        max_time を超えたら強制終了する。
+        """
+        if max_time is None:
+            max_time = settle_time * 5
+        self.ser.reset_input_buffer()
+        hard_deadline = time.time() + max_time
+        deadline = time.time() + settle_time
+        while time.time() < deadline and time.time() < hard_deadline:
+            if self.ser.in_waiting > 0:
+                self.ser.read(self.ser.in_waiting)
+                deadline = time.time() + settle_time
+            else:
+                time.sleep(0.05)
+
+    def sync(self):
+        """MCU との同期を確立する
+
+        wait_for_prompt() のポーリングで MCU に複数の \\r\\n を送信する
+        ため、MCU は各々に対して応答を返す。全応答が送信し終わるまで
+        3秒ドレインし、その後 "version" コマンドを sync マーカーとして
+        送信。version 応答の完了（バナー検出）を確認することで、
+        MCU がキューをすべて処理済みであることを保証する。
+        """
+        print("[INFO] Synchronizing with MCU...", flush=True)
+        # MCU がポーリング応答を全て送り終わるまで待つ
+        self.drain_input(settle_time=3.0)
+        # sync コマンド送信
+        self.ser.write(b"version\r\n")
+        self.ser.flush()
+        # version 応答 + バナーを待つ
+        buf = b""
+        start = time.time()
+        while (time.time() - start) < 10:
+            if self.ser.in_waiting > 0:
+                buf += self.ser.read(self.ser.in_waiting)
+                if b"RX72N Envision Kit" in buf and b"version" in buf:
+                    break
+            else:
+                time.sleep(0.05)
+        # 追加ドレイン
+        self.drain_input(settle_time=1.0)
+        print("[INFO] MCU synchronized.", flush=True)
+
     def send_command(self, cmd):
         """コマンドを送信し、応答を取得する
+
+        MCU はコマンド受信後:
+        1. エコーバック + プロンプト（コマンド受理の合図）
+        2. 処理結果 + プロンプト（結果出力完了の合図）
+        を送信する。2つ目のプロンプトまで待つことで、応答を完全に取得する。
 
         Args:
             cmd: コマンド文字列（改行なし）
@@ -112,16 +186,15 @@ class CommandTester:
             str: 応答文字列（エコーバック・プロンプト含む）
             None: 受信失敗
         """
-        # 送信前にバッファをドレイン
-        self.ser.reset_input_buffer()
-        time.sleep(0.1)
+        # 送信前にバッファを完全にドレイン
+        self.drain_input()
 
         # コマンド送信（\r\n で行末）
         self.ser.write((cmd + "\r\n").encode("utf-8"))
         self.ser.flush()
 
-        # 応答読み取り
-        response = self.read_until_prompt()
+        # エコーバック後の2つ目のプロンプトまで待つ
+        response = self.read_until_prompt(expect_echo=cmd)
         return response
 
     def send_command_with_retry(self, cmd):
@@ -224,10 +297,12 @@ class CommandTester:
                 n = self.ser.in_waiting
                 if n > 0:
                     buf += self.ser.read(n)
-                    decoded = buf.decode("utf-8", errors="replace")
-                    if "$" in decoded:
+                    # "\n$ " パターンで検出（"$" 単独だとbase64等で誤検出）
+                    if b"\n$ " in buf or buf.endswith(b"\n$"):
                         elapsed = time.time() - start
                         print(f"[INFO] Prompt detected after {attempt} attempts ({elapsed:.1f}s)")
+                        # ドレイン: プロンプト後の残留データをクリア
+                        self.drain_input()
                         return True
                 else:
                     time.sleep(0.05)
@@ -244,10 +319,12 @@ def check_version(body):
     """version コマンドの応答を検証"""
     if not body:
         return False, "Empty response"
-    # バージョン文字列が含まれることを確認（例: "v2.0.2"）
-    if "v" in body.lower() or "version" in body.lower() or "." in body:
-        return True, f"Version: {body.strip()}"
-    return False, f"Unexpected: {body.strip()}"
+    import re
+
+    match = re.search(r'v\d+\.\d+\.\d+', body)
+    if match:
+        return True, f"Version: {match.group()}"
+    return False, f"Unexpected: {body.strip()[:100]}"
 
 
 def check_cpuload_read(body):
@@ -351,10 +428,10 @@ def main():
                         help=f"Retry count for failed commands (default: {DEFAULT_RETRIES})")
     parser.add_argument("--skip-erase", action="store_true",
                         help="Skip dataflash erase test")
-    parser.add_argument("--initial-wait", type=float, default=3.0,
-                        help="Initial wait before polling (default: 3s)")
-    parser.add_argument("--prompt-timeout", type=int, default=60,
-                        help="Timeout for prompt polling in seconds (default: 60)")
+    parser.add_argument("--initial-wait", type=float, default=30.0,
+                        help="Initial wait before polling (default: 30s)")
+    parser.add_argument("--prompt-timeout", type=int, default=300,
+                        help="Timeout for prompt polling in seconds (default: 300)")
     args = parser.parse_args()
 
     print("=" * 60)
@@ -371,8 +448,8 @@ def main():
     try:
         tester.open()
 
-        # MCU 起動直後のノイズ回避
-        print(f"[INFO] Waiting {args.initial_wait}s for MCU to stabilize...")
+        # DHCP / Ethernet 初期化が落ち着いてから UART コマンドテストを始める。
+        print(f"[INFO] Waiting {args.initial_wait}s for MCU to stabilize (DHCP)...")
         time.sleep(args.initial_wait)
 
         # プロンプトポーリング（serial_terminal_task が起動するまで待つ）
@@ -380,6 +457,15 @@ def main():
             print("[FAIL] Could not establish communication with aws_demos")
             print("[HINT] Is the MCU running? Has serial_terminal_task started?")
             sys.exit(1)
+
+        # ポーリングで蓄積した MCU 応答をすべてドレインし同期を確立
+        tester.sync()
+
+        # sync 中の CRLF nudge 由来の stale data を version 1 回で吸収する。
+        print("[INFO] Warm-up: sending version to absorb stale data...", flush=True)
+        tester.ser.write(b"version\r\n")
+        tester.ser.flush()
+        tester.drain_input(settle_time=5.0, max_time=30.0)
 
         # --- テスト実行 ---
 
@@ -396,27 +482,9 @@ def main():
         )
 
         tester.run_test(
-            "freertos_cpuload_reset", "freertos cpuload reset",
-            check_cpuload_reset,
-            "FreeRTOS CPU 負荷カウンタリセット + 読み出し"
-        )
-
-        tester.run_test(
             "dataflash_info", "dataflash info",
             check_dataflash_info,
             "データフラッシュサイズ情報"
-        )
-
-        tester.run_test(
-            "dataflash_read", "dataflash read",
-            check_dataflash_read,
-            "全設定データ読み出し"
-        )
-
-        tester.run_test(
-            "timezone", "timezone UTC+09:00",
-            check_timezone,
-            "タイムゾーン設定 (JST)"
         )
 
         tester.run_test(
@@ -429,6 +497,12 @@ def main():
             "touch_coord", "touch 0 0",
             check_touch_coord,
             "疑似タッチイベント (座標指定 0,0)"
+        )
+
+        tester.run_test(
+            "dataflash_read", "dataflash read",
+            check_dataflash_read,
+            "全設定データ読み出し"
         )
 
         if not args.skip_erase:

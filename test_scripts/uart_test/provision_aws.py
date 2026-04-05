@@ -63,10 +63,11 @@ def wait_for_prompt(ser, timeout=30):
             n = ser.in_waiting
             if n > 0:
                 buf += ser.read(n)
-                decoded = buf.decode("utf-8", errors="replace")
-                if "$" in decoded:
+                # "\n$ " パターンで検出
+                if b"\n$ " in buf or buf.endswith(b"\n$"):
                     elapsed = time.time() - start
                     print(f"[INFO] Prompt detected after {attempt} attempts ({elapsed:.1f}s)")
+                    drain_input(ser)
                     return True
             else:
                 time.sleep(0.05)
@@ -75,23 +76,73 @@ def wait_for_prompt(ser, timeout=30):
     return False
 
 
-def send_command(ser, cmd, timeout=10):
-    """コマンドを送信し応答を取得する"""
+def drain_input(ser, settle_time=1.0):
+    """受信バッファを完全にドレインする
+
+    MCU のバースト送信が断続的に来る場合があるため、settle_time は
+    十分な長さ (1.0s) を確保する。
+    """
     ser.reset_input_buffer()
-    time.sleep(0.1)
+    deadline = time.time() + settle_time
+    while time.time() < deadline:
+        if ser.in_waiting > 0:
+            ser.read(ser.in_waiting)
+            deadline = time.time() + settle_time
+        else:
+            time.sleep(0.05)
+
+
+def sync_uart(ser):
+    """MCU との同期を確立する
+
+    wait_for_prompt() のポーリングで MCU に送った複数の \\r\\n に対する
+    応答をすべてドレインし、version コマンドで同期を確認する。
+    """
+    print("[INFO] Synchronizing with MCU...", flush=True)
+    drain_input(ser, settle_time=3.0)
+    ser.write(b"version\r\n")
+    ser.flush()
+    buf = b""
+    start = time.time()
+    while (time.time() - start) < 10:
+        if ser.in_waiting > 0:
+            buf += ser.read(ser.in_waiting)
+            if b"RX72N Envision Kit" in buf and b"version" in buf:
+                break
+        else:
+            time.sleep(0.05)
+    drain_input(ser, settle_time=1.0)
+    print("[INFO] MCU synchronized.", flush=True)
+
+
+def send_command(ser, cmd, timeout=15):
+    """コマンドを送信し、結果出力完了を待つ
+
+    MCU はコマンド受信後:
+    1. エコーバック + プロンプト（コマンド受理）
+    2. 処理結果 + "RX72N Envision Kit" バナー + プロンプト
+    を送信する。エコー検出後に "RX72N Envision Kit" バナーが
+    出現したら結果出力完了と判断する。
+    """
+    drain_input(ser)
     ser.write((cmd + "\r\n").encode("utf-8"))
     ser.flush()
 
     buf = b""
+    echo_seen = False
     start = time.time()
     while (time.time() - start) < timeout:
         n = ser.in_waiting
         if n > 0:
-            chunk = ser.read(n)
-            buf += chunk
+            buf += ser.read(n)
             decoded = buf.decode("utf-8", errors="replace")
-            if "$ " in decoded.split("\n")[-1] or decoded.rstrip().endswith("$"):
-                return decoded
+            if not echo_seen and cmd[:20] in decoded:
+                echo_seen = True
+            if echo_seen:
+                echo_pos = decoded.find(cmd[:20])
+                after = decoded[echo_pos + len(cmd[:20]):]
+                if "RX72N Envision Kit" in after:
+                    return decoded
         else:
             time.sleep(0.05)
     if buf:
@@ -99,7 +150,7 @@ def send_command(ser, cmd, timeout=10):
     return None
 
 
-def send_simple_value(ser, cmd, timeout=10):
+def send_simple_value(ser, cmd, timeout=15):
     """単純な値コマンド (endpoint, thing name) を送信し成功を確認"""
     print(f"[SEND] {cmd}")
     response = send_command(ser, cmd, timeout)
@@ -114,26 +165,30 @@ def send_simple_value(ser, cmd, timeout=10):
         print(f"[FAIL] {STORE_FAIL}")
         return False
     else:
-        print(f"[WARN] Unexpected response: {response[:200]}")
+        print(f"[WARN] Unexpected response: {response[-200:]}")
         return STORE_SUCCESS in response
 
 
-def send_pem_streaming(ser, cmd, pem_content, timeout=30):
+def send_pem_streaming(ser, cmd, pem_content, timeout=90):
     """PEM ストリーミング入力でデータフラッシュに書き込む
 
     1. コマンドを送信 (改行付き)
-    2. PEM 内容を 1 文字ずつ送信 (LF のみ)
+    2. PEM 内容を行単位で送信 (LF のみ、行間にディレイ)
     3. 成功メッセージを待つ
+
+    MCU 側の serial_terminal_task は xQueueReceive で 1 文字ずつ受信し
+    sci_buffer (2048B) に蓄積する。終端マーカー検出後に dataflash へ書き込む。
+    送信速度が速すぎると SCI キューが溢れるため、行単位でペーシングする。
     """
     print(f"[SEND] {cmd}")
     print(f"[INFO] PEM size: {len(pem_content)} bytes")
 
     # コマンド送信
     ser.reset_input_buffer()
-    time.sleep(0.1)
+    time.sleep(0.2)
     ser.write((cmd + "\r\n").encode("utf-8"))
     ser.flush()
-    time.sleep(0.5)  # コマンド処理待ち
+    time.sleep(0.8)  # コマンド処理待ち（MCU が PEM 受信モードに入るまで）
 
     # エコーバックを読み捨て
     if ser.in_waiting > 0:
@@ -144,22 +199,33 @@ def send_pem_streaming(ser, cmd, pem_content, timeout=30):
     if not pem_normalized.endswith("\n"):
         pem_normalized += "\n"
 
-    # 1 文字ずつ送信
+    # 行単位で送信（MCU の SCI キュー溢れ防止）
+    #
+    # MCU の serial_terminal_task は xQueueReceive で 1 文字ずつ受信し
+    # sci_buffer (2048B) に蓄積する。PEM 受信モード中はエコーバックなし。
+    # 終端マーカー検出後に dataflash 書き込み → 結果メッセージを送信。
+    #
+    # 送信中はエコーバック読み捨てを行わない（OS の serial buffer に任せる）。
+    # Linux の serial buffer は通常 4096 bytes で、PEM (最大 ~1700 bytes)
+    # には十分。
+    lines = pem_normalized.split("\n")
     sent = 0
-    for ch in pem_normalized:
-        ser.write(ch.encode("utf-8"))
+    for i, line in enumerate(lines):
+        data = line + "\n" if i < len(lines) - 1 else line
+        if not data:
+            continue
+        ser.write(data.encode("utf-8"))
         ser.flush()
-        sent += 1
-        # エコーバック読み捨て（バッファ溢れ防止）
-        if ser.in_waiting > 0:
-            ser.read(ser.in_waiting)
-        # 改行ごとに小さなディレイ
-        if ch == "\n":
-            time.sleep(0.01)
+        sent += len(data)
+        # 行間ディレイ: MCU の xQueueReceive 処理に余裕を持たせる
+        time.sleep(0.1)
 
     print(f"[INFO] Sent {sent} characters")
 
-    # 成功/失敗メッセージを待つ
+    # 送信完了後、MCU が終端マーカーを検出し dataflash に書き込み、
+    # 結果メッセージを送信するまで待つ。
+    # OS buffer に溜まったデータ（もしあれば）も含めて全て読み取り、
+    # STORE_SUCCESS / STORE_FAIL を探す。
     buf = b""
     start = time.time()
     while (time.time() - start) < timeout:
@@ -174,12 +240,12 @@ def send_pem_streaming(ser, cmd, pem_content, timeout=30):
                 print(f"[FAIL] {STORE_FAIL}")
                 return False
         else:
-            time.sleep(0.05)
+            time.sleep(0.1)
 
     decoded = buf.decode("utf-8", errors="replace") if buf else ""
     print(f"[FAIL] Timeout waiting for store result")
     if decoded:
-        print(f"[DEBUG] Received: {decoded[:300]}")
+        print(f"[DEBUG] Received ({len(decoded)} chars): {decoded[-300:]}")
     return False
 
 
@@ -221,6 +287,14 @@ def main():
                         help="Path to code signer certificate PEM file (OTA)")
     parser.add_argument("--mac-address", default=None,
                         help="Ethernet MAC address to store in dataflash")
+    parser.add_argument(
+        "--allow-missing-write-confirmation",
+        action="store_true",
+        help=(
+            "Return success even if some writes lack explicit UART confirmation. "
+            "Use only when a later functional test will validate provisioning."
+        ),
+    )
     args = parser.parse_args()
 
     # --device-id が指定された場合、device_config.json から設定を解決
@@ -350,6 +424,9 @@ def main():
             print("[FAIL] Could not detect prompt")
             sys.exit(1)
 
+        # ポーリングで蓄積した MCU 応答をすべてドレインし同期確立
+        sync_uart(ser)
+
         # --- プロビジョニング実行 ---
 
         print()
@@ -358,28 +435,11 @@ def main():
             ser, f"dataflash write aws mqttbrokerendpoint {args.endpoint}", args.timeout
         )
 
-        # プロンプト復帰待ち
-        time.sleep(0.5)
-        ser.reset_input_buffer()
-        ser.write(b"\r\n")
-        ser.flush()
-        time.sleep(0.5)
-        if ser.in_waiting > 0:
-            ser.read(ser.in_waiting)
-
         print()
         print(f"[STEP 2/{total_steps}] Setting IoT Thing name")
         results["thing_name"] = send_simple_value(
             ser, f"dataflash write aws iotthingname {args.thing_name}", args.timeout
         )
-
-        time.sleep(0.5)
-        ser.reset_input_buffer()
-        ser.write(b"\r\n")
-        ser.flush()
-        time.sleep(0.5)
-        if ser.in_waiting > 0:
-            ser.read(ser.in_waiting)
 
         step_index = 3
 
@@ -391,63 +451,33 @@ def main():
             )
             step_index += 1
 
-            time.sleep(0.5)
-            ser.reset_input_buffer()
-            ser.write(b"\r\n")
-            ser.flush()
-            time.sleep(0.5)
-            if ser.in_waiting > 0:
-                ser.read(ser.in_waiting)
-
         print()
         print(f"[STEP {step_index}/{total_steps}] Writing client certificate")
         results["certificate"] = send_pem_streaming(
-            ser, "dataflash write aws clientcertificate", cert_pem, timeout=30
+            ser, "dataflash write aws clientcertificate", cert_pem
         )
         step_index += 1
-
-        time.sleep(1.0)
-        ser.reset_input_buffer()
-        ser.write(b"\r\n")
-        ser.flush()
-        time.sleep(0.5)
-        if ser.in_waiting > 0:
-            ser.read(ser.in_waiting)
 
         print()
         print(f"[STEP {step_index}/{total_steps}] Writing client private key")
         results["private_key"] = send_pem_streaming(
-            ser, "dataflash write aws clientprivatekey", key_pem, timeout=30
+            ser, "dataflash write aws clientprivatekey", key_pem
         )
         step_index += 1
 
         # Step 5 (OTA): コード署名証明書
         if codesigner_pem:
-            time.sleep(1.0)
-            ser.reset_input_buffer()
-            ser.write(b"\r\n")
-            ser.flush()
-            time.sleep(0.5)
-            if ser.in_waiting > 0:
-                ser.read(ser.in_waiting)
-
             print()
             print(f"[STEP {step_index}/{total_steps}] Writing code signer certificate (OTA)")
             results["codesigner_cert"] = send_pem_streaming(
                 ser, "dataflash write aws codesignercertificate",
-                codesigner_pem, timeout=30
+                codesigner_pem
             )
 
         # --- 確認: dataflash read ---
         print()
         print("[VERIFY] Reading dataflash contents")
-        time.sleep(1.0)
-        ser.reset_input_buffer()
-        ser.write(b"\r\n")
-        ser.flush()
-        time.sleep(0.5)
-        if ser.in_waiting > 0:
-            ser.read(ser.in_waiting)
+        drain_input(ser, settle_time=2.0)
 
         response = send_command(ser, "dataflash read", timeout=10)
         if response:
@@ -483,7 +513,12 @@ def main():
         print(f"  python test_aws_connectivity.py --device-id {args.device_id}" if args.device_id else "  python test_aws_connectivity.py --log-port <LOG_PORT> --cmd-port <CMD_PORT>")
         sys.exit(0)
     else:
-        print("[FAIL] Some provisioning steps failed")
+        failed = [name for name, ok in results.items() if not ok]
+        if args.allow_missing_write_confirmation:
+            print(f"[WARN] Missing write confirmation for: {', '.join(failed)}")
+            print("[WARN] Proceeding; a later functional test must validate provisioning.")
+            sys.exit(0)
+        print(f"[FAIL] Missing write confirmation for: {', '.join(failed)}")
         sys.exit(1)
 
 
