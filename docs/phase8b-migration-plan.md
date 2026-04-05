@@ -1,4 +1,22 @@
-# Phase 8b Migration Plan
+# Phase 8b Migration Plan (Historical)
+
+## Historical Note
+
+This document is kept only as a record of the older `phase8b/`-based migration
+attempt.
+
+As of 2026-04-05, this is no longer the active execution plan.
+
+The active plan is:
+- [`docs/freertos-primitive-migration-plan.md`](docs/freertos-primitive-migration-plan.md)
+
+The following assumptions in this file are now obsolete:
+- `phase8b/` as the active landing zone
+- `r_fwup` as the forward boot/OTA path
+- phase8b-specific CI jobs as the mainline migration path
+- OTA revalidation as the immediate runtime gate before MQTT
+
+## Archived Plan
 
 ## Goal
 

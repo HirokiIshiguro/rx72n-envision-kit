@@ -20,7 +20,7 @@ RX72N Envision Kit の全機能を試せるようにする。
 | 1 | ドキュメント整理: Wiki を `docs/` へ移行 | 完了 |
 | 2 | Claude 支援の開発環境整備 | 進行中 |
 | 3 | CI/CD パイプライン整備 | 進行中 (Phase 1-2 完了) |
-| 4 | FreeRTOS を最新 Renesas IoT reference implementation ([iot-reference-rx](https://github.com/renesas/iot-reference-rx)) に置換 | 進行中 (Phase 8b-4 OTA 再検証, Issue #10) |
+| 4 | FreeRTOS を最新 Renesas IoT reference implementation ([iot-reference-rx](https://github.com/renesas/iot-reference-rx)) に置換 | 進行中 (master 基準のプリミティブ分割へリセット。現行 runtime gate は MQTT のみ) |
 
 ## リポジトリ
 
@@ -62,7 +62,26 @@ RX72N Envision Kit の全機能を試せるようにする。
 - 旧 FreeRTOS ベースの OTA monitor 調査ログと、最新 FreeRTOS 置換前の引継ぎは [MR !41](https://shelty2.servegame.com/oss/import/github/renesas/rx72n-envision-kit/-/merge_requests/41) を参照
 - 本件の深掘りは、可能であれば最新 FreeRTOS / `iot-reference-rx` 置換ブランチ側を優先する
 
-### Phase 8b 移行計画
+### 2026-04-05: 移行方針リセット
+
+2026-04-05 時点で、FreeRTOS 更新計画は次の方針へ切り替えた。
+
+- 基準ブランチは `master`
+- 基準コミットは `dd1a48924ec7ab44d5f59c797a0f0bfc01e31fbe`
+- 参照元は `iot-reference-rx` `v202406.01-LTS-rx-1.1.1`
+- 旧 `phase8b/` 資産は履歴参照のみとし、実行起点にはしない
+- `r_fwup` は今後の forward path に含めない
+- 当面の runtime gate は MQTT connect / publish / subscribe のみ
+- OTA / Fleet Provisioning / GUI / 最終レイアウト移行 / MCUboot は MQTT 安定化後に別トラック化する
+
+アクティブな issue/MR 分割計画は
+[`docs/freertos-primitive-migration-plan.md`](docs/freertos-primitive-migration-plan.md)
+を参照する。
+
+### Phase 8b 旧計画
+
+以下は `phase8b/` staging と `r_fwup` を前提にしていた旧計画の記録であり、
+現在の実行計画ではない。
 
 Phase 8b は親 issue [#11](https://shelty2.servegame.com/oss/import/github/renesas/rx72n-envision-kit/-/issues/11)
 で管理する。FreeRTOS 移行、OTA 再接続、GUI 再統合を同時に壊さないため、作業は分割して進める。
