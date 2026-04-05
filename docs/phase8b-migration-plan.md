@@ -8,7 +8,7 @@ attempt.
 As of 2026-04-05, this is no longer the active execution plan.
 
 The active plan is:
-- [`docs/freertos-primitive-migration-plan.md`](docs/freertos-primitive-migration-plan.md)
+- [`freertos-primitive-migration-plan.md`](freertos-primitive-migration-plan.md)
 
 The following assumptions in this file are now obsolete:
 - `phase8b/` as the active landing zone
