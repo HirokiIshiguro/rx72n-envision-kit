@@ -124,23 +124,27 @@ class CommandTester:
             return buf.decode("utf-8", errors="replace")
         return None
 
-    def drain_input(self, settle_time=1.0, max_time=None):
+    def drain_input(self, settle_time=1.0, max_time=None, label=None):
         """受信バッファを完全にドレインする
 
-        settle_time 秒間データが来なくなるまで読み捨てる。
+        settle_time 秒間データが来なくなるまで読み続ける。
+        MCU がチャンク送信中にポーズする場合があるため、
+        reset_input_buffer() は使わず到着データを読み切る。
         max_time を超えたら強制終了する。
         """
         if max_time is None:
             max_time = settle_time * 5
-        self.ser.reset_input_buffer()
         hard_deadline = time.time() + max_time
         deadline = time.time() + settle_time
+        total_bytes = 0
         while time.time() < deadline and time.time() < hard_deadline:
             if self.ser.in_waiting > 0:
-                self.ser.read(self.ser.in_waiting)
+                total_bytes += len(self.ser.read(self.ser.in_waiting))
                 deadline = time.time() + settle_time
             else:
                 time.sleep(0.05)
+        if label:
+            print(f"[DRAIN] {label}: {total_bytes} bytes", flush=True)
 
     def sync(self):
         """MCU との同期を確立する
@@ -152,8 +156,8 @@ class CommandTester:
         MCU がキューをすべて処理済みであることを保証する。
         """
         print("[INFO] Synchronizing with MCU...", flush=True)
-        # MCU がポーリング応答を全て送り終わるまで待つ
-        self.drain_input(settle_time=3.0)
+        # MCU がポーリング応答や前ジョブ残留データを全て送り終わるまで待つ
+        self.drain_input(settle_time=5.0, max_time=60.0, label="pre-sync")
         # sync コマンド送信
         self.ser.write(b"version\r\n")
         self.ser.flush()
@@ -168,7 +172,7 @@ class CommandTester:
             else:
                 time.sleep(0.05)
         # 追加ドレイン
-        self.drain_input(settle_time=1.0)
+        self.drain_input(settle_time=2.0, max_time=10.0, label="post-sync")
         print("[INFO] MCU synchronized.", flush=True)
 
     def send_command(self, cmd):
@@ -284,25 +288,28 @@ class CommandTester:
             timeout = max(self.timeout, 30)  # ポーリングは最低30秒
         print(f"[INFO] Polling for prompt (sending \\r\\n every 1s, timeout={timeout}s)...")
         start = time.time()
+        buf = b""
         attempt = 0
         while (time.time() - start) < timeout:
             attempt += 1
-            self.ser.reset_input_buffer()
+            while self.ser.in_waiting > 0:
+                buf += self.ser.read(self.ser.in_waiting)
+            buf = buf[-4096:]
             self.ser.write(b"\r\n")
             self.ser.flush()
             # 1秒待ちつつ受信チェック
             poll_start = time.time()
-            buf = b""
             while (time.time() - poll_start) < 1.0:
                 n = self.ser.in_waiting
                 if n > 0:
                     buf += self.ser.read(n)
+                    buf = buf[-4096:]
                     # "\n$ " パターンで検出（"$" 単独だとbase64等で誤検出）
-                    if b"\n$ " in buf or buf.endswith(b"\n$"):
+                    if b"\n$ " in buf[-100:] or buf.endswith(b"\n$"):
                         elapsed = time.time() - start
                         print(f"[INFO] Prompt detected after {attempt} attempts ({elapsed:.1f}s)")
                         # ドレイン: プロンプト後の残留データをクリア
-                        self.drain_input()
+                        self.drain_input(label="prompt")
                         return True
                 else:
                     time.sleep(0.05)
