@@ -971,21 +971,17 @@ static void serial_terminal_putstring(WM_HWIN hWin_handle, sci_hdl_t sci_handle,
 static void sci_callback(void *pArgs)
 {
     sci_cb_args_t   *args;
-    sci_err_t   sci_err;
-    uint8_t tmp;
     static BaseType_t xHigherPriorityTaskWoken;
 
     args = (sci_cb_args_t *)pArgs;
+    xHigherPriorityTaskWoken = pdFALSE;
 
     if (args->event == SCI_EVT_RX_CHAR)
     {
-        /* From RXI interrupt; received character data is in args->byte */
-        nop();
-        sci_err = R_SCI_Receive(sci_handle, &tmp, 1);
-        if(sci_err == SCI_SUCCESS)
-        {
-            xQueueSendFromISR(xQueue, &tmp, NULL);
-        }
+        /* SCI_EVT_RX_CHAR already carries the received byte in args->byte.
+         * Re-issuing R_SCI_Receive() here delays line termination handling and
+         * makes command execution lag behind the next character stream. */
+        xQueueSendFromISR(xQueue, &args->byte, &xHigherPriorityTaskWoken);
     }
     else if (args->event == SCI_EVT_RXBUF_OVFL)
     {
