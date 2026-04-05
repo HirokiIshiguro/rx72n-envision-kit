@@ -17,6 +17,9 @@ def main() -> int:
     parser.add_argument("--command-port", default=os.environ.get("COMMAND_PORT"))
     parser.add_argument("--mac-address", default=os.environ.get("MAC_ADDR"))
     parser.add_argument("--allow-missing-write-confirmation", action="store_true")
+    parser.add_argument("--rfp-cli", default=os.environ.get("RFP_CLI", "rfp-cli"))
+    parser.add_argument("--rfp-tool", default=os.environ.get("RFP_TOOL", "e2l"))
+    parser.add_argument("--rfp-speed", default=os.environ.get("RFP_SPEED", "1500K"))
     parser.add_argument("--project-dir", default=os.environ.get("CI_PROJECT_DIR", "."))
     args = parser.parse_args()
 
@@ -24,6 +27,12 @@ def main() -> int:
     print(f"  Device ID: {args.device_id}")
 
     provision_script = os.path.join(args.project_dir, "test_scripts", "uart_test", "provision_aws.py")
+    reset_cmd = (
+        f"\"{args.rfp_cli}\" -device RX72x -tool {args.rfp_tool}"
+        f" -if fine -speed {args.rfp_speed}"
+        f" -auth id FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"
+        f" -sig -run -noquery"
+    )
     cmd = [sys.executable, provision_script, "--device-id", args.device_id]
     if args.codesigner_cert:
         cmd += ["--codesigner-cert", args.codesigner_cert]
@@ -33,6 +42,7 @@ def main() -> int:
         cmd += ["--mac-address", args.mac_address]
     if args.allow_missing_write_confirmation:
         cmd += ["--allow-missing-write-confirmation"]
+    cmd += ["--reset-cmd", reset_cmd]
 
     print(f"  > {' '.join(cmd)}", flush=True)
     result = subprocess.run(cmd)

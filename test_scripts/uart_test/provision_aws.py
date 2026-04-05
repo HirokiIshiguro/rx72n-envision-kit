@@ -27,6 +27,7 @@ PEM ストリーミングプロトコル:
 import argparse
 import os
 import re
+import subprocess
 import sys
 import time
 
@@ -74,6 +75,28 @@ def wait_for_prompt(ser, timeout=30):
         if attempt <= 5 or attempt % 10 == 0:
             print(f"[INFO] Attempt {attempt}: no prompt yet...")
     return False
+
+
+def trigger_reset(reset_cmd, reset_settle=0.2):
+    """Open済み UART で startup prompt を捕まえるために reset を後打ちする。"""
+    if not reset_cmd:
+        return
+    print(f"[INFO] Triggering reset command: {reset_cmd}")
+    result = subprocess.run(
+        reset_cmd,
+        shell=True,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    if result.stdout.strip():
+        print(result.stdout.strip())
+    if result.stderr.strip():
+        print(result.stderr.strip())
+    if result.returncode != 0:
+        raise RuntimeError(f"reset command failed with exit status {result.returncode}")
+    if reset_settle > 0:
+        time.sleep(reset_settle)
 
 
 def drain_input(ser, settle_time=1.0):
@@ -295,6 +318,10 @@ def main():
             "Use only when a later functional test will validate provisioning."
         ),
     )
+    parser.add_argument("--reset-cmd", default=None,
+                        help="Optional reset command to execute after opening UART")
+    parser.add_argument("--reset-settle", type=float, default=0.2,
+                        help="Seconds to wait after reset command (default: 0.2)")
     args = parser.parse_args()
 
     # --device-id が指定された場合、device_config.json から設定を解決
@@ -413,11 +440,19 @@ def main():
 
     results = {}
 
+    if args.allow_missing_write_confirmation:
+        simple_timeout = min(args.timeout, 5)
+        pem_timeout = 12
+    else:
+        simple_timeout = args.timeout
+        pem_timeout = 90
+
     try:
         ser = serial.Serial(args.port, args.baud, timeout=0)
         time.sleep(0.1)
         ser.reset_input_buffer()
         print(f"[INFO] Opened {args.port} at {args.baud} bps")
+        trigger_reset(args.reset_cmd, args.reset_settle)
 
         # プロンプト待ち
         if not wait_for_prompt(ser, timeout=30):
@@ -432,13 +467,13 @@ def main():
         print()
         print(f"[STEP 1/{total_steps}] Setting MQTT broker endpoint")
         results["endpoint"] = send_simple_value(
-            ser, f"dataflash write aws mqttbrokerendpoint {args.endpoint}", args.timeout
+            ser, f"dataflash write aws mqttbrokerendpoint {args.endpoint}", simple_timeout
         )
 
         print()
         print(f"[STEP 2/{total_steps}] Setting IoT Thing name")
         results["thing_name"] = send_simple_value(
-            ser, f"dataflash write aws iotthingname {args.thing_name}", args.timeout
+            ser, f"dataflash write aws iotthingname {args.thing_name}", simple_timeout
         )
 
         step_index = 3
@@ -447,21 +482,21 @@ def main():
             print()
             print(f"[STEP {step_index}/{total_steps}] Setting Ethernet MAC address")
             results["mac_address"] = send_simple_value(
-                ser, f"dataflash write aws macaddress {args.mac_address}", args.timeout
+                ser, f"dataflash write aws macaddress {args.mac_address}", simple_timeout
             )
             step_index += 1
 
         print()
         print(f"[STEP {step_index}/{total_steps}] Writing client certificate")
         results["certificate"] = send_pem_streaming(
-            ser, "dataflash write aws clientcertificate", cert_pem
+            ser, "dataflash write aws clientcertificate", cert_pem, timeout=pem_timeout
         )
         step_index += 1
 
         print()
         print(f"[STEP {step_index}/{total_steps}] Writing client private key")
         results["private_key"] = send_pem_streaming(
-            ser, "dataflash write aws clientprivatekey", key_pem
+            ser, "dataflash write aws clientprivatekey", key_pem, timeout=pem_timeout
         )
         step_index += 1
 
@@ -471,7 +506,8 @@ def main():
             print(f"[STEP {step_index}/{total_steps}] Writing code signer certificate (OTA)")
             results["codesigner_cert"] = send_pem_streaming(
                 ser, "dataflash write aws codesignercertificate",
-                codesigner_pem
+                codesigner_pem,
+                timeout=pem_timeout
             )
 
         # --- 確認: dataflash read ---
