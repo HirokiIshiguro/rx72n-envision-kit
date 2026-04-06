@@ -46,6 +46,14 @@ PROMPT = "$ "
 STORE_SUCCESS = "stored data into dataflash correctly."
 STORE_FAIL = "could not store data into dataflash."
 MAC_ADDRESS_PATTERN = re.compile(r"^(?:[0-9A-Fa-f]{2}[:-]){5}[0-9A-Fa-f]{2}$")
+DATAFLASH_LABELS = {
+    "endpoint": "mqtt_broker_endpoint",
+    "thing_name": "iot_thing_name",
+    "mac_address": "mac_address",
+    "certificate": "client_certificate",
+    "private_key": "client_private_key",
+    "codesigner_cert": "code_signer_certificate",
+}
 
 
 def wait_for_prompt(ser, timeout=30):
@@ -286,6 +294,63 @@ def normalize_mac_address(mac_address):
     return mac_address.replace("-", ":").upper()
 
 
+def parse_dataflash_entries(response):
+    """`dataflash read` 応答から label/data ペアを抽出する。"""
+    entries = {}
+    current_label = None
+    current_data_lines = []
+    capturing_data = False
+
+    for raw_line in response.replace("\r", "").split("\n"):
+        line = raw_line.strip()
+        if not line or line == "$" or line == "RX72N Envision Kit":
+            continue
+        if "dataflash read" in line:
+            continue
+        if line.startswith("label = "):
+            if current_label and capturing_data:
+                entries[current_label] = "\n".join(current_data_lines).strip()
+            current_label = line[len("label = "):].strip()
+            current_data_lines = []
+            capturing_data = False
+            continue
+        if line.startswith("data = "):
+            capturing_data = True
+            current_data_lines = [line[len("data = "):]]
+            continue
+        if line.startswith("data_length("):
+            if current_label:
+                entries[current_label] = "\n".join(current_data_lines).strip()
+            current_label = None
+            current_data_lines = []
+            capturing_data = False
+            continue
+        if capturing_data:
+            current_data_lines.append(line)
+
+    if current_label and capturing_data:
+        entries[current_label] = "\n".join(current_data_lines).strip()
+
+    return entries
+
+
+def verify_dataflash_entries(entries, endpoint, thing_name, mac_address, needs_codesigner):
+    """Readback から provisioning 結果を再評価する。"""
+    verified = {
+        "endpoint": endpoint in entries.get(DATAFLASH_LABELS["endpoint"], ""),
+        "thing_name": thing_name in entries.get(DATAFLASH_LABELS["thing_name"], ""),
+        "certificate": "BEGIN CERTIFICATE" in entries.get(DATAFLASH_LABELS["certificate"], ""),
+        "private_key": "BEGIN RSA PRIVATE KEY" in entries.get(DATAFLASH_LABELS["private_key"], ""),
+    }
+    if mac_address:
+        verified["mac_address"] = entries.get(DATAFLASH_LABELS["mac_address"], "") == mac_address
+    if needs_codesigner:
+        verified["codesigner_cert"] = (
+            "BEGIN CERTIFICATE" in entries.get(DATAFLASH_LABELS["codesigner_cert"], "")
+        )
+    return verified
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="AWS IoT Core device provisioning via UART"
@@ -439,6 +504,7 @@ def main():
     print("=" * 60)
 
     results = {}
+    readback_results = {}
 
     if args.allow_missing_write_confirmation:
         simple_timeout = min(args.timeout, 5)
@@ -515,8 +581,23 @@ def main():
         print("[VERIFY] Reading dataflash contents")
         drain_input(ser, settle_time=2.0)
 
-        response = send_command(ser, "dataflash read", timeout=10)
+        response = None
+        readback_timeout = 20 if args.allow_missing_write_confirmation else 10
+        for attempt in range(1, 3):
+            response = send_command(ser, "dataflash read", timeout=readback_timeout)
+            if response:
+                break
+            print(f"[WARN] dataflash read attempt {attempt} returned no response")
+            drain_input(ser, settle_time=1.0)
         if response:
+            entries = parse_dataflash_entries(response)
+            readback_results = verify_dataflash_entries(
+                entries,
+                args.endpoint,
+                args.thing_name,
+                args.mac_address,
+                codesigner_pem is not None,
+            )
             # PRIVATE KEY の本体をマスクしてから表示
             masked_response = mask_sensitive_output(response)
             lines = masked_response.replace("\r", "").split("\n")
@@ -525,6 +606,8 @@ def main():
                 if stripped and stripped != "$" and "dataflash read" not in stripped:
                     if "RX72N Envision Kit" not in stripped:
                         print(f"  {stripped}")
+        else:
+            print("[WARN] dataflash read returned no response; cannot use readback for verification")
 
         ser.close()
         print(f"[INFO] Closed {args.port}")
@@ -536,6 +619,13 @@ def main():
     # --- 結果レポート ---
     print()
     print("=" * 60)
+    if readback_results:
+        print("[INFO] Readback verification")
+        for name, ok in readback_results.items():
+            status = "PASS" if ok else "FAIL"
+            print(f"  [{status}] readback_{name}")
+            results[name] = results.get(name, False) or ok
+        print("=" * 60)
     all_ok = all(results.values())
     for name, ok in results.items():
         status = "PASS" if ok else "FAIL"
@@ -551,9 +641,12 @@ def main():
     else:
         failed = [name for name, ok in results.items() if not ok]
         if args.allow_missing_write_confirmation:
-            print(f"[WARN] Missing write confirmation for: {', '.join(failed)}")
-            print("[WARN] Proceeding; a later functional test must validate provisioning.")
-            sys.exit(0)
+            print(f"[FAIL] Provisioning could not be confirmed for: {', '.join(failed)}")
+            if readback_results:
+                print("[FAIL] UART write confirmation was missing and readback was insufficient.")
+            else:
+                print("[FAIL] UART write confirmation was missing and readback was unavailable.")
+            sys.exit(1)
         print(f"[FAIL] Missing write confirmation for: {', '.join(failed)}")
         sys.exit(1)
 
