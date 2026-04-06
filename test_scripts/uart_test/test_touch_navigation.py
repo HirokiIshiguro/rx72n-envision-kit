@@ -50,10 +50,6 @@ def main():
                         help="Initial wait before polling (default: 3s)")
     parser.add_argument("--prompt-timeout", type=int, default=60,
                         help="Timeout for prompt polling in seconds (default: 60)")
-    parser.add_argument("--reset-cmd", default=None,
-                        help="Optional reset command to execute after opening UART")
-    parser.add_argument("--reset-settle", type=float, default=0.2,
-                        help="Seconds to wait after reset command (default: 0.2)")
     args = parser.parse_args()
 
     print("=" * 60)
@@ -63,12 +59,10 @@ def main():
     print(f"[INFO]   Timeout  : {args.timeout}s")
     print("=" * 60)
 
-    tester = CommandTester(args.cmd_port, args.cmd_baud, args.timeout, retries=3,
-                           reset_cmd=args.reset_cmd, reset_settle=args.reset_settle)
+    tester = CommandTester(args.cmd_port, args.cmd_baud, args.timeout, retries=3)
 
     try:
         tester.open()
-        tester.trigger_reset()
 
         # MCU 起動直後のノイズ回避
         print(f"[INFO] Waiting {args.initial_wait}s for MCU to stabilize...")
@@ -81,8 +75,9 @@ def main():
 
         tester.sync()
         print("[INFO] Warm-up: sending version to absorb stale data...", flush=True)
-        warmup_body = tester.send_command_body("version", retries=2, settle_time=1.0)
-        print(f"[INFO] Warm-up response: {repr(warmup_body[:80])}")
+        tester.ser.write(b"version\r\n")
+        tester.ser.flush()
+        tester.drain_input(settle_time=5.0, max_time=30.0)
 
         # --- Step 1: Screen 00 → Screen 01 遷移 (touch any × 2) ---
         print()
@@ -90,10 +85,11 @@ def main():
 
         for i in range(1, 3):
             print(f"[INFO] Sending touch any ({i}/2)...")
-            body = tester.send_command_body("touch any")
-            if body is None or len(body.strip()) == 0:
+            raw = tester.send_command_with_retry("touch any")
+            if raw is None:
                 print(f"[FAIL] No response for touch any ({i}/2)")
                 sys.exit(1)
+            body = tester.extract_response_body(raw, "touch any")
             if "ok" not in body.lower():
                 print(f"[FAIL] Unexpected response: {body}")
                 sys.exit(1)
@@ -106,10 +102,11 @@ def main():
         # --- Step 2: Screen 01 ボタンタッチ (BUTTON_00: System Info tab) ---
         print()
         print("[STEP] Touch BUTTON_00 (System Info tab) at (346, 10)")
-        body = tester.send_command_body("touch 346 10")
-        if body is None or len(body.strip()) == 0:
+        raw = tester.send_command_with_retry("touch 346 10")
+        if raw is None:
             print("[FAIL] No response for touch 346 10")
             sys.exit(1)
+        body = tester.extract_response_body(raw, "touch 346 10")
         if "ok" not in body.lower():
             print(f"[FAIL] Unexpected response: {body}")
             sys.exit(1)
@@ -119,10 +116,11 @@ def main():
         # --- Step 3: FW Update タブに切替 (BUTTON_01) ---
         print()
         print("[STEP] Touch BUTTON_01 (FW Update tab) at (434, 10)")
-        body = tester.send_command_body("touch 434 10")
-        if body is None or len(body.strip()) == 0:
+        raw = tester.send_command_with_retry("touch 434 10")
+        if raw is None:
             print("[FAIL] No response for touch 434 10")
             sys.exit(1)
+        body = tester.extract_response_body(raw, "touch 434 10")
         if "ok" not in body.lower():
             print(f"[FAIL] Unexpected response: {body}")
             sys.exit(1)
