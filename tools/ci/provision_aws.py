@@ -15,6 +15,8 @@ def main() -> int:
     parser.add_argument("--device-id", default=os.environ.get("DEVICE_ID", "rx72n-02"))
     parser.add_argument("--codesigner-cert", default=None)
     parser.add_argument("--command-port", default=os.environ.get("COMMAND_PORT"))
+    parser.add_argument("--uart-port", default=os.environ.get("UART_PORT"))
+    parser.add_argument("--uart-baud", default=os.environ.get("UART_BAUD_RATE", "921600"))
     parser.add_argument("--mac-address", default=os.environ.get("MAC_ADDR"))
     parser.add_argument("--allow-missing-write-confirmation", action="store_true")
     parser.add_argument("--rfp-cli", default=os.environ.get("RFP_CLI", "rfp-cli"))
@@ -38,6 +40,8 @@ def main() -> int:
         cmd += ["--codesigner-cert", args.codesigner_cert]
     if args.command_port:
         cmd += ["--port", resolve_port(args.command_port)]
+    if args.uart_port:
+        cmd += ["--log-port", resolve_port(args.uart_port), "--log-baud", str(args.uart_baud)]
     if args.mac_address:
         cmd += ["--mac-address", args.mac_address]
     if args.allow_missing_write_confirmation:

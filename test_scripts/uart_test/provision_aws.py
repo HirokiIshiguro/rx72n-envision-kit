@@ -25,10 +25,12 @@ PEM ストリーミングプロトコル:
 """
 
 import argparse
+from collections import deque
 import os
 import re
 import subprocess
 import sys
+import threading
 import time
 
 # provisioning submodule (tools/provisioning) をパスに追加
@@ -54,6 +56,72 @@ DATAFLASH_LABELS = {
     "private_key": "client_private_key",
     "codesigner_cert": "code_signer_certificate",
 }
+
+LOG_PATTERNS = (
+    "The network is up and running",
+    "task_manager_task",
+    "erase dataflash",
+    "write dataflash",
+    "ERROR: Update data flash data from image",
+    "R_FLASH_Erase() returns error code",
+    "R_FLASH_Write() returns error code",
+    "Device public key",
+    "client certificate should be updated",
+)
+
+
+class LogCapture:
+    def __init__(self, port, baud):
+        self.port = port
+        self.baud = baud
+        self.ser = None
+        self.lines = deque(maxlen=200)
+        self.stop_event = threading.Event()
+        self.thread = None
+
+    def open(self):
+        self.ser = serial.Serial(self.port, self.baud, timeout=0)
+        time.sleep(0.1)
+        self.ser.reset_input_buffer()
+        self.thread = threading.Thread(target=self._run, daemon=True)
+        self.thread.start()
+        print(f"[INFO] Opened log port {self.port} at {self.baud} bps")
+
+    def close(self):
+        self.stop_event.set()
+        if self.thread:
+            self.thread.join(timeout=1.0)
+        if self.ser and self.ser.is_open:
+            self.ser.close()
+            print(f"[INFO] Closed log port {self.port}")
+
+    def dump_recent(self, header):
+        if not self.lines:
+            print(f"[INFO] {header}: no log lines captured")
+            return
+        print(f"[INFO] {header}: recent log tail")
+        for line in list(self.lines)[-20:]:
+            print(f"  [LOG] {line}")
+
+    def _run(self):
+        buf = b""
+        while not self.stop_event.is_set():
+            try:
+                n = self.ser.in_waiting if self.ser else 0
+                if n > 0:
+                    buf += self.ser.read(n)
+                    while b"\n" in buf:
+                        raw_line, buf = buf.split(b"\n", 1)
+                        line = raw_line.decode("utf-8", errors="replace").strip("\r")
+                        if not line:
+                            continue
+                        self.lines.append(line)
+                        if any(pattern in line for pattern in LOG_PATTERNS):
+                            print(f"[LOG] {line}")
+                else:
+                    time.sleep(0.05)
+            except serial.SerialException:
+                break
 
 
 def wait_for_prompt(ser, timeout=30):
@@ -373,6 +441,10 @@ def main():
                         help="Path to client private key PEM file")
     parser.add_argument("--codesigner-cert", default=None,
                         help="Path to code signer certificate PEM file (OTA)")
+    parser.add_argument("--log-port", default=None,
+                        help="Optional log serial port (SCI7/CN6) for diagnostics")
+    parser.add_argument("--log-baud", type=int, default=921600,
+                        help="Log serial baud rate (default: 921600)")
     parser.add_argument("--mac-address", default=None,
                         help="Ethernet MAC address to store in dataflash")
     parser.add_argument(
@@ -514,6 +586,11 @@ def main():
         pem_timeout = 90
 
     try:
+        log_capture = None
+        if args.log_port:
+            log_capture = LogCapture(args.log_port, args.log_baud)
+            log_capture.open()
+
         ser = serial.Serial(args.port, args.baud, timeout=0)
         time.sleep(0.1)
         ser.reset_input_buffer()
@@ -535,12 +612,16 @@ def main():
         results["endpoint"] = send_simple_value(
             ser, f"dataflash write aws mqttbrokerendpoint {args.endpoint}", simple_timeout
         )
+        if (not results["endpoint"]) and log_capture:
+            log_capture.dump_recent("endpoint failure")
 
         print()
         print(f"[STEP 2/{total_steps}] Setting IoT Thing name")
         results["thing_name"] = send_simple_value(
             ser, f"dataflash write aws iotthingname {args.thing_name}", simple_timeout
         )
+        if (not results["thing_name"]) and log_capture:
+            log_capture.dump_recent("thing_name failure")
 
         step_index = 3
 
@@ -550,6 +631,8 @@ def main():
             results["mac_address"] = send_simple_value(
                 ser, f"dataflash write aws macaddress {args.mac_address}", simple_timeout
             )
+            if (not results["mac_address"]) and log_capture:
+                log_capture.dump_recent("mac_address failure")
             step_index += 1
 
         print()
@@ -557,6 +640,8 @@ def main():
         results["certificate"] = send_pem_streaming(
             ser, "dataflash write aws clientcertificate", cert_pem, timeout=pem_timeout
         )
+        if (not results["certificate"]) and log_capture:
+            log_capture.dump_recent("certificate failure")
         step_index += 1
 
         print()
@@ -564,6 +649,8 @@ def main():
         results["private_key"] = send_pem_streaming(
             ser, "dataflash write aws clientprivatekey", key_pem, timeout=pem_timeout
         )
+        if (not results["private_key"]) and log_capture:
+            log_capture.dump_recent("private_key failure")
         step_index += 1
 
         # Step 5 (OTA): コード署名証明書
@@ -575,6 +662,8 @@ def main():
                 codesigner_pem,
                 timeout=pem_timeout
             )
+            if (not results["codesigner_cert"]) and log_capture:
+                log_capture.dump_recent("codesigner failure")
 
         # --- 確認: dataflash read ---
         print()
@@ -611,6 +700,8 @@ def main():
 
         ser.close()
         print(f"[INFO] Closed {args.port}")
+        if log_capture:
+            log_capture.close()
 
     except serial.SerialException as e:
         print(f"[ERROR] Serial port error: {e}")
