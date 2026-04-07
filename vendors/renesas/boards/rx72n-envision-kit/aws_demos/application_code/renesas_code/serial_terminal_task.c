@@ -971,8 +971,6 @@ static void serial_terminal_putstring(WM_HWIN hWin_handle, sci_hdl_t sci_handle,
 static void sci_callback(void *pArgs)
 {
     sci_cb_args_t   *args;
-    sci_err_t   sci_err;
-    uint8_t tmp;
     static BaseType_t xHigherPriorityTaskWoken;
 
     args = (sci_cb_args_t *)pArgs;
@@ -980,16 +978,10 @@ static void sci_callback(void *pArgs)
 
     if (args->event == SCI_EVT_RX_CHAR)
     {
-        /* Exact repros show the args->byte path introduced in 179ffe54 makes
-         * the CN8/SCI2 smoke path unstable on RX72N set #2. Keep the proven
-         * pre-179ffe54 receive flow until the ISR/queue timing issue is
-         * understood and fixed without regressing smoke stability. */
-        nop();
-        sci_err = R_SCI_Receive(sci_handle, &tmp, 1);
-        if(sci_err == SCI_SUCCESS)
-        {
-            xQueueSendFromISR(xQueue, &tmp, NULL);
-        }
+        /* SCI_EVT_RX_CHAR already carries the received byte in args->byte.
+         * Re-issuing R_SCI_Receive() here delays line termination handling and
+         * makes command execution lag behind the next character stream. */
+        xQueueSendFromISR(xQueue, &args->byte, &xHigherPriorityTaskWoken);
     }
     else if (args->event == SCI_EVT_RXBUF_OVFL)
     {
