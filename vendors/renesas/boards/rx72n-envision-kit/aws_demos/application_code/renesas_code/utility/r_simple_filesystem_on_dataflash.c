@@ -186,6 +186,9 @@ sfd_err_t R_SFD_Open(void)
         R_FLASH_Open();
         /* check the hash */
         check_dataflash_area(0);
+        /* Refresh the RAM image on every open, matching the historical CLI path
+         * that reloaded SFD contents before each command. */
+        memcpy(sfd_control_block_data_image, (void *)&sfd_control_block_data, sizeof(SFD_CONTROL_BLOCK));
         sfd_err = SFD_SUCCESS;
         R_FLASH_Close();
     }
@@ -224,6 +227,8 @@ SFD_HANDLE R_SFD_SaveObject(uint8_t *label, uint32_t label_length, uint8_t *data
 
     /* check the hash */
     check_dataflash_area(0);
+    /* Reload the latest control block image before mutating it. */
+    memcpy(sfd_control_block_data_image, (void *)&sfd_control_block_data, sizeof(SFD_CONTROL_BLOCK));
 
     /* search specified label value from object_handle_dictionary */
     for (i = 0; i < SFD_OBJECT_HANDLES_NUM; i++)
@@ -347,10 +352,8 @@ SFD_HANDLE R_SFD_SaveObject(uint8_t *label, uint32_t label_length, uint8_t *data
 
 sfd_err_t R_SFD_Close(void)
 {
-#if defined BSP_CFG_RTOS_USED == 1 /* FreeRTOS */
-    vPortFree(sfd_control_block_data_image);
-    xSemaphoreGive( xSemaphoreDataFlashAccess );
-#endif
+    /* Historical callers treat open/close as a lightweight transaction
+     * boundary. Keep the RAM image alive for the lifetime of the process. */
     return SFD_SUCCESS;
 }
 
