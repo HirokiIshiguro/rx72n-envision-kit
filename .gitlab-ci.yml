@@ -54,13 +54,13 @@ variables:
   # E2 Lite シリアル番号 (ECN1 コネクタ)
   E2LITE_SERIAL: "${E2L_SERIAL_ENVISION_KIT_RX72N_ECN1}"
   # UART ログ / ダウンロード用（CN6 PMOD FTDI, SCI7, 921600bps）
-  # set #2 固定。hardware-config に記録された stable by-id path を使用する。
-  UART_PORT: "/dev/serial/by-id/usb-FTDI_FT232R_USB_UART_AV0KOEEG-if00-port0"
+  # set #2 固定。/oss group CI/CD Variables の stable by-id path を使用する。
+  UART_PORT: "${UART_PORT_ENVISION_KIT_RX72N_CN6_RPI2}"
   UART_BAUD_RATE: "921600"
   UART_TIMEOUT_SEC: "30"
   # コマンドインターフェース用（CN8 USB Serial, SCI2, 115200bps）
-  # CN8 は set #1-#3 で共通の by-id path を使う。
-  COMMAND_PORT: "${UART_PORT_ENVISION_KIT_RX72N_CN8_PRI1}"
+  # set #2 固定。/oss group CI/CD Variables の stable by-id path を使用する。
+  COMMAND_PORT: "${UART_PORT_ENVISION_KIT_RX72N_CN8_PRI2}"
   COMMAND_BAUD_RATE: "115200"
   # デバイス ID と MAC address は set #2 固定。
   DEVICE_ID: "rx72n-02"
