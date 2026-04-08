@@ -37,6 +37,7 @@ Includes   <System Includes> , "Project Includes"
 #include "platform.h"
 #include "FreeRTOS.h"
 #include "task.h"
+#include "serial_term_uart.h"
 #if defined(AMAZON_FREERTOS_ENABLE_UNIT_TESTS)
 #include "unity_internals.h"
 #elif defined(ENABLE_UNIT_TESTS)
@@ -366,15 +367,22 @@ void Processing_Before_Start_Kernel(void)
     BaseType_t ret;
 
     /************** task creation ****************************/
+    R_Pins_Create();
+    uart_config();
+    uart_string_printf_immediate( "diag: pre-kernel entry\r\n" );
+
     /* Main task. */
     ret = xTaskCreate(main, "MAIN_TASK", 512, NULL, 3, NULL);
     if (pdPASS != ret)
     {
+        uart_string_printf_immediate( "diag: main task create failed\r\n" );
         while(1)
         {
             /* Failed! Task can not be created. */
         }
     }
+
+    uart_string_printf_immediate( "diag: main task created\r\n" );
 } /* End of function Processing_Before_Start_Kernel() */
 
 #endif /* (BSP_CFG_RTOS_USED == 1) */

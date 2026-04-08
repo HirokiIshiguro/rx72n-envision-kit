@@ -133,6 +133,7 @@ static void prvPublishMacAddressToNetworkInterface( void );
  */
 void main( void )
 {
+    uart_string_printf_immediate( "diag: main entry\r\n" );
     while(1)
     {
     	main_task();
