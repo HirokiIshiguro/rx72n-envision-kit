@@ -12,6 +12,13 @@ Migrate the current RX72N repository from the legacy top-level tree:
 - `test_scripts/`
 - `tools/`
 
+The following top-level paths are intentionally outside this track unless a
+later issue states otherwise:
+
+- `bin/`
+- `docs/`
+- `sample_keys/`
+
 toward the post-MQTT target structure aligned with the `iot-reference-rx`
 style:
 
@@ -57,6 +64,7 @@ The current tree is functionally close to these target buckets:
 
 | Current path | Target bucket | Notes |
 |--------------|---------------|-------|
+| Shared board/runtime helpers currently mixed under `vendors/renesas/boards/rx72n-envision-kit/` and demo support code | `Common/` | There is no clean top-level equivalent today; extract these only after path consumers are decoupled |
 | `vendors/renesas/boards/rx72n-envision-kit/` | `Projects/` + `Configuration/` | Board app, config, and board-specific ports are mixed together today |
 | `libraries/` | `Middleware/` | Third-party and AWS/FreeRTOS libraries |
 | `freertos_kernel/` | `Middleware/` | Kernel stays separate today, but belongs in the middleware layer conceptually |
