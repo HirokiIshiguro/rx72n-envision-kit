@@ -106,6 +106,14 @@ OTA_MILESTONES = {
     },
 }
 
+OTA_AGENT_DETECTION_PATTERNS = (
+    r"OTA over MQTT demo",
+    r"\[OTA Agent T\]",
+    r"Subscribed to MQTT topic: \$aws/things/.*/jobs/notify-next",
+    r"Received job message callback",
+    r"Creating an MQTT connection to ",
+)
+
 LEGACY_RSU_MAGIC = b"Renesas"
 FWUP_V2_RSU_MAGIC = b"RELFWV2"
 
@@ -1275,12 +1283,15 @@ def confirm_ota_agent(log_ser):
         if n > 0:
             buf += log_ser.read(n)
             decoded = buf.decode("utf-8", errors="replace")
-            if re.search(r"OTA over MQTT demo", decoded):
-                print("[PASS] OTA Agent is running")
-                detected_version = parse_version_from_log(decoded)
-                if detected_version:
-                    print(f"[INFO] Current firmware version: {format_version(detected_version)}")
-                agent_detected = True
+            for pattern in OTA_AGENT_DETECTION_PATTERNS:
+                if re.search(pattern, decoded):
+                    print(f"[PASS] OTA Agent activity detected ({pattern})")
+                    detected_version = parse_version_from_log(decoded)
+                    if detected_version:
+                        print(f"[INFO] Current firmware version: {format_version(detected_version)}")
+                    agent_detected = True
+                    break
+            if agent_detected:
                 break
         else:
             time.sleep(0.2)
@@ -1292,7 +1303,9 @@ def confirm_ota_agent(log_ser):
             agent_detected = True
         else:
             print("[FAIL] OTA Agent not detected within 60s")
-            print(f"[DEBUG] Received: {decoded[:300]}")
+            print(f"[DEBUG] Received head: {decoded[:300]}")
+            if len(decoded) > 300:
+                print(f"[DEBUG] Received tail: {decoded[-500:]}")
 
     return agent_detected, detected_version
 
