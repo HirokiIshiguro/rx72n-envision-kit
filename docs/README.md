@@ -6,3 +6,7 @@ This documentation was migrated from the [GitHub Wiki](https://github.com/renesa
 
 - [English](en/README.md)
 - [日本語](ja/README.md)
+
+## Migration / 移行メモ
+
+- [Post-MQTT Layout Migration](post-mqtt-layout-migration.md)
