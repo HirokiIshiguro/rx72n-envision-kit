@@ -252,20 +252,25 @@ def send_command(ser, cmd, timeout=15):
 def send_simple_value(ser, cmd, timeout=15):
     """単純な値コマンド (endpoint, thing name) を送信し成功を確認"""
     print(f"[SEND] {cmd}")
-    response = send_command(ser, cmd, timeout)
-    if response is None:
-        print(f"[FAIL] No response")
-        return False
+    response = None
+    for attempt in range(1, 3):
+        response = send_command(ser, cmd, timeout)
+        if response is None:
+            print(f"[WARN] No response (attempt {attempt}/2)")
+        elif STORE_SUCCESS in response:
+            print(f"[OK] {STORE_SUCCESS}")
+            return True
+        elif STORE_FAIL in response:
+            print(f"[FAIL] {STORE_FAIL}")
+            return False
+        else:
+            print(f"[WARN] Unexpected response (attempt {attempt}/2): {response[-200:]}")
 
-    if STORE_SUCCESS in response:
-        print(f"[OK] {STORE_SUCCESS}")
-        return True
-    elif STORE_FAIL in response:
-        print(f"[FAIL] {STORE_FAIL}")
-        return False
-    else:
-        print(f"[WARN] Unexpected response: {response[-200:]}")
-        return STORE_SUCCESS in response
+        if attempt < 2:
+            drain_input(ser, settle_time=1.0)
+            time.sleep(0.5)
+
+    return False
 
 
 def send_pem_streaming(ser, cmd, pem_content, timeout=90):
@@ -605,6 +610,15 @@ def main():
         # ポーリングで蓄積した MCU 応答をすべてドレインし同期確立
         sync_uart(ser)
 
+        # The first CLI command after reset occasionally returns only an echo
+        # fragment on CN8/SCI2. Consume one harmless round-trip before
+        # provisioning writes.
+        print("[INFO] Warm-up: sending version before provisioning")
+        warmup = send_command(ser, "version", timeout=10)
+        if warmup:
+            print(f"[INFO] Warm-up response: {repr(warmup[-80:])}")
+        drain_input(ser, settle_time=1.0)
+
         # --- プロビジョニング実行 ---
 
         print()
@@ -668,6 +682,13 @@ def main():
         # --- 確認: dataflash read ---
         print()
         print("[VERIFY] Reading dataflash contents")
+        if args.reset_cmd:
+            print("[INFO] Resetting once before readback verification")
+            trigger_reset(args.reset_cmd, args.reset_settle)
+            if not wait_for_prompt(ser, timeout=30):
+                print("[WARN] Could not re-establish prompt before readback")
+            else:
+                sync_uart(ser)
         drain_input(ser, settle_time=2.0)
 
         response = None
