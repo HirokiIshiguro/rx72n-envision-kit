@@ -10,6 +10,7 @@ Migrate the current RX72N repository from the legacy top-level tree:
 - `freertos_kernel/`
 - `demos/`
 - `test_scripts/`
+- `tools/`
 
 toward the post-MQTT target structure aligned with the `iot-reference-rx`
 style:
@@ -32,6 +33,23 @@ baseline.
 - Keep the current runtime gate at least MQTT-green after each move set.
 - Do not mix Fleet Provisioning, OTA protocol changes, or MCUboot adoption into
   this track.
+
+## Rename Safety Constraint
+
+This repository is currently operated on Windows with `core.ignorecase=true`.
+That means case-only transitions such as `projects/` -> `Projects/` and
+`demos/` -> `Demos/` are not safe as a one-step rename in the first move set.
+
+When those top-level transitions start, use one of these approaches:
+
+- rename through a temporary intermediate directory name,
+- perform the rename in a case-sensitive environment,
+- or land content under a non-colliding target path until the legacy tree is
+  retired.
+
+This track intentionally restarts from `master`, but it still has to preserve
+the rename-safety discipline that the earlier `phase8b/` staging work made
+explicit.
 
 ## Current Mapping
 
