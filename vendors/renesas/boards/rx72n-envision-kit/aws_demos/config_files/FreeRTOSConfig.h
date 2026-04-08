@@ -282,9 +282,9 @@ extern void vLoggingPrint( const char * pcMessage );
 
 #define configPROFILING                      ( 0 )
 
-/* Pseudo random number generater used by some demo tasks. */
-uint32_t ulRand(void);
-#define configRAND32()    ulRand()
+/* FreeRTOS+TCP v4 uses xApplicationGetRandomNumber() and
+ * ulApplicationGetNextSequenceNumber() from the secure sockets path instead
+ * of the legacy configRAND32() hook. */
 
 /* The platform FreeRTOS is running on. */
 #define configPLATFORM_NAME    "RenesasRX72N"

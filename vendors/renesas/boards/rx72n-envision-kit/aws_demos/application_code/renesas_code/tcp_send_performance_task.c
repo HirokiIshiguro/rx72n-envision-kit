@@ -134,7 +134,7 @@ void tcp_send_performance_task( void * pvParameters )
         sscanf(tcp_send_performance_server_ip_address_string, "%d.%d.%d.%d", &ip_address1, &ip_address2, &ip_address3, &ip_address4);
         tcp_send_performance_server_ip_address = FreeRTOS_inet_addr_quick(ip_address1, ip_address2, ip_address3, ip_address4);
         xIperfServerAddress.sin_port = FreeRTOS_htons( tcp_send_performance_server_port_number );
-        xIperfServerAddress.sin_addr = tcp_send_performance_server_ip_address;
+        xIperfServerAddress.sin_address.ulIP_IPv4 = tcp_send_performance_server_ip_address;
 
         if( FreeRTOS_connect( xSocket, &xIperfServerAddress, sizeof( xIperfServerAddress ) ) == 0 )
         {

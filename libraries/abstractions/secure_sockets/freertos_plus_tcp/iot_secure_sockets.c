@@ -160,7 +160,7 @@ int32_t SOCKETS_Connect( Socket_t xSocket,
         pxContext->xConnectAttempted = pdTRUE;
 
         /* Connect the wrapped socket. */
-        xTempAddress.sin_addr = pxAddress->ulAddress;
+        xTempAddress.sin_address.ulIP_IPv4 = pxAddress->ulAddress;
         xTempAddress.sin_family = pxAddress->ucSocketDomain;
         xTempAddress.sin_len = ( uint8_t ) sizeof( xTempAddress );
         xTempAddress.sin_port = pxAddress->usPort;

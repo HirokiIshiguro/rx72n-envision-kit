@@ -97,13 +97,9 @@
  * http://www.freertos.org/Stacks-and-stack-overflow-checking.html. */
 #define ipconfigIP_TASK_STACK_SIZE_WORDS           ( configMINIMAL_STACK_SIZE * 5 )
 
-/* ipconfigRAND32() is called by the IP stack to generate random numbers for
- * things such as a DHCP transaction number or initial sequence number.  Random
- * number generation is performed via this macro to allow applications to use their
- * own random number generation method.  For example, it might be possible to
- * generate a random number by sampling noise on an analogue input. */
-uint32_t ulRand(void);
-#define ipconfigRAND32()    ulRand()
+/* FreeRTOS+TCP v4 uses application hooks instead of ipconfigRAND32().
+ * This project provides xApplicationGetRandomNumber() and
+ * ulApplicationGetNextSequenceNumber() in iot_secure_sockets.c. */
 
 /* If ipconfigUSE_NETWORK_EVENT_HOOK is set to 1 then FreeRTOS+TCP will call the
  * network event hook at the appropriate times.  If ipconfigUSE_NETWORK_EVENT_HOOK
@@ -321,5 +317,8 @@ void vApplicationMQTTGetKeys( const char ** ppcRootCA,
 
 /* Let NetworkInterface check the free space in the working queue for the IP-task. */
 #define ipconfigCHECK_IP_QUEUE_SPACE			1
+
+/* Keep the current RX72N build aligned with the IPv4-only upstream baseline. */
+#define ipconfigUSE_IPv6                            0
 
 #endif /* FREERTOS_IP_CONFIG_H */

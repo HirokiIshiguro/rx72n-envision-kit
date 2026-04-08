@@ -83,6 +83,25 @@ static const size_t apiTopicLength[] =
 };
 
 /**
+ * @brief Return the bounded length of a string for toolchains without strnlen().
+ */
+static size_t boundedStrnlen( const char * value,
+                              size_t maxLength )
+{
+    size_t length = 0U;
+
+    if( value != NULL )
+    {
+        while( ( length < maxLength ) && ( value[ length ] != '\0' ) )
+        {
+            length++;
+        }
+    }
+
+    return length;
+}
+
+/**
  * @brief Predicate returns true for a valid thing name or job ID character.
  *
  * @param[in] a  character to check
@@ -575,7 +594,7 @@ static bool isThingnameTopicMatch( const char * topic,
         writePreamble( expectedTopicBuffer, &start, TOPIC_BUFFER_SIZE, thingName, ( uint16_t ) thingNameLength );
         ( void ) strnAppend( expectedTopicBuffer, &start, TOPIC_BUFFER_SIZE, topicSuffix, topicSuffixLength );
 
-        isMatch = ( size_t ) strnlen( expectedTopicBuffer, TOPIC_BUFFER_SIZE ) ==
+        isMatch = boundedStrnlen( expectedTopicBuffer, TOPIC_BUFFER_SIZE ) ==
                   topicLength;
         isMatch = isMatch && ( strncmp( expectedTopicBuffer, topic, topicLength ) == 0 );
     }
@@ -894,7 +913,12 @@ bool Jobs_IsJobUpdateStatus( const char * topic,
     ( void ) strnAppend( suffixBuffer, &start, suffixBufferLength, "/update/", ( CONST_STRLEN( "/update/" ) ) );
     ( void ) strnAppend( suffixBuffer, &start, suffixBufferLength, jobUpdateStatusString[ expectedStatus ], jobUpdateStatusStringLengths[ expectedStatus ] );
 
-    return isThingnameTopicMatch( topic, topicLength, suffixBuffer, strnlen( suffixBuffer, suffixBufferLength ), thingName, thingNameLength );
+    return isThingnameTopicMatch( topic,
+                                  topicLength,
+                                  suffixBuffer,
+                                  boundedStrnlen( suffixBuffer, suffixBufferLength ),
+                                  thingName,
+                                  thingNameLength );
 }
 
 size_t Jobs_GetJobId( const char * message,
