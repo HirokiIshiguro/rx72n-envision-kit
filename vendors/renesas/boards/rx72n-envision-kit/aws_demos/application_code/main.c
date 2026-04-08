@@ -267,12 +267,16 @@ static void prvPublishMacAddressToNetworkInterface( void )
 
 void vApplicationDaemonTaskStartupHook( void )
 {
+    uart_string_printf_immediate( "diag: hook entry\r\n" );
     prvMiscInitialization();
+    uart_string_printf_immediate( "diag: misc init ok\r\n" );
 
     if( SYSTEM_Init() == pdPASS )
     {
+        uart_string_printf_immediate( "diag: system init ok\r\n" );
         prvLoadMacAddressFromDataFlash();
         prvPublishMacAddressToNetworkInterface();
+        uart_string_printf_immediate( "diag: before FreeRTOS_IPInit\r\n" );
 
         /* Initialise the RTOS's TCP/IP stack.  The tasks that use the network
         are created in the vApplicationIPNetworkEventHook() hook function
@@ -282,8 +286,14 @@ void vApplicationDaemonTaskStartupHook( void )
                          ucGatewayAddress,
                          ucDNSServerAddress,
                          ucMACAddress );
+        uart_string_printf_immediate( "diag: after FreeRTOS_IPInit\r\n" );
 
         main_task_init();
+        uart_string_printf_immediate( "diag: main_task_init ok\r\n" );
+    }
+    else
+    {
+        uart_string_printf_immediate( "diag: SYSTEM_Init failed\r\n" );
     }
 }
 

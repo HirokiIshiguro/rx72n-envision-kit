@@ -11,5 +11,6 @@
 
 void uart_config(void);
 void uart_string_printf(char * pString);
+void uart_string_printf_immediate( const char * pString );
 
 #endif /* VENDOR_CODE_RSKRX65N_UART_H_ */

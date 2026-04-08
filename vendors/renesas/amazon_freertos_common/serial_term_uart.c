@@ -247,3 +247,51 @@ void uart_string_printf(char *pString)
     	R_BSP_NOP(); //TODO error handling code
     }
 }
+
+void uart_string_printf_immediate( const char * pString )
+{
+    uint16_t str_length = 0;
+    uint16_t transmit_length = 0;
+    sci_err_t sci_err = SCI_SUCCESS;
+    uint32_t retry = 0xFFFF;
+    const char * pcCursor = pString;
+
+    if( pString == NULL )
+    {
+        return;
+    }
+
+    str_length = ( uint16_t ) strlen( pString );
+
+    while( ( retry > 0 ) && ( str_length > 0 ) )
+    {
+        R_SCI_Control( my_sci_handle, SCI_CMD_TX_Q_BYTES_FREE, &transmit_length );
+
+        if( transmit_length == 0 )
+        {
+            retry--;
+            continue;
+        }
+
+        if( transmit_length > str_length )
+        {
+            transmit_length = str_length;
+        }
+
+        sci_err = R_SCI_Send( my_sci_handle, ( uint8_t * ) pcCursor, transmit_length );
+
+        if( ( sci_err == SCI_ERR_XCVR_BUSY ) || ( sci_err == SCI_ERR_INSUFFICIENT_SPACE ) )
+        {
+            retry--;
+            continue;
+        }
+
+        str_length -= transmit_length;
+        pcCursor += transmit_length;
+    }
+
+    if( sci_err != SCI_SUCCESS )
+    {
+        R_BSP_NOP();
+    }
+}
