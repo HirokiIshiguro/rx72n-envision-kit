@@ -5,7 +5,8 @@
 Introduce Fleet Provisioning on top of the current MQTT-stable RX72N baseline
 without losing a recoverable manual credential path during bring-up.
 
-This document defines the initial design boundary for issue `#36`.
+This document defines the initial design boundary for issue
+[#36](https://gitlab.saffti.jp/oss/import/github/renesas/rx72n-envision-kit/-/issues/36).
 
 ## Current State
 
@@ -102,9 +103,10 @@ Required fallback rules:
 - decide whether manual provisioning remains a supported production path or
   becomes a lab-only escape hatch
 
-## Exit Criteria For Issue #36
+## Exit Criteria For [Issue #36](https://gitlab.saffti.jp/oss/import/github/renesas/rx72n-envision-kit/-/issues/36)
 
-Issue `#36` is complete when:
+Issue [#36](https://gitlab.saffti.jp/oss/import/github/renesas/rx72n-envision-kit/-/issues/36)
+is complete when:
 
 - Fleet Provisioning enrollment is reproducible on hardware
 - bootstrap credential ownership is explicit
@@ -114,7 +116,9 @@ Issue `#36` is complete when:
 
 ## Immediate Follow-up Work
 
-The next code-bearing MR under `#36` should answer these concrete questions:
+The next code-bearing MR under
+[#36](https://gitlab.saffti.jp/oss/import/github/renesas/rx72n-envision-kit/-/issues/36)
+should answer these concrete questions:
 
 1. Where do bootstrap claim credentials live during the first implementation?
 2. Which existing dataflash labels remain authoritative after enrollment?
