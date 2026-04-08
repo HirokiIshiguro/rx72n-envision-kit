@@ -50,7 +50,7 @@ def main() -> int:
     serial_command_script = os.path.join(
         args.project_dir, "tools", "runner-handle", "scripts", "send_serial_command.py"
     )
-    provision_script = os.path.join(args.project_dir, "test_scripts", "uart_test", "provision_aws.py")
+    provision_script = os.path.join(args.project_dir, "tools", "ci", "provision_aws.py")
 
     print("=== Flash boot_loader (OTA) ===", flush=True)
     run_or_exit(
@@ -102,11 +102,16 @@ def main() -> int:
     print(f"  Device ID: {args.device_id}")
     provision_cmd = [sys.executable, provision_script, "--device-id", args.device_id]
     if command_port:
-        provision_cmd += ["--port", command_port]
+        provision_cmd += ["--command-port", command_port]
+    if uart_port:
+        provision_cmd += ["--uart-port", uart_port, "--uart-baud", str(args.uart_baud)]
     if args.codesigner_cert:
         provision_cmd += ["--codesigner-cert", args.codesigner_cert]
     if args.mac_address:
         provision_cmd += ["--mac-address", args.mac_address]
+    provision_cmd += ["--allow-missing-write-confirmation"]
+    provision_cmd += ["--rfp-cli", args.rfp_cli, "--rfp-tool", args.rfp_tool, "--rfp-speed", str(args.rfp_speed)]
+    provision_cmd += ["--project-dir", args.project_dir]
     run_or_exit(provision_cmd)
     if args.stop_after == "provision":
         print("[INFO] stop-after=provision: stopping after provisioning.")
