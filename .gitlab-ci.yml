@@ -593,7 +593,7 @@ ota_create_job:
         '--ref', "$env:CI_COMMIT_REF_NAME",
         '--state-dir', "$env:OTA_BOUNDARY_RESERVATION_ROOT",
         '--stale-seconds', "$env:OTA_BOUNDARY_RESERVATION_STALE_SECONDS",
-        '--host', "$env:PI_HOST",
+        '--host', "$env:PI_HOST"
       )
       & python @leaseArgs
       if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
@@ -649,7 +649,7 @@ ota_finalize:
         '--ref', "$env:CI_COMMIT_REF_NAME",
         '--state-dir', "$env:OTA_BOUNDARY_RESERVATION_ROOT",
         '--stale-seconds', "$env:OTA_BOUNDARY_RESERVATION_STALE_SECONDS",
-        '--host', "$env:PI_HOST",
+        '--host', "$env:PI_HOST"
       )
       $metadataFile = "$env:CI_PROJECT_DIR\ota_job_metadata_$env:DEVICE_ID.json"
       $monitorResultsFile = "$env:CI_PROJECT_DIR\ota_monitor_results_$env:DEVICE_ID.json"
@@ -719,7 +719,7 @@ ota_release_reservation:
         '--ref', "$env:CI_COMMIT_REF_NAME",
         '--state-dir', "$env:OTA_BOUNDARY_RESERVATION_ROOT",
         '--stale-seconds', "$env:OTA_BOUNDARY_RESERVATION_STALE_SECONDS",
-        '--host', "$env:PI_HOST",
+        '--host', "$env:PI_HOST"
       )
       & python @releaseArgs
       if ($LASTEXITCODE -ne 0) {
