@@ -183,6 +183,12 @@
  * not set to 1 then only FreeRTOS_indet_addr_quick() is available. */
 #define ipconfigINCLUDE_FULL_INET_ADDR            1
 
+/* Keep the current RX72N application on the single-endpoint compatibility path
+ * while the middleware refresh is validated under the existing repository
+ * structure. */
+#define ipconfigIPv4_BACKWARD_COMPATIBLE          ipconfigENABLE
+#define ipconfigCOMPATIBLE_WITH_SINGLE            ipconfigENABLE
+
 /* ipconfigNUM_NETWORK_BUFFER_DESCRIPTORS defines the total number of network buffer that
  * are available to the IP stack.  The total number of network buffers is limited
  * to ensure the total amount of RAM that can be consumed by the IP stack is capped

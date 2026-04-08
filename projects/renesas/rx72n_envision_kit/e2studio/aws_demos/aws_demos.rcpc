@@ -1660,26 +1660,68 @@
             </Category>
             <Category Name="freertos_plus_tcp">
               <Path>..\..\..\..\..\libraries\freertos_plus\standard\freertos_plus_tcp\FreeRTOS_ARP.c</Path>
+              <Path>..\..\..\..\..\libraries\freertos_plus\standard\freertos_plus_tcp\FreeRTOS_BitConfig.c</Path>
               <Path>..\..\..\..\..\libraries\freertos_plus\standard\freertos_plus_tcp\FreeRTOS_DHCP.c</Path>
+              <Path>..\..\..\..\..\libraries\freertos_plus\standard\freertos_plus_tcp\FreeRTOS_DHCPv6.c</Path>
+              <Path>..\..\..\..\..\libraries\freertos_plus\standard\freertos_plus_tcp\FreeRTOS_DNS_Cache.c</Path>
+              <Path>..\..\..\..\..\libraries\freertos_plus\standard\freertos_plus_tcp\FreeRTOS_DNS_Callback.c</Path>
+              <Path>..\..\..\..\..\libraries\freertos_plus\standard\freertos_plus_tcp\FreeRTOS_DNS_Networking.c</Path>
+              <Path>..\..\..\..\..\libraries\freertos_plus\standard\freertos_plus_tcp\FreeRTOS_DNS_Parser.c</Path>
               <Path>..\..\..\..\..\libraries\freertos_plus\standard\freertos_plus_tcp\FreeRTOS_DNS.c</Path>
+              <Path>..\..\..\..\..\libraries\freertos_plus\standard\freertos_plus_tcp\FreeRTOS_ICMP.c</Path>
+              <Path>..\..\..\..\..\libraries\freertos_plus\standard\freertos_plus_tcp\FreeRTOS_IP_Timers.c</Path>
+              <Path>..\..\..\..\..\libraries\freertos_plus\standard\freertos_plus_tcp\FreeRTOS_IP_Utils.c</Path>
+              <Path>..\..\..\..\..\libraries\freertos_plus\standard\freertos_plus_tcp\FreeRTOS_IPv4.c</Path>
+              <Path>..\..\..\..\..\libraries\freertos_plus\standard\freertos_plus_tcp\FreeRTOS_IPv4_Sockets.c</Path>
+              <Path>..\..\..\..\..\libraries\freertos_plus\standard\freertos_plus_tcp\FreeRTOS_IPv4_Utils.c</Path>
               <Path>..\..\..\..\..\libraries\freertos_plus\standard\freertos_plus_tcp\FreeRTOS_IP.c</Path>
+              <Path>..\..\..\..\..\libraries\freertos_plus\standard\freertos_plus_tcp\FreeRTOS_Routing.c</Path>
               <Path>..\..\..\..\..\libraries\freertos_plus\standard\freertos_plus_tcp\FreeRTOS_Sockets.c</Path>
               <Path>..\..\..\..\..\libraries\freertos_plus\standard\freertos_plus_tcp\FreeRTOS_Stream_Buffer.c</Path>
               <Path>..\..\..\..\..\libraries\freertos_plus\standard\freertos_plus_tcp\FreeRTOS_TCP_IP.c</Path>
+              <Path>..\..\..\..\..\libraries\freertos_plus\standard\freertos_plus_tcp\FreeRTOS_TCP_Reception.c</Path>
+              <Path>..\..\..\..\..\libraries\freertos_plus\standard\freertos_plus_tcp\FreeRTOS_TCP_State_Handling.c</Path>
+              <Path>..\..\..\..\..\libraries\freertos_plus\standard\freertos_plus_tcp\FreeRTOS_TCP_State_Handling_IPv4.c</Path>
+              <Path>..\..\..\..\..\libraries\freertos_plus\standard\freertos_plus_tcp\FreeRTOS_TCP_Transmission.c</Path>
+              <Path>..\..\..\..\..\libraries\freertos_plus\standard\freertos_plus_tcp\FreeRTOS_TCP_Transmission_IPv4.c</Path>
+              <Path>..\..\..\..\..\libraries\freertos_plus\standard\freertos_plus_tcp\FreeRTOS_TCP_Utils.c</Path>
               <Path>..\..\..\..\..\libraries\freertos_plus\standard\freertos_plus_tcp\FreeRTOS_TCP_WIN.c</Path>
               <Path>..\..\..\..\..\libraries\freertos_plus\standard\freertos_plus_tcp\FreeRTOS_UDP_IP.c</Path>
+              <Path>..\..\..\..\..\libraries\freertos_plus\standard\freertos_plus_tcp\FreeRTOS_UDP_IPv4.c</Path>
               <Category Name="include">
                 <Path>..\..\..\..\..\libraries\freertos_plus\standard\freertos_plus_tcp\include\FreeRTOSIPConfigDefaults.h</Path>
                 <Path>..\..\..\..\..\libraries\freertos_plus\standard\freertos_plus_tcp\include\FreeRTOS_ARP.h</Path>
+                <Path>..\..\..\..\..\libraries\freertos_plus\standard\freertos_plus_tcp\include\FreeRTOS_BitConfig.h</Path>
                 <Path>..\..\..\..\..\libraries\freertos_plus\standard\freertos_plus_tcp\include\FreeRTOS_DHCP.h</Path>
+                <Path>..\..\..\..\..\libraries\freertos_plus\standard\freertos_plus_tcp\include\FreeRTOS_DHCPv6.h</Path>
                 <Path>..\..\..\..\..\libraries\freertos_plus\standard\freertos_plus_tcp\include\FreeRTOS_DNS.h</Path>
+                <Path>..\..\..\..\..\libraries\freertos_plus\standard\freertos_plus_tcp\include\FreeRTOS_DNS_Cache.h</Path>
+                <Path>..\..\..\..\..\libraries\freertos_plus\standard\freertos_plus_tcp\include\FreeRTOS_DNS_Callback.h</Path>
+                <Path>..\..\..\..\..\libraries\freertos_plus\standard\freertos_plus_tcp\include\FreeRTOS_DNS_Globals.h</Path>
+                <Path>..\..\..\..\..\libraries\freertos_plus\standard\freertos_plus_tcp\include\FreeRTOS_DNS_Networking.h</Path>
+                <Path>..\..\..\..\..\libraries\freertos_plus\standard\freertos_plus_tcp\include\FreeRTOS_DNS_Parser.h</Path>
+                <Path>..\..\..\..\..\libraries\freertos_plus\standard\freertos_plus_tcp\include\FreeRTOS_ICMP.h</Path>
                 <Path>..\..\..\..\..\libraries\freertos_plus\standard\freertos_plus_tcp\include\FreeRTOS_IP.h</Path>
+                <Path>..\..\..\..\..\libraries\freertos_plus\standard\freertos_plus_tcp\include\FreeRTOS_IP_Common.h</Path>
                 <Path>..\..\..\..\..\libraries\freertos_plus\standard\freertos_plus_tcp\include\FreeRTOS_IP_Private.h</Path>
+                <Path>..\..\..\..\..\libraries\freertos_plus\standard\freertos_plus_tcp\include\FreeRTOS_IP_Timers.h</Path>
+                <Path>..\..\..\..\..\libraries\freertos_plus\standard\freertos_plus_tcp\include\FreeRTOS_IP_Utils.h</Path>
+                <Path>..\..\..\..\..\libraries\freertos_plus\standard\freertos_plus_tcp\include\FreeRTOS_IPv4.h</Path>
+                <Path>..\..\..\..\..\libraries\freertos_plus\standard\freertos_plus_tcp\include\FreeRTOS_IPv4_Private.h</Path>
+                <Path>..\..\..\..\..\libraries\freertos_plus\standard\freertos_plus_tcp\include\FreeRTOS_IPv4_Sockets.h</Path>
+                <Path>..\..\..\..\..\libraries\freertos_plus\standard\freertos_plus_tcp\include\FreeRTOS_IPv4_Utils.h</Path>
+                <Path>..\..\..\..\..\libraries\freertos_plus\standard\freertos_plus_tcp\include\FreeRTOS_ND.h</Path>
+                <Path>..\..\..\..\..\libraries\freertos_plus\standard\freertos_plus_tcp\include\FreeRTOS_Routing.h</Path>
                 <Path>..\..\..\..\..\libraries\freertos_plus\standard\freertos_plus_tcp\include\FreeRTOS_Sockets.h</Path>
                 <Path>..\..\..\..\..\libraries\freertos_plus\standard\freertos_plus_tcp\include\FreeRTOS_Stream_Buffer.h</Path>
                 <Path>..\..\..\..\..\libraries\freertos_plus\standard\freertos_plus_tcp\include\FreeRTOS_TCP_IP.h</Path>
+                <Path>..\..\..\..\..\libraries\freertos_plus\standard\freertos_plus_tcp\include\FreeRTOS_TCP_Reception.h</Path>
+                <Path>..\..\..\..\..\libraries\freertos_plus\standard\freertos_plus_tcp\include\FreeRTOS_TCP_State_Handling.h</Path>
+                <Path>..\..\..\..\..\libraries\freertos_plus\standard\freertos_plus_tcp\include\FreeRTOS_TCP_Transmission.h</Path>
+                <Path>..\..\..\..\..\libraries\freertos_plus\standard\freertos_plus_tcp\include\FreeRTOS_TCP_Utils.h</Path>
                 <Path>..\..\..\..\..\libraries\freertos_plus\standard\freertos_plus_tcp\include\FreeRTOS_TCP_WIN.h</Path>
                 <Path>..\..\..\..\..\libraries\freertos_plus\standard\freertos_plus_tcp\include\FreeRTOS_UDP_IP.h</Path>
+                <Path>..\..\..\..\..\libraries\freertos_plus\standard\freertos_plus_tcp\include\FreeRTOSIPDeprecatedDefinitions.h</Path>
                 <Path>..\..\..\..\..\libraries\freertos_plus\standard\freertos_plus_tcp\include\FreeRTOS_errno_TCP.h</Path>
                 <Path>..\..\..\..\..\libraries\freertos_plus\standard\freertos_plus_tcp\include\IPTraceMacroDefaults.h</Path>
                 <Path>..\..\..\..\..\libraries\freertos_plus\standard\freertos_plus_tcp\include\NetworkBufferManagement.h</Path>
