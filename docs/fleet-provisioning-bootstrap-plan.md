@@ -10,8 +10,8 @@ This document defines the initial design boundary for issue
 
 ## Current State
 
-Current `master` is still based on manual provisioning through the UART command
-path and dataflash writes.
+The current runtime flow on `master` still depends on manual provisioning
+through the UART command path and dataflash writes.
 
 Observed current ownership:
 
