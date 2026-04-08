@@ -982,7 +982,7 @@ Windows (`run_ishiguro_machine`) に残し、device ジョブは Linux tag
 **実装メモ:**
 - `.gitlab-ci.yml` の device jobs を PowerShell から bash + `python3` 呼び出しへ置換
 - `tools/ci/activate_pi_python.sh` を追加し、Pi runner で `pyserial` / `cryptography` / `awscli` を venv 経由で供給
-- `tools/ci/send_serial_command.py` を追加し、`prepare_ota` の reset 送信を `System.IO.Ports.SerialPort` 依存から分離
+- `prepare_ota` の reset 送信は `tools/runner-handle/scripts/send_serial_command.py` を使う
 - GitLab CI lint: valid（2026-03-08）
 
 ### 2026-03-03: Phase 8-14 順序変更 — iot-reference-rx 移行を先行
