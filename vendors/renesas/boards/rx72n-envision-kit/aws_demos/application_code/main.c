@@ -145,25 +145,31 @@ static void prvMiscInitialization( void )
 {
     /* Initialize UART for serial terminal. */
     uart_config();
+    uart_string_printf_immediate( "diag: misc uart ok\r\n" );
 
     /* enable MCU pins */
     R_Pins_Create();
+    uart_string_printf_immediate( "diag: misc pins ok\r\n" );
 
     /* system timer initialization */
     R_SYS_TIME_Open();
+    uart_string_printf_immediate( "diag: misc systime ok\r\n" );
 
     /* Start logging task. */
     xLoggingTaskInitialize( mainLOGGING_TASK_STACK_SIZE,
                             tskIDLE_PRIORITY,
                             mainLOGGING_MESSAGE_QUEUE_LENGTH );
+    uart_string_printf_immediate( "diag: misc logging ok\r\n" );
 
     /* Initialize the SFD cache once at startup. Keep flash driver lifecycle
      * under the callers that actually perform erase/write work. */
     R_SFD_Open();
+    uart_string_printf_immediate( "diag: misc sfd ok\r\n" );
 
     /* flash access semaphore creation */
     xSemaphoreCodeFlashAccess = xSemaphoreCreateBinary();
     xSemaphoreGive(xSemaphoreCodeFlashAccess);
+    uart_string_printf_immediate( "diag: misc flash sem ok\r\n" );
 }
 /*-----------------------------------------------------------*/
 

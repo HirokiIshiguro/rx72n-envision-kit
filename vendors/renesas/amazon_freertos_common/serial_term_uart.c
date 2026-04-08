@@ -108,6 +108,7 @@ extern volatile int32_t gui_initialize_complete_flag;
 Private global variables and functions
 ******************************************************************************/
 static void my_sci_callback(void *pArgs);
+static uint8_t xSerialTermUartConfigured = 0U;
 
 /* Handle storage.
  * SCI7/CN6 is treated as a log-only output port in this workspace.
@@ -124,6 +125,11 @@ void uart_config(void)
 {
     sci_cfg_t   my_sci_config;
     sci_err_t   my_sci_err;
+
+    if( xSerialTermUartConfigured != 0U )
+    {
+        return;
+    }
 
     /* Initialize the I/O port pins for communication on this SCI channel.
     * This is specific to the MCU and ports chosen. For the RSKRX65-2M we will use the
@@ -150,6 +156,10 @@ void uart_config(void)
     if (SCI_SUCCESS != my_sci_err)
     {
         R_BSP_NOP(); // Your error handling code would go here.
+    }
+    else
+    {
+        xSerialTermUartConfigured = 1U;
     }
 } /* End of function uart_config() */
 
