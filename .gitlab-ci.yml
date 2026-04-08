@@ -65,9 +65,15 @@ variables:
   # デバイス ID と MAC address は set #2 固定。
   DEVICE_ID: "rx72n-02"
   MAC_ADDR: "${MAC_ADDR_ENVISION_KIT_RX72N2}"
+  # Raspberry Pi #2 (set #2) 固定。Windows OTA jobs から boundary lease を
+  # 同じ Pi 上で assert/release するために使う。
+  PI_HOST: "192.168.10.103"
   # 1 Pi = 1 E2 Lite 構成のため generic e2l を使用する。
   RFP_TOOL: "e2l"
   DEVICE_RESOURCE_GROUP: "rx72n-device-02"
+  # legacy OTA の split jobs 間で DEVICE_ID 単位の boundary lease を共有する。
+  OTA_BOUNDARY_RESERVATION_ROOT: "/tmp/gitlab-ota-boundary"
+  OTA_BOUNDARY_RESERVATION_STALE_SECONDS: "1800"
   # Git サブモジュール初期化（coreSNTP 等の外部ライブラリ）
   GIT_SUBMODULE_STRATEGY: recursive
   # Windows 260文字パス長制限の回避
@@ -587,6 +593,7 @@ ota_create_job:
         '--ref', "$env:CI_COMMIT_REF_NAME",
         '--state-dir', "$env:OTA_BOUNDARY_RESERVATION_ROOT",
         '--stale-seconds', "$env:OTA_BOUNDARY_RESERVATION_STALE_SECONDS",
+        '--host', "$env:PI_HOST",
       )
       & python @leaseArgs
       if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
@@ -642,6 +649,7 @@ ota_finalize:
         '--ref', "$env:CI_COMMIT_REF_NAME",
         '--state-dir', "$env:OTA_BOUNDARY_RESERVATION_ROOT",
         '--stale-seconds', "$env:OTA_BOUNDARY_RESERVATION_STALE_SECONDS",
+        '--host', "$env:PI_HOST",
       )
       $metadataFile = "$env:CI_PROJECT_DIR\ota_job_metadata_$env:DEVICE_ID.json"
       $monitorResultsFile = "$env:CI_PROJECT_DIR\ota_monitor_results_$env:DEVICE_ID.json"
@@ -711,6 +719,7 @@ ota_release_reservation:
         '--ref', "$env:CI_COMMIT_REF_NAME",
         '--state-dir', "$env:OTA_BOUNDARY_RESERVATION_ROOT",
         '--stale-seconds', "$env:OTA_BOUNDARY_RESERVATION_STALE_SECONDS",
+        '--host', "$env:PI_HOST",
       )
       & python @releaseArgs
       if ($LASTEXITCODE -ne 0) {
