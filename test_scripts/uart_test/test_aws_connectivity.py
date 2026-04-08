@@ -22,6 +22,7 @@ RX72N Envision Kit の aws_demos が AWS IoT Core に MQTT 接続できること
 import argparse
 import os
 import re
+import subprocess
 import sys
 import threading
 import time
@@ -250,6 +251,28 @@ def send_reset(cmd_ser, timeout=10):
         return True
 
 
+def trigger_reset_after_open(reset_cmd, reset_settle=0.2):
+    """Open 済み serial を保持したまま外部 reset を後打ちする。"""
+    print(f"[INFO] Triggering reset command after serial open: {reset_cmd}")
+    result = subprocess.run(
+        reset_cmd,
+        shell=True,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    if result.stdout.strip():
+        print(result.stdout.strip())
+    if result.stderr.strip():
+        print(result.stderr.strip())
+    if result.returncode != 0:
+        raise RuntimeError(f"reset command failed with exit status {result.returncode}")
+    if reset_settle > 0:
+        time.sleep(reset_settle)
+    print("[INFO] External reset command completed.")
+    return True
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="AWS IoT Core connectivity test for aws_demos"
@@ -268,6 +291,10 @@ def main():
                         help=f"Overall timeout in seconds (default: {DEFAULT_TIMEOUT})")
     parser.add_argument("--skip-reset", action="store_true",
                         help="Skip device reset (assume already running)")
+    parser.add_argument("--reset-cmd", default=None,
+                        help="Optional external reset command to execute after opening serial ports")
+    parser.add_argument("--reset-settle", type=float, default=0.2,
+                        help="Seconds to wait after external reset command (default: 0.2)")
     args = parser.parse_args()
 
     # --device-id が指定された場合、device_config.json からポート設定を解決
@@ -292,6 +319,7 @@ def main():
     print(f"[INFO]   Log Port    : {args.log_port} @ {args.log_baud}bps")
     print(f"[INFO]   Timeout     : {args.timeout}s")
     print(f"[INFO]   Skip Reset  : {args.skip_reset}")
+    print(f"[INFO]   Reset Mode  : {'external command' if args.reset_cmd else 'UART command'}")
     print("=" * 60)
 
     monitor = MilestoneMonitor()
@@ -311,19 +339,25 @@ def main():
 
         reset_ok = True
         if not args.skip_reset:
-            # コマンドポートを開く
-            cmd_ser = serial.Serial(args.cmd_port, args.cmd_baud, timeout=0)
-            time.sleep(0.1)
-            cmd_ser.reset_input_buffer()
-            print(f"[INFO] Opened cmd port: {args.cmd_port} at {args.cmd_baud} bps")
+            if args.cmd_port:
+                # reset 後の CLI path を別ジョブが使うため、先に open しておく。
+                cmd_ser = serial.Serial(args.cmd_port, args.cmd_baud, timeout=0)
+                time.sleep(0.1)
+                cmd_ser.reset_input_buffer()
+                print(f"[INFO] Opened cmd port: {args.cmd_port} at {args.cmd_baud} bps")
 
-            # リセット送信（検証付き）
-            reset_ok = send_reset(cmd_ser)
+            if args.reset_cmd:
+                reset_ok = trigger_reset_after_open(args.reset_cmd, args.reset_settle)
+            else:
+                if cmd_ser is None:
+                    print("[ERROR] Command port is required when no external reset command is provided")
+                    sys.exit(1)
+                reset_ok = send_reset(cmd_ser)
 
-            # コマンドポートを閉じる
-            cmd_ser.close()
-            cmd_ser = None
-            print("[INFO] Closed cmd port")
+            if cmd_ser and cmd_ser.is_open:
+                cmd_ser.close()
+                cmd_ser = None
+                print("[INFO] Closed cmd port")
 
             if not reset_ok:
                 print("[WARN] Reset verification failed --continuing to monitor, "

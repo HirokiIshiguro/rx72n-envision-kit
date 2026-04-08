@@ -25,9 +25,12 @@ PEM ストリーミングプロトコル:
 """
 
 import argparse
+from collections import deque
 import os
 import re
+import subprocess
 import sys
+import threading
 import time
 
 # provisioning submodule (tools/provisioning) をパスに追加
@@ -45,6 +48,80 @@ PROMPT = "$ "
 STORE_SUCCESS = "stored data into dataflash correctly."
 STORE_FAIL = "could not store data into dataflash."
 MAC_ADDRESS_PATTERN = re.compile(r"^(?:[0-9A-Fa-f]{2}[:-]){5}[0-9A-Fa-f]{2}$")
+DATAFLASH_LABELS = {
+    "endpoint": "mqtt_broker_endpoint",
+    "thing_name": "iot_thing_name",
+    "mac_address": "mac_address",
+    "certificate": "client_certificate",
+    "private_key": "client_private_key",
+    "codesigner_cert": "code_signer_certificate",
+}
+
+LOG_PATTERNS = (
+    "The network is up and running",
+    "task_manager_task",
+    "erase dataflash",
+    "write dataflash",
+    "ERROR: Update data flash data from image",
+    "R_FLASH_Erase() returns error code",
+    "R_FLASH_Write() returns error code",
+    "Device public key",
+    "client certificate should be updated",
+)
+
+
+class LogCapture:
+    def __init__(self, port, baud):
+        self.port = port
+        self.baud = baud
+        self.ser = None
+        self.lines = deque(maxlen=200)
+        self.stop_event = threading.Event()
+        self.thread = None
+
+    def open(self):
+        self.ser = serial.Serial(self.port, self.baud, timeout=0)
+        time.sleep(0.1)
+        self.ser.reset_input_buffer()
+        self.thread = threading.Thread(target=self._run, daemon=True)
+        self.thread.start()
+        print(f"[INFO] Opened log port {self.port} at {self.baud} bps")
+
+    def close(self):
+        self.stop_event.set()
+        if self.thread:
+            self.thread.join(timeout=1.0)
+        if self.ser and self.ser.is_open:
+            self.ser.close()
+            print(f"[INFO] Closed log port {self.port}")
+
+    def dump_recent(self, header):
+        if not self.lines:
+            print(f"[INFO] {header}: no log lines captured")
+            return
+        print(f"[INFO] {header}: recent log tail")
+        for line in list(self.lines)[-20:]:
+            print(f"  [LOG] {line}")
+
+    def _run(self):
+        buf = b""
+        while not self.stop_event.is_set():
+            try:
+                n = self.ser.in_waiting if self.ser else 0
+                if n > 0:
+                    buf += self.ser.read(n)
+                    while b"\n" in buf:
+                        raw_line, buf = buf.split(b"\n", 1)
+                        line = raw_line.decode("utf-8", errors="replace").strip("\r")
+                        if not line:
+                            continue
+                        self.lines.append(line)
+                        if any(pattern in line for pattern in LOG_PATTERNS):
+                            print(f"[LOG] {line}")
+                else:
+                    time.sleep(0.05)
+            except serial.SerialException:
+                break
 
 
 def wait_for_prompt(ser, timeout=30):
@@ -74,6 +151,28 @@ def wait_for_prompt(ser, timeout=30):
         if attempt <= 5 or attempt % 10 == 0:
             print(f"[INFO] Attempt {attempt}: no prompt yet...")
     return False
+
+
+def trigger_reset(reset_cmd, reset_settle=0.2):
+    """Open済み UART で startup prompt を捕まえるために reset を後打ちする。"""
+    if not reset_cmd:
+        return
+    print(f"[INFO] Triggering reset command: {reset_cmd}")
+    result = subprocess.run(
+        reset_cmd,
+        shell=True,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    if result.stdout.strip():
+        print(result.stdout.strip())
+    if result.stderr.strip():
+        print(result.stderr.strip())
+    if result.returncode != 0:
+        raise RuntimeError(f"reset command failed with exit status {result.returncode}")
+    if reset_settle > 0:
+        time.sleep(reset_settle)
 
 
 def drain_input(ser, settle_time=1.0):
@@ -153,20 +252,25 @@ def send_command(ser, cmd, timeout=15):
 def send_simple_value(ser, cmd, timeout=15):
     """単純な値コマンド (endpoint, thing name) を送信し成功を確認"""
     print(f"[SEND] {cmd}")
-    response = send_command(ser, cmd, timeout)
-    if response is None:
-        print(f"[FAIL] No response")
-        return False
+    response = None
+    for attempt in range(1, 3):
+        response = send_command(ser, cmd, timeout)
+        if response is None:
+            print(f"[WARN] No response (attempt {attempt}/2)")
+        elif STORE_SUCCESS in response:
+            print(f"[OK] {STORE_SUCCESS}")
+            return True
+        elif STORE_FAIL in response:
+            print(f"[FAIL] {STORE_FAIL}")
+            return False
+        else:
+            print(f"[WARN] Unexpected response (attempt {attempt}/2): {response[-200:]}")
 
-    if STORE_SUCCESS in response:
-        print(f"[OK] {STORE_SUCCESS}")
-        return True
-    elif STORE_FAIL in response:
-        print(f"[FAIL] {STORE_FAIL}")
-        return False
-    else:
-        print(f"[WARN] Unexpected response: {response[-200:]}")
-        return STORE_SUCCESS in response
+        if attempt < 2:
+            drain_input(ser, settle_time=1.0)
+            time.sleep(0.5)
+
+    return False
 
 
 def send_pem_streaming(ser, cmd, pem_content, timeout=90):
@@ -263,6 +367,63 @@ def normalize_mac_address(mac_address):
     return mac_address.replace("-", ":").upper()
 
 
+def parse_dataflash_entries(response):
+    """`dataflash read` 応答から label/data ペアを抽出する。"""
+    entries = {}
+    current_label = None
+    current_data_lines = []
+    capturing_data = False
+
+    for raw_line in response.replace("\r", "").split("\n"):
+        line = raw_line.strip()
+        if not line or line == "$" or line == "RX72N Envision Kit":
+            continue
+        if "dataflash read" in line:
+            continue
+        if line.startswith("label = "):
+            if current_label and capturing_data:
+                entries[current_label] = "\n".join(current_data_lines).strip()
+            current_label = line[len("label = "):].strip()
+            current_data_lines = []
+            capturing_data = False
+            continue
+        if line.startswith("data = "):
+            capturing_data = True
+            current_data_lines = [line[len("data = "):]]
+            continue
+        if line.startswith("data_length("):
+            if current_label:
+                entries[current_label] = "\n".join(current_data_lines).strip()
+            current_label = None
+            current_data_lines = []
+            capturing_data = False
+            continue
+        if capturing_data:
+            current_data_lines.append(line)
+
+    if current_label and capturing_data:
+        entries[current_label] = "\n".join(current_data_lines).strip()
+
+    return entries
+
+
+def verify_dataflash_entries(entries, endpoint, thing_name, mac_address, needs_codesigner):
+    """Readback から provisioning 結果を再評価する。"""
+    verified = {
+        "endpoint": endpoint in entries.get(DATAFLASH_LABELS["endpoint"], ""),
+        "thing_name": thing_name in entries.get(DATAFLASH_LABELS["thing_name"], ""),
+        "certificate": "BEGIN CERTIFICATE" in entries.get(DATAFLASH_LABELS["certificate"], ""),
+        "private_key": "BEGIN RSA PRIVATE KEY" in entries.get(DATAFLASH_LABELS["private_key"], ""),
+    }
+    if mac_address:
+        verified["mac_address"] = entries.get(DATAFLASH_LABELS["mac_address"], "") == mac_address
+    if needs_codesigner:
+        verified["codesigner_cert"] = (
+            "BEGIN CERTIFICATE" in entries.get(DATAFLASH_LABELS["codesigner_cert"], "")
+        )
+    return verified
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="AWS IoT Core device provisioning via UART"
@@ -285,6 +446,10 @@ def main():
                         help="Path to client private key PEM file")
     parser.add_argument("--codesigner-cert", default=None,
                         help="Path to code signer certificate PEM file (OTA)")
+    parser.add_argument("--log-port", default=None,
+                        help="Optional log serial port (SCI7/CN6) for diagnostics")
+    parser.add_argument("--log-baud", type=int, default=921600,
+                        help="Log serial baud rate (default: 921600)")
     parser.add_argument("--mac-address", default=None,
                         help="Ethernet MAC address to store in dataflash")
     parser.add_argument(
@@ -295,6 +460,10 @@ def main():
             "Use only when a later functional test will validate provisioning."
         ),
     )
+    parser.add_argument("--reset-cmd", default=None,
+                        help="Optional reset command to execute after opening UART")
+    parser.add_argument("--reset-settle", type=float, default=0.2,
+                        help="Seconds to wait after reset command (default: 0.2)")
     args = parser.parse_args()
 
     # --device-id が指定された場合、device_config.json から設定を解決
@@ -412,12 +581,26 @@ def main():
     print("=" * 60)
 
     results = {}
+    readback_results = {}
+
+    if args.allow_missing_write_confirmation:
+        simple_timeout = min(args.timeout, 5)
+        pem_timeout = 12
+    else:
+        simple_timeout = args.timeout
+        pem_timeout = 90
 
     try:
+        log_capture = None
+        if args.log_port:
+            log_capture = LogCapture(args.log_port, args.log_baud)
+            log_capture.open()
+
         ser = serial.Serial(args.port, args.baud, timeout=0)
         time.sleep(0.1)
         ser.reset_input_buffer()
         print(f"[INFO] Opened {args.port} at {args.baud} bps")
+        trigger_reset(args.reset_cmd, args.reset_settle)
 
         # プロンプト待ち
         if not wait_for_prompt(ser, timeout=30):
@@ -427,19 +610,32 @@ def main():
         # ポーリングで蓄積した MCU 応答をすべてドレインし同期確立
         sync_uart(ser)
 
+        # The first CLI command after reset occasionally returns only an echo
+        # fragment on CN8/SCI2. Consume one harmless round-trip before
+        # provisioning writes.
+        print("[INFO] Warm-up: sending version before provisioning")
+        warmup = send_command(ser, "version", timeout=10)
+        if warmup:
+            print(f"[INFO] Warm-up response: {repr(warmup[-80:])}")
+        drain_input(ser, settle_time=1.0)
+
         # --- プロビジョニング実行 ---
 
         print()
         print(f"[STEP 1/{total_steps}] Setting MQTT broker endpoint")
         results["endpoint"] = send_simple_value(
-            ser, f"dataflash write aws mqttbrokerendpoint {args.endpoint}", args.timeout
+            ser, f"dataflash write aws mqttbrokerendpoint {args.endpoint}", simple_timeout
         )
+        if (not results["endpoint"]) and log_capture:
+            log_capture.dump_recent("endpoint failure")
 
         print()
         print(f"[STEP 2/{total_steps}] Setting IoT Thing name")
         results["thing_name"] = send_simple_value(
-            ser, f"dataflash write aws iotthingname {args.thing_name}", args.timeout
+            ser, f"dataflash write aws iotthingname {args.thing_name}", simple_timeout
         )
+        if (not results["thing_name"]) and log_capture:
+            log_capture.dump_recent("thing_name failure")
 
         step_index = 3
 
@@ -447,22 +643,28 @@ def main():
             print()
             print(f"[STEP {step_index}/{total_steps}] Setting Ethernet MAC address")
             results["mac_address"] = send_simple_value(
-                ser, f"dataflash write aws macaddress {args.mac_address}", args.timeout
+                ser, f"dataflash write aws macaddress {args.mac_address}", simple_timeout
             )
+            if (not results["mac_address"]) and log_capture:
+                log_capture.dump_recent("mac_address failure")
             step_index += 1
 
         print()
         print(f"[STEP {step_index}/{total_steps}] Writing client certificate")
         results["certificate"] = send_pem_streaming(
-            ser, "dataflash write aws clientcertificate", cert_pem
+            ser, "dataflash write aws clientcertificate", cert_pem, timeout=pem_timeout
         )
+        if (not results["certificate"]) and log_capture:
+            log_capture.dump_recent("certificate failure")
         step_index += 1
 
         print()
         print(f"[STEP {step_index}/{total_steps}] Writing client private key")
         results["private_key"] = send_pem_streaming(
-            ser, "dataflash write aws clientprivatekey", key_pem
+            ser, "dataflash write aws clientprivatekey", key_pem, timeout=pem_timeout
         )
+        if (not results["private_key"]) and log_capture:
+            log_capture.dump_recent("private_key failure")
         step_index += 1
 
         # Step 5 (OTA): コード署名証明書
@@ -471,16 +673,41 @@ def main():
             print(f"[STEP {step_index}/{total_steps}] Writing code signer certificate (OTA)")
             results["codesigner_cert"] = send_pem_streaming(
                 ser, "dataflash write aws codesignercertificate",
-                codesigner_pem
+                codesigner_pem,
+                timeout=pem_timeout
             )
+            if (not results["codesigner_cert"]) and log_capture:
+                log_capture.dump_recent("codesigner failure")
 
         # --- 確認: dataflash read ---
         print()
         print("[VERIFY] Reading dataflash contents")
+        if args.reset_cmd:
+            print("[INFO] Resetting once before readback verification")
+            trigger_reset(args.reset_cmd, args.reset_settle)
+            if not wait_for_prompt(ser, timeout=30):
+                print("[WARN] Could not re-establish prompt before readback")
+            else:
+                sync_uart(ser)
         drain_input(ser, settle_time=2.0)
 
-        response = send_command(ser, "dataflash read", timeout=10)
+        response = None
+        readback_timeout = 20 if args.allow_missing_write_confirmation else 10
+        for attempt in range(1, 3):
+            response = send_command(ser, "dataflash read", timeout=readback_timeout)
+            if response:
+                break
+            print(f"[WARN] dataflash read attempt {attempt} returned no response")
+            drain_input(ser, settle_time=1.0)
         if response:
+            entries = parse_dataflash_entries(response)
+            readback_results = verify_dataflash_entries(
+                entries,
+                args.endpoint,
+                args.thing_name,
+                args.mac_address,
+                codesigner_pem is not None,
+            )
             # PRIVATE KEY の本体をマスクしてから表示
             masked_response = mask_sensitive_output(response)
             lines = masked_response.replace("\r", "").split("\n")
@@ -489,9 +716,13 @@ def main():
                 if stripped and stripped != "$" and "dataflash read" not in stripped:
                     if "RX72N Envision Kit" not in stripped:
                         print(f"  {stripped}")
+        else:
+            print("[WARN] dataflash read returned no response; cannot use readback for verification")
 
         ser.close()
         print(f"[INFO] Closed {args.port}")
+        if log_capture:
+            log_capture.close()
 
     except serial.SerialException as e:
         print(f"[ERROR] Serial port error: {e}")
@@ -500,6 +731,13 @@ def main():
     # --- 結果レポート ---
     print()
     print("=" * 60)
+    if readback_results:
+        print("[INFO] Readback verification")
+        for name, ok in readback_results.items():
+            status = "PASS" if ok else "FAIL"
+            print(f"  [{status}] readback_{name}")
+            results[name] = results.get(name, False) or ok
+        print("=" * 60)
     all_ok = all(results.values())
     for name, ok in results.items():
         status = "PASS" if ok else "FAIL"
@@ -515,9 +753,12 @@ def main():
     else:
         failed = [name for name, ok in results.items() if not ok]
         if args.allow_missing_write_confirmation:
-            print(f"[WARN] Missing write confirmation for: {', '.join(failed)}")
-            print("[WARN] Proceeding; a later functional test must validate provisioning.")
-            sys.exit(0)
+            print(f"[FAIL] Provisioning could not be confirmed for: {', '.join(failed)}")
+            if readback_results:
+                print("[FAIL] UART write confirmation was missing and readback was insufficient.")
+            else:
+                print("[FAIL] UART write confirmation was missing and readback was unavailable.")
+            sys.exit(1)
         print(f"[FAIL] Missing write confirmation for: {', '.join(failed)}")
         sys.exit(1)
 

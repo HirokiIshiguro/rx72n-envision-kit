@@ -206,8 +206,10 @@ void serial_terminal_task( void * pvParameters )
     uint8_t *label, *data;
     uint32_t label_length, data_length;
 
-    /* wait completing gui initializing */
-    ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
+    /* Bring up the command UART even if GUI initialization is delayed.
+     * CI uses this CLI on CN8/SCl2 to confirm startup and issue commands,
+     * so waiting on gui_task() here makes the whole command path disappear
+     * when GUI init stalls. */
 
     sci_buffer = pvPortMalloc(SCI_BUFFER_SIZE);
     command = pvPortMalloc(COMMAND_SIZE);
@@ -278,6 +280,7 @@ void serial_terminal_task( void * pvParameters )
                         serial_terminal_putstring(task_info->hWin_serial_terminal, sci_handle, "\r\n");
                         break;
                     case COMMAND_TIMEZONE:
+                        R_SFD_Open();
                         sfd_handle_timezone = R_SFD_SaveObject((uint8_t *)timezone_label, strlen(timezone_label), arg1, strlen((char *)arg1) + 1); /* +1 means string terminator '\0' */
                         R_SFD_GetObjectValue(sfd_handle_timezone, (uint8_t **)&timezone, &timezone_length);
                         if(SYS_TIME_SUCCESS == R_SYS_TIME_ConvertUnixTimeToSystemTime(task_info->sys_time.unix_time, &task_info->sys_time, timezone))
@@ -289,11 +292,13 @@ void serial_terminal_task( void * pvParameters )
                         {
                             serial_terminal_putstring(task_info->hWin_serial_terminal, sci_handle, "timezone is not accepted.\r\n");
                         }
+                        R_SFD_Close();
                         break;
                     case COMMAND_RESET:
                         software_reset();
                         break;
                     case COMMAND_DATAFLASH:
+                        R_SFD_Open();
                         if(!strcmp((const char *)arg1, "info"))
                         {
                             sprintf(message_buffer, "physical size = %d bytes.\n", R_SFD_ReadPysicalSize());
@@ -529,6 +534,7 @@ void serial_terminal_task( void * pvParameters )
                             sprintf(message_buffer, "unknown argument1 = %s.\n", arg1);
                             serial_terminal_putstring(task_info->hWin_serial_terminal, sci_handle, message_buffer);
                         }
+                        R_SFD_Close();
                         break;
                     case COMMAND_TOUCH:
                     {
@@ -974,10 +980,13 @@ static void sci_callback(void *pArgs)
     static BaseType_t xHigherPriorityTaskWoken;
 
     args = (sci_cb_args_t *)pArgs;
+    xHigherPriorityTaskWoken = pdFALSE;
 
     if (args->event == SCI_EVT_RX_CHAR)
     {
-        /* From RXI interrupt; received character data is in args->byte */
+        /* v1.0.2 dataflash CLI used the queued receive path below. The current
+         * args->byte shortcut works for short commands but long provisioning
+         * writes regress, so restore the historical RX flow first. */
         nop();
         sci_err = R_SCI_Receive(sci_handle, &tmp, 1);
         if(sci_err == SCI_SUCCESS)

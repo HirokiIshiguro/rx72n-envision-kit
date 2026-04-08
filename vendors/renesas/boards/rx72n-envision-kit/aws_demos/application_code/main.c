@@ -156,8 +156,8 @@ static void prvMiscInitialization( void )
                             tskIDLE_PRIORITY,
                             mainLOGGING_MESSAGE_QUEUE_LENGTH );
 
-    /* flash initialization */
-    R_FLASH_Open();
+    /* Initialize the SFD cache once at startup. Keep flash driver lifecycle
+     * under the callers that actually perform erase/write work. */
     R_SFD_Open();
 
     /* flash access semaphore creation */
