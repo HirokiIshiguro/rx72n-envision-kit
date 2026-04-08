@@ -1735,6 +1735,11 @@
 			<locationURI>AWS_IOT_MCU_ROOT/libraries/freertos_plus/standard/freertos_plus_tcp/FreeRTOS_DNS.c</locationURI>
 		</link>
 		<link>
+			<name>libraries/freertos_plus/standard/freertos_plus_tcp/FreeRTOS_ICMP.c</name>
+			<type>1</type>
+			<locationURI>AWS_IOT_MCU_ROOT/libraries/freertos_plus/standard/freertos_plus_tcp/FreeRTOS_ICMP.c</locationURI>
+		</link>
+		<link>
 			<name>libraries/freertos_plus/standard/freertos_plus_tcp/FreeRTOS_IP_Timers.c</name>
 			<type>1</type>
 			<locationURI>AWS_IOT_MCU_ROOT/libraries/freertos_plus/standard/freertos_plus_tcp/FreeRTOS_IP_Timers.c</locationURI>
@@ -1795,14 +1800,29 @@
 			<locationURI>AWS_IOT_MCU_ROOT/libraries/freertos_plus/standard/freertos_plus_tcp/FreeRTOS_TCP_State_Handling.c</locationURI>
 		</link>
 		<link>
+			<name>libraries/freertos_plus/standard/freertos_plus_tcp/FreeRTOS_TCP_State_Handling_IPv4.c</name>
+			<type>1</type>
+			<locationURI>AWS_IOT_MCU_ROOT/libraries/freertos_plus/standard/freertos_plus_tcp/FreeRTOS_TCP_State_Handling_IPv4.c</locationURI>
+		</link>
+		<link>
 			<name>libraries/freertos_plus/standard/freertos_plus_tcp/FreeRTOS_TCP_Transmission.c</name>
 			<type>1</type>
 			<locationURI>AWS_IOT_MCU_ROOT/libraries/freertos_plus/standard/freertos_plus_tcp/FreeRTOS_TCP_Transmission.c</locationURI>
 		</link>
 		<link>
+			<name>libraries/freertos_plus/standard/freertos_plus_tcp/FreeRTOS_TCP_Transmission_IPv4.c</name>
+			<type>1</type>
+			<locationURI>AWS_IOT_MCU_ROOT/libraries/freertos_plus/standard/freertos_plus_tcp/FreeRTOS_TCP_Transmission_IPv4.c</locationURI>
+		</link>
+		<link>
 			<name>libraries/freertos_plus/standard/freertos_plus_tcp/FreeRTOS_TCP_Utils.c</name>
 			<type>1</type>
 			<locationURI>AWS_IOT_MCU_ROOT/libraries/freertos_plus/standard/freertos_plus_tcp/FreeRTOS_TCP_Utils.c</locationURI>
+		</link>
+		<link>
+			<name>libraries/freertos_plus/standard/freertos_plus_tcp/FreeRTOS_TCP_Utils_IPv4.c</name>
+			<type>1</type>
+			<locationURI>AWS_IOT_MCU_ROOT/libraries/freertos_plus/standard/freertos_plus_tcp/FreeRTOS_TCP_Utils_IPv4.c</locationURI>
 		</link>
 		<link>
 			<name>libraries/freertos_plus/standard/freertos_plus_tcp/FreeRTOS_TCP_WIN.c</name>
