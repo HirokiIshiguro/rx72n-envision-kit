@@ -1,6 +1,8 @@
 /*
- * coreMQTT v1.1.0
- * Copyright (C) 2020 Amazon.com, Inc. or its affiliates.  All Rights Reserved.
+ * coreMQTT v2.3.1
+ * Copyright (C) 2022 Amazon.com, Inc. or its affiliates.  All Rights Reserved.
+ *
+ * SPDX-License-Identifier: MIT
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
  * this software and associated documentation files (the "Software"), to deal in
@@ -30,6 +32,12 @@
 
 #include <stdint.h>
 #include <stddef.h>
+
+/* *INDENT-OFF* */
+#ifdef __cplusplus
+    extern "C" {
+#endif
+/* *INDENT-ON* */
 
 /**
  * @transportpage
@@ -187,14 +195,11 @@ typedef struct NetworkContext NetworkContext_t;
  * @transportcallback
  * @brief Transport interface for receiving data on the network.
  *
- * @note It is RECOMMENDED that the transport receive implementation
- * does NOT block when requested to read a single byte. A single byte
- * read request can be made by the caller to check whether there is a
- * new frame available on the network for reading.
- * However, the receive implementation MAY block for a timeout period when
- * it is requested to read more than 1 byte. This is because once the caller
- * is aware that a new frame is available to read on the network, then
- * the likelihood of reading more than one byte over the network becomes high.
+ * @note It is HIGHLY RECOMMENDED that the transport receive
+ * implementation does NOT block.
+ * coreMQTT will continue to call the transport interface if it receives
+ * a partial packet until it accumulates enough data to get the complete
+ * MQTT packet.
  *
  * @param[in] pNetworkContext Implementation-defined network context.
  * @param[in] pBuffer Buffer to receive the data into.
@@ -238,16 +243,71 @@ typedef int32_t ( * TransportSend_t )( NetworkContext_t * pNetworkContext,
 /* @[define_transportsend] */
 
 /**
+ * @brief Transport vector structure for sending multiple messages.
+ */
+typedef struct TransportOutVector
+{
+    /**
+     * @brief Base address of data.
+     */
+    const void * iov_base;
+
+    /**
+     * @brief Length of data in buffer.
+     */
+    size_t iov_len;
+} TransportOutVector_t;
+
+/**
+ * @transportcallback
+ * @brief Transport interface function for "vectored" / scatter-gather based
+ * writes. This function is expected to iterate over the list of vectors pIoVec
+ * having ioVecCount entries containing portions of one MQTT message at a maximum.
+ * If the proper functionality is available, then the data in the list should be
+ * copied to the underlying TCP buffer before flushing the buffer. Implementing it
+ * in this fashion  will lead to sending of fewer TCP packets for all the values
+ * in the list.
+ *
+ * @note If the proper write functionality is not present for a given device/IP-stack,
+ * then there is no strict requirement to implement write. Only the send and recv
+ * interfaces must be defined for the application to work properly.
+ *
+ * @param[in] pNetworkContext Implementation-defined network context.
+ * @param[in] pIoVec An array of TransportIoVector_t structs.
+ * @param[in] ioVecCount Number of TransportIoVector_t in pIoVec.
+ *
+ * @return The number of bytes written or a negative value to indicate error.
+ *
+ * @note If no data is written to the buffer due to the buffer being full this MUST
+ * return zero as the return value.
+ * A zero return value SHOULD represent that the write operation can be retried
+ * by calling the API function. Zero MUST NOT be returned if a network disconnection
+ * has occurred.
+ */
+/* @[define_transportwritev] */
+typedef int32_t ( * TransportWritev_t )( NetworkContext_t * pNetworkContext,
+                                         TransportOutVector_t * pIoVec,
+                                         size_t ioVecCount );
+/* @[define_transportwritev] */
+
+/**
  * @transportstruct
  * @brief The transport layer interface.
  */
 /* @[define_transportinterface] */
 typedef struct TransportInterface
 {
-    TransportRecv_t recv;               /**< Transport receive interface. */
-    TransportSend_t send;               /**< Transport send interface. */
+    TransportRecv_t recv;               /**< Transport receive function pointer. */
+    TransportSend_t send;               /**< Transport send function pointer. */
+    TransportWritev_t writev;           /**< Transport writev function pointer. */
     NetworkContext_t * pNetworkContext; /**< Implementation-defined network context. */
 } TransportInterface_t;
 /* @[define_transportinterface] */
+
+/* *INDENT-OFF* */
+#ifdef __cplusplus
+    }
+#endif
+/* *INDENT-ON* */
 
 #endif /* ifndef TRANSPORT_INTERFACE_H_ */

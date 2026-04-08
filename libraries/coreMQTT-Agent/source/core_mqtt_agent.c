@@ -1,5 +1,5 @@
 /*
- * coreMQTT Agent v1.0.0
+ * coreMQTT Agent <v1.3.1>
  * Copyright (C) 2021 Amazon.com, Inc. or its affiliates.  All Rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
@@ -45,6 +45,9 @@
 /* MQTT agent include. */
 #include "core_mqtt_agent.h"
 #include "core_mqtt_agent_command_functions.h"
+
+/* MQTT Agent default logging configuration include. */
+#include "core_mqtt_agent_default_logging.h"
 
 /*-----------------------------------------------------------*/
 
@@ -537,7 +540,6 @@ static MQTTStatus_t processCommand( MQTTAgentContext_t * pMqttAgentContext,
     bool ackAdded = false;
     MQTTAgentCommandFunc_t commandFunction = NULL;
     void * pCommandArgs = NULL;
-    const uint32_t processLoopTimeoutMs = 0U;
     MQTTAgentCommandFuncReturns_t commandOutParams = { 0 };
 
     assert( pMqttAgentContext != NULL );
@@ -545,9 +547,19 @@ static MQTTStatus_t processCommand( MQTTAgentContext_t * pMqttAgentContext,
 
     if( pCommand != NULL )
     {
-        assert( pCommand->commandType < NUM_COMMANDS );
-        commandFunction = pCommandFunctionTable[ pCommand->commandType ];
-        pCommandArgs = pCommand->pArgs;
+        assert( ( uint32_t ) pCommand->commandType < ( uint32_t ) NUM_COMMANDS );
+
+        if( ( uint32_t ) pCommand->commandType < ( uint32_t ) NUM_COMMANDS )
+        {
+            commandFunction = pCommandFunctionTable[ pCommand->commandType ];
+            pCommandArgs = pCommand->pArgs;
+        }
+        else
+        {
+            LogWarn( ( "An incorrect command type was received by the processCommand function."
+                       " Type = %d.", pCommand->commandType ) );
+            commandFunction = pCommandFunctionTable[ NONE ];
+        }
     }
     else
     {
@@ -578,12 +590,18 @@ static MQTTStatus_t processCommand( MQTTAgentContext_t * pMqttAgentContext,
         {
             pMqttAgentContext->packetReceivedInLoop = false;
 
-            if( ( operationStatus == MQTTSuccess ) &&
+            if( ( ( operationStatus == MQTTSuccess ) || ( operationStatus == MQTTNeedMoreBytes ) ) &&
                 ( pMqttAgentContext->mqttContext.connectStatus == MQTTConnected ) )
             {
-                operationStatus = MQTT_ProcessLoop( &( pMqttAgentContext->mqttContext ), processLoopTimeoutMs );
+                operationStatus = MQTT_ProcessLoop( &( pMqttAgentContext->mqttContext ) );
             }
         } while( pMqttAgentContext->packetReceivedInLoop );
+    }
+
+    if( operationStatus == MQTTNeedMoreBytes )
+    {
+        /* Reset the operation status as MQTTNeedMoreBytes is not an error condition. */
+        operationStatus = MQTTSuccess;
     }
 
     /* Set the flag to break from the command loop. */
@@ -621,9 +639,13 @@ static void handleAcks( const MQTTAgentContext_t * pAgentContext,
 
 static MQTTAgentContext_t * getAgentFromMQTTContext( MQTTContext_t * pMQTTContext )
 {
-    void * ret = pMQTTContext;
+    MQTTAgentContext_t ctx = { 0 };
+    ptrdiff_t offset = ( ( uint8_t * ) &( ctx.mqttContext ) ) - ( ( uint8_t * ) &ctx );
 
-    return ( MQTTAgentContext_t * ) ret;
+    /* MISRA Ref 11.3.1 [Misaligned access] */
+    /* More details at: https://github.com/FreeRTOS/coreMQTT-Agent/blob/main/MISRA.md#rule-113 */
+    /* coverity[misra_c_2012_rule_11_3_violation] */
+    return ( MQTTAgentContext_t * ) &( ( ( uint8_t * ) pMQTTContext )[ 0 - offset ] );
 }
 
 /*-----------------------------------------------------------*/
@@ -953,6 +975,18 @@ MQTTStatus_t MQTTAgent_Init( MQTTAgentContext_t * pMqttAgentContext,
 {
     MQTTStatus_t returnStatus;
 
+    /**
+     * @brief Array used to maintain the outgoing publish records and their
+     * state by the coreMQTT library.
+     */
+    static MQTTPubAckInfo_t pIncomingPublishRecords[ MQTT_AGENT_MAX_OUTSTANDING_ACKS ];
+
+    /**
+     * @brief Array used to maintain the outgoing publish records and their
+     * state by the coreMQTT library.
+     */
+    static MQTTPubAckInfo_t pOutgoingPublishRecords[ MQTT_AGENT_MAX_OUTSTANDING_ACKS ];
+
     if( ( pMqttAgentContext == NULL ) ||
         ( pMsgInterface == NULL ) ||
         ( pTransportInterface == NULL ) ||
@@ -979,6 +1013,19 @@ MQTTStatus_t MQTTAgent_Init( MQTTAgentContext_t * pMqttAgentContext,
                                   getCurrentTimeMs,
                                   mqttEventCallback,
                                   pNetworkBuffer );
+
+        #if ( MQTT_AGENT_USE_QOS_1_2_PUBLISH != 0 )
+        {
+            if( returnStatus == MQTTSuccess )
+            {
+                returnStatus = MQTT_InitStatefulQoS( &( pMqttAgentContext->mqttContext ),
+                                                     pOutgoingPublishRecords,
+                                                     MQTT_AGENT_MAX_OUTSTANDING_ACKS,
+                                                     pIncomingPublishRecords,
+                                                     MQTT_AGENT_MAX_OUTSTANDING_ACKS );
+            }
+        }
+        #endif /* if ( MQTT_AGENT_USE_QOS_1_2_PUBLISH != 0 ) */
 
         if( returnStatus == MQTTSuccess )
         {

@@ -1,6 +1,8 @@
 /*
- * AWS IoT Device Defender Client v1.1.0
+ * AWS IoT Device Defender Client v1.4.0
  * Copyright (C) 2020 Amazon.com, Inc. or its affiliates.  All Rights Reserved.
+ *
+ * SPDX-License-Identifier: MIT
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
  * this software and associated documentation files (the "Software"), to deal in
@@ -26,6 +28,7 @@
  */
 
 /* Standard includes. */
+
 #include <assert.h>
 #include <stddef.h>
 #include <string.h>
@@ -360,7 +363,7 @@ static DefenderStatus_t matchApi( const char * pRemainingTopic,
         DEFENDER_API_LENGTH_CBOR_FORMAT + DEFENDER_API_LENGTH_REJECTED_SUFFIX,
     };
 
-    for( i = 0U; i < sizeof( defenderApi ) / sizeof( defenderApi[ 0 ] ); i++ )
+    for( i = 0U; i < ( sizeof( defenderApi ) / sizeof( defenderApi[ 0 ] ) ); i++ )
     {
         if( ( remainingTopicLength == defenderApiTopicLength[ i ] ) &&
             ( strncmp( pRemainingTopic,
@@ -403,9 +406,9 @@ DefenderStatus_t Defender_GetTopic( char * pBuffer,
 
         LogError( ( "Invalid input parameter. pBuffer: %p, bufferLength: %u, "
                     "pThingName: %p, thingNameLength: %u, api: %d, pOutLength: %p.",
-                    ( void * ) pBuffer,
+                    ( const void * ) pBuffer,
                     ( unsigned int ) bufferLength,
-                    ( void * ) pThingName,
+                    ( const void * ) pThingName,
                     ( unsigned int ) thingNameLength,
                     api,
                     ( void * ) pOutLength ) );
@@ -472,7 +475,7 @@ DefenderStatus_t Defender_MatchTopic( const char * pTopic,
     {
         ret = DefenderBadParameter;
         LogError( ( "Invalid input parameter. pTopic: %p, pOutApi: %p.",
-                    ( void * ) pTopic,
+                    ( const void * ) pTopic,
                     ( void * ) pOutApi ) );
     }
 

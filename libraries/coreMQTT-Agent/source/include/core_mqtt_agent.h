@@ -1,5 +1,5 @@
 /*
- * coreMQTT Agent v1.0.0
+ * coreMQTT Agent <v1.3.1>
  * Copyright (C) 2021 Amazon.com, Inc. or its affiliates.  All Rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
@@ -27,46 +27,20 @@
 #ifndef CORE_MQTT_AGENT_H
 #define CORE_MQTT_AGENT_H
 
+/* *INDENT-OFF* */
+#ifdef __cplusplus
+    extern "C" {
+#endif
+/* *INDENT-ON* */
+
 /* MQTT library includes. */
 #include "core_mqtt.h"
 #include "core_mqtt_state.h"
 
+#include "core_mqtt_agent_config_defaults.h"
+
 /* Command messaging interface include. */
 #include "core_mqtt_agent_message_interface.h"
-
-/**
- * @brief The maximum number of pending acknowledgments to track for a single
- * connection.
- *
- * @note The MQTT agent tracks MQTT commands (such as PUBLISH and SUBSCRIBE) th
- * at are still waiting to be acknowledged.  MQTT_AGENT_MAX_OUTSTANDING_ACKS set
- * the maximum number of acknowledgments that can be outstanding at any one time.
- * The higher this number is the greater the agent's RAM consumption will be.
- *
- * <b>Possible values:</b> Any positive integer up to SIZE_MAX. <br>
- * <b>Default value:</b> `20`
- */
-#ifndef MQTT_AGENT_MAX_OUTSTANDING_ACKS
-    #define MQTT_AGENT_MAX_OUTSTANDING_ACKS    ( 20U )
-#endif
-
-/**
- * @brief Time in milliseconds that the MQTT agent task will wait in the Blocked state (so
- * not using any CPU time) for a command to arrive in its command queue before
- * exiting the blocked state so it can call MQTT_ProcessLoop().
- *
- * @note It is important MQTT_ProcessLoop() is called often if there is known
- * MQTT traffic, but calling it too often can take processing time away from
- * lower priority tasks and waste CPU time and power.
- *
- * <b>Possible values:</b> Any positive 32 bit integer. <br>
- * <b>Default value:</b> `1000`
- */
-#ifndef MQTT_AGENT_MAX_EVENT_QUEUE_WAIT_TIME
-    #define MQTT_AGENT_MAX_EVENT_QUEUE_WAIT_TIME    ( 1000U )
-#endif
-
-/*-----------------------------------------------------------*/
 
 /**
  * @ingroup mqtt_agent_enum_types
@@ -227,8 +201,8 @@ typedef struct MQTTAgentCommandInfo
  * @param[in] pMqttAgentContext Pointer to struct to initialize.
  * @param[in] pMsgInterface Command interface to use for allocating and sending commands.
  * @param[in] pNetworkBuffer Pointer to network buffer to use.
- * @param[in] pTransportInterface Transport interface to use with the MQTT
- * library.  See https://www.freertos.org/network-interface.html
+ * @param[in] pTransportInterface Transport interface to use with the MQTT library.
+ * See https://www.freertos.org/Documentation/03-Libraries/03-FreeRTOS-core/06-Transport-Interface/01-Transport-interface
  * @param[in] getCurrentTimeMs Pointer to a function that returns a count value
  * that increments every millisecond.
  * @param[in] incomingCallback The callback to execute when receiving publishes.
@@ -948,5 +922,11 @@ MQTTStatus_t MQTTAgent_Disconnect( const MQTTAgentContext_t * pMqttAgentContext,
 MQTTStatus_t MQTTAgent_Terminate( const MQTTAgentContext_t * pMqttAgentContext,
                                   const MQTTAgentCommandInfo_t * pCommandInfo );
 /* @[declare_mqtt_agent_terminate] */
+
+/* *INDENT-OFF* */
+#ifdef __cplusplus
+    }
+#endif
+/* *INDENT-ON* */
 
 #endif /* CORE_MQTT_AGENT_H */

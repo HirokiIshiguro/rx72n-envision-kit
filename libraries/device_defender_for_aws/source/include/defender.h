@@ -1,6 +1,8 @@
 /*
- * AWS IoT Device Defender Client v1.1.0
+ * AWS IoT Device Defender Client v1.4.0
  * Copyright (C) 2020 Amazon.com, Inc. or its affiliates.  All Rights Reserved.
+ *
+ * SPDX-License-Identifier: MIT
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
  * this software and associated documentation files (the "Software"), to deal in
@@ -30,6 +32,12 @@
 
 /* Standard includes. */
 #include <stdint.h>
+
+/* *INDENT-OFF* */
+#ifdef __cplusplus
+    extern "C" {
+#endif
+/* *INDENT-ON* */
 
 /* DEFENDER_DO_NOT_USE_CUSTOM_CONFIG allows building the Device Defender library
  * without a config file. If a config file is provided, DEFENDER_DO_NOT_USE_CUSTOM_CONFIG
@@ -341,9 +349,9 @@ typedef enum
 
 /* Keys used in defender report. */
 #if ( defined( DEFENDER_USE_LONG_KEYS ) && ( DEFENDER_USE_LONG_KEYS == 1 ) )
-    #define DEFENDER_REPORT_SELECT_KEY( longKey, shortKey )    ( longKey )
+    #define DEFENDER_REPORT_SELECT_KEY( longKey, shortKey )    longKey
 #else
-    #define DEFENDER_REPORT_SELECT_KEY( longKey, shortKey )    ( shortKey )
+    #define DEFENDER_REPORT_SELECT_KEY( longKey, shortKey )    shortKey
 #endif
 
 /** @endcond */
@@ -787,5 +795,11 @@ DefenderStatus_t Defender_MatchTopic( const char * pTopic,
 /* @[declare_defender_matchtopic] */
 
 /*-----------------------------------------------------------*/
+
+/* *INDENT-OFF* */
+#ifdef __cplusplus
+    }
+#endif
+/* *INDENT-ON* */
 
 #endif /* DEFENDER_H_ */

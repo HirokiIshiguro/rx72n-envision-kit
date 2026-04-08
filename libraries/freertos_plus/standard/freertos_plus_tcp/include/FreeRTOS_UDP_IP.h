@@ -1,6 +1,8 @@
 /*
- * FreeRTOS+TCP V2.3.2 LTS Patch 2
- * Copyright (C) 2020 Amazon.com, Inc. or its affiliates.  All Rights Reserved.
+ * FreeRTOS+TCP V4.2.5
+ * Copyright (C) 2022 Amazon.com, Inc. or its affiliates.  All Rights Reserved.
+ *
+ * SPDX-License-Identifier: MIT
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
  * this software and associated documentation files (the "Software"), to deal in
@@ -24,20 +26,33 @@
  */
 
 #ifndef FREERTOS_UDP_IP_H
-    #define FREERTOS_UDP_IP_H
-
-    #ifdef __cplusplus
-        extern "C" {
-    #endif
+#define FREERTOS_UDP_IP_H
 
 /* Application level configuration options. */
-    #include "FreeRTOSIPConfig.h"
-    #include "FreeRTOSIPConfigDefaults.h"
-    #include "IPTraceMacroDefaults.h"
+#include "FreeRTOSIPConfig.h"
+#include "FreeRTOSIPConfigDefaults.h"
+#include "FreeRTOS_IP.h"
 
+/* *INDENT-OFF* */
+#ifdef __cplusplus
+    extern "C" {
+#endif
+/* *INDENT-ON* */
 
-    #ifdef __cplusplus
-        } /* extern "C" */
-    #endif
+/*
+ * Called when the application has generated a UDP packet to send.
+ */
+void vProcessGeneratedUDPPacket( NetworkBufferDescriptor_t * const pxNetworkBuffer );
+
+/*
+ * _HT_ added in order to avoid warnings while testing. */
+void vProcessGeneratedUDPPacket_IPv4( NetworkBufferDescriptor_t * const pxNetworkBuffer );
+void vProcessGeneratedUDPPacket_IPv6( NetworkBufferDescriptor_t * const pxNetworkBuffer );
+
+/* *INDENT-OFF* */
+#ifdef __cplusplus
+    } /* extern "C" */
+#endif
+/* *INDENT-ON* */
 
 #endif /* FREERTOS_UDP_IP_H */

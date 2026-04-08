@@ -1,6 +1,8 @@
 /*
- * FreeRTOS+TCP V2.3.2 LTS Patch 2
- * Copyright (C) 2020 Amazon.com, Inc. or its affiliates.  All Rights Reserved.
+ * FreeRTOS+TCP V4.2.5
+ * Copyright (C) 2022 Amazon.com, Inc. or its affiliates.  All Rights Reserved.
+ *
+ * SPDX-License-Identifier: MIT
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
  * this software and associated documentation files (the "Software"), to deal in
@@ -23,17 +25,12 @@
  * http://www.FreeRTOS.org
  */
 
-/*
- * tcp_mem_stats.h
- */
-
-
 #ifndef TCP_MEM_STATS_H
 
     #define TCP_MEM_STATS_H
 
     #ifdef __cplusplus
-        extern "C" {
+    extern "C" {
     #endif
 
     typedef enum xTCP_MEMORY
@@ -72,7 +69,7 @@
     #endif /* ipconfigUSE_TCP_MEM_STATS != 0 */
 
     #ifdef __cplusplus
-        } /* extern "C" */
+}         /* extern "C" */
     #endif
 
 #endif /* TCP_MEM_STATS_H */
