@@ -42,8 +42,12 @@
             <Path>..\..\..\..\..\vendors\renesas\boards\rx72n-envision-kit\aws_demos\application_code\renesas_code\utility\r_sdc_sdmem_rx_demo_pin.c</Path>
             <Path>..\..\..\..\..\vendors\renesas\boards\rx72n-envision-kit\aws_demos\application_code\renesas_code\utility\r_sdc_sdmem_rx_demo_pin.h</Path>
             <Path>..\..\..\..\..\vendors\renesas\boards\rx72n-envision-kit\aws_demos\application_code\renesas_code\utility\r_sdc_sdmem_rx_demo_pin_config.h</Path>
-            <Path>..\..\..\..\..\vendors\renesas\boards\rx72n-envision-kit\aws_demos\application_code\renesas_code\utility\r_simple_filesystem_on_dataflash.c</Path>
+            <Path>..\..\..\..\..\vendors\renesas\boards\rx72n-envision-kit\aws_demos\application_code\renesas_code\utility\r_simple_filesystem_on_littlefs.c</Path>
             <Path>..\..\..\..\..\vendors\renesas\boards\rx72n-envision-kit\aws_demos\application_code\renesas_code\utility\r_simple_filesystem_on_dataflash_if.h</Path>
+            <Path>..\..\..\..\..\vendors\renesas\boards\rx72n-envision-kit\aws_demos\application_code\renesas_code\utility\littlefs\lfs.c</Path>
+            <Path>..\..\..\..\..\vendors\renesas\boards\rx72n-envision-kit\aws_demos\application_code\renesas_code\utility\littlefs\lfs.h</Path>
+            <Path>..\..\..\..\..\vendors\renesas\boards\rx72n-envision-kit\aws_demos\application_code\renesas_code\utility\littlefs\lfs_util.c</Path>
+            <Path>..\..\..\..\..\vendors\renesas\boards\rx72n-envision-kit\aws_demos\application_code\renesas_code\utility\littlefs\lfs_util.h</Path>
           </Category>
         </Category>
         <Category Name="smc_gen">
@@ -2478,7 +2482,9 @@
           <Path>HardwareDebug\base64_decode.obj</Path>
           <Path>HardwareDebug\firm_update.obj</Path>
           <Path>HardwareDebug\r_sdc_sdmem_rx_demo_pin.obj</Path>
-          <Path>HardwareDebug\r_simple_filesystem_on_dataflash.obj</Path>
+          <Path>HardwareDebug\lfs.obj</Path>
+          <Path>HardwareDebug\lfs_util.obj</Path>
+          <Path>HardwareDebug\r_simple_filesystem_on_littlefs.obj</Path>
           <Path>HardwareDebug\r_cg_hardware_setup.obj</Path>
           <Path>HardwareDebug\r_smc_cgc.obj</Path>
           <Path>HardwareDebug\r_smc_cgc_user.obj</Path>
