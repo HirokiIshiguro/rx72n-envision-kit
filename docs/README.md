@@ -10,3 +10,4 @@ This documentation was migrated from the [GitHub Wiki](https://github.com/renesa
 ## Migration / 移行メモ
 
 - [Post-MQTT Layout Migration](post-mqtt-layout-migration.md)
+- [Fleet Provisioning Bootstrap Plan](fleet-provisioning-bootstrap-plan.md)
