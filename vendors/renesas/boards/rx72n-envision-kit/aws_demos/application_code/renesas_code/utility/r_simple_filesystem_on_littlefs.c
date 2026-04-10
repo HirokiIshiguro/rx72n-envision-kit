@@ -28,6 +28,7 @@
 #include "r_flash_rx_if.h"
 
 #include "r_simple_filesystem_on_dataflash_if.h"
+#include "serial_term_uart.h"
 #include "littlefs/lfs.h"
 
 #define LITTLEFS_FLASH_READ_SIZE      ( 1U )
@@ -37,6 +38,7 @@
 #define LITTLEFS_FLASH_CACHE_SIZE     ( 64U )
 #define LITTLEFS_FLASH_LOOKAHEAD_SIZE ( 16U )
 #define LITTLEFS_FLASH_DATA_START     ( ( uint32_t ) FLASH_DF_BLOCK_32 )
+#define LITTLEFS_FLASH_OP_TIMEOUT_TICKS pdMS_TO_TICKS( 5000 )
 
 typedef enum e_littlefs_flash_state
 {
@@ -100,6 +102,12 @@ static int prvLittleFsProg( const struct lfs_config * pxConfig,
 static int prvLittleFsErase( const struct lfs_config * pxConfig,
                              lfs_block_t xBlock );
 static int prvLittleFsSync( const struct lfs_config * pxConfig );
+static void prvLittleFsDiag( const char * pcMessage );
+
+static void prvLittleFsDiag( const char * pcMessage )
+{
+    uart_string_printf_immediate( pcMessage );
+}
 
 static void prvLittleFsFlashCallback( void * pvEvent )
 {
@@ -180,6 +188,8 @@ static BaseType_t prvLittleFsEnsureInitialized( void )
         return pdTRUE;
     }
 
+    prvLittleFsDiag( "diag: lfs flash init start\r\n" );
+
     xSfdMutex = xSemaphoreCreateMutexStatic( &xSfdMutexStorage );
     xSfdFlashDone = xSemaphoreCreateBinaryStatic( &xSfdFlashDoneStorage );
 
@@ -217,6 +227,7 @@ static BaseType_t prvLittleFsEnsureInitialized( void )
     xLittleFsConfig.lookahead_buffer = ucLittleFsLookaheadBuffer;
 
     xLittleFsFlashInitialized = pdTRUE;
+    prvLittleFsDiag( "diag: lfs flash init ok\r\n" );
     return pdTRUE;
 }
 
@@ -234,24 +245,30 @@ static BaseType_t prvLittleFsEnsureMounted( void )
         return pdTRUE;
     }
 
+    prvLittleFsDiag( "diag: lfs mount start\r\n" );
+
     lfs_err = lfs_mount( &xLittleFs, &xLittleFsConfig );
 
     if( lfs_err != LFS_ERR_OK )
     {
+        prvLittleFsDiag( "diag: lfs mount failed, formatting\r\n" );
         lfs_err = lfs_format( &xLittleFs, &xLittleFsConfig );
 
         if( lfs_err == LFS_ERR_OK )
         {
+            prvLittleFsDiag( "diag: lfs format ok, remounting\r\n" );
             lfs_err = lfs_mount( &xLittleFs, &xLittleFsConfig );
         }
     }
 
     if( lfs_err != LFS_ERR_OK )
     {
+        prvLittleFsDiag( "diag: lfs mount failed final\r\n" );
         return pdFALSE;
     }
 
     xLittleFsMounted = pdTRUE;
+    prvLittleFsDiag( "diag: lfs mount ok\r\n" );
     return pdTRUE;
 }
 
@@ -460,8 +477,9 @@ static int prvLittleFsProg( const struct lfs_config * pxConfig,
         return LFS_ERR_IO;
     }
 
-    if( xSemaphoreTake( xSfdFlashDone, portMAX_DELAY ) != pdTRUE )
+    if( xSemaphoreTake( xSfdFlashDone, LITTLEFS_FLASH_OP_TIMEOUT_TICKS ) != pdTRUE )
     {
+        prvLittleFsDiag( "diag: lfs prog timeout\r\n" );
         xLittleFsFlashState = LITTLEFS_FLASH_ERROR;
         return LFS_ERR_IO;
     }
@@ -488,8 +506,9 @@ static int prvLittleFsErase( const struct lfs_config * pxConfig,
         return LFS_ERR_IO;
     }
 
-    if( xSemaphoreTake( xSfdFlashDone, portMAX_DELAY ) != pdTRUE )
+    if( xSemaphoreTake( xSfdFlashDone, LITTLEFS_FLASH_OP_TIMEOUT_TICKS ) != pdTRUE )
     {
+        prvLittleFsDiag( "diag: lfs erase timeout\r\n" );
         xLittleFsFlashState = LITTLEFS_FLASH_ERROR;
         return LFS_ERR_IO;
     }
@@ -505,11 +524,14 @@ static int prvLittleFsSync( const struct lfs_config * pxConfig )
 
 sfd_err_t R_SFD_Open( void )
 {
+    prvLittleFsDiag( "diag: lfs open start\r\n" );
     if( prvLittleFsEnsureMounted() != pdTRUE )
     {
+        prvLittleFsDiag( "diag: lfs open failed\r\n" );
         return SFD_FATAL_ERROR;
     }
 
+    prvLittleFsDiag( "diag: lfs open ok\r\n" );
     return SFD_SUCCESS;
 }
 
