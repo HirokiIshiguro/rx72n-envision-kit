@@ -159,6 +159,13 @@ static inline uint32_t lfs_popc(uint32_t a) {
 #endif
 }
 
+static inline uint32_t lfs_bswap32(uint32_t a) {
+    return ((a & 0x000000ffU) << 24) |
+           ((a & 0x0000ff00U) << 8)  |
+           ((a & 0x00ff0000U) >> 8)  |
+           ((a & 0xff000000U) >> 24);
+}
+
 // Find the sequence comparison of a and b, this is the distance
 // between a and b ignoring overflow
 static inline int lfs_scmp(uint32_t a, uint32_t b) {
@@ -175,7 +182,7 @@ static inline uint32_t lfs_fromle32(uint32_t a) {
     (defined(  BYTE_ORDER  ) && defined(  ORDER_BIG_ENDIAN  ) &&   BYTE_ORDER   ==   ORDER_BIG_ENDIAN  ) || \
     (defined(__BYTE_ORDER  ) && defined(__ORDER_BIG_ENDIAN  ) && __BYTE_ORDER   == __ORDER_BIG_ENDIAN  ) || \
     (defined(__BYTE_ORDER__) && defined(__ORDER_BIG_ENDIAN__) && __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__))
-    return __builtin_bswap32(a);
+    return lfs_bswap32(a);
 #else
     return (((uint8_t*)&a)[0] <<  0) |
            (((uint8_t*)&a)[1] <<  8) |
@@ -194,7 +201,7 @@ static inline uint32_t lfs_frombe32(uint32_t a) {
     (defined(  BYTE_ORDER  ) && defined(  ORDER_LITTLE_ENDIAN  ) &&   BYTE_ORDER   ==   ORDER_LITTLE_ENDIAN  ) || \
     (defined(__BYTE_ORDER  ) && defined(__ORDER_LITTLE_ENDIAN  ) && __BYTE_ORDER   == __ORDER_LITTLE_ENDIAN  ) || \
     (defined(__BYTE_ORDER__) && defined(__ORDER_LITTLE_ENDIAN__) && __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__))
-    return __builtin_bswap32(a);
+    return lfs_bswap32(a);
 #elif (defined(  BYTE_ORDER  ) && defined(  ORDER_BIG_ENDIAN  ) &&   BYTE_ORDER   ==   ORDER_BIG_ENDIAN  ) || \
     (defined(__BYTE_ORDER  ) && defined(__ORDER_BIG_ENDIAN  ) && __BYTE_ORDER   == __ORDER_BIG_ENDIAN  ) || \
     (defined(__BYTE_ORDER__) && defined(__ORDER_BIG_ENDIAN__) && __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__)
