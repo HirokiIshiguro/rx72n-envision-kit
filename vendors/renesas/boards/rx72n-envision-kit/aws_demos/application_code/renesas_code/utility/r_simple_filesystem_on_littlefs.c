@@ -195,19 +195,28 @@ static BaseType_t prvLittleFsEnsureInitialized( void )
 
     if( ( xSfdMutex == NULL ) || ( xSfdFlashDone == NULL ) )
     {
+        prvLittleFsDiag( "diag: lfs flash sem create failed\r\n" );
         return pdFALSE;
     }
 
+    prvLittleFsDiag( "diag: lfs flash sem create ok\r\n" );
+
+    prvLittleFsDiag( "diag: lfs flash open start\r\n" );
     xFlashErr = R_FLASH_Open();
 
     if( ( xFlashErr != FLASH_SUCCESS ) && ( xFlashErr != FLASH_ERR_ALREADY_OPEN ) )
     {
+        prvLittleFsDiag( "diag: lfs flash open failed\r\n" );
         return pdFALSE;
     }
 
+    prvLittleFsDiag( "diag: lfs flash open ok\r\n" );
+
     xInterruptConfig.pcallback = prvLittleFsFlashCallback;
     xInterruptConfig.int_priority = 14;
+    prvLittleFsDiag( "diag: lfs callback set start\r\n" );
     R_FLASH_Control( FLASH_CMD_SET_BGO_CALLBACK, &xInterruptConfig );
+    prvLittleFsDiag( "diag: lfs callback set ok\r\n" );
 
     memset( &xLittleFsConfig, 0, sizeof( xLittleFsConfig ) );
     xLittleFsConfig.context = NULL;
