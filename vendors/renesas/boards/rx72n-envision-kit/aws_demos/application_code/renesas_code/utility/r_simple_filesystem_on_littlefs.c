@@ -502,11 +502,14 @@ static int prvLittleFsProg( const struct lfs_config * pxConfig,
 
     ( void ) pxConfig;
 
+    prvLittleFsDiag( "diag: lfs prog start\r\n" );
     xLittleFsFlashState = LITTLEFS_FLASH_WAIT_WRITE;
     xFlashErr = R_FLASH_Write( ( uint32_t ) pvBuffer, ulAddress, ( uint32_t ) xSize );
+    prvLittleFsDiag( "diag: lfs prog issued\r\n" );
 
     if( xFlashErr != FLASH_SUCCESS )
     {
+        prvLittleFsDiag( "diag: lfs prog issue failed\r\n" );
         xLittleFsFlashState = LITTLEFS_FLASH_ERROR;
         return LFS_ERR_IO;
     }
@@ -518,7 +521,14 @@ static int prvLittleFsProg( const struct lfs_config * pxConfig,
         return LFS_ERR_IO;
     }
 
-    return ( xLittleFsFlashState == LITTLEFS_FLASH_IDLE ) ? LFS_ERR_OK : LFS_ERR_IO;
+    if( xLittleFsFlashState != LITTLEFS_FLASH_IDLE )
+    {
+        prvLittleFsDiag( "diag: lfs prog callback error\r\n" );
+        return LFS_ERR_IO;
+    }
+
+    prvLittleFsDiag( "diag: lfs prog ok\r\n" );
+    return LFS_ERR_OK;
 }
 
 static int prvLittleFsErase( const struct lfs_config * pxConfig,
@@ -531,11 +541,14 @@ static int prvLittleFsErase( const struct lfs_config * pxConfig,
 
     ( void ) pxConfig;
 
+    prvLittleFsDiag( "diag: lfs erase start\r\n" );
     xLittleFsFlashState = LITTLEFS_FLASH_WAIT_ERASE;
     xFlashErr = R_FLASH_Erase( ( flash_block_address_t ) ulAddress, ulBlocks );
+    prvLittleFsDiag( "diag: lfs erase issued\r\n" );
 
     if( xFlashErr != FLASH_SUCCESS )
     {
+        prvLittleFsDiag( "diag: lfs erase issue failed\r\n" );
         xLittleFsFlashState = LITTLEFS_FLASH_ERROR;
         return LFS_ERR_IO;
     }
@@ -547,7 +560,14 @@ static int prvLittleFsErase( const struct lfs_config * pxConfig,
         return LFS_ERR_IO;
     }
 
-    return ( xLittleFsFlashState == LITTLEFS_FLASH_IDLE ) ? LFS_ERR_OK : LFS_ERR_IO;
+    if( xLittleFsFlashState != LITTLEFS_FLASH_IDLE )
+    {
+        prvLittleFsDiag( "diag: lfs erase callback error\r\n" );
+        return LFS_ERR_IO;
+    }
+
+    prvLittleFsDiag( "diag: lfs erase ok\r\n" );
+    return LFS_ERR_OK;
 }
 
 static int prvLittleFsSync( const struct lfs_config * pxConfig )
