@@ -44,6 +44,8 @@ Includes   <System Includes> , "Project Includes"
 #include "r_flash_fcu.h"
 #include "r_flash_group.h"
 
+extern void uart_string_printf_immediate( const char * pString );
+
 /***********************************************************************************************************************
 Macro definitions
 ***********************************************************************************************************************/
@@ -86,11 +88,15 @@ flash_err_t R_FLASH_Open(void)
      * write to ROM simultaneously under certain circumstances (run from
      * one region and write to another).
      */
+    uart_string_printf_immediate( "diag: R_FLASH_Open codecopy start\r\n" );
     R_FlashCodeCopy();
+    uart_string_printf_immediate( "diag: R_FLASH_Open codecopy ok\r\n" );
 
 
     /* Perform flash and driver initialization */
+    uart_string_printf_immediate( "diag: R_FLASH_Open group open start\r\n" );
     err = r_flash_open();
+    uart_string_printf_immediate( "diag: R_FLASH_Open group open returned\r\n" );
     if (err == FLASH_SUCCESS)
     {
         g_flash_state = FLASH_READY;
@@ -141,6 +147,7 @@ void R_FlashCodeCopy(void)
 #endif /* (FLASH_CFG_CODE_FLASH_RUN_FROM_ROM == 0) */
 
 #ifdef FLASH_IN_DUAL_BANK_MODE
+    uart_string_printf_immediate( "diag: R_FlashCodeCopy PFRAM2 start\r\n" );
     /* Initialize pointers */
     p_ram_section = (uint8_t *)R_BSP_SECTOP(RPFRAM2);
     p_rom_section = (uint8_t *)R_BSP_SECTOP(PFRAM2);
@@ -150,6 +157,7 @@ void R_FlashCodeCopy(void)
     {
         p_ram_section[bytes_copied] = p_rom_section[bytes_copied];
     }
+    uart_string_printf_immediate( "diag: R_FlashCodeCopy PFRAM2 ok\r\n" );
 #endif /* FLASH_IN_DUAL_BANK_MODE */
 
 #elif defined(__ICCRX__)
