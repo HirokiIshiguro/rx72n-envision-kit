@@ -409,6 +409,8 @@ uint32_t R_FLASH_GetVersion (void)
     return ((((uint32_t)FLASH_RX_VERSION_MAJOR) << 16) | (uint32_t)FLASH_RX_VERSION_MINOR);
 }
 
+R_BSP_ATTRIB_SECTION_CHANGE_END
+
 /******************************************************************************
 * Function Name: flash_lock_state
 * Description  : Attempt to grab the flash state to perform an operation
