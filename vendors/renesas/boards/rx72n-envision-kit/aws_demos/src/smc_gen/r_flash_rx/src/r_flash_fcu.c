@@ -75,14 +75,31 @@ flash_err_t flash_init_fcu(void)
 {
     flash_err_t err = FLASH_SUCCESS;
     uint32_t fclk = MCU_CFG_FCLK_HZ;
+    uint32_t speed_mhz;
 
     g_current_parameters.current_operation = FLASH_CUR_FCU_INIT;
 
     /* Allow Access to the Flash registers */
     FLASH.FWEPROR.BYTE = 0x01;
 
-    /* Let the sequencer know what FCLK is running at */
-    err = R_FLASH_Control(FLASH_CMD_CONFIG_CLOCK, &fclk);
+    /* Let the sequencer know what FCLK is running at. Avoid R_FLASH_Control()
+     * here while the code-flash RAM section migration is being cleaned up. */
+    if( ( FLASH_FREQ_HI < fclk ) || ( FLASH_FREQ_LO > fclk ) )
+    {
+        err = FLASH_ERR_FREQUENCY;
+    }
+    else
+    {
+        speed_mhz = fclk / 1000000;
+        if( 0 != ( fclk % 1000000 ) )
+        {
+            speed_mhz++;
+        }
+        FLASH.FPCKAR.WORD = ( uint16_t ) ( 0x1E00 ) + ( uint16_t ) speed_mhz;
+#if ( ( FLASH_TYPE == 4 ) && ( MCU_DATA_FLASH_SIZE_BYTES != 0 ) )
+        FLASH.EEPFCLK = ( uint8_t ) speed_mhz;
+#endif
+    }
 
     /* Copy the FCU firmware to FCU RAM */
 #ifdef FLASH_HAS_FCU_RAM_ENABLE
