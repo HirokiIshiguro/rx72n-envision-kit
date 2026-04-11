@@ -40,6 +40,8 @@
 #define LITTLEFS_FLASH_DATA_START     ( ( uint32_t ) FLASH_DF_BLOCK_32 )
 #define LITTLEFS_FLASH_OP_TIMEOUT_TICKS pdMS_TO_TICKS( 5000 )
 
+extern flash_err_t flash_interrupt_config( bool state, void * pcfg );
+
 typedef enum e_littlefs_flash_state
 {
     LITTLEFS_FLASH_IDLE = 0,
@@ -215,7 +217,7 @@ static BaseType_t prvLittleFsEnsureInitialized( void )
     xInterruptConfig.pcallback = prvLittleFsFlashCallback;
     xInterruptConfig.int_priority = 14;
     prvLittleFsDiag( "diag: lfs callback set start\r\n" );
-    R_FLASH_Control( FLASH_CMD_SET_BGO_CALLBACK, &xInterruptConfig );
+    flash_interrupt_config( true, &xInterruptConfig );
     prvLittleFsDiag( "diag: lfs callback set ok\r\n" );
 
     memset( &xLittleFsConfig, 0, sizeof( xLittleFsConfig ) );
