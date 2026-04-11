@@ -477,16 +477,9 @@ bool flash_softwareLock(int32_t * const plock)
 {
     bool ret = false;
 
-    /* Variable used in trying to acquire lock. Using the xchg instruction makes this atomic */
-    int32_t is_locked = true;
-
-    /* Try to acquire semaphore to obtain lock */
-    R_BSP_EXCHANGE(&is_locked, plock);
-
-    /* Check to see if semaphore was successfully taken */
-    if (is_locked == false)
+    if (*plock == false)
     {
-        /* Lock obtained, return success. */
+        *plock = true;
         ret = true;
     }
     else
