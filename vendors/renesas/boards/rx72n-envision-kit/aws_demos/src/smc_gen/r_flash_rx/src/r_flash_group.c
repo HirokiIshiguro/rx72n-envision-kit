@@ -55,7 +55,6 @@ Includes   <System Includes> , "Project Includes"
 #include "r_flash_fcu.h"
 #include "r_flash_group.h"
 
-extern void uart_string_printf_immediate( const char * pString );
 
 /***********************************************************************************************************************
 Macro definitions
@@ -209,29 +208,22 @@ flash_err_t r_flash_open(void)
     }
 #endif
     /* Lock driver to initialize */
-    uart_string_printf_immediate( "diag: r_flash_open lock start\r\n" );
     if (FLASH_SUCCESS != flash_lock_state(FLASH_INITIALIZATION))
     {
-        uart_string_printf_immediate( "diag: r_flash_open lock failed\r\n" );
         return FLASH_ERR_BUSY;      // should never happen
     }
-    uart_string_printf_immediate( "diag: r_flash_open lock ok\r\n" );
 
     if (g_driver_opened == true)
     {
         flash_release_state();
-        uart_string_printf_immediate( "diag: r_flash_open already open\r\n" );
         return FLASH_ERR_ALREADY_OPEN;
     }
 
     /* Initialize the FCU */
 #ifdef FLASH_HAS_FCU
-    uart_string_printf_immediate( "diag: flash_init_fcu start\r\n" );
     err = flash_init_fcu();
-    uart_string_printf_immediate( "diag: flash_init_fcu returned\r\n" );
     if (FLASH_SUCCESS != err)
     {
-        uart_string_printf_immediate( "diag: flash_init_fcu failed\r\n" );
         return err;
     }
 #endif
@@ -252,7 +244,6 @@ flash_err_t r_flash_open(void)
     g_driver_opened = true;
     flash_release_state();
 
-    uart_string_printf_immediate( "diag: r_flash_open ok\r\n" );
     return FLASH_SUCCESS;
 }
 

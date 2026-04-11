@@ -42,7 +42,6 @@ Includes   <System Includes> , "Project Includes"
 #include "r_flash_fcu.h"
 #include "r_flash_group.h"
 
-extern void uart_string_printf_immediate( const char * pString );
 
 /***********************************************************************************************************************
 Macro definitions
@@ -78,24 +77,18 @@ flash_err_t flash_init_fcu(void)
     uint32_t fclk = MCU_CFG_FCLK_HZ;
 
     g_current_parameters.current_operation = FLASH_CUR_FCU_INIT;
-    uart_string_printf_immediate( "diag: flash_init_fcu entry\r\n" );
 
     /* Allow Access to the Flash registers */
     FLASH.FWEPROR.BYTE = 0x01;
-    uart_string_printf_immediate( "diag: flash_init_fcu fwepror ok\r\n" );
 
     /* Let the sequencer know what FCLK is running at */
-    uart_string_printf_immediate( "diag: flash config clock start\r\n" );
     err = R_FLASH_Control(FLASH_CMD_CONFIG_CLOCK, &fclk);
-    uart_string_printf_immediate( "diag: flash config clock returned\r\n" );
 
     /* Copy the FCU firmware to FCU RAM */
 #ifdef FLASH_HAS_FCU_RAM_ENABLE
     if (err == FLASH_SUCCESS)
     {
-        uart_string_printf_immediate( "diag: fcuram codecopy start\r\n" );
         err = flash_fcuram_codecopy();
-        uart_string_printf_immediate( "diag: fcuram codecopy returned\r\n" );
     }
 #endif
     return err;
