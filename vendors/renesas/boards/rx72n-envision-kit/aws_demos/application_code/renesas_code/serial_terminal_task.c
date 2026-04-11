@@ -869,7 +869,7 @@ void serial_terminal_task( void * pvParameters )
             }
             else
             {
-
+                serial_terminal_putstring(task_info->hWin_serial_terminal, sci_handle, PROMPT);
             }
             current_buffer_pointer = 0;
             memset(sci_buffer, 0, SCI_BUFFER_SIZE);
