@@ -40,8 +40,6 @@
 #define LITTLEFS_FLASH_DATA_START     ( ( uint32_t ) FLASH_DF_BLOCK_32 )
 #define LITTLEFS_FLASH_OP_TIMEOUT_TICKS pdMS_TO_TICKS( 5000 )
 
-extern flash_err_t r_flash_open( void );
-
 typedef enum e_littlefs_flash_state
 {
     LITTLEFS_FLASH_IDLE = 0,
@@ -204,7 +202,7 @@ static BaseType_t prvLittleFsEnsureInitialized( void )
     prvLittleFsDiag( "diag: lfs flash sem create ok\r\n" );
 
     prvLittleFsDiag( "diag: lfs flash open start\r\n" );
-    xFlashErr = r_flash_open();
+    xFlashErr = R_FLASH_Open();
 
     if( ( xFlashErr != FLASH_SUCCESS ) && ( xFlashErr != FLASH_ERR_ALREADY_OPEN ) )
     {
