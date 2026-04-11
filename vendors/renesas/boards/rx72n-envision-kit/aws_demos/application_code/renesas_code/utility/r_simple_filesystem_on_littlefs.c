@@ -105,10 +105,28 @@ static int prvLittleFsErase( const struct lfs_config * pxConfig,
                              lfs_block_t xBlock );
 static int prvLittleFsSync( const struct lfs_config * pxConfig );
 static void prvLittleFsDiag( const char * pcMessage );
+static BaseType_t prvLittleFsLooksFormatted( void );
 
 static void prvLittleFsDiag( const char * pcMessage )
 {
     uart_string_printf_immediate( pcMessage );
+}
+
+static BaseType_t prvLittleFsLooksFormatted( void )
+{
+    const uint8_t * pucDataFlash = ( const uint8_t * ) LITTLEFS_FLASH_DATA_START;
+    const uint32_t ulSearchSize = LITTLEFS_FLASH_BLOCK_SIZE * 2U;
+    uint32_t ulIndex;
+
+    for( ulIndex = 0U; ulIndex + 8U <= ulSearchSize; ulIndex++ )
+    {
+        if( memcmp( &pucDataFlash[ ulIndex ], "littlefs", 8U ) == 0 )
+        {
+            return pdTRUE;
+        }
+    }
+
+    return pdFALSE;
 }
 
 static void prvLittleFsFlashCallback( void * pvEvent )
@@ -256,27 +274,32 @@ static BaseType_t prvLittleFsEnsureMounted( void )
         return pdTRUE;
     }
 
+    if( prvLittleFsLooksFormatted() != pdTRUE )
+    {
+        prvLittleFsDiag( "diag: lfs raw magic missing, formatting\r\n" );
+        lfs_err = lfs_format( &xLittleFs, &xLittleFsConfig );
+
+        if( lfs_err == LFS_ERR_OK )
+        {
+            prvLittleFsDiag( "diag: lfs format ok\r\n" );
+        }
+        else
+        {
+            prvLittleFsDiag( "diag: lfs format failed\r\n" );
+            return pdFALSE;
+        }
+    }
+
     prvLittleFsDiag( "diag: lfs mount start\r\n" );
 
     lfs_err = lfs_mount( &xLittleFs, &xLittleFsConfig );
 
     if( lfs_err != LFS_ERR_OK )
     {
-        prvLittleFsDiag( "diag: lfs mount failed, formatting\r\n" );
-        lfs_err = lfs_format( &xLittleFs, &xLittleFsConfig );
-
-        if( lfs_err == LFS_ERR_OK )
-        {
-            prvLittleFsDiag( "diag: lfs format ok, remounting\r\n" );
-            lfs_err = lfs_mount( &xLittleFs, &xLittleFsConfig );
-        }
-    }
-
-    if( lfs_err != LFS_ERR_OK )
-    {
         prvLittleFsDiag( "diag: lfs mount failed final\r\n" );
         return pdFALSE;
     }
+
 
     xLittleFsMounted = pdTRUE;
     prvLittleFsDiag( "diag: lfs mount ok\r\n" );
