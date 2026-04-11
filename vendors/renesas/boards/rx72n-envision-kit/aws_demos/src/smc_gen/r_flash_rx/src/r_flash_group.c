@@ -444,39 +444,50 @@ flash_err_t r_flash_erase(flash_block_address_t block_start_address, uint32_t nu
     flash_err_t     err;
     flash_type_t    flash_type;
 
+    uart_string_printf_immediate( "diag: r_flash_erase entry\r\n" );
 
     /* Lock flash driver and set state to ERASING */
     if (FLASH_SUCCESS != flash_lock_state(FLASH_ERASING))
     {
+        uart_string_printf_immediate( "diag: r_flash_erase lock failed\r\n" );
         return FLASH_ERR_BUSY;
     }
+    uart_string_printf_immediate( "diag: r_flash_erase lock ok\r\n" );
 
     /* Get flash type (DF or CF) based upon start address */
     err = get_erase_flash_type(block_start_address, num_blocks, &flash_type);
     if (err != FLASH_SUCCESS)
     {
+        uart_string_printf_immediate( "diag: r_flash_erase type failed\r\n" );
         flash_release_state();      // unlock driver
         return err;
     }
+    uart_string_printf_immediate( "diag: r_flash_erase type ok\r\n" );
 
     /* Setup erase parameters */
     err = set_erase_params(block_start_address, num_blocks, flash_type);
     if (err != FLASH_SUCCESS)
     {
+        uart_string_printf_immediate( "diag: r_flash_erase params failed\r\n" );
         flash_release_state();      // unlock driver
         return err;
     }
+    uart_string_printf_immediate( "diag: r_flash_erase params ok\r\n" );
 
     /* Enter program/erase mode */
     err = flash_pe_mode_enter(flash_type);
     if (FLASH_SUCCESS != err)
     {
+        uart_string_printf_immediate( "diag: r_flash_erase pe enter failed\r\n" );
         flash_release_state();      // unlock driver
         return err;
     }
+    uart_string_printf_immediate( "diag: r_flash_erase pe enter ok\r\n" );
 
     /* Erase the Blocks */
+    uart_string_printf_immediate( "diag: flash_erase call start\r\n" );
     err = flash_erase((uint32_t)block_start_address, num_blocks);
+    uart_string_printf_immediate( "diag: flash_erase call returned\r\n" );
     if (FLASH_SUCCESS != err)
     {
 #if (FLASH_TYPE == 1)
