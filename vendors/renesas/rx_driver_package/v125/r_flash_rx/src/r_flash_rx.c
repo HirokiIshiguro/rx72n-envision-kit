@@ -279,10 +279,6 @@ flash_err_t R_FLASH_Close(void)
  *            FLASH_TYPE_1 uses access windows to identify this.
  *            The other flash types use lock bits which must be off for erasing.
  */
-R_BSP_ATTRIB_SECTION_CHANGE_END
-#undef FLASH_PE_MODE_SECTION
-#define FLASH_PE_MODE_SECTION
-
 FLASH_PE_MODE_SECTION
 flash_err_t R_FLASH_Erase(flash_block_address_t block_start_address, uint32_t num_blocks)
 {
@@ -413,8 +409,6 @@ uint32_t R_FLASH_GetVersion (void)
     return ((((uint32_t)FLASH_RX_VERSION_MAJOR) << 16) | (uint32_t)FLASH_RX_VERSION_MINOR);
 }
 
-R_BSP_ATTRIB_SECTION_CHANGE_END
-
 /******************************************************************************
 * Function Name: flash_lock_state
 * Description  : Attempt to grab the flash state to perform an operation
@@ -426,12 +420,9 @@ R_BSP_ATTRIB_SECTION_CHANGE_END
 *                    Which state to attempt to transition to
 * Return Value : FLASH_SUCCESS -
 *                    State was grabbed
-*                FLASH_ERR_BUSY - 
+*                FLASH_ERR_BUSY -
 *                    Flash is busy with another operation
 ******************************************************************************/
-#undef FLASH_PE_MODE_SECTION
-#define FLASH_PE_MODE_SECTION
-
 FLASH_PE_MODE_SECTION
 flash_err_t flash_lock_state (flash_states_t new_state)
 {
@@ -486,9 +477,16 @@ bool flash_softwareLock(int32_t * const plock)
 {
     bool ret = false;
 
-    if (*plock == false)
+    /* Variable used in trying to acquire lock. Using the xchg instruction makes this atomic */
+    int32_t is_locked = true;
+
+    /* Try to acquire semaphore to obtain lock */
+    R_BSP_EXCHANGE(&is_locked, plock);
+
+    /* Check to see if semaphore was successfully taken */
+    if (is_locked == false)
     {
-        *plock = true;
+        /* Lock obtained, return success. */
         ret = true;
     }
     else

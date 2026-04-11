@@ -87,10 +87,6 @@ extern void (*flash_ready_isr_handler)(void *);          /* Function pointer for
 #define FLASH_SECTION_CHANGE_END
 #endif
 
-R_BSP_ATTRIB_SECTION_CHANGE_END
-#undef FLASH_PE_MODE_SECTION
-#define FLASH_PE_MODE_SECTION
-
 /***********************************************************************************************************************
  * Function Name: flash_pe_mode_enter
  * Description  : Function switches the peripheral to P/E mode for Code Flash or Data Flash.

@@ -42,8 +42,6 @@ Includes   <System Includes> , "Project Includes"
 #include "r_flash_fcu.h"
 #include "r_flash_group.h"
 
-extern void uart_string_printf_immediate( const char * pString );
-
 /***********************************************************************************************************************
 Macro definitions
 ***********************************************************************************************************************/
@@ -76,43 +74,20 @@ flash_err_t flash_init_fcu(void)
 {
     flash_err_t err = FLASH_SUCCESS;
     uint32_t fclk = MCU_CFG_FCLK_HZ;
-    uint32_t speed_mhz;
 
     g_current_parameters.current_operation = FLASH_CUR_FCU_INIT;
-    uart_string_printf_immediate( "diag: flash_init_fcu entry\r\n" );
 
     /* Allow Access to the Flash registers */
     FLASH.FWEPROR.BYTE = 0x01;
-    uart_string_printf_immediate( "diag: flash_init_fcu fwepror ok\r\n" );
 
-    /* Let the sequencer know what FCLK is running at. Avoid R_FLASH_Control()
-     * here while the code-flash RAM section migration is being cleaned up. */
-    uart_string_printf_immediate( "diag: flash config clock direct start\r\n" );
-    if( ( FLASH_FREQ_HI < fclk ) || ( FLASH_FREQ_LO > fclk ) )
-    {
-        err = FLASH_ERR_FREQUENCY;
-    }
-    else
-    {
-        speed_mhz = fclk / 1000000;
-        if( 0 != ( fclk % 1000000 ) )
-        {
-            speed_mhz++;
-        }
-        FLASH.FPCKAR.WORD = ( uint16_t ) ( 0x1E00 ) + ( uint16_t ) speed_mhz;
-#if ( ( FLASH_TYPE == 4 ) && ( MCU_DATA_FLASH_SIZE_BYTES != 0 ) )
-        FLASH.EEPFCLK = ( uint8_t ) speed_mhz;
-#endif
-    }
-    uart_string_printf_immediate( "diag: flash config clock direct done\r\n" );
+    /* Let the sequencer know what FCLK is running at */
+    err = R_FLASH_Control(FLASH_CMD_CONFIG_CLOCK, &fclk);
 
     /* Copy the FCU firmware to FCU RAM */
 #ifdef FLASH_HAS_FCU_RAM_ENABLE
     if (err == FLASH_SUCCESS)
     {
-        uart_string_printf_immediate( "diag: fcuram codecopy start\r\n" );
         err = flash_fcuram_codecopy();
-        uart_string_printf_immediate( "diag: fcuram codecopy returned\r\n" );
     }
 #endif
     return err;

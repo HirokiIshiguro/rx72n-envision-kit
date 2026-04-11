@@ -55,8 +55,6 @@ Includes   <System Includes> , "Project Includes"
 #include "r_flash_fcu.h"
 #include "r_flash_group.h"
 
-extern void uart_string_printf_immediate( const char * pString );
-
 /***********************************************************************************************************************
 Macro definitions
 ***********************************************************************************************************************/
@@ -209,29 +207,22 @@ flash_err_t r_flash_open(void)
     }
 #endif
     /* Lock driver to initialize */
-    uart_string_printf_immediate( "diag: r_flash_open lock start\r\n" );
     if (FLASH_SUCCESS != flash_lock_state(FLASH_INITIALIZATION))
     {
-        uart_string_printf_immediate( "diag: r_flash_open lock failed\r\n" );
         return FLASH_ERR_BUSY;      // should never happen
     }
-    uart_string_printf_immediate( "diag: r_flash_open lock ok\r\n" );
 
     if (g_driver_opened == true)
     {
         flash_release_state();
-        uart_string_printf_immediate( "diag: r_flash_open already open\r\n" );
         return FLASH_ERR_ALREADY_OPEN;
     }
 
     /* Initialize the FCU */
 #ifdef FLASH_HAS_FCU
-    uart_string_printf_immediate( "diag: flash_init_fcu start\r\n" );
     err = flash_init_fcu();
-    uart_string_printf_immediate( "diag: flash_init_fcu returned\r\n" );
     if (FLASH_SUCCESS != err)
     {
-        uart_string_printf_immediate( "diag: flash_init_fcu failed\r\n" );
         return err;
     }
 #endif
@@ -252,7 +243,6 @@ flash_err_t r_flash_open(void)
     g_driver_opened = true;
     flash_release_state();
 
-    uart_string_printf_immediate( "diag: r_flash_open ok\r\n" );
     return FLASH_SUCCESS;
 }
 
@@ -323,11 +313,6 @@ flash_err_t flash_interrupt_config(bool state, void *pcfg)
     }
 
     return FLASH_SUCCESS;
-}
-
-flash_err_t rx72n_littlefs_flash_interrupt_config(bool state, void *pcfg)
-{
-    return flash_interrupt_config(state, pcfg);
 }
 
 
@@ -429,10 +414,6 @@ static flash_err_t set_non_cached_regs(flash_non_cached_t *p_cfg, flash_non_cach
 #define FLASH_SECTION_CHANGE_END
 #endif
 
-R_BSP_ATTRIB_SECTION_CHANGE_END
-#undef FLASH_PE_MODE_SECTION
-#define FLASH_PE_MODE_SECTION
-
 
 /***********************************************************************************************************************
 * Function Name: r_flash_erase
@@ -458,50 +439,39 @@ flash_err_t r_flash_erase(flash_block_address_t block_start_address, uint32_t nu
     flash_err_t     err;
     flash_type_t    flash_type;
 
-    uart_string_printf_immediate( "diag: r_flash_erase entry\r\n" );
 
     /* Lock flash driver and set state to ERASING */
     if (FLASH_SUCCESS != flash_lock_state(FLASH_ERASING))
     {
-        uart_string_printf_immediate( "diag: r_flash_erase lock failed\r\n" );
         return FLASH_ERR_BUSY;
     }
-    uart_string_printf_immediate( "diag: r_flash_erase lock ok\r\n" );
 
     /* Get flash type (DF or CF) based upon start address */
     err = get_erase_flash_type(block_start_address, num_blocks, &flash_type);
     if (err != FLASH_SUCCESS)
     {
-        uart_string_printf_immediate( "diag: r_flash_erase type failed\r\n" );
         flash_release_state();      // unlock driver
         return err;
     }
-    uart_string_printf_immediate( "diag: r_flash_erase type ok\r\n" );
 
     /* Setup erase parameters */
     err = set_erase_params(block_start_address, num_blocks, flash_type);
     if (err != FLASH_SUCCESS)
     {
-        uart_string_printf_immediate( "diag: r_flash_erase params failed\r\n" );
         flash_release_state();      // unlock driver
         return err;
     }
-    uart_string_printf_immediate( "diag: r_flash_erase params ok\r\n" );
 
     /* Enter program/erase mode */
     err = flash_pe_mode_enter(flash_type);
     if (FLASH_SUCCESS != err)
     {
-        uart_string_printf_immediate( "diag: r_flash_erase pe enter failed\r\n" );
         flash_release_state();      // unlock driver
         return err;
     }
-    uart_string_printf_immediate( "diag: r_flash_erase pe enter ok\r\n" );
 
     /* Erase the Blocks */
-    uart_string_printf_immediate( "diag: flash_erase call start\r\n" );
     err = flash_erase((uint32_t)block_start_address, num_blocks);
-    uart_string_printf_immediate( "diag: flash_erase call returned\r\n" );
     if (FLASH_SUCCESS != err)
     {
 #if (FLASH_TYPE == 1)

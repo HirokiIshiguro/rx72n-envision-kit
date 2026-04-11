@@ -55,7 +55,7 @@
  * type 3 (see section 2.16 in App Note). See section 2.15 in the App Note for
  * details on how to set up code and the linker to execute code from RAM.
  */
-#define FLASH_CFG_CODE_FLASH_ENABLE (0)
+#define FLASH_CFG_CODE_FLASH_ENABLE (1)
 
 
 /******************************************************************************
@@ -81,7 +81,7 @@
  * INTERRUPT ROUTINES MUST BE IN RAM.  
  * See sections 2.17 Usage Notes in the App Note.
  */
-#define FLASH_CFG_CODE_FLASH_BGO   (0)
+#define FLASH_CFG_CODE_FLASH_BGO   (1)
 
 
 /******************************************************************************
