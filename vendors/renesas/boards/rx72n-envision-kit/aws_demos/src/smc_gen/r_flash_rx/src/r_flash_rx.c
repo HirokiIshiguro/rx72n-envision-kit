@@ -420,9 +420,12 @@ uint32_t R_FLASH_GetVersion (void)
 *                    Which state to attempt to transition to
 * Return Value : FLASH_SUCCESS -
 *                    State was grabbed
-*                FLASH_ERR_BUSY -
+*                FLASH_ERR_BUSY - 
 *                    Flash is busy with another operation
 ******************************************************************************/
+#undef FLASH_PE_MODE_SECTION
+#define FLASH_PE_MODE_SECTION
+
 FLASH_PE_MODE_SECTION
 flash_err_t flash_lock_state (flash_states_t new_state)
 {
