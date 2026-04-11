@@ -161,6 +161,7 @@ static volatile uint32_t ulSciRxCharEvents = 0U;
 static volatile uint32_t ulSciRxErrorEvents = 0U;
 static volatile uint8_t ucSciLastEvent = 0U;
 static volatile uint8_t ucSciLastByte = 0U;
+static uint32_t ulCliTaskRxTraceCount = 0U;
 
 /******************************************************************************
  External functions
@@ -246,6 +247,7 @@ void serial_terminal_task( void * pvParameters )
     xSemaphore = xSemaphoreCreateBinary();
 
     serial_terminal_putstring(task_info->hWin_serial_terminal, sci_handle, PROMPT);
+    uart_string_printf_immediate( "diag: cli prompt sent\r\n" );
     while(1)
     {
         serial_terminal_getchar(tmp);
@@ -1017,6 +1019,13 @@ static void serial_terminal_getchar(char tmp[2])
         }
 #endif
         vTaskDelay(1);
+    }
+
+    if( ulCliTaskRxTraceCount < 64U )
+    {
+        sprintf( pcDiag, "diag: cli queued rx byte=%02x\r\n", byte );
+        uart_string_printf_immediate( pcDiag );
+        ulCliTaskRxTraceCount++;
     }
 
     tmp[0] = (char)byte;
