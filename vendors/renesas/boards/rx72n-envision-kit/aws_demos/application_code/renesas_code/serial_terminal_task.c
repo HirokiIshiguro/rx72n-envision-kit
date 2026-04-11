@@ -944,6 +944,13 @@ static void serial_terminal_putstring(WM_HWIN hWin_handle, sci_hdl_t sci_handle,
     {
         R_SCI_Control(sci_handle, SCI_CMD_TX_Q_BYTES_FREE, (void *)&transmit_length);
 
+        if(transmit_length == 0)
+        {
+            retry--;
+            vTaskDelay(1);
+            continue;
+        }
+
         if(transmit_length > str_length)
         {
             transmit_length = str_length;
@@ -961,7 +968,7 @@ static void serial_terminal_putstring(WM_HWIN hWin_handle, sci_hdl_t sci_handle,
         str_length -= transmit_length;
         string += transmit_length;
 
-        xSemaphoreTake(xSemaphore, portMAX_DELAY);
+        ( void ) xSemaphoreTake(xSemaphore, pdMS_TO_TICKS(20));
 
     }
 
