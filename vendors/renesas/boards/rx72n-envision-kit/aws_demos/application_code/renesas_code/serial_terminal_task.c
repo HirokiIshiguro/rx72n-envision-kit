@@ -61,6 +61,8 @@ Typedef definitions
 #define PROMPT "RX72N Envision Kit\r\n$ "
 #define COMMAND_NOT_FOUND "command not found\r\n$ "
 
+#define SERIAL_BUFFER_QUEUE_NUMBER 1024
+#define SERIAL_BUFFER_SIZE 1
 #define SCI_BUFFER_SIZE 2048
 #define COMMAND_SIZE 16
 #define ARGUMENT1_SIZE 256
@@ -154,14 +156,10 @@ static void execute_command(uint8_t *command_line);
 static int32_t get_command_code(uint8_t *command);
 
 static sci_hdl_t sci_handle;
+static QueueHandle_t xQueue;
 static SemaphoreHandle_t xSemaphore;
 static char *message_buffer;
 static uint32_t _10us_timer_count;
-static volatile uint32_t ulSciRxCharEvents = 0U;
-static volatile uint32_t ulSciRxErrorEvents = 0U;
-static volatile uint8_t ucSciLastEvent = 0U;
-static volatile uint8_t ucSciLastByte = 0U;
-static uint32_t ulCliTaskRxTraceCount = 0U;
 
 /******************************************************************************
  External functions
@@ -230,6 +228,9 @@ void serial_terminal_task( void * pvParameters )
     memset(arg3, 0, ARGUMENT3_SIZE);
     memset(arg4, 0, ARGUMENT4_SIZE);
     memset(message_buffer, 0, MESSAGE_BUFFER_SIZE);
+
+    /* create queue */
+    xQueue = xQueueCreate(SERIAL_BUFFER_QUEUE_NUMBER, SERIAL_BUFFER_SIZE);
 
     R_SCI_PinSet_serial_term();
 
@@ -983,62 +984,7 @@ static void serial_terminal_putstring(WM_HWIN hWin_handle, sci_hdl_t sci_handle,
 
 static void serial_terminal_getchar(char tmp[2])
 {
-    uint8_t byte;
-    uint32_t ulWaitTicks = 0U;
-    char pcDiag[160];
-#if ( MY_BSP_CFG_SERIAL_TERM_SCI != 2 )
-    sci_err_t xSciErr;
-#endif
-
-    while(1)
-    {
-#if ( MY_BSP_CFG_SERIAL_TERM_SCI == 2 )
-        if( ( ulWaitTicks % 1000U ) == 0U )
-        {
-            sprintf( pcDiag,
-                     "diag: cli pre-receive wait=%lu rx=%lu err=%lu evt=%u byte=%02x ssr=%02x scr=%02x p1pmr=%02x p1pidr=%02x p12pfs=%02x p13pfs=%02x\r\n",
-                     ( unsigned long ) ulWaitTicks,
-                     ( unsigned long ) ulSciRxCharEvents,
-                     ( unsigned long ) ulSciRxErrorEvents,
-                     ucSciLastEvent,
-                     ucSciLastByte,
-                     SCI2.SSR.BYTE,
-                     SCI2.SCR.BYTE,
-                     PORT1.PMR.BYTE,
-                     PORT1.PIDR.BYTE,
-                     MPC.P12PFS.BYTE,
-                     MPC.P13PFS.BYTE );
-            uart_string_printf_immediate( pcDiag );
-        }
-
-        if( SCI2.SSR.BIT.RDRF != 0U )
-        {
-            byte = SCI2.RDR;
-            uart_string_printf_immediate( "diag: cli direct RDRF read\r\n" );
-            break;
-        }
-
-        ulWaitTicks++;
-#else
-        xSciErr = R_SCI_Receive(sci_handle, &byte, 1);
-
-        if( xSciErr == SCI_SUCCESS )
-        {
-            break;
-        }
-#endif
-        vTaskDelay(1);
-    }
-
-    if( ulCliTaskRxTraceCount < 64U )
-    {
-        sprintf( pcDiag, "diag: cli queued rx byte=%02x\r\n", byte );
-        uart_string_printf_immediate( pcDiag );
-        ulCliTaskRxTraceCount++;
-    }
-
-    tmp[0] = (char)byte;
-    tmp[1] = 0;
+    xQueueReceive(xQueue, tmp, portMAX_DELAY);
 }
 
 static void sci_callback(void *pArgs)
@@ -1051,47 +997,30 @@ static void sci_callback(void *pArgs)
 
     if (args->event == SCI_EVT_RX_CHAR)
     {
-        ulSciRxCharEvents++;
-        ucSciLastEvent = ( uint8_t ) args->event;
-        ucSciLastByte = args->byte;
-        /* RX data is already stored in the FIT driver's RX queue. The terminal
-         * task drains it with R_SCI_Receive() to avoid ISR-to-task queue drift. */
-        nop();
+        xQueueSendFromISR(xQueue, &args->byte, &xHigherPriorityTaskWoken);
     }
     else if (args->event == SCI_EVT_RXBUF_OVFL)
     {
         /* From RXI interrupt; rx queue is full; 'lost' data is in args->byte
            You will need to increase buffer size or reduce baud rate */
-        ulSciRxErrorEvents++;
-        ucSciLastEvent = ( uint8_t ) args->event;
-        ucSciLastByte = args->byte;
         nop();
     }
     else if (args->event == SCI_EVT_OVFL_ERR)
     {
         /* From receiver overflow error interrupt; error data is in args->byte
            Error condition is cleared in calling interrupt routine */
-        ulSciRxErrorEvents++;
-        ucSciLastEvent = ( uint8_t ) args->event;
-        ucSciLastByte = args->byte;
         nop();
     }
     else if (args->event == SCI_EVT_FRAMING_ERR)
     {
         /* From receiver framing error interrupt; error data is in args->byte
            Error condition is cleared in calling interrupt routine */
-        ulSciRxErrorEvents++;
-        ucSciLastEvent = ( uint8_t ) args->event;
-        ucSciLastByte = args->byte;
         nop();
     }
     else if (args->event == SCI_EVT_PARITY_ERR)
     {
         /* From receiver parity error interrupt; error data is in args->byte
            Error condition is cleared in calling interrupt routine */
-        ulSciRxErrorEvents++;
-        ucSciLastEvent = ( uint8_t ) args->event;
-        ucSciLastByte = args->byte;
         nop();
     }
     else if (args->event == SCI_EVT_TEI)
