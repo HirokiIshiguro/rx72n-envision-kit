@@ -72,6 +72,9 @@ static uint8_t ucLittleFsReadBuffer[ LITTLEFS_FLASH_CACHE_SIZE ];
 static uint8_t ucLittleFsProgBuffer[ LITTLEFS_FLASH_CACHE_SIZE ];
 static uint8_t ucLittleFsLookaheadBuffer[ LITTLEFS_FLASH_LOOKAHEAD_SIZE ];
 static struct lfs_config xLittleFsConfig;
+static uint32_t ulLittleFsReadTraceCount = 0U;
+static uint32_t ulLittleFsEraseTraceCount = 0U;
+static uint32_t ulLittleFsProgTraceCount = 0U;
 
 static sfd_cache_entry_t xSfdCacheEntries[ SFD_OBJECT_HANDLES_NUM ];
 static lfs_dir_t xScanDirectory;
@@ -485,6 +488,12 @@ static int prvLittleFsRead( const struct lfs_config * pxConfig,
 
     ( void ) pxConfig;
 
+    if( ulLittleFsReadTraceCount < 20U )
+    {
+        prvLittleFsDiag( "diag: lfs read\r\n" );
+        ulLittleFsReadTraceCount++;
+    }
+
     memcpy( pvBuffer, ( const void * ) ulAddress, xSize );
     return LFS_ERR_OK;
 }
@@ -502,7 +511,11 @@ static int prvLittleFsProg( const struct lfs_config * pxConfig,
 
     ( void ) pxConfig;
 
-    prvLittleFsDiag( "diag: lfs prog start\r\n" );
+    if( ulLittleFsProgTraceCount < 20U )
+    {
+        prvLittleFsDiag( "diag: lfs prog start\r\n" );
+        ulLittleFsProgTraceCount++;
+    }
     xLittleFsFlashState = LITTLEFS_FLASH_WAIT_WRITE;
     xFlashErr = R_FLASH_Write( ( uint32_t ) pvBuffer, ulAddress, ( uint32_t ) xSize );
     prvLittleFsDiag( "diag: lfs prog issued\r\n" );
@@ -541,7 +554,11 @@ static int prvLittleFsErase( const struct lfs_config * pxConfig,
 
     ( void ) pxConfig;
 
-    prvLittleFsDiag( "diag: lfs erase start\r\n" );
+    if( ulLittleFsEraseTraceCount < 20U )
+    {
+        prvLittleFsDiag( "diag: lfs erase start\r\n" );
+        ulLittleFsEraseTraceCount++;
+    }
     xLittleFsFlashState = LITTLEFS_FLASH_WAIT_ERASE;
     xFlashErr = R_FLASH_Erase( ( flash_block_address_t ) ulAddress, ulBlocks );
     prvLittleFsDiag( "diag: lfs erase issued\r\n" );
