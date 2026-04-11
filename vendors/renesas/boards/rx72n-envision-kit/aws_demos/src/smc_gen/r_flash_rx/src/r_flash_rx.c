@@ -279,6 +279,10 @@ flash_err_t R_FLASH_Close(void)
  *            FLASH_TYPE_1 uses access windows to identify this.
  *            The other flash types use lock bits which must be off for erasing.
  */
+R_BSP_ATTRIB_SECTION_CHANGE_END
+#undef FLASH_PE_MODE_SECTION
+#define FLASH_PE_MODE_SECTION
+
 FLASH_PE_MODE_SECTION
 flash_err_t R_FLASH_Erase(flash_block_address_t block_start_address, uint32_t num_blocks)
 {
