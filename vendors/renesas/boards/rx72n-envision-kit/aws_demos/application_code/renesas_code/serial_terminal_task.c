@@ -160,6 +160,7 @@ static QueueHandle_t xQueue;
 static SemaphoreHandle_t xSemaphore;
 static char *message_buffer;
 static uint32_t _10us_timer_count;
+static volatile uint32_t ulSciCallbackTraceCount = 0U;
 
 /******************************************************************************
  External functions
@@ -997,30 +998,55 @@ static void sci_callback(void *pArgs)
 
     if (args->event == SCI_EVT_RX_CHAR)
     {
+        if( ulSciCallbackTraceCount < 16U )
+        {
+            uart_string_printf_immediate( "diag: sci rx char callback\r\n" );
+            ulSciCallbackTraceCount++;
+        }
         xQueueSendFromISR(xQueue, &args->byte, &xHigherPriorityTaskWoken);
     }
     else if (args->event == SCI_EVT_RXBUF_OVFL)
     {
         /* From RXI interrupt; rx queue is full; 'lost' data is in args->byte
            You will need to increase buffer size or reduce baud rate */
+        if( ulSciCallbackTraceCount < 16U )
+        {
+            uart_string_printf_immediate( "diag: sci rx buffer overflow callback\r\n" );
+            ulSciCallbackTraceCount++;
+        }
         nop();
     }
     else if (args->event == SCI_EVT_OVFL_ERR)
     {
         /* From receiver overflow error interrupt; error data is in args->byte
            Error condition is cleared in calling interrupt routine */
+        if( ulSciCallbackTraceCount < 16U )
+        {
+            uart_string_printf_immediate( "diag: sci rx overrun callback\r\n" );
+            ulSciCallbackTraceCount++;
+        }
         nop();
     }
     else if (args->event == SCI_EVT_FRAMING_ERR)
     {
         /* From receiver framing error interrupt; error data is in args->byte
            Error condition is cleared in calling interrupt routine */
+        if( ulSciCallbackTraceCount < 16U )
+        {
+            uart_string_printf_immediate( "diag: sci rx framing callback\r\n" );
+            ulSciCallbackTraceCount++;
+        }
         nop();
     }
     else if (args->event == SCI_EVT_PARITY_ERR)
     {
         /* From receiver parity error interrupt; error data is in args->byte
            Error condition is cleared in calling interrupt routine */
+        if( ulSciCallbackTraceCount < 16U )
+        {
+            uart_string_printf_immediate( "diag: sci rx parity callback\r\n" );
+            ulSciCallbackTraceCount++;
+        }
         nop();
     }
     else if (args->event == SCI_EVT_TEI)
