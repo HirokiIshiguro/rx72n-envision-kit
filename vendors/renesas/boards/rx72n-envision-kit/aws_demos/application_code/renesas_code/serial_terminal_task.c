@@ -986,25 +986,16 @@ static void serial_terminal_getchar(char tmp[2])
     uint8_t byte;
     uint32_t ulWaitTicks = 0U;
     char pcDiag[160];
+    sci_err_t xSciErr;
 
-    while(R_SCI_Receive(sci_handle, &byte, 1) != SCI_SUCCESS)
+    while(1)
     {
 #if ( MY_BSP_CFG_SERIAL_TERM_SCI == 2 )
-        if( SCI2.SSR.BIT.RDRF != 0U )
-        {
-            byte = SCI2.RDR;
-            uart_string_printf_immediate( "diag: cli direct RDRF read\r\n" );
-            tmp[0] = (char)byte;
-            tmp[1] = 0;
-            return;
-        }
-
-        ulWaitTicks++;
-
         if( ( ulWaitTicks % 1000U ) == 0U )
         {
             sprintf( pcDiag,
-                     "diag: cli wait rx=%lu err=%lu evt=%u byte=%02x ssr=%02x scr=%02x p1pmr=%02x p1pidr=%02x p12pfs=%02x p13pfs=%02x\r\n",
+                     "diag: cli pre-receive wait=%lu rx=%lu err=%lu evt=%u byte=%02x ssr=%02x scr=%02x p1pmr=%02x p1pidr=%02x p12pfs=%02x p13pfs=%02x\r\n",
+                     ( unsigned long ) ulWaitTicks,
                      ( unsigned long ) ulSciRxCharEvents,
                      ( unsigned long ) ulSciRxErrorEvents,
                      ucSciLastEvent,
@@ -1017,6 +1008,26 @@ static void serial_terminal_getchar(char tmp[2])
                      MPC.P13PFS.BYTE );
             uart_string_printf_immediate( pcDiag );
         }
+#endif
+
+        xSciErr = R_SCI_Receive(sci_handle, &byte, 1);
+
+        if( xSciErr == SCI_SUCCESS )
+        {
+            break;
+        }
+
+#if ( MY_BSP_CFG_SERIAL_TERM_SCI == 2 )
+        if( SCI2.SSR.BIT.RDRF != 0U )
+        {
+            byte = SCI2.RDR;
+            uart_string_printf_immediate( "diag: cli direct RDRF read\r\n" );
+            tmp[0] = (char)byte;
+            tmp[1] = 0;
+            return;
+        }
+
+        ulWaitTicks++;
 #endif
         vTaskDelay(1);
     }
