@@ -429,6 +429,10 @@ static flash_err_t set_non_cached_regs(flash_non_cached_t *p_cfg, flash_non_cach
 #define FLASH_SECTION_CHANGE_END
 #endif
 
+R_BSP_ATTRIB_SECTION_CHANGE_END
+#undef FLASH_PE_MODE_SECTION
+#define FLASH_PE_MODE_SECTION
+
 
 /***********************************************************************************************************************
 * Function Name: r_flash_erase
