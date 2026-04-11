@@ -325,6 +325,11 @@ flash_err_t flash_interrupt_config(bool state, void *pcfg)
     return FLASH_SUCCESS;
 }
 
+flash_err_t rx72n_littlefs_flash_interrupt_config(bool state, void *pcfg)
+{
+    return flash_interrupt_config(state, pcfg);
+}
+
 
 /***********************************************************************************************************************
 * Function Name: r_flash_close
