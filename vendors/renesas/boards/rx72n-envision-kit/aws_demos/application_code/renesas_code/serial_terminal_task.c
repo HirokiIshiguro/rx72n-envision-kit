@@ -53,6 +53,7 @@
 /* for RX72N Envision Kit system common header */
 #include "rx72n_envision_kit_system.h"
 #include "FreeRTOS_IP.h"
+#include "serial_term_uart.h"
 
 /**********************************************************************************************************************
 Typedef definitions
@@ -156,6 +157,10 @@ static sci_hdl_t sci_handle;
 static SemaphoreHandle_t xSemaphore;
 static char *message_buffer;
 static uint32_t _10us_timer_count;
+static volatile uint32_t ulSciRxCharEvents = 0U;
+static volatile uint32_t ulSciRxErrorEvents = 0U;
+static volatile uint8_t ucSciLastEvent = 0U;
+static volatile uint8_t ucSciLastByte = 0U;
 
 /******************************************************************************
  External functions
@@ -970,9 +975,40 @@ static void serial_terminal_putstring(WM_HWIN hWin_handle, sci_hdl_t sci_handle,
 static void serial_terminal_getchar(char tmp[2])
 {
     uint8_t byte;
+    uint32_t ulWaitTicks = 0U;
+    char pcDiag[160];
 
     while(R_SCI_Receive(sci_handle, &byte, 1) != SCI_SUCCESS)
     {
+#if ( MY_BSP_CFG_SERIAL_TERM_SCI == 2 )
+        if( SCI2.SSR.BIT.RDRF != 0U )
+        {
+            byte = SCI2.RDR;
+            uart_string_printf_immediate( "diag: cli direct RDRF read\r\n" );
+            tmp[0] = (char)byte;
+            tmp[1] = 0;
+            return;
+        }
+
+        ulWaitTicks++;
+
+        if( ( ulWaitTicks % 1000U ) == 0U )
+        {
+            sprintf( pcDiag,
+                     "diag: cli wait rx=%lu err=%lu evt=%u byte=%02x ssr=%02x scr=%02x p1pmr=%02x p1pidr=%02x p12pfs=%02x p13pfs=%02x\r\n",
+                     ( unsigned long ) ulSciRxCharEvents,
+                     ( unsigned long ) ulSciRxErrorEvents,
+                     ucSciLastEvent,
+                     ucSciLastByte,
+                     SCI2.SSR.BYTE,
+                     SCI2.SCR.BYTE,
+                     PORT1.PMR.BYTE,
+                     PORT1.PIDR.BYTE,
+                     MPC.P12PFS.BYTE,
+                     MPC.P13PFS.BYTE );
+            uart_string_printf_immediate( pcDiag );
+        }
+#endif
         vTaskDelay(1);
     }
 
@@ -990,6 +1026,9 @@ static void sci_callback(void *pArgs)
 
     if (args->event == SCI_EVT_RX_CHAR)
     {
+        ulSciRxCharEvents++;
+        ucSciLastEvent = ( uint8_t ) args->event;
+        ucSciLastByte = args->byte;
         /* RX data is already stored in the FIT driver's RX queue. The terminal
          * task drains it with R_SCI_Receive() to avoid ISR-to-task queue drift. */
         nop();
@@ -998,24 +1037,36 @@ static void sci_callback(void *pArgs)
     {
         /* From RXI interrupt; rx queue is full; 'lost' data is in args->byte
            You will need to increase buffer size or reduce baud rate */
+        ulSciRxErrorEvents++;
+        ucSciLastEvent = ( uint8_t ) args->event;
+        ucSciLastByte = args->byte;
         nop();
     }
     else if (args->event == SCI_EVT_OVFL_ERR)
     {
         /* From receiver overflow error interrupt; error data is in args->byte
            Error condition is cleared in calling interrupt routine */
+        ulSciRxErrorEvents++;
+        ucSciLastEvent = ( uint8_t ) args->event;
+        ucSciLastByte = args->byte;
         nop();
     }
     else if (args->event == SCI_EVT_FRAMING_ERR)
     {
         /* From receiver framing error interrupt; error data is in args->byte
            Error condition is cleared in calling interrupt routine */
+        ulSciRxErrorEvents++;
+        ucSciLastEvent = ( uint8_t ) args->event;
+        ucSciLastByte = args->byte;
         nop();
     }
     else if (args->event == SCI_EVT_PARITY_ERR)
     {
         /* From receiver parity error interrupt; error data is in args->byte
            Error condition is cleared in calling interrupt routine */
+        ulSciRxErrorEvents++;
+        ucSciLastEvent = ( uint8_t ) args->event;
+        ucSciLastByte = args->byte;
         nop();
     }
     else if (args->event == SCI_EVT_TEI)
