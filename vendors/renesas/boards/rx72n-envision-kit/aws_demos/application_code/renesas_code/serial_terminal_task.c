@@ -60,8 +60,6 @@ Typedef definitions
 #define PROMPT "RX72N Envision Kit\r\n$ "
 #define COMMAND_NOT_FOUND "command not found\r\n$ "
 
-#define SERIAL_BUFFER_QUEUE_NUMBER 1024
-#define SERIAL_BUFFER_SIZE 1
 #define SCI_BUFFER_SIZE 2048
 #define COMMAND_SIZE 16
 #define ARGUMENT1_SIZE 256
@@ -149,12 +147,12 @@ Typedef definitions
  Private global variables
  ******************************************************************************/
 static void serial_terminal_putstring(WM_HWIN hWin_handle, sci_hdl_t sci_handle, char *string);
+static void serial_terminal_getchar(char tmp[2]);
 static void sci_callback(void *pArgs);
 static void execute_command(uint8_t *command_line);
 static int32_t get_command_code(uint8_t *command);
 
 static sci_hdl_t sci_handle;
-static QueueHandle_t xQueue;
 static SemaphoreHandle_t xSemaphore;
 static char *message_buffer;
 static uint32_t _10us_timer_count;
@@ -239,16 +237,13 @@ void serial_terminal_task( void * pvParameters )
     sci_config.async.int_priority = MY_BSP_CFG_SERIAL_TERM_SCI_INTERRUPT_PRIORITY;    // 1=lowest, 15=highest
     R_SCI_Open(SCI_CH_serial_term, SCI_MODE_ASYNC, &sci_config, sci_callback, &sci_handle);
 
-    /* create queue */
-    xQueue = xQueueCreate(SERIAL_BUFFER_QUEUE_NUMBER, SERIAL_BUFFER_SIZE);
-
     /* create semaphore */
     xSemaphore = xSemaphoreCreateBinary();
 
     serial_terminal_putstring(task_info->hWin_serial_terminal, sci_handle, PROMPT);
     while(1)
     {
-        xQueueReceive(xQueue, &tmp, portMAX_DELAY);
+        serial_terminal_getchar(tmp);
         serial_terminal_putstring(task_info->hWin_serial_terminal, sci_handle, tmp);
         sci_buffer[current_buffer_pointer++] = tmp[0];
         if((tmp[0] == 0x0a) && (sci_buffer[current_buffer_pointer - 2] == 0x0d))
@@ -318,7 +313,7 @@ void serial_terminal_task( void * pvParameters )
                                     memset(sci_buffer, 0, SCI_BUFFER_SIZE);
                                     while(1)
                                     {
-                                        xQueueReceive(xQueue, &tmp, portMAX_DELAY);
+                                        serial_terminal_getchar(tmp);
                                         serial_terminal_putstring(task_info->hWin_serial_terminal, sci_handle, tmp);
                                         sci_buffer[current_buffer_pointer++] = tmp[0];
                                         if((strstr(sci_buffer, "-----END RSA PRIVATE KEY-----\n")) || (strstr(sci_buffer, "-----END CERTIFICATE-----\n")))
@@ -658,7 +653,7 @@ void serial_terminal_task( void * pvParameters )
                                 /* Receive binary data without echo */
                                 while(bytes_in_chunk < expected)
                                 {
-                                    xQueueReceive(xQueue, &tmp, portMAX_DELAY);
+                                    serial_terminal_getchar(tmp);
                                     sci_buffer[bytes_in_chunk++] = tmp[0];
                                 }
 
@@ -972,6 +967,19 @@ static void serial_terminal_putstring(WM_HWIN hWin_handle, sci_hdl_t sci_handle,
 
 }
 
+static void serial_terminal_getchar(char tmp[2])
+{
+    uint8_t byte;
+
+    while(R_SCI_Receive(sci_handle, &byte, 1) != SCI_SUCCESS)
+    {
+        vTaskDelay(1);
+    }
+
+    tmp[0] = (char)byte;
+    tmp[1] = 0;
+}
+
 static void sci_callback(void *pArgs)
 {
     sci_cb_args_t   *args;
@@ -982,10 +990,9 @@ static void sci_callback(void *pArgs)
 
     if (args->event == SCI_EVT_RX_CHAR)
     {
-        /* SCI_EVT_RX_CHAR already carries the received byte in args->byte.
-         * Re-issuing R_SCI_Receive() here drops the current character on this
-         * RX72N command path, leaving the CLI prompt visible but unresponsive. */
-        xQueueSendFromISR(xQueue, &args->byte, &xHigherPriorityTaskWoken);
+        /* RX data is already stored in the FIT driver's RX queue. The terminal
+         * task drains it with R_SCI_Receive() to avoid ISR-to-task queue drift. */
+        nop();
     }
     else if (args->event == SCI_EVT_RXBUF_OVFL)
     {

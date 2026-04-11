@@ -50,6 +50,7 @@
 Typedef definitions
 **********************************************************************************************************************/
 #define RX72N_ENVISION_KIT_TASKS_STACK    1024
+#define RX72N_ENVISION_KIT_TERMINAL_TASK_PRIORITY    ( configMAX_PRIORITIES - 1 )
 
 /******************************************************************************
  External variables
@@ -101,7 +102,7 @@ void main_task_init(void)
     task_info.main_task_handle = xTaskGetCurrentTaskHandle();
 
     /* serial terminal task creation */
-    xTaskCreate(serial_terminal_task, "terminal", RX72N_ENVISION_KIT_TASKS_STACK, &task_info, tskIDLE_PRIORITY, &task_info.serial_terminal_task_handle);
+    xTaskCreate(serial_terminal_task, "terminal", RX72N_ENVISION_KIT_TASKS_STACK, &task_info, RX72N_ENVISION_KIT_TERMINAL_TASK_PRIORITY, &task_info.serial_terminal_task_handle);
 
     /* GUI task creation */
     xTaskCreate(gui_task, "gui", RX72N_ENVISION_KIT_TASKS_STACK, &task_info, tskIDLE_PRIORITY, &task_info.gui_task_handle);
@@ -229,4 +230,3 @@ TASK_INFO * get_task_info(void)
 /******************************************************************************
  End  Of File
  ******************************************************************************/
-
