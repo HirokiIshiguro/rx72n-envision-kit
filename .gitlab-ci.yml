@@ -79,8 +79,11 @@ variables:
   # Raspberry Pi #3 (set2) 固定。Windows OTA jobs から boundary lease を
   # 同じ Pi 上で assert/release するために使う。
   PI_HOST: "192.168.10.104"
-  # 1 Pi = 1 E2 Lite 構成のため generic e2l を使用する。
-  RFP_TOOL: "e2l"
+  # RPi#3 は 3 E2 Lite 同居 (RX72N ENVK #3 / TB-RX671 / Recotto CBT) のため
+  # serial 明示必須。generic `e2l` を使うと rfp-cli が最初に列挙されたデバイスを
+  # 選び、意図しない板へ書き込む危険がある (2026-04-14 pipeline #2835 で Recotto CBT
+  # の E2 Lite `5ES008000` に RX72N boot_loader を誤書きした事例あり)。
+  RFP_TOOL: "e2l:OBE110008"
   DEVICE_RESOURCE_GROUP: "rx72n-device-03"
   # legacy OTA の split jobs 間で DEVICE_ID 単位の boundary lease を共有する。
   OTA_BOUNDARY_RESERVATION_ROOT: "/tmp/gitlab-ota-boundary"
