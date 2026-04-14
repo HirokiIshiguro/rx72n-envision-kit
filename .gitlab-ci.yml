@@ -56,29 +56,32 @@ variables:
   RFP_CLI: "rfp-cli"
   RFP_SPEED: "1500K"
   # --- ハードウェア依存変数（hardware-config リポジトリの CI/CD Variables から取得） ---
-  # 既定は Linux device runner (Raspberry Pi #2 + RX72N Envision Kit #2)。
-  # DEVICE_RUNNER_PLATFORM=windows では ishiguro-pc + RX72N Envision Kit #1 へ切り替える。
+  # 既定は Linux device runner (Raspberry Pi #3 + RX72N Envision Kit #3, tag: dev-ek-rx72n-set2)。
+  # 2026-04-14 の Runner tag 整理で set2 tag は RPi#3 を指すようになった。
+  # DEVICE_RUNNER_PLATFORM=windows では ishiguro-pc + RX72N Envision Kit #1 へ切り替える (現在 #1 は USB 抜き保留中)。
   # 最新の台帳は hardware-config の CLAUDE.md を参照する。
   # E2 Lite シリアル番号 (ECN1 コネクタ)
   E2LITE_SERIAL: "${E2L_SERIAL_ENVISION_KIT_RX72N_ECN1}"
   # UART ログ / ダウンロード用（CN6 PMOD FTDI, SCI7, 921600bps）
-  # set #2 固定。/oss group CI/CD Variables の stable by-id path を使用する。
-  UART_PORT: "${UART_PORT_ENVISION_KIT_RX72N_CN6_RPI2}"
+  # set2 (RPi#3 + ENVK #3) 固定。/oss group CI/CD Variables の stable by-id path を使用する。
+  # 実験・高速ログ用途の推奨経路 (PMOD-USB 変換ボード必要)。
+  UART_PORT: "${UART_PORT_ENVISION_KIT_RX72N_CN6_RPI3}"
   UART_BAUD_RATE: "921600"
   UART_TIMEOUT_SEC: "30"
   # コマンドインターフェース用（CN8 USB Serial, SCI2, 115200bps）
-  # set #2 固定。/oss group CI/CD Variables の stable by-id path を使用する。
-  COMMAND_PORT: "${UART_PORT_ENVISION_KIT_RX72N_CN8_PRI2}"
+  # set2 (RPi#3 + ENVK #3) 固定。/oss group CI/CD Variables の stable by-id path を使用する。
+  # オンボード既定経路 (追加パーツ不要、低ボーレート)。
+  COMMAND_PORT: "${UART_PORT_ENVISION_KIT_RX72N_CN8_RPI3}"
   COMMAND_BAUD_RATE: "115200"
-  # デバイス ID と MAC address は set #2 固定。
-  DEVICE_ID: "rx72n-02"
-  MAC_ADDR: "${MAC_ADDR_ENVISION_KIT_RX72N2}"
-  # Raspberry Pi #2 (set #2) 固定。Windows OTA jobs から boundary lease を
+  # デバイス ID と MAC address は set2 (ENVK #3) 固定。
+  DEVICE_ID: "rx72n-03"
+  MAC_ADDR: "${MAC_ADDR_ENVISION_KIT_RX72N3}"
+  # Raspberry Pi #3 (set2) 固定。Windows OTA jobs から boundary lease を
   # 同じ Pi 上で assert/release するために使う。
-  PI_HOST: "192.168.10.103"
+  PI_HOST: "192.168.10.104"
   # 1 Pi = 1 E2 Lite 構成のため generic e2l を使用する。
   RFP_TOOL: "e2l"
-  DEVICE_RESOURCE_GROUP: "rx72n-device-02"
+  DEVICE_RESOURCE_GROUP: "rx72n-device-03"
   # legacy OTA の split jobs 間で DEVICE_ID 単位の boundary lease を共有する。
   OTA_BOUNDARY_RESERVATION_ROOT: "/tmp/gitlab-ota-boundary"
   OTA_BOUNDARY_RESERVATION_STALE_SECONDS: "1800"

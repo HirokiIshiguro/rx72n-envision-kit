@@ -12,7 +12,7 @@ from runner_handle.serial_port import resolve_port
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--device-id", default=os.environ.get("DEVICE_ID", "rx72n-02"))
+    parser.add_argument("--device-id", default=os.environ.get("DEVICE_ID", "rx72n-03"))
     parser.add_argument("--timeout", default="120")
     parser.add_argument("--uart-port", default=os.environ.get("UART_PORT"))
     parser.add_argument("--uart-baud", default=os.environ.get("UART_BAUD_RATE", "921600"))
