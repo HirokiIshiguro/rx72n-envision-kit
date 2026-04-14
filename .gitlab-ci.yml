@@ -68,7 +68,7 @@ variables:
   UART_TIMEOUT_SEC: "30"
   # コマンドインターフェース用（CN8 USB Serial, SCI2, 115200bps）
   # set #2 固定。/oss group CI/CD Variables の stable by-id path を使用する。
-  COMMAND_PORT: "${UART_PORT_ENVISION_KIT_RX72N_CN8_PRI2}"
+  COMMAND_PORT: "${UART_PORT_ENVISION_KIT_RX72N_CN8_RPI2}"
   COMMAND_BAUD_RATE: "115200"
   # デバイス ID と MAC address は set #2 固定。
   DEVICE_ID: "rx72n-02"
