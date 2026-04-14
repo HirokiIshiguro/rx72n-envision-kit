@@ -46,8 +46,8 @@ workflow:
 
 variables:
   # Device runner switch:
-  #   linux   -> Raspberry Pi #2 + RX72N Envision Kit #2
-  #   windows -> ishiguro-pc + RX72N Envision Kit #1
+  #   linux   -> Raspberry Pi #3 + RX72N Envision Kit #3 (tag: dev-ek-rx72n-set2)
+  #   windows -> ishiguro-pc + RX72N Envision Kit #1 (USB 抜き保留中)
   DEVICE_RUNNER_PLATFORM: "linux"
   E2STUDIO: "C:\\Renesas\\e2_studio_2025_12\\eclipse\\e2studioc.exe"
   WORKSPACE: "C:\\workspace_rx72n"
