@@ -22,7 +22,7 @@ def main() -> int:
     parser.add_argument("--uart-baud", default=os.environ.get("UART_BAUD_RATE", "921600"))
     parser.add_argument("--command-port", default=os.environ.get("COMMAND_PORT"))
     parser.add_argument("--command-baud", default=os.environ.get("COMMAND_BAUD_RATE", "115200"))
-    parser.add_argument("--device-id", default=os.environ.get("DEVICE_ID", "rx72n-02"))
+    parser.add_argument("--device-id", default=os.environ.get("DEVICE_ID", "rx72n-03"))
     parser.add_argument("--codesigner-cert", default=None)
     parser.add_argument("--mac-address", default=os.environ.get("MAC_ADDR"))
     parser.add_argument(
