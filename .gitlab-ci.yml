@@ -407,6 +407,9 @@ build_v3_rx72n:
     - dev-ek-rx72n
     - dev-ek-rx72n-set2
   resource_group: $DEVICE_RESOURCE_GROUP
+  variables:
+    # #44: same host-local rfp-cli serialisation as legacy .pc_device_job.
+    RFP_CLI: "rfp-cli-flock"
   before_script:
     - source "$CI_PROJECT_DIR/tools/ci/activate_pi_python.sh" pyserial cryptography
 

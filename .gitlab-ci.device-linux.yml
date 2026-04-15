@@ -6,6 +6,12 @@
     - dev-ek-rx72n
     - dev-ek-rx72n-set2
   resource_group: $DEVICE_RESOURCE_GROUP
+  variables:
+    # #44: serialise rfp-cli on the Pi via host-local flock wrapper
+    # (/usr/local/bin/rfp-cli-flock) to avoid E3000201/E3000202/E3000204
+    # races when multiple projects on the same Raspberry Pi invoke rfp-cli
+    # concurrently. See e2emulator README §7.
+    RFP_CLI: "rfp-cli-flock"
 
 .pc_flash_job:
   extends: .pc_device_job
