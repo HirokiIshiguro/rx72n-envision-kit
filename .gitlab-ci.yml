@@ -487,15 +487,35 @@ smoke_v3_rx72n:
       artifacts: false
   script:
     - set -e
-    - 'echo "=== v3 - smoke_test (boot banner + CLI prompt on UART_PORT) ==="'
+    - 'echo "=== v3 - smoke_test (reset board, capture boot sequence on UART_PORT) ==="'
     - |
-      python3 - "$UART_PORT" "$UART_BAUD_RATE" <<'PY' | tee "$CI_PROJECT_DIR/smoke_v3.log"
-      import sys, time, serial
+      python3 - "$UART_PORT" "$UART_BAUD_RATE" \
+        "$RFP_CLI" "$RFP_TOOL" "$RFP_SPEED" <<'PY' | tee "$CI_PROJECT_DIR/smoke_v3.log"
+      import subprocess, sys, time, serial
       port, baud = sys.argv[1], int(sys.argv[2])
+      rfp_cli, rfp_tool, rfp_speed = sys.argv[3], sys.argv[4], sys.argv[5]
+
+      print(f"[SMOKE] Opening {port} @ {baud} bps")
       ser = serial.Serial(port, baud, timeout=0.2)
+      ser.reset_input_buffer()
+
+      print("[SMOKE] Resetting board via rfp-cli -sig -run ...")
+      reset_cmd = (
+          f'"{rfp_cli}" -device RX72x -tool "{rfp_tool}" -if fine -speed "{rfp_speed}"'
+          f" -auth id FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF -sig -run -noquery"
+      )
+      rc = subprocess.run(reset_cmd, shell=True, capture_output=True, text=True)
+      if rc.stdout.strip():
+          print(f"[SMOKE] rfp-cli stdout: {rc.stdout.strip()}")
+      if rc.returncode != 0:
+          print(f"[SMOKE] WARNING: rfp-cli exit {rc.returncode} (non-fatal)")
+      time.sleep(0.3)
+
       buf = b""
       t0 = time.time()
       timeout = 90.0
+      bootloader_seen = False
+      jump_seen = False
       banner_seen = False
       prompt_seen = False
       while time.time() - t0 < timeout:
@@ -505,7 +525,10 @@ smoke_v3_rx72n:
               sys.stdout.flush()
               buf += data
               buf = buf[-8192:]
-              # Any of the following are accepted as "app booted":
+              if b"BootLoader" in buf or b"boot_loader" in buf:
+                  bootloader_seen = True
+              if b"jump to user program" in buf:
+                  jump_seen = True
               if b"FreeRTOS" in buf or b"IoT" in buf or b"coreMQTT" in buf:
                   banner_seen = True
               if b"> " in buf[-20:] or buf.endswith(b"$ "):
@@ -519,7 +542,10 @@ smoke_v3_rx72n:
                   sys.stdout.flush()
               break
       ser.close()
-      print(f"\n[SMOKE] banner_seen={banner_seen} prompt_seen={prompt_seen} elapsed={time.time()-t0:.1f}s")
+
+      print(f"\n[SMOKE] bootloader_seen={bootloader_seen} jump_seen={jump_seen}"
+            f" banner_seen={banner_seen} prompt_seen={prompt_seen}"
+            f" elapsed={time.time()-t0:.1f}s")
       sys.exit(0 if (banner_seen or prompt_seen) else 1)
       PY
   artifacts:
