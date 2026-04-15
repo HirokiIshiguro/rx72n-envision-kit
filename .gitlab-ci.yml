@@ -58,7 +58,10 @@ variables:
   E2STUDIO_PROJECTS: "projects_legacy/renesas/rx72n_envision_kit/e2studio"
   # Renesas Flash Programmer CLI
   RFP_CLI: "rfp-cli"
-  RFP_SPEED: "1500K"
+  # 2026-04-15 #41: 1500K→1000K へ減速。concurrent=3 で Pi#3 に 3 E2 Lite 同居環境の
+  # USB enumeration race (E3000201: Cannot find the specified tool) を緩和する目的。
+  # rfp-cli サポート速度のうち 1000K は 1500K の次点で、書込時間影響は秒単位。
+  RFP_SPEED: "1000K"
   # --- ハードウェア依存変数（hardware-config リポジトリの CI/CD Variables から取得） ---
   # 既定は Linux device runner (Raspberry Pi #3 + RX72N Envision Kit #3, tag: dev-ek-rx72n-set2)。
   # 2026-04-14 の Runner tag 整理で set2 tag は RPi#3 を指すようになった。
