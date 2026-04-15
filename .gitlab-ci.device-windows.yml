@@ -20,6 +20,8 @@ flash_boot_loader:
     - .pc_flash_job
     - .pc_pyserial_job
   rules:
+    - if: $RUN_V3_BUILD_ONLY == "true"
+      when: never
     - if: $RUN_RFP_SOAK_TEST == "true"
       when: never
     - if: $RUN_OTA_BOUNDARY_ONLY == "true"
@@ -54,6 +56,8 @@ rfp_soak_test:
     - .pc_flash_job
   timeout: 30 minutes
   rules:
+    - if: $RUN_V3_BUILD_ONLY == "true"
+      when: never
     - if: $RUN_RFP_SOAK_TEST == "true"
     - when: never
   needs:
@@ -84,6 +88,8 @@ download_aws_demos:
     - .pc_flash_job
     - .pc_crypto_serial_job
   rules:
+    - if: $RUN_V3_BUILD_ONLY == "true"
+      when: never
     - if: $RUN_RFP_SOAK_TEST == "true"
       when: never
     - if: $RUN_OTA_BOUNDARY_ONLY == "true"
@@ -123,6 +129,8 @@ test_commands:
     - .pc_pyserial_job
   timeout: 45 minutes
   rules:
+    - if: $RUN_V3_BUILD_ONLY == "true"
+      when: never
     - if: $RUN_RFP_SOAK_TEST == "true"
       when: never
     - if: $RUN_OTA_BOUNDARY_ONLY == "true"
@@ -158,6 +166,8 @@ test_screen_navigation:
     - .pc_pyserial_job
   timeout: 3 minutes
   rules:
+    - if: $RUN_V3_BUILD_ONLY == "true"
+      when: never
     - if: $RUN_RFP_SOAK_TEST == "true"
       when: never
     - if: $RUN_OTA_BOUNDARY_ONLY == "true"
@@ -183,6 +193,8 @@ provision_aws_credentials:
     - .pc_pyserial_job
   timeout: 5 minutes
   rules:
+    - if: $RUN_V3_BUILD_ONLY == "true"
+      when: never
     - if: $RUN_RFP_SOAK_TEST == "true"
       when: never
     - if: $RUN_OTA_BOUNDARY_ONLY == "true"
@@ -220,6 +232,8 @@ health_aws_demos_startup:
     - .pc_pyserial_job
   timeout: 4 minutes
   rules:
+    - if: $RUN_V3_BUILD_ONLY == "true"
+      when: never
     - if: $RUN_OTA_BOUNDARY_ONLY == "true"
       when: never
     - if: $RUN_OTA_ONLY == "true"
@@ -249,6 +263,8 @@ confirm_aws_mqtt:
     - .pc_pyserial_job
   timeout: 5 minutes
   rules:
+    - if: $RUN_V3_BUILD_ONLY == "true"
+      when: never
     - if: $RUN_RFP_SOAK_TEST == "true"
       when: never
     - if: $RUN_OTA_BOUNDARY_ONLY == "true"
@@ -283,6 +299,8 @@ test_sd_update:
     - .pc_pyserial_job
   timeout: 10 minutes
   rules:
+    - if: $RUN_V3_BUILD_ONLY == "true"
+      when: never
     - if: $RUN_OTA_BOUNDARY_ONLY == "true"
       when: never
     - if: $RUN_HW_HEALTHCHECK == "true"
@@ -312,6 +330,8 @@ prepare_ota:
     - .pc_crypto_serial_job
   timeout: 5 minutes
   rules:
+    - if: $RUN_V3_BUILD_ONLY == "true"
+      when: never
     - if: $RUN_PREPARE_OTA_ONLY == "true"
     - if: $RUN_RFP_SOAK_TEST == "true"
       when: never
@@ -362,6 +382,8 @@ ota_monitor:
     - .pc_pyserial_job
   timeout: 15 minutes
   rules:
+    - if: $RUN_V3_BUILD_ONLY == "true"
+      when: never
     - if: $RUN_PREPARE_OTA_ONLY == "true"
       when: never
     - if: $RUN_RFP_SOAK_TEST == "true"
