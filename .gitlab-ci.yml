@@ -369,14 +369,12 @@ build_v3_rx72n:
       Write-Host "=== RX72N v3 build (iot-reference-rx canonical layout) ==="
       Write-Host "Project root: $env:CI_PROJECT_DIR"
       Write-Host "Workspace   : C:\rx72n-v3-ws"
-    - >-
-      powershell -NoProfile -ExecutionPolicy Bypass
-      -File "$env:CI_PROJECT_DIR\tools\ci\build_v3_rx72n_headless.ps1"
-      -ProjectRoot "$env:CI_PROJECT_DIR"
-      -E2Studio   "$env:E2STUDIO"
-      -Workspace  "C:\rx72n-v3-ws"
-      -ProjectsPath "Projects"
-      -LogFile    "$env:CI_PROJECT_DIR\rx72n_v3_e2studio_build.log"
+      & "$env:CI_PROJECT_DIR\tools\ci\build_v3_rx72n_headless.ps1" `
+        -ProjectRoot "$env:CI_PROJECT_DIR" `
+        -E2Studio    "$env:E2STUDIO" `
+        -Workspace   "C:\rx72n-v3-ws" `
+        -ProjectsPath "Projects" `
+        -LogFile     "$env:CI_PROJECT_DIR\rx72n_v3_e2studio_build.log"
   artifacts:
     when: always
     paths:
