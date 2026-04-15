@@ -15,9 +15,13 @@ stages:
 include:
   - local: ".gitlab-ci.device-linux.yml"
     rules:
+      - if: $RUN_V3_BUILD_ONLY == "true"
+        when: never
       - if: '$DEVICE_RUNNER_PLATFORM != "windows"'
   - local: ".gitlab-ci.device-windows.yml"
     rules:
+      - if: $RUN_V3_BUILD_ONLY == "true"
+        when: never
       - if: '$DEVICE_RUNNER_PLATFORM == "windows"'
 
 # すべての実ジョブが rules: ベースに揃ったため、MR パイプラインを許可する。
@@ -616,7 +620,7 @@ build_ota:
       - ota_v2.rsu
       - e2studio_ota_build.log
       - e2studio_ota_build_v2.log
-      - projects/renesas/rx72n_envision_kit/e2studio/boot_loader/HardwareDebug/*.mot
+      - projects_legacy/renesas/rx72n_envision_kit/e2studio/boot_loader/HardwareDebug/*.mot
     expire_in: 1 week
 
 ota_create_job:
