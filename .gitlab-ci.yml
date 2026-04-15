@@ -15,9 +15,13 @@ stages:
 include:
   - local: ".gitlab-ci.device-linux.yml"
     rules:
+      - if: $RUN_V3_BUILD_ONLY == "true"
+        when: never
       - if: '$DEVICE_RUNNER_PLATFORM != "windows"'
   - local: ".gitlab-ci.device-windows.yml"
     rules:
+      - if: $RUN_V3_BUILD_ONLY == "true"
+        when: never
       - if: '$DEVICE_RUNNER_PLATFORM == "windows"'
 
 # すべての実ジョブが rules: ベースに揃ったため、MR パイプラインを許可する。
@@ -51,7 +55,7 @@ variables:
   DEVICE_RUNNER_PLATFORM: "linux"
   E2STUDIO: "C:\\Renesas\\e2_studio_2025_12\\eclipse\\e2studioc.exe"
   WORKSPACE: "C:\\workspace_rx72n"
-  E2STUDIO_PROJECTS: "projects/renesas/rx72n_envision_kit/e2studio"
+  E2STUDIO_PROJECTS: "projects_legacy/renesas/rx72n_envision_kit/e2studio"
   # Renesas Flash Programmer CLI
   RFP_CLI: "rfp-cli"
   RFP_SPEED: "1500K"
@@ -144,6 +148,11 @@ variables:
   #   "uart"     : UART download 完了で停止
   #   "provision": provisioning 完了で停止
   PREPARE_OTA_STOP_AFTER: ""
+  # RUN_V3_BUILD_ONLY: Phase 8b 第3次 (Issue #33) の iot-reference-rx canonical
+  # 構成に対する build-only gate。"true" のとき legacy build/flash/OTA ジョブを
+  # すべて止め、Windows runner 上で build_v3_rx72n のみを実行する。
+  # 既定は "false" で master pipeline 無影響。段階1 検証中のみ MR 側で true にする。
+  RUN_V3_BUILD_ONLY: "false"
 
 .windows_ota_aws_job:
   tags:
@@ -170,6 +179,8 @@ build:
   tags:
     - run_ishiguro_machine
   rules:
+    - if: $RUN_V3_BUILD_ONLY == "true"
+      when: never
     - if: $RUN_OTA_BOUNDARY_ONLY == "true"
       when: never
     - if: $RUN_OTA_ONLY == "true"
@@ -339,9 +350,39 @@ build:
     when: always
     paths:
       - e2studio_build.log
-      - projects/renesas/rx72n_envision_kit/e2studio/aws_demos/HardwareDebug/*.mot
-      - projects/renesas/rx72n_envision_kit/e2studio/boot_loader/HardwareDebug/*.mot
-      - projects/renesas/rx72n_envision_kit/e2studio/segger_emwin_demos/HardwareDebug/*.mot
+      - projects_legacy/renesas/rx72n_envision_kit/e2studio/aws_demos/HardwareDebug/*.mot
+      - projects_legacy/renesas/rx72n_envision_kit/e2studio/boot_loader/HardwareDebug/*.mot
+      - projects_legacy/renesas/rx72n_envision_kit/e2studio/segger_emwin_demos/HardwareDebug/*.mot
+    expire_in: 1 week
+
+build_v3_rx72n:
+  stage: build
+  tags:
+    - run_ishiguro_machine
+  rules:
+    - if: $RUN_V3_BUILD_ONLY == "true"
+    - when: never
+  variables:
+    GIT_SUBMODULE_STRATEGY: recursive
+  script:
+    - |
+      Write-Host "=== RX72N v3 build (iot-reference-rx canonical layout) ==="
+      Write-Host "Project root: $env:CI_PROJECT_DIR"
+      Write-Host "Workspace   : C:\rx72n-v3-ws"
+      & "$env:CI_PROJECT_DIR\tools\ci\build_v3_rx72n_headless.ps1" `
+        -ProjectRoot "$env:CI_PROJECT_DIR" `
+        -E2Studio    "$env:E2STUDIO" `
+        -Workspace   "C:\rx72n-v3-ws" `
+        -ProjectsPath "Projects" `
+        -LogFile     "$env:CI_PROJECT_DIR\rx72n_v3_e2studio_build.log"
+  artifacts:
+    when: always
+    paths:
+      - rx72n_v3_e2studio_build.log
+      - Projects/boot_loader_rx72n_envision_kit/e2studio_ccrx/HardwareDebug/*.mot
+      - Projects/aws_ether_rx72n_envision_kit/e2studio_ccrx/HardwareDebug/*.mot
+      - Projects/aws_ether_rx72n_envision_kit/e2studio_ccrx/HardwareDebug/*.abs
+      - Projects/aws_ether_rx72n_envision_kit/e2studio_ccrx/HardwareDebug/*.x
     expire_in: 1 week
 
 
@@ -352,6 +393,8 @@ capture_after_download_aws_demos:
   allow_failure: true
   when: always
   rules:
+    - if: $RUN_V3_BUILD_ONLY == "true"
+      when: never
     - if: $RUN_OTA_BOUNDARY_ONLY == "true"
       when: never
     - if: $RUN_RFP_SOAK_TEST == "true"
@@ -392,6 +435,8 @@ build_ota:
   tags:
     - run_ishiguro_machine
   rules:
+    - if: $RUN_V3_BUILD_ONLY == "true"
+      when: never
     - if: $RUN_RFP_SOAK_TEST == "true"
       when: never
     - if: $RUN_HW_HEALTHCHECK == "true"
@@ -573,7 +618,7 @@ build_ota:
       - ota_v2.rsu
       - e2studio_ota_build.log
       - e2studio_ota_build_v2.log
-      - projects/renesas/rx72n_envision_kit/e2studio/boot_loader/HardwareDebug/*.mot
+      - projects_legacy/renesas/rx72n_envision_kit/e2studio/boot_loader/HardwareDebug/*.mot
     expire_in: 1 week
 
 ota_create_job:
@@ -582,6 +627,8 @@ ota_create_job:
     - .windows_ota_aws_job
   timeout: 10 minutes
   rules:
+    - if: $RUN_V3_BUILD_ONLY == "true"
+      when: never
     - if: $RUN_PREPARE_OTA_ONLY == "true"
       when: never
     - if: $RUN_RFP_SOAK_TEST == "true"
@@ -635,6 +682,8 @@ ota_finalize:
   timeout: 10 minutes
   when: always
   rules:
+    - if: $RUN_V3_BUILD_ONLY == "true"
+      when: never
     - if: $RUN_PREPARE_OTA_ONLY == "true"
       when: never
     - if: $RUN_RFP_SOAK_TEST == "true"
@@ -644,9 +693,6 @@ ota_finalize:
     - if: $RUN_HW_HEALTHCHECK == "true"
       when: never
     - if: $RUN_OTA_TEST == "true"
-  dependencies:
-    - ota_create_job
-    - ota_monitor
   script:
     - |
       $owner = "$($env:CI_PROJECT_ID):$($env:CI_PIPELINE_ID):$($env:DEVICE_ID)"
@@ -710,6 +756,8 @@ ota_release_reservation:
   timeout: 5 minutes
   when: always
   rules:
+    - if: $RUN_V3_BUILD_ONLY == "true"
+      when: never
     - if: $RUN_PREPARE_OTA_ONLY == "true"
       when: never
     - if: $RUN_RFP_SOAK_TEST == "true"
