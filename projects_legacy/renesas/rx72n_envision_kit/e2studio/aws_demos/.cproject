@@ -82,13 +82,13 @@
 									<listOptionValue builtIn="false" value="&quot;${ProjDirPath}/../../../../../vendors/renesas/boards/rx72n-envision-kit/aws_demos/application_code/renesas_code/utility&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${ProjDirPath}/../../../../../vendors/renesas/boards/rx72n-envision-kit/aws_demos/application_code/aws_code&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${ProjDirPath}/../../../../../vendors/renesas/boards/rx72n-envision-kit/ports/ota_pal_for_aws&quot;"/>
-									<listOptionValue builtIn="false" value="${ProjDirPath}/../../../../../demos/include"/>
-									<listOptionValue builtIn="false" value="${ProjDirPath}/../../../../../demos/network_manager"/>
-									<listOptionValue builtIn="false" value="${ProjDirPath}/../../../../../demos/common/mqtt_demo_helpers"/>
-									<listOptionValue builtIn="false" value="&quot;${ProjDirPath}/../../../../../demos/common/http_demo_helpers&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${ProjDirPath}/../../../../../demos/common/pkcs11_helpers&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${ProjDirPath}/../../../../../demos/common/mqtt_subscription_manager&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${ProjDirPath}/../../../../../demos/device_defender_for_aws&quot;"/>
+									<listOptionValue builtIn="false" value="${ProjDirPath}/../../../../../demos_legacy/include"/>
+									<listOptionValue builtIn="false" value="${ProjDirPath}/../../../../../demos_legacy/network_manager"/>
+									<listOptionValue builtIn="false" value="${ProjDirPath}/../../../../../demos_legacy/common/mqtt_demo_helpers"/>
+									<listOptionValue builtIn="false" value="&quot;${ProjDirPath}/../../../../../demos_legacy/common/http_demo_helpers&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${ProjDirPath}/../../../../../demos_legacy/common/pkcs11_helpers&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${ProjDirPath}/../../../../../demos_legacy/common/mqtt_subscription_manager&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${ProjDirPath}/../../../../../demos_legacy/device_defender_for_aws&quot;"/>
 									<listOptionValue builtIn="false" value="${ProjDirPath}/../../../../../libraries/c_sdk/standard/common/include/private"/>
 									<listOptionValue builtIn="false" value="${ProjDirPath}/../../../../../libraries/c_sdk/standard/common/include"/>
 									<listOptionValue builtIn="false" value="${ProjDirPath}/../../../../../libraries/abstractions/platform/include"/>
@@ -104,7 +104,7 @@
 									<listOptionValue builtIn="false" value="${ProjDirPath}/../../../../../libraries/freertos_plus/standard/pkcs11/include"/>
 									<listOptionValue builtIn="false" value="${ProjDirPath}/../../../../../libraries/abstractions/pkcs11/include"/>
 									<listOptionValue builtIn="false" value="${ProjDirPath}/../../../../../libraries/freertos_plus/standard/utils/include"/>
-									<listOptionValue builtIn="false" value="${ProjDirPath}/../../../../../demos/dev_mode_key_provisioning/include"/>
+									<listOptionValue builtIn="false" value="${ProjDirPath}/../../../../../demos_legacy/dev_mode_key_provisioning/include"/>
 									<listOptionValue builtIn="false" value="${ProjDirPath}/../../../../../libraries/c_sdk/aws/defender/include"/>
 									<listOptionValue builtIn="false" value="${ProjDirPath}/../../../../../libraries/c_sdk/standard/mqtt/include"/>
 									<listOptionValue builtIn="false" value="${ProjDirPath}/../../../../../libraries/c_sdk/standard/serializer/include"/>
@@ -332,25 +332,25 @@
 									<listOptionValue builtIn="false" value="&quot;.\application_code/renesas_code/utility\firm_update.obj&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;.\application_code/renesas_code/utility\r_sdc_sdmem_rx_demo_pin.obj&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;.\application_code/renesas_code/utility\r_simple_filesystem_on_dataflash.obj&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;.\demos/defender\aws_iot_demo_defender.obj&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;.\demos/demo_runner\aws_demo.obj&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;.\demos/demo_runner\aws_demo_network_addr.obj&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;.\demos/demo_runner\aws_demo_version.obj&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;.\demos/demo_runner\iot_demo_freertos.obj&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;.\demos/demo_runner\iot_demo_runner.obj&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;.\demos/dev_mode_key_provisioning/src\aws_dev_mode_key_provisioning.obj&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;.\demos/greengrass_connectivity\aws_greengrass_discovery_demo.obj&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;.\demos/https\iot_demo_https_common.obj&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;.\demos/https\iot_demo_https_s3_download_async.obj&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;.\demos/https\iot_demo_https_s3_download_sync.obj&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;.\demos/https\iot_demo_https_s3_upload_async.obj&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;.\demos/https\iot_demo_https_s3_upload_sync.obj&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;.\demos/mqtt\iot_demo_mqtt.obj&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;.\demos/network_manager\aws_iot_demo_network.obj&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;.\demos/network_manager\aws_iot_network_manager.obj&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;.\demos/ota\aws_iot_ota_update_demo.obj&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;.\demos/shadow\aws_iot_demo_shadow.obj&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;.\demos/tcp\aws_tcp_echo_client_single_task.obj&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;.\demos_legacy/defender\aws_iot_demo_defender.obj&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;.\demos_legacy/demo_runner\aws_demo.obj&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;.\demos_legacy/demo_runner\aws_demo_network_addr.obj&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;.\demos_legacy/demo_runner\aws_demo_version.obj&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;.\demos_legacy/demo_runner\iot_demo_freertos.obj&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;.\demos_legacy/demo_runner\iot_demo_runner.obj&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;.\demos_legacy/dev_mode_key_provisioning/src\aws_dev_mode_key_provisioning.obj&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;.\demos_legacy/greengrass_connectivity\aws_greengrass_discovery_demo.obj&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;.\demos_legacy/https\iot_demo_https_common.obj&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;.\demos_legacy/https\iot_demo_https_s3_download_async.obj&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;.\demos_legacy/https\iot_demo_https_s3_download_sync.obj&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;.\demos_legacy/https\iot_demo_https_s3_upload_async.obj&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;.\demos_legacy/https\iot_demo_https_s3_upload_sync.obj&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;.\demos_legacy/mqtt\iot_demo_mqtt.obj&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;.\demos_legacy/network_manager\aws_iot_demo_network.obj&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;.\demos_legacy/network_manager\aws_iot_network_manager.obj&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;.\demos_legacy/ota\aws_iot_ota_update_demo.obj&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;.\demos_legacy/shadow\aws_iot_demo_shadow.obj&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;.\demos_legacy/tcp\aws_tcp_echo_client_single_task.obj&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;.\freertos_kernel\event_groups.obj&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;.\freertos_kernel\list.obj&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;.\freertos_kernel/portable/MemMang\heap_4.obj&quot;"/>
@@ -715,7 +715,7 @@
 					</folderInfo>
 					<fileInfo id="com.renesas.cdt.managedbuild.renesas.ccrx.hardwaredebug.configuration.216582545.1511590152" name="common_demo_include.h" rcbsApplicability="disable" resourcePath="application_code/aws_code/sntp_client/common_demo_include.h" toolsToInvoke=""/>
 					<sourceEntries>
-						<entry excluding="aw/Simulation|demos/common/http_demo_helpers|libraries/coreHTTP|demos/coreHTTP|demos/ota/ota_demo_core_http|vendors/renesas/boards/rx72n-envision-kit/aws_demos/src/smc_gen|smc_gen" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
+						<entry excluding="aw/Simulation|demos_legacy/common/http_demo_helpers|libraries/coreHTTP|demos_legacy/coreHTTP|demos_legacy/ota/ota_demo_core_http|vendors/renesas/boards/rx72n-envision-kit/aws_demos/src/smc_gen|smc_gen" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
 					</sourceEntries>
 				</configuration>
 			</storageModule>
