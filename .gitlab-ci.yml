@@ -182,38 +182,6 @@ build:
     - if: $RUN_OTA_ONLY == "true"
       when: never
     - when: always
-
-build_v3_rx72n:
-  stage: build
-  tags:
-    - run_ishiguro_machine
-  rules:
-    - if: $RUN_V3_BUILD_ONLY == "true"
-    - when: never
-  variables:
-    GIT_SUBMODULE_STRATEGY: recursive
-  script:
-    - |
-      Write-Host "=== RX72N v3 build (iot-reference-rx canonical layout) ==="
-      Write-Host "Project root: $env:CI_PROJECT_DIR"
-      Write-Host "Workspace   : C:\rx72n-v3-ws"
-    - >-
-      powershell -NoProfile -ExecutionPolicy Bypass
-      -File "$env:CI_PROJECT_DIR\tools\ci\build_v3_rx72n_headless.ps1"
-      -ProjectRoot "$env:CI_PROJECT_DIR"
-      -E2Studio   "$env:E2STUDIO"
-      -Workspace  "C:\rx72n-v3-ws"
-      -ProjectsPath "Projects"
-      -LogFile    "$env:CI_PROJECT_DIR\rx72n_v3_e2studio_build.log"
-  artifacts:
-    when: always
-    paths:
-      - rx72n_v3_e2studio_build.log
-      - Projects/boot_loader_rx72n_envision_kit/e2studio_ccrx/HardwareDebug/*.mot
-      - Projects/aws_ether_rx72n_envision_kit/e2studio_ccrx/HardwareDebug/*.mot
-      - Projects/aws_ether_rx72n_envision_kit/e2studio_ccrx/HardwareDebug/*.abs
-      - Projects/aws_ether_rx72n_envision_kit/e2studio_ccrx/HardwareDebug/*.x
-    expire_in: 1 week
   script:
     # MAC アドレス書き換え（hardware-config リポジトリのスクリプトを使用）
     - |
@@ -381,6 +349,38 @@ build_v3_rx72n:
       - projects_legacy/renesas/rx72n_envision_kit/e2studio/aws_demos/HardwareDebug/*.mot
       - projects_legacy/renesas/rx72n_envision_kit/e2studio/boot_loader/HardwareDebug/*.mot
       - projects_legacy/renesas/rx72n_envision_kit/e2studio/segger_emwin_demos/HardwareDebug/*.mot
+    expire_in: 1 week
+
+build_v3_rx72n:
+  stage: build
+  tags:
+    - run_ishiguro_machine
+  rules:
+    - if: $RUN_V3_BUILD_ONLY == "true"
+    - when: never
+  variables:
+    GIT_SUBMODULE_STRATEGY: recursive
+  script:
+    - |
+      Write-Host "=== RX72N v3 build (iot-reference-rx canonical layout) ==="
+      Write-Host "Project root: $env:CI_PROJECT_DIR"
+      Write-Host "Workspace   : C:\rx72n-v3-ws"
+    - >-
+      powershell -NoProfile -ExecutionPolicy Bypass
+      -File "$env:CI_PROJECT_DIR\tools\ci\build_v3_rx72n_headless.ps1"
+      -ProjectRoot "$env:CI_PROJECT_DIR"
+      -E2Studio   "$env:E2STUDIO"
+      -Workspace  "C:\rx72n-v3-ws"
+      -ProjectsPath "Projects"
+      -LogFile    "$env:CI_PROJECT_DIR\rx72n_v3_e2studio_build.log"
+  artifacts:
+    when: always
+    paths:
+      - rx72n_v3_e2studio_build.log
+      - Projects/boot_loader_rx72n_envision_kit/e2studio_ccrx/HardwareDebug/*.mot
+      - Projects/aws_ether_rx72n_envision_kit/e2studio_ccrx/HardwareDebug/*.mot
+      - Projects/aws_ether_rx72n_envision_kit/e2studio_ccrx/HardwareDebug/*.abs
+      - Projects/aws_ether_rx72n_envision_kit/e2studio_ccrx/HardwareDebug/*.x
     expire_in: 1 week
 
 
