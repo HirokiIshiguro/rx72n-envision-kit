@@ -14,8 +14,8 @@ import subprocess
 import sys
 import time
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "provisioning"))
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "test_scripts"))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "provisioning"))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "test_scripts"))
 
 try:
     import serial

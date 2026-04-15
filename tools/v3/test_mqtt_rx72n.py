@@ -22,7 +22,7 @@ if hasattr(sys.stdout, "reconfigure"):
 if hasattr(sys.stderr, "reconfigure"):
     sys.stderr.reconfigure(errors="backslashreplace")
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "test_scripts"))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "test_scripts"))
 
 try:
     import serial
