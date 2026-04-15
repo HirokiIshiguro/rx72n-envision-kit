@@ -164,7 +164,7 @@ test_screen_navigation:
   extends:
     - .pc_device_job
     - .pc_pyserial_job
-  timeout: 10 minutes
+  timeout: 3 minutes
   rules:
     - if: $RUN_V3_BUILD_ONLY == "true"
       when: never
