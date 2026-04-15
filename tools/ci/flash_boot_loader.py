@@ -5,10 +5,63 @@ import argparse
 import os
 import subprocess
 import sys
+import time
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "runner-handle"))
-from runner_handle.rfp_cli import run_or_exit
 from runner_handle.serial_port import resolve_port
+
+
+# rfp-cli intermittently reports E3000201 (`Cannot find the specified tool`)
+# when multiple concurrent rfp-cli processes race on the shared USB bus of a
+# Pi hosting several E2 Lite probes (see Issue #43 / CLAUDE.md USB enumeration
+# note). Retry the whole flash sequence a couple of times before giving up.
+# TODO(#43 upstream): promote this helper to runner-handle submodule
+# (tools/runner-handle/runner_handle/rfp_cli.py) once the pattern stabilises.
+_E3000201_TOKEN = "E3000201"
+_FLASH_MAX_ATTEMPTS = 3
+_FLASH_RETRY_SLEEP_SEC = 5
+
+
+def _run_flash_with_retry(cmd):
+    for attempt in range(1, _FLASH_MAX_ATTEMPTS + 1):
+        print(
+            f"  > flash attempt {attempt}/{_FLASH_MAX_ATTEMPTS}: {' '.join(cmd)}",
+            flush=True,
+        )
+        # capture_output=True so we can scan for E3000201 while still echoing
+        # everything back to the job log after the child exits.
+        result = subprocess.run(cmd, capture_output=True, text=True)
+        if result.stdout:
+            sys.stdout.write(result.stdout)
+        if result.stderr:
+            sys.stderr.write(result.stderr)
+        sys.stdout.flush()
+        sys.stderr.flush()
+        if result.returncode == 0:
+            if attempt > 1:
+                print(
+                    f"[INFO] flash succeeded on attempt {attempt}/{_FLASH_MAX_ATTEMPTS} "
+                    f"after E3000201 retry.",
+                    flush=True,
+                )
+            return
+        combined = (result.stdout or "") + (result.stderr or "")
+        if _E3000201_TOKEN in combined and attempt < _FLASH_MAX_ATTEMPTS:
+            print(
+                f"[WARN] rfp-cli reported {_E3000201_TOKEN} (USB enumeration "
+                f"race); sleeping {_FLASH_RETRY_SLEEP_SEC}s then retrying "
+                f"(attempt {attempt}/{_FLASH_MAX_ATTEMPTS}).",
+                flush=True,
+            )
+            time.sleep(_FLASH_RETRY_SLEEP_SEC)
+            continue
+        # Not an E3000201, or we have exhausted retries.
+        print(
+            f"ERROR: flash command exited with {result.returncode}",
+            file=sys.stderr,
+            flush=True,
+        )
+        sys.exit(result.returncode)
 
 
 def main() -> int:
@@ -33,7 +86,7 @@ def main() -> int:
         return 1
 
     flash_script = os.path.join(args.project_dir, "tools", "runner-handle", "scripts", "flash_firmware.py")
-    run_or_exit(
+    _run_flash_with_retry(
         [
             sys.executable,
             flash_script,
