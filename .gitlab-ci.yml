@@ -422,21 +422,21 @@ flash_v3_boot_rx72n:
       artifacts: true
   script:
     - set -e
-    - 'echo "=== v3 - erase-chip + flash boot_loader (bank0 + bank1) ==="'
-    - echo "Device=RX72x Tool=$RFP_TOOL Speed=$RFP_SPEED"
-    - >-
-      "$RFP_CLI" -device RX72x -tool "$RFP_TOOL" -if fine -speed "$RFP_SPEED"
-      -auth id FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF -erase-chip -noquery
-    - >-
-      "$RFP_CLI" -device RX72x -tool "$RFP_TOOL" -if fine -speed "$RFP_SPEED"
-      -auth id FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF
-      -p "$CI_PROJECT_DIR/Projects/boot_loader_rx72n_envision_kit/e2studio_ccrx/HardwareDebug/boot_loader_rx72n_envision_kit.mot"
-      -v -noquery
-    - >-
-      "$RFP_CLI" -device RX72x -tool "$RFP_TOOL" -if fine -speed "$RFP_SPEED"
-      -auth id FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF
-      -p "$CI_PROJECT_DIR/Projects/boot_loader_rx72n_envision_kit/e2studio_ccrx/HardwareDebug/boot_loader_rx72n_envision_kit_bank1.mot"
-      -v -run -noquery
+    - |
+      {
+        echo "=== v3 - erase-chip + flash boot_loader (bank0 + bank1) ==="
+        echo "Device=RX72x Tool=$RFP_TOOL Speed=$RFP_SPEED"
+        "$RFP_CLI" -device RX72x -tool "$RFP_TOOL" -if fine -speed "$RFP_SPEED" \
+          -auth id FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF -erase-chip -noquery
+        "$RFP_CLI" -device RX72x -tool "$RFP_TOOL" -if fine -speed "$RFP_SPEED" \
+          -auth id FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF \
+          -p "$CI_PROJECT_DIR/Projects/boot_loader_rx72n_envision_kit/e2studio_ccrx/HardwareDebug/boot_loader_rx72n_envision_kit.mot" \
+          -v -noquery
+        "$RFP_CLI" -device RX72x -tool "$RFP_TOOL" -if fine -speed "$RFP_SPEED" \
+          -auth id FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF \
+          -p "$CI_PROJECT_DIR/Projects/boot_loader_rx72n_envision_kit/e2studio_ccrx/HardwareDebug/boot_loader_rx72n_envision_kit_bank1.mot" \
+          -v -run -noquery
+      } 2>&1 | tee "$CI_PROJECT_DIR/flash_v3_boot_rx72n.log"
   artifacts:
     when: always
     paths:

@@ -214,7 +214,7 @@ def main() -> int:
     print(f"  Output:  {args.output}")
     print(f"  Seq No:  {args.seq_no}")
     print()
-    print(f"  PRM:     {args.prm} (validated for compatibility; legacy full-bank layout is fixed)")
+    print(f"  PRM:     {args.prm} (existence checked; address layout is hardcoded for legacy full-bank)")
     print()
     print("Parsing MOT file...")
 
