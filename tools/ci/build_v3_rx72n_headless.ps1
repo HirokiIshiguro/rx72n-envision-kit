@@ -3,7 +3,9 @@ param(
     [string]$E2Studio = "C:\Renesas\e2_studio_2025_12\eclipse\e2studioc.exe",
     [string]$Workspace = "C:\rx72n-v3-ws",
     [string]$ProjectsPath = "Projects",
-    [string]$LogFile = $(Join-Path (Split-Path (Split-Path $PSScriptRoot -Parent) -Parent) "rx72n_v3_e2studio_build.log")
+    [string]$LogFile = $(Join-Path (Split-Path (Split-Path $PSScriptRoot -Parent) -Parent) "rx72n_v3_e2studio_build.log"),
+    [string]$SigningKey = "sample_keys/secp256r1.privatekey",
+    [switch]$SkipRsu
 )
 
 $ErrorActionPreference = "Stop"
@@ -132,6 +134,62 @@ try {
 
     Write-Host ""
     Write-Host "RX72N v3 headless build succeeded."
+
+    if ($SkipRsu) {
+        Write-Host "[INFO] -SkipRsu specified; skipping bank1 shift / RSU generation / signer cert."
+        return
+    }
+
+    # --- Stage 2 additions: bank1 boot_loader mot + rx72n_app.rsu + signer cert ---
+    $pythonExe = "python"
+    $toolsV3   = Join-Path $projectRoot "tools\v3"
+    $bootDbg   = Join-Path $projectRoot "$projectsPath\boot_loader_rx72n_envision_kit\e2studio_ccrx\HardwareDebug"
+    $appDbg    = Join-Path $projectRoot "$projectsPath\aws_ether_rx72n_envision_kit\e2studio_ccrx\HardwareDebug"
+    $bank0Mot  = Join-Path $bootDbg "boot_loader_rx72n_envision_kit.mot"
+    $bank1Mot  = Join-Path $bootDbg "boot_loader_rx72n_envision_kit_bank1.mot"
+    $appMotPath = Join-Path $appDbg "aws_ether_rx72n_envision_kit.mot"
+    $prmCsv    = Join-Path $projectRoot "$projectsPath\aws_ether_rx72n_envision_kit\e2studio_ccrx\src\smc_gen\r_fwup\tool\RX72N_DualBank_ImageGenerator_PRM.csv"
+    $signKey   = Join-Path $projectRoot $SigningKey
+    $rsuOut    = Join-Path $projectRoot "rx72n_app.rsu"
+    $certOut   = Join-Path $projectRoot "rx72n_codesign_cert.pem"
+
+    Write-Host ""
+    Write-Host "=== Generate bank1 boot_loader .mot (shift -0x200000) ==="
+    & $pythonExe (Join-Path $toolsV3 "shift_srec_addresses.py") `
+        --input $bank0Mot `
+        --output $bank1Mot `
+        --range-start 0xFFE00000 `
+        --range-end 0xFFFFFFFF `
+        --shift -0x200000 `
+        --drop-out-of-range
+    if ($LASTEXITCODE -ne 0) { throw "shift_srec_addresses.py exit $LASTEXITCODE" }
+    if (-not (Test-Path $bank1Mot)) { throw "bank1 .mot missing: $bank1Mot" }
+    Write-Host "OK: $bank1Mot"
+
+    Write-Host ""
+    Write-Host "=== Build rx72n_app.rsu (RELFWV2) ==="
+    if (-not (Test-Path $prmCsv))   { throw "PRM CSV missing: $prmCsv" }
+    if (-not (Test-Path $signKey))  { throw "Signing key missing: $signKey" }
+    & $pythonExe (Join-Path $toolsV3 "build_fwup_v2_rsu.py") `
+        --mot $appMotPath `
+        --prm $prmCsv `
+        --key $signKey `
+        --output $rsuOut
+    if ($LASTEXITCODE -ne 0) { throw "build_fwup_v2_rsu.py exit $LASTEXITCODE" }
+    if (-not (Test-Path $rsuOut)) { throw "rx72n_app.rsu missing: $rsuOut" }
+    Write-Host "OK: $rsuOut ($((Get-Item $rsuOut).Length) bytes)"
+
+    Write-Host ""
+    Write-Host "=== Generate code signer cert (public key) ==="
+    & $pythonExe (Join-Path $toolsV3 "generate_signer_cert.py") `
+        --key $signKey `
+        --out $certOut
+    if ($LASTEXITCODE -ne 0) { throw "generate_signer_cert.py exit $LASTEXITCODE" }
+    if (-not (Test-Path $certOut)) { throw "rx72n_codesign_cert.pem missing: $certOut" }
+    Write-Host "OK: $certOut"
+
+    Write-Host ""
+    Write-Host "RX72N v3 full build (bank1 + RSU + signer cert) succeeded."
 }
 finally {
     foreach ($rcpcPath in $rcpcSnapshots.Keys) {

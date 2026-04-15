@@ -22,6 +22,8 @@ flash_boot_loader:
   rules:
     - if: $RUN_V3_BUILD_ONLY == "true"
       when: never
+    - if: $RUN_V3_BASELINE == "true"
+      when: never
     - if: $RUN_RFP_SOAK_TEST == "true"
       when: never
     - if: $RUN_OTA_BOUNDARY_ONLY == "true"
@@ -58,6 +60,8 @@ rfp_soak_test:
   rules:
     - if: $RUN_V3_BUILD_ONLY == "true"
       when: never
+    - if: $RUN_V3_BASELINE == "true"
+      when: never
     - if: $RUN_RFP_SOAK_TEST == "true"
     - when: never
   needs:
@@ -89,6 +93,8 @@ download_aws_demos:
     - .pc_crypto_serial_job
   rules:
     - if: $RUN_V3_BUILD_ONLY == "true"
+      when: never
+    - if: $RUN_V3_BASELINE == "true"
       when: never
     - if: $RUN_RFP_SOAK_TEST == "true"
       when: never
@@ -131,6 +137,8 @@ test_commands:
   rules:
     - if: $RUN_V3_BUILD_ONLY == "true"
       when: never
+    - if: $RUN_V3_BASELINE == "true"
+      when: never
     - if: $RUN_RFP_SOAK_TEST == "true"
       when: never
     - if: $RUN_OTA_BOUNDARY_ONLY == "true"
@@ -168,6 +176,8 @@ test_screen_navigation:
   rules:
     - if: $RUN_V3_BUILD_ONLY == "true"
       when: never
+    - if: $RUN_V3_BASELINE == "true"
+      when: never
     - if: $RUN_RFP_SOAK_TEST == "true"
       when: never
     - if: $RUN_OTA_BOUNDARY_ONLY == "true"
@@ -194,6 +204,8 @@ provision_aws_credentials:
   timeout: 5 minutes
   rules:
     - if: $RUN_V3_BUILD_ONLY == "true"
+      when: never
+    - if: $RUN_V3_BASELINE == "true"
       when: never
     - if: $RUN_RFP_SOAK_TEST == "true"
       when: never
@@ -234,6 +246,8 @@ health_aws_demos_startup:
   rules:
     - if: $RUN_V3_BUILD_ONLY == "true"
       when: never
+    - if: $RUN_V3_BASELINE == "true"
+      when: never
     - if: $RUN_OTA_BOUNDARY_ONLY == "true"
       when: never
     - if: $RUN_OTA_ONLY == "true"
@@ -264,6 +278,8 @@ confirm_aws_mqtt:
   timeout: 5 minutes
   rules:
     - if: $RUN_V3_BUILD_ONLY == "true"
+      when: never
+    - if: $RUN_V3_BASELINE == "true"
       when: never
     - if: $RUN_RFP_SOAK_TEST == "true"
       when: never
@@ -301,6 +317,8 @@ test_sd_update:
   rules:
     - if: $RUN_V3_BUILD_ONLY == "true"
       when: never
+    - if: $RUN_V3_BASELINE == "true"
+      when: never
     - if: $RUN_OTA_BOUNDARY_ONLY == "true"
       when: never
     - if: $RUN_HW_HEALTHCHECK == "true"
@@ -331,6 +349,8 @@ prepare_ota:
   timeout: 5 minutes
   rules:
     - if: $RUN_V3_BUILD_ONLY == "true"
+      when: never
+    - if: $RUN_V3_BASELINE == "true"
       when: never
     - if: $RUN_PREPARE_OTA_ONLY == "true"
     - if: $RUN_RFP_SOAK_TEST == "true"
@@ -383,6 +403,8 @@ ota_monitor:
   timeout: 15 minutes
   rules:
     - if: $RUN_V3_BUILD_ONLY == "true"
+      when: never
+    - if: $RUN_V3_BASELINE == "true"
       when: never
     - if: $RUN_PREPARE_OTA_ONLY == "true"
       when: never

@@ -148,11 +148,18 @@ variables:
   #   "uart"     : UART download 完了で停止
   #   "provision": provisioning 完了で停止
   PREPARE_OTA_STOP_AFTER: ""
-  # RUN_V3_BUILD_ONLY: Phase 8b 第3次 (Issue #33) の iot-reference-rx canonical
+  # RUN_V3_BUILD_ONLY: Phase 8b 第3次 段階1 (Issue #40) の iot-reference-rx canonical
   # 構成に対する build-only gate。"true" のとき legacy build/flash/OTA ジョブを
   # すべて止め、Windows runner 上で build_v3_rx72n のみを実行する。
-  # 既定は "false" で master pipeline 無影響。段階1 検証中のみ MR 側で true にする。
+  # 既定は "false" で master pipeline 無影響。段階1 検証時に MR 側で true にする。
   RUN_V3_BUILD_ONLY: "false"
+  # RUN_V3_BASELINE: Phase 8b 第3次 段階2 (Issue #42) の v3 実機 baseline gate。
+  # "true" のとき legacy 実機系ジョブを全 skip し、build_v3_rx72n →
+  # flash_v3_boot_rx72n (manual 承認) → download_v3_app_rx72n → smoke_v3_rx72n
+  # のみを実行する。実機影響 (RX72N ENVK #3 = set2) のため flash は when: manual
+  # による人間承認必須。既定は "false" で master pipeline 無影響。
+  RUN_V3_BASELINE: "false"
+  RX72N_V3_SIGNING_KEY: "sample_keys/secp256r1.privatekey"
 
 .windows_ota_aws_job:
   tags:
@@ -180,6 +187,8 @@ build:
     - run_ishiguro_machine
   rules:
     - if: $RUN_V3_BUILD_ONLY == "true"
+      when: never
+    - if: $RUN_V3_BASELINE == "true"
       when: never
     - if: $RUN_OTA_BOUNDARY_ONLY == "true"
       when: never
@@ -361,6 +370,7 @@ build_v3_rx72n:
     - run_ishiguro_machine
   rules:
     - if: $RUN_V3_BUILD_ONLY == "true"
+    - if: $RUN_V3_BASELINE == "true"
     - when: never
   variables:
     GIT_SUBMODULE_STRATEGY: recursive
@@ -369,20 +379,179 @@ build_v3_rx72n:
       Write-Host "=== RX72N v3 build (iot-reference-rx canonical layout) ==="
       Write-Host "Project root: $env:CI_PROJECT_DIR"
       Write-Host "Workspace   : C:\rx72n-v3-ws"
+      python -m pip install --quiet --user cryptography
       & "$env:CI_PROJECT_DIR\tools\ci\build_v3_rx72n_headless.ps1" `
         -ProjectRoot "$env:CI_PROJECT_DIR" `
         -E2Studio    "$env:E2STUDIO" `
         -Workspace   "C:\rx72n-v3-ws" `
         -ProjectsPath "Projects" `
-        -LogFile     "$env:CI_PROJECT_DIR\rx72n_v3_e2studio_build.log"
+        -LogFile     "$env:CI_PROJECT_DIR\rx72n_v3_e2studio_build.log" `
+        -SigningKey  "$env:RX72N_V3_SIGNING_KEY"
   artifacts:
     when: always
     paths:
       - rx72n_v3_e2studio_build.log
+      - rx72n_app.rsu
+      - rx72n_codesign_cert.pem
       - Projects/boot_loader_rx72n_envision_kit/e2studio_ccrx/HardwareDebug/*.mot
       - Projects/aws_ether_rx72n_envision_kit/e2studio_ccrx/HardwareDebug/*.mot
       - Projects/aws_ether_rx72n_envision_kit/e2studio_ccrx/HardwareDebug/*.abs
       - Projects/aws_ether_rx72n_envision_kit/e2studio_ccrx/HardwareDebug/*.x
+    expire_in: 1 week
+
+.v3_pi_job:
+  tags:
+    - exec-shell
+    - os-linux
+    - hw-raspi
+    - dev-ek-rx72n
+    - dev-ek-rx72n-set2
+  resource_group: $DEVICE_RESOURCE_GROUP
+  before_script:
+    - source "$CI_PROJECT_DIR/tools/ci/activate_pi_python.sh" pyserial cryptography
+
+flash_v3_boot_rx72n:
+  stage: flash_boot
+  extends: .v3_pi_job
+  rules:
+    - if: $RUN_V3_BASELINE == "true"
+      when: manual
+    - when: never
+  needs:
+    - job: build_v3_rx72n
+      artifacts: true
+  script:
+    - set -e
+    - |
+      {
+        echo "=== v3 - erase-chip + flash boot_loader (bank0 + bank1) ==="
+        echo "Device=RX72x Tool=$RFP_TOOL Speed=$RFP_SPEED"
+        "$RFP_CLI" -device RX72x -tool "$RFP_TOOL" -if fine -speed "$RFP_SPEED" \
+          -auth id FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF -erase-chip -noquery
+        "$RFP_CLI" -device RX72x -tool "$RFP_TOOL" -if fine -speed "$RFP_SPEED" \
+          -auth id FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF \
+          -p "$CI_PROJECT_DIR/Projects/boot_loader_rx72n_envision_kit/e2studio_ccrx/HardwareDebug/boot_loader_rx72n_envision_kit.mot" \
+          -v -noquery
+        "$RFP_CLI" -device RX72x -tool "$RFP_TOOL" -if fine -speed "$RFP_SPEED" \
+          -auth id FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF \
+          -p "$CI_PROJECT_DIR/Projects/boot_loader_rx72n_envision_kit/e2studio_ccrx/HardwareDebug/boot_loader_rx72n_envision_kit_bank1.mot" \
+          -v -run -noquery
+      } 2>&1 | tee "$CI_PROJECT_DIR/flash_v3_boot_rx72n.log"
+  artifacts:
+    when: always
+    paths:
+      - flash_v3_boot_rx72n.log
+    expire_in: 1 week
+
+download_v3_app_rx72n:
+  stage: download
+  extends: .v3_pi_job
+  rules:
+    - if: $RUN_V3_BASELINE == "true"
+    - when: never
+  needs:
+    - job: build_v3_rx72n
+      artifacts: true
+    - job: flash_v3_boot_rx72n
+      artifacts: false
+  script:
+    - set -e
+    - 'echo "=== v3 - UART download rx72n_app.rsu via boot_loader ==="'
+    - >-
+      python3 "$CI_PROJECT_DIR/tools/v3/test_uart_download_rx72n.py"
+      --rsu "$CI_PROJECT_DIR/rx72n_app.rsu"
+      --port "$UART_PORT"
+      --baud "$UART_BAUD_RATE"
+      --timeout 420
+      --post-tx-wait 120
+      --diag
+      --wait-for-ready
+      --ready-timeout 90
+      --reset-cmd "$RFP_CLI -device RX72x -tool $RFP_TOOL -if fine -speed $RFP_SPEED -auth id FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF -sig -run -noquery"
+      2>&1 | tee "$CI_PROJECT_DIR/download_v3_app.log"
+  artifacts:
+    when: always
+    paths:
+      - download_v3_app.log
+    expire_in: 1 week
+
+smoke_v3_rx72n:
+  stage: smoke_test
+  extends: .v3_pi_job
+  timeout: 5 minutes
+  rules:
+    - if: $RUN_V3_BASELINE == "true"
+    - when: never
+  needs:
+    - job: download_v3_app_rx72n
+      artifacts: false
+  script:
+    - set -e
+    - 'echo "=== v3 - smoke_test (reset board, capture boot sequence on UART_PORT) ==="'
+    - |
+      python3 - "$UART_PORT" "$UART_BAUD_RATE" \
+        "$RFP_CLI" "$RFP_TOOL" "$RFP_SPEED" <<'PY' | tee "$CI_PROJECT_DIR/smoke_v3.log"
+      import subprocess, sys, time, serial
+      port, baud = sys.argv[1], int(sys.argv[2])
+      rfp_cli, rfp_tool, rfp_speed = sys.argv[3], sys.argv[4], sys.argv[5]
+
+      print(f"[SMOKE] Opening {port} @ {baud} bps")
+      ser = serial.Serial(port, baud, timeout=0.2)
+      ser.reset_input_buffer()
+
+      print("[SMOKE] Resetting board via rfp-cli -sig -run ...")
+      reset_cmd = (
+          f'"{rfp_cli}" -device RX72x -tool "{rfp_tool}" -if fine -speed "{rfp_speed}"'
+          f" -auth id FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF -sig -run -noquery"
+      )
+      rc = subprocess.run(reset_cmd, shell=True, capture_output=True, text=True)
+      if rc.stdout.strip():
+          print(f"[SMOKE] rfp-cli stdout: {rc.stdout.strip()}")
+      if rc.returncode != 0:
+          print(f"[SMOKE] WARNING: rfp-cli exit {rc.returncode} (non-fatal)")
+      time.sleep(0.3)
+
+      buf = b""
+      t0 = time.time()
+      timeout = 90.0
+      bootloader_seen = False
+      jump_seen = False
+      banner_seen = False
+      prompt_seen = False
+      while time.time() - t0 < timeout:
+          data = ser.read(4096)
+          if data:
+              sys.stdout.write(data.decode(errors='replace'))
+              sys.stdout.flush()
+              buf += data
+              buf = buf[-8192:]
+              if b"BootLoader" in buf or b"boot_loader" in buf:
+                  bootloader_seen = True
+              if b"jump to user program" in buf:
+                  jump_seen = True
+              if b"FreeRTOS" in buf or b"IoT" in buf or b"coreMQTT" in buf:
+                  banner_seen = True
+              if b"> " in buf[-20:] or buf.endswith(b"$ "):
+                  prompt_seen = True
+          if banner_seen or prompt_seen:
+              ser.write(b"\r\n")
+              time.sleep(0.5)
+              more = ser.read(4096)
+              if more:
+                  sys.stdout.write(more.decode(errors='replace'))
+                  sys.stdout.flush()
+              break
+      ser.close()
+
+      print(f"\n[SMOKE] bootloader_seen={bootloader_seen} jump_seen={jump_seen}"
+            f" banner_seen={banner_seen} prompt_seen={prompt_seen}"
+            f" elapsed={time.time()-t0:.1f}s")
+      sys.exit(0 if (banner_seen or prompt_seen) else 1)
+      PY
+  artifacts:
+    when: always
+    paths:
+      - smoke_v3.log
     expire_in: 1 week
 
 
@@ -394,6 +563,8 @@ capture_after_download_aws_demos:
   when: always
   rules:
     - if: $RUN_V3_BUILD_ONLY == "true"
+      when: never
+    - if: $RUN_V3_BASELINE == "true"
       when: never
     - if: $RUN_OTA_BOUNDARY_ONLY == "true"
       when: never
@@ -436,6 +607,8 @@ build_ota:
     - run_ishiguro_machine
   rules:
     - if: $RUN_V3_BUILD_ONLY == "true"
+      when: never
+    - if: $RUN_V3_BASELINE == "true"
       when: never
     - if: $RUN_RFP_SOAK_TEST == "true"
       when: never
@@ -629,6 +802,8 @@ ota_create_job:
   rules:
     - if: $RUN_V3_BUILD_ONLY == "true"
       when: never
+    - if: $RUN_V3_BASELINE == "true"
+      when: never
     - if: $RUN_PREPARE_OTA_ONLY == "true"
       when: never
     - if: $RUN_RFP_SOAK_TEST == "true"
@@ -683,6 +858,8 @@ ota_finalize:
   when: always
   rules:
     - if: $RUN_V3_BUILD_ONLY == "true"
+      when: never
+    - if: $RUN_V3_BASELINE == "true"
       when: never
     - if: $RUN_PREPARE_OTA_ONLY == "true"
       when: never
@@ -757,6 +934,8 @@ ota_release_reservation:
   when: always
   rules:
     - if: $RUN_V3_BUILD_ONLY == "true"
+      when: never
+    - if: $RUN_V3_BASELINE == "true"
       when: never
     - if: $RUN_PREPARE_OTA_ONLY == "true"
       when: never
