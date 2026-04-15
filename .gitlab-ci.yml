@@ -695,9 +695,6 @@ ota_finalize:
     - if: $RUN_HW_HEALTHCHECK == "true"
       when: never
     - if: $RUN_OTA_TEST == "true"
-  dependencies:
-    - ota_create_job
-    - ota_monitor
   script:
     - |
       $owner = "$($env:CI_PROJECT_ID):$($env:CI_PIPELINE_ID):$($env:DEVICE_ID)"
