@@ -159,6 +159,13 @@ variables:
   # のみを実行する。実機影響 (RX72N ENVK #3 = set2) のため flash は when: manual
   # による人間承認必須。既定は "false" で master pipeline 無影響。
   RUN_V3_BASELINE: "false"
+  # RUN_V3_OTA: Phase 8b 第3次 段階4 (Issue #46) の v3 baseline 上での
+  # AWS IoT OTA 動作確認 gate。"true" のとき legacy / v3 baseline ジョブを全 skip し、
+  # build_v3_ota_rx72n → flash_v3_boot_ota_rx72n (manual) →
+  # download_v3_v1_ota_rx72n → provision_v3_ota_rx72n → ota_v3_create_job_rx72n →
+  # ota_v3_monitor_rx72n → ota_v3_finalize_rx72n のみ実行する。
+  # 実機影響 (RX72N ENVK #3 = set2) のため flash は manual gate 必須。
+  RUN_V3_OTA: "false"
   RX72N_V3_SIGNING_KEY: "sample_keys/secp256r1.privatekey"
 
 .windows_ota_aws_job:
@@ -189,6 +196,8 @@ build:
     - if: $RUN_V3_BUILD_ONLY == "true"
       when: never
     - if: $RUN_V3_BASELINE == "true"
+      when: never
+    - if: $RUN_V3_OTA == "true"
       when: never
     - if: $RUN_OTA_BOUNDARY_ONLY == "true"
       when: never
@@ -628,6 +637,8 @@ capture_after_download_aws_demos:
       when: never
     - if: $RUN_V3_BASELINE == "true"
       when: never
+    - if: $RUN_V3_OTA == "true"
+      when: never
     - if: $RUN_OTA_BOUNDARY_ONLY == "true"
       when: never
     - if: $RUN_RFP_SOAK_TEST == "true"
@@ -671,6 +682,8 @@ build_ota:
     - if: $RUN_V3_BUILD_ONLY == "true"
       when: never
     - if: $RUN_V3_BASELINE == "true"
+      when: never
+    - if: $RUN_V3_OTA == "true"
       when: never
     - if: $RUN_RFP_SOAK_TEST == "true"
       when: never
@@ -866,6 +879,8 @@ ota_create_job:
       when: never
     - if: $RUN_V3_BASELINE == "true"
       when: never
+    - if: $RUN_V3_OTA == "true"
+      when: never
     - if: $RUN_PREPARE_OTA_ONLY == "true"
       when: never
     - if: $RUN_RFP_SOAK_TEST == "true"
@@ -922,6 +937,8 @@ ota_finalize:
     - if: $RUN_V3_BUILD_ONLY == "true"
       when: never
     - if: $RUN_V3_BASELINE == "true"
+      when: never
+    - if: $RUN_V3_OTA == "true"
       when: never
     - if: $RUN_PREPARE_OTA_ONLY == "true"
       when: never
@@ -998,6 +1015,8 @@ ota_release_reservation:
     - if: $RUN_V3_BUILD_ONLY == "true"
       when: never
     - if: $RUN_V3_BASELINE == "true"
+      when: never
+    - if: $RUN_V3_OTA == "true"
       when: never
     - if: $RUN_PREPARE_OTA_ONLY == "true"
       when: never
