@@ -554,6 +554,68 @@ smoke_v3_rx72n:
       - smoke_v3.log
     expire_in: 1 week
 
+provision_v3_rx72n:
+  stage: provision
+  extends: .v3_pi_job
+  timeout: 10 minutes
+  rules:
+    - if: $RUN_V3_BASELINE == "true"
+    - when: never
+  needs:
+    - job: build_v3_rx72n
+      artifacts: true
+    - job: smoke_v3_rx72n
+      artifacts: false
+  script:
+    - set -e
+    - 'echo "=== v3 - provision (endpoint/thingname/cert/key/codesigncert via UART CLI) ==="'
+    - >-
+      python3 "$CI_PROJECT_DIR/tools/v3/provision_rx72n.py"
+      --port "$UART_PORT"
+      --baud "$UART_BAUD_RATE"
+      --thing-name "$DEVICE_ID"
+      --endpoint "$AWS_IOT_ENDPOINT"
+      --cert "$AWS_CLIENT_CERT_RX72N_03"
+      --key "$AWS_PRIVATE_KEY_RX72N_03"
+      --codesigner-cert "$CI_PROJECT_DIR/rx72n_codesign_cert.pem"
+      --reset-cmd "$RFP_CLI -device RX72x -tool $RFP_TOOL -if fine -speed $RFP_SPEED -auth id FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF -sig -run -noquery"
+      --reset-after-open
+      --boot-wait 12
+      --cli-timeout 25
+      --attempts 3
+      2>&1 | tee "$CI_PROJECT_DIR/provision_v3.log"
+  artifacts:
+    when: always
+    paths:
+      - provision_v3.log
+    expire_in: 1 week
+
+mqtt_v3_rx72n:
+  stage: test
+  extends: .v3_pi_job
+  timeout: 10 minutes
+  rules:
+    - if: $RUN_V3_BASELINE == "true"
+    - when: never
+  needs:
+    - job: provision_v3_rx72n
+      artifacts: false
+  script:
+    - set -e
+    - 'echo "=== v3 - MQTT baseline verification (CONNACK + Pub/Sub on UART log) ==="'
+    - >-
+      python3 "$CI_PROJECT_DIR/tools/v3/test_mqtt_rx72n.py"
+      --log-port "$UART_PORT"
+      --log-baud "$UART_BAUD_RATE"
+      --timeout 180
+      --reset-cmd "$RFP_CLI -device RX72x -tool $RFP_TOOL -if fine -speed $RFP_SPEED -auth id FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF -sig -run -noquery"
+      2>&1 | tee "$CI_PROJECT_DIR/mqtt_v3.log"
+  artifacts:
+    when: always
+    paths:
+      - mqtt_v3.log
+    expire_in: 1 week
+
 
 capture_after_download_aws_demos:
   stage: observe
