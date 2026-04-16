@@ -671,6 +671,107 @@ build_v3_ota_rx72n:
       - Projects/aws_ether_rx72n_envision_kit/e2studio_ccrx/HardwareDebug/*.x
     expire_in: 1 week
 
+flash_v3_boot_ota_rx72n:
+  stage: flash_boot
+  extends: .v3_pi_job
+  rules:
+    - if: $RUN_V3_OTA == "true"
+      when: manual
+    - when: never
+  needs:
+    - job: build_v3_ota_rx72n
+      artifacts: true
+  script:
+    - set -e
+    - |
+      {
+        echo "=== v3 OTA - erase-chip + flash boot_loader (bank0 + bank1) ==="
+        echo "Device=RX72x Tool=$RFP_TOOL Speed=$RFP_SPEED"
+        "$RFP_CLI" -device RX72x -tool "$RFP_TOOL" -if fine -speed "$RFP_SPEED" \
+          -auth id FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF -erase-chip -noquery
+        "$RFP_CLI" -device RX72x -tool "$RFP_TOOL" -if fine -speed "$RFP_SPEED" \
+          -auth id FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF \
+          -p "$CI_PROJECT_DIR/Projects/boot_loader_rx72n_envision_kit/e2studio_ccrx/HardwareDebug/boot_loader_rx72n_envision_kit.mot" \
+          -v -noquery
+        "$RFP_CLI" -device RX72x -tool "$RFP_TOOL" -if fine -speed "$RFP_SPEED" \
+          -auth id FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF \
+          -p "$CI_PROJECT_DIR/Projects/boot_loader_rx72n_envision_kit/e2studio_ccrx/HardwareDebug/boot_loader_rx72n_envision_kit_bank1.mot" \
+          -v -run -noquery
+      } 2>&1 | tee "$CI_PROJECT_DIR/flash_v3_boot_ota.log"
+  artifacts:
+    when: always
+    paths:
+      - flash_v3_boot_ota.log
+    expire_in: 1 week
+
+download_v3_v1_ota_rx72n:
+  stage: download
+  extends: .v3_pi_job
+  rules:
+    - if: $RUN_V3_OTA == "true"
+    - when: never
+  needs:
+    - job: build_v3_ota_rx72n
+      artifacts: true
+    - job: flash_v3_boot_ota_rx72n
+      artifacts: false
+  script:
+    - set -e
+    - 'echo "=== v3 OTA - UART download rx72n_v3_ota_v1.rsu via boot_loader ==="'
+    - >-
+      python3 "$CI_PROJECT_DIR/tools/v3/test_uart_download_rx72n.py"
+      --rsu "$CI_PROJECT_DIR/rx72n_v3_ota_v1.rsu"
+      --port "$UART_PORT"
+      --baud "$UART_BAUD_RATE"
+      --timeout 420
+      --post-tx-wait 120
+      --diag
+      --wait-for-ready
+      --ready-timeout 90
+      --reset-cmd "$RFP_CLI -device RX72x -tool $RFP_TOOL -if fine -speed $RFP_SPEED -auth id FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF -sig -run -noquery"
+      2>&1 | tee "$CI_PROJECT_DIR/download_v3_v1_ota.log"
+  artifacts:
+    when: always
+    paths:
+      - download_v3_v1_ota.log
+    expire_in: 1 week
+
+provision_v3_ota_rx72n:
+  stage: provision
+  extends: .v3_pi_job
+  timeout: 10 minutes
+  rules:
+    - if: $RUN_V3_OTA == "true"
+    - when: never
+  needs:
+    - job: build_v3_ota_rx72n
+      artifacts: true
+    - job: download_v3_v1_ota_rx72n
+      artifacts: false
+  script:
+    - set -e
+    - 'echo "=== v3 OTA - provision (endpoint/thingname/cert/key/codesigncert via UART CLI) ==="'
+    - >-
+      python3 "$CI_PROJECT_DIR/tools/v3/provision_rx72n.py"
+      --port "$UART_PORT"
+      --baud "$UART_BAUD_RATE"
+      --thing-name "$DEVICE_ID"
+      --endpoint "$AWS_IOT_ENDPOINT"
+      --cert "$AWS_CLIENT_CERT_RX72N_03"
+      --key "$AWS_PRIVATE_KEY_RX72N_03"
+      --codesigner-cert "$CI_PROJECT_DIR/rx72n_codesign_cert.pem"
+      --reset-cmd "$RFP_CLI -device RX72x -tool $RFP_TOOL -if fine -speed $RFP_SPEED -auth id FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF -sig -run -noquery"
+      --reset-after-open
+      --boot-wait 12
+      --cli-timeout 25
+      --attempts 3
+      2>&1 | tee "$CI_PROJECT_DIR/provision_v3_ota.log"
+  artifacts:
+    when: always
+    paths:
+      - provision_v3_ota.log
+    expire_in: 1 week
+
 
 capture_after_download_aws_demos:
   stage: observe
