@@ -45,7 +45,7 @@ MARKERS = [
     },
     {
         "name": "MQTT Receive",
-        "pattern": "Incoming PUBLISH received on topic pubsub_demo/",
+        "pattern": "Received incoming publish message",
         "required": True,
     },
     {
