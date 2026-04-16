@@ -156,7 +156,7 @@ def load_device_defaults(args):
     """device_config.json と環境変数から不足引数を補完する。"""
     device = {}
     if args.device_id:
-        sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+        sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "test_scripts"))
         from device_config_loader import load_device_config
 
         device = load_device_config(args.device_id)
@@ -999,7 +999,7 @@ def legacy_main():
 
     # --device-id から設定解決
     if args.device_id:
-        sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+        sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "test_scripts"))
         from device_config_loader import load_device_config
         device = load_device_config(args.device_id)
         print(f"[INFO] Loaded config for device: {args.device_id}")
