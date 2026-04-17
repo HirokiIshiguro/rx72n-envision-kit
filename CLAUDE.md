@@ -20,7 +20,7 @@ RX72N Envision Kit の全機能を試せるようにする。
 | 1 | ドキュメント整理: Wiki を `docs/` へ移行 | 完了 |
 | 2 | Claude 支援の開発環境整備 | 進行中 |
 | 3 | CI/CD パイプライン整備 | 進行中 (Phase 1-2 完了) |
-| 4 | FreeRTOS を最新 Renesas IoT reference implementation ([iot-reference-rx](https://github.com/renesas/iot-reference-rx)) に置換 | 進行中 (Phase 8b 第3次 段階1-4 完了 / 段階5 GUI/SD 再統合 残, Issue #12) |
+| 4 | FreeRTOS を最新 Renesas IoT reference implementation ([iot-reference-rx](https://github.com/renesas/iot-reference-rx)) に置換 | 進行中 (Phase 8b 第3次 段階1-4 完了 / 段階5 GUI/SD 再統合 残, 新規 Issue 要起票。旧 Issue #12 は 2026-03-15 に閉鎖) |
 
 ## リポジトリ
 
@@ -43,7 +43,7 @@ RX72N Envision Kit の全機能を試せるようにする。
 | 5 | e2studio 2024-01 / CC-RX v3.04 環境で既存機能の動作検証（AWS 接続、SD カードによるファームウェアアップデート、各種コマンドレスポンス） | 完了 (MR !20) |
 | 6 | e2studio 2025-12 / CC-RX v3.07 ツールチェーン更新 + 既存機能の動作検証 | 完了 (MR !21) |
 | 7 | AWS IoT OTA テスト自動化（S3 + OTA ジョブ → MQTT ダウンロード → 署名検証 → バンクスワップ → 自己テスト）（1台） | 完了 (MR !23) |
-| 8 | FreeRTOS LTS 最新版適用（[iot-reference-rx](https://github.com/renesas/iot-reference-rx) 最新リリースタグ）。作業リポジトリ: [iot-reference-rx (GitLab)](https://shelty2.servegame.com/oss/import/github/renesas/iot-reference-rx)。CK-RX65N V1 で先行構築（Phase 8a）→ RX72N に移植（Phase 8b）の2段階アプローチ。詳細計画は [iot-reference-rx の CLAUDE.md](https://shelty2.servegame.com/oss/import/github/renesas/iot-reference-rx/-/blob/main/CLAUDE.md) を参照 | 進行中 (Phase 8b 第3次 段階1-4 完了, 段階5 GUI/SD Issue #12 残) |
+| 8 | FreeRTOS LTS 最新版適用（[iot-reference-rx](https://github.com/renesas/iot-reference-rx) 最新リリースタグ）。作業リポジトリ: [iot-reference-rx (GitLab)](https://shelty2.servegame.com/oss/import/github/renesas/iot-reference-rx)。CK-RX65N V1 で先行構築（Phase 8a）→ RX72N に移植（Phase 8b）の2段階アプローチ。詳細計画は [iot-reference-rx の CLAUDE.md](https://shelty2.servegame.com/oss/import/github/renesas/iot-reference-rx/-/blob/main/CLAUDE.md) を参照 | 進行中 (Phase 8b 第3次 段階1-4 完了, 段階5 GUI/SD は新規 Issue 要起票。旧 #12 は 2026-03-15 閉鎖) |
 | 9 | AWS 接続を含む OTA テスト（1台、新 FW で再検証） | 完了 (MR !83, Pipeline #3123 で v3 OTA 全 7 jobs success) |
 | 10 | AWS 接続を含むフリートプロビジョニング テスト（1台。iot-reference-rx の FP デモを活用） | 予定 |
 | 11 | AWS 接続を含むセカンダリ MCU ファームウェアアップデート テスト（RX72N → FPB-RX140） | 予定 |
@@ -73,8 +73,8 @@ Phase 8b は親 issue [#11](https://shelty2.servegame.com/oss/import/github/rene
 | 8b-2 | [#8](https://shelty2.servegame.com/oss/import/github/renesas/rx72n-envision-kit/-/issues/8) | RX72N boot loader を新 baseline 上で build 可能にする |
 | 8b-3 | [#9](https://shelty2.servegame.com/oss/import/github/renesas/rx72n-envision-kit/-/issues/9) | RX72N app を新 baseline へ移植し MQTT baseline を回復 |
 | 8b-3b | [#13](https://shelty2.servegame.com/oss/import/github/renesas/rx72n-envision-kit/-/issues/13) | `phase8b/` の `build -> flash -> provision -> MQTT` を CI へ接続 |
-| 8b-4 | [#10](https://shelty2.servegame.com/oss/import/github/renesas/rx72n-envision-kit/-/issues/10) / [#46](https://shelty2.servegame.com/oss/import/github/renesas/rx72n-envision-kit/-/issues/46) | OTA を新 baseline 上で再検証 (第3次 段階4 で完了, MR !83) |
-| 8b-5 | [#12](https://shelty2.servegame.com/oss/import/github/renesas/rx72n-envision-kit/-/issues/12) | GUI / SD update / Envision Kit 独自 UX を再統合 (次着手) |
+| 8b-4 | [#10](https://shelty2.servegame.com/oss/import/github/renesas/rx72n-envision-kit/-/issues/10) (closed) / [#46](https://shelty2.servegame.com/oss/import/github/renesas/rx72n-envision-kit/-/issues/46) (open, MR !83 マージ済みのため close 予定) | OTA を新 baseline 上で再検証 (第3次 段階4 で完了, MR !83) |
+| 8b-5 | 新規 Issue 要起票 (旧 [#12](https://shelty2.servegame.com/oss/import/github/renesas/rx72n-envision-kit/-/issues/12) は 2026-03-15 closed) | GUI / SD update / Envision Kit 独自 UX を再統合 (次着手) |
 
 **実行順:**
 - 最初のターゲットは headless baseline の `build -> flash -> provision -> MQTT -> OTA`。
@@ -95,23 +95,11 @@ Phase 8b は親 issue [#11](https://shelty2.servegame.com/oss/import/github/rene
 詳細メモは [`docs/phase8b-migration-plan.md`](docs/phase8b-migration-plan.md) に記録する。
 
 **現在の進捗:**
-- 8b-1 は完了。`phase8b/` staging root に `iot-reference-rx` baseline を取り込み済み。
-- 8b-2 は headless build gate を通過。`boot_loader_rx72n_envision_kit` は e2studio 2025-12 + CC-RX で `.mot` 生成まで確認。
-- 8b-2 の残課題は runtime 妥当性確認。`R_BSP_ClockReset_Bootloader()` は RX72N 側でまだ暫定 no-op のため、flash 実機確認前に本実装へ置き換える。
-- 8b-3 は headless build gate を通過。`aws_ether_rx72n_envision_kit` は e2studio 2025-12 + CC-RX で `.abs` / `.mot` / `.x` 生成まで確認。
-- 8b-3 では `build_phase8b` job と `RUN_PHASE8B_BUILD_ONLY` モードを追加し、`phase8b/` のみを対象にした Windows build-only gate を CI へ接続済み。
-- 8b-3b は完了。Issue [#13](https://shelty2.servegame.com/oss/import/github/renesas/rx72n-envision-kit/-/issues/13) を閉じ、`RUN_PHASE8B_BASELINE` と phase8b 専用 helper / job により `build_phase8b -> flash/download -> provision -> MQTT` の hardware baseline を CI へ再接続した。
-- 8b-4 は Issue [#10](https://shelty2.servegame.com/oss/import/github/renesas/rx72n-envision-kit/-/issues/10) で進める。次段の主タスクは `RUN_PHASE8B_OTA` による phase8b 専用 OTA pipeline（`build_phase8b_ota -> prepare_phase8b_ota -> phase8b_ota_create_job/monitor/finalize`）の導線整備。
-- 2026-03-11 の pipeline `#588` で `build_phase8b_ota` は成功し v1/v2 RSU 生成まで確認した。一方 `prepare_phase8b_ota` は Raspberry Pi runner `ef-saffti-001-rpi-003-rx72nek` 上で `E3000201: Cannot find the specified tool.` により失敗し、現行 CI 変数束（`DEVICE_ID=rx72n-01`, `E2LITE_SERIAL/UART_PORT/COMMAND_PORT` の単一セット）が 3 セット構成をまだ表現できていないことが分かった。
-- 2026-03-11 の pipeline `#590` では `prepare_phase8b_ota` が `rpi-001` で成功した一方、`phase8b_ota_monitor` は `rpi-002` にスケジュールされて `UART_PORT` mismatch で失敗した。generic tag のみでは OTA prepare/run が同じ実機に stick せず、runner/device affinity の導入が必要。
-- 同じ `#590` で `phase8b_ota_create_job` は旧 RSU parser が `RELFWV2` を理解できず失敗したため、`test_ota.py` を legacy `Renesas` / phase8b `RELFWV2` の両形式対応へ更新した。ローカル再現で phase8b RSU の payload/signature 抽出までは確認済み。
-- 2026-03-11 の pipeline `#592` では `prepare_phase8b_ota` / `phase8b_ota_monitor` が同じ `rpi-001` で実行され、`phase8b_ota_create_job` も成功した。残る失敗は OTA monitor のみだが、trace を追うと `prepare_phase8b_ota` が実際には flash 後で止まっており、`UART download -> provisioning -> reset` まで到達していなかった。
-- 原因は `tools/ci/acquire_pi_device_lock.sh` を同一 job 内で再度 `source` したとき、`DEVICE_LOCK_HELD=1` 分岐で `exit 0` し outer shell ごと終了していたこと。helper を `return` 優先に修正し、同一 job 内で lock helper を再利用しても後続 step が継続するようにした。
-- 2026-03-11 の pipeline `#594` では、`prepare_phase8b_ota` が今度は 1 block 目を越えたものの、2 block 目開始時に `/tmp/gitlab-device-locks/rx72n-01.lock` の再取得待ちで停滞した。GitLab shell 実行形態では block 間で lock 状態を素直に引き回せない前提と見なし、`prepare_phase8b_ota` は `flash -> UART download -> provisioning -> reset` を 1 つの script block に統合した。
-- `.pi_device_job` の `resource_group` は現状 `rx72n-device` 固定で、3 セット runner を導入しても job は device 全体で直列化される。並列度を上げるには、hardware-config 側で runner ごとの device 変数束と lock/resource の分離が必要。
-- 2026-03-11 時点で repo 側は `DEVICE_RUNNER_TAG` / `DEVICE_RESOURCE_GROUP` override と `rx72n-02` / `rx72n-03` の `device_id` を受けられる形へ更新した。つまり CI 側は set 固定実行の受け皿を持ったが、実運用には runner 側の set 別 tag 付与と、hardware-config / CI Variables への set #2 / #3 個体値登録がまだ必要。
-- さらに `rfp-cli -d RX72x -lt` が接続中 E2 Lite の serial を返さず tool 種別一覧だけを返すことが分かったため、repo 側は `RFP_TOOL=e2l` を既定にして serial 未指定でも 1 Pi = 1 E2 Lite 構成で書き込みできるように更新した。これで phase8b OTA の残 blocker はほぼ `runner tag / UART path / MAC 設定` へ絞り込めた。
-- 8b-3/8b-4 共通の残課題は warning cleanup と OTA 実行安定化。`r_tsip_rx` の RX72N 正式化、`C_LITTLEFS_*` / `C_USER_APPLICATION_AREA` section warning の整理、phase8b 上での OTA monitor 再現性確認を次段で進める。
+- 8b-1 / 8b-2 / 8b-3 / 8b-3b は完了。`phase8b/` staging root から `aws_ether_rx72n_envision_kit` / `boot_loader_rx72n_envision_kit` の build → flash → MQTT baseline までを CI へ接続済み。
+- 8b-4 (OTA 再検証) は **Phase 8b 第3次 段階1-4** として再構成し、v3 baseline (iot-reference-rx HEAD `023e13ea` 同期) 上で完了。MR !77 (段階1: build-only gate) → MR !79 (段階2: flash/download) → MR !82 (段階3: AWS provisioning + MQTT, Pipeline #3006 で 4/4 markers PASS) → MR !83 (段階4: OTA, Pipeline #3123 で `RUN_V3_OTA=true` の OTA 全 7 jobs success / Pipeline #3148 で legacy full test success)。実行モードは `RUN_V3_BUILD_ONLY` / `RUN_V3_BASELINE` / `RUN_V3_OTA` の 3 系統 (旧 `RUN_PHASE8B_*` から rename)。
+- 段階4 で特定した重要 issue は本ファイル末尾 Changelog `2026-04-17` エントリに集約 (decodedData stack overflow → BSS 化 / `ota_pal.c` を iot-reference-rx HEAD と sync / RSU builder 二系統の混同 / monitor STEP 3 `--reset-cmd` / CN8 撤去)。
+- 8b-5 (GUI / SD update / Envision Kit 固有 UX 再統合) は次着手。新規 Issue 要起票 (旧 #12 は 2026-03-15 閉鎖)。
+- 直近の残課題: warning cleanup (`r_tsip_rx` の RX72N 正式化、`C_LITTLEFS_*` / `C_USER_APPLICATION_AREA` section warning) と E2 Lite / E2OB の物理安定化 (CN8 撤去後も deep hung が観測される場合のリモート電源制御導入)。3 セット並列運用は `DEVICE_RUNNER_TAG` / `DEVICE_RESOURCE_GROUP` / `RFP_TOOL=e2l` の枠組みを CI 側で受けられる状態だが、hardware-config 側の set #2 / #3 個体値登録は未完了。
 
 ### Phase 8b 事前確認: MCUboot + 最新 FreeRTOS 向け ROM 予算
 
@@ -244,7 +232,7 @@ CI/CD Variables を変更すること。
 | `RUN_OTA_BOUNDARY_ONLY` | `"false"` | legacy OTA の `build_ota -> prepare_ota -> ota_create_job -> ota_monitor` だけを流す境界再現モード。`RUN_ONLY_DEVICE_SLOT` と併用して 1 台だけを繰り返し観測する |
 | `RUN_V3_BUILD_ONLY` | `"false"` | v3 baseline の build-only gate (`build_v3_rx72n`) のみを実行するか (Phase 8b 第3次 段階1) |
 | `RUN_V3_BASELINE` | `"false"` | v3 baseline の hardware baseline (`build_v3_rx72n -> flash/download -> provision -> MQTT`) のみを実行するか (段階2-3) |
-| `RUN_V3_OTA` | `"false"` | v3 baseline の OTA 再検証 (`build_v3_rx72n_ota -> prepare_v3_ota -> v3_ota_create_job/monitor/finalize`) のみを実行するか (段階4)。**注意**: ENVK 1台で連続実行する際は AWS 側の job 重複を避けるため `RUN_AWS_TESTS=false` 併用が安全 |
+| `RUN_V3_OTA` | `"false"` | v3 baseline の OTA 再検証 (`build_v3_ota_rx72n -> flash_v3_boot_ota_rx72n -> download_v3_v1_ota_rx72n -> provision_v3_ota_rx72n -> ota_v3_create_job_rx72n -> ota_v3_monitor_rx72n -> ota_v3_finalize_rx72n` の 7 jobs) のみを実行するか (段階4)。**注意**: ENVK 1台で連続実行する際は AWS 側の job 重複を避けるため `RUN_AWS_TESTS=false` 併用が安全 |
 | `DEVICE_ID` | `"rx72n-01"` | `device_config.json` / AWS 証明書変数名に対応する論理デバイス ID。3 セット運用時は `rx72n-02` / `rx72n-03` へ切り替える |
 | `RFP_TOOL` | `"e2l"` | `rfp-cli -tool` に渡す値。1 Pi = 1 E2 Lite 構成では generic `e2l` を使い、必要時のみ `e2l:<serial>` へ override する |
 | `DEVICE_RUNNER_TAG` | `"dev-rx72n"` | Raspberry Pi runner 固定用 tag。set 固定実行時は `dev-rx72n-01` / `-02` / `-03` のような個別 tag を指定する |
@@ -276,7 +264,7 @@ v3 baseline の retarget 作業を scarce な実機資源を消費せずに回�
 4/4 markers (IP Address / MQTT Receive / Topic Subscribe / MQTT Publish) PASS を Pipeline #3006 で確認済み。
 
 `RUN_V3_OTA=true` を指定すると、legacy 系 job を止め、
-`build_v3_rx72n_ota -> prepare_v3_ota -> v3_ota_create_job/monitor/finalize` を実行する
+`build_v3_ota_rx72n -> flash_v3_boot_ota_rx72n -> download_v3_v1_ota_rx72n -> provision_v3_ota_rx72n -> ota_v3_create_job_rx72n -> ota_v3_monitor_rx72n -> ota_v3_finalize_rx72n` の 7 jobs を実行する
 (段階4, MR !83)。Pipeline #3123 で全 7 jobs success。最新 FreeRTOS baseline 上で OTA pipeline を再検証するためのモード。
 
 **注意:**
@@ -810,7 +798,7 @@ python test_scripts/uart_test/provision_aws.py \
 
 ### 2026-04-17: Phase 8b 第3次 段階4 (OTA) 完了 — MR !83 / Issue #46
 
-v3 baseline 上での OTA 再検証が完了。Pipeline `#3123` で `RUN_V3_OTA=true` の v3 OTA 全 7 jobs success、Pipeline `#3148` で legacy full test も success（CN8 撤去に伴う expected warnings 付き）。段階1 (MR !77) → 段階2 (MR !79) → 段階3 (MR !82, MQTT 4/4 markers PASS at #3006) → 段階4 (MR !83) で第3次 baseline は OTA まで通った。次は Issue `#12` の段階5 (GUI/SD UX 再統合)。
+v3 baseline 上での OTA 再検証が完了。Pipeline `#3123` で `RUN_V3_OTA=true` の v3 OTA 全 7 jobs success、Pipeline `#3148` で legacy full test も success（CN8 撤去に伴う expected warnings 付き）。段階1 (MR !77) → 段階2 (MR !79) → 段階3 (MR !82, MQTT 4/4 markers PASS at #3006) → 段階4 (MR !83) で第3次 baseline は OTA まで通った。次は段階5 (GUI/SD UX 再統合) — 新規 Issue 要起票 (旧 #12 は 2026-03-15 閉鎖)。
 
 段階4 で発見・修正した重要 issue:
 
