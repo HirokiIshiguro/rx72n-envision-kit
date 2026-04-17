@@ -956,16 +956,291 @@
             <Path>src\smc_gen\r_config\r_bsp_interrupt_config.h</Path>
             <Path>src\smc_gen\r_config\r_byteq_config.h</Path>
             <Path>src\smc_gen\r_config\r_cmt_rx_config.h</Path>
+            <Path>src\smc_gen\r_config\r_dmaca_rx_config.h</Path>
+            <Path>src\smc_gen\r_config\r_drw2d_rx_config.h</Path>
+            <Path>src\smc_gen\r_config\r_emwin_rx_config.h</Path>
             <Path>src\smc_gen\r_config\r_ether_rx_config.h</Path>
             <Path>src\smc_gen\r_config\r_flash_rx_config.h</Path>
             <Path>src\smc_gen\r_config\r_fwup_config.h</Path>
             <Path>src\smc_gen\r_config\r_glcdc_rx_config.h</Path>
+            <Path>src\smc_gen\r_config\r_gpio_rx_config.h</Path>
             <Path>src\smc_gen\r_config\r_irq_rx_config.h</Path>
             <Path>src\smc_gen\r_config\r_s12ad_rx_config.h</Path>
+            <Path>src\smc_gen\r_config\r_sci_iic_rx_config.h</Path>
+            <Path>src\smc_gen\r_config\r_sci_iic_rx_pin_config.h</Path>
             <Path>src\smc_gen\r_config\r_sci_rx_config.h</Path>
-            <Path>src\smc_gen\r_config\r_simple_glcdc_config_rx_config.h</Path>
-            <Path>src\smc_gen\r_config\r_simple_graphic_rx_config.h</Path>
             <Path>src\smc_gen\r_config\r_tsip_rx_config.h</Path>
+          </Category>
+          <Category Name="r_dmaca_rx">
+            <Path>src\smc_gen\r_dmaca_rx\r_dmaca_rx_if.h</Path>
+            <Path>src\smc_gen\r_dmaca_rx\readme.txt</Path>
+            <Category Name="doc">
+              <Category Name="en">
+                <Path>src\smc_gen\r_dmaca_rx\doc\en\r01an2063ej0342-rx-dmac.pdf</Path>
+              </Category>
+              <Category Name="ja">
+                <Path>src\smc_gen\r_dmaca_rx\doc\ja\r01an2063jj0342-rx-dmac.pdf</Path>
+              </Category>
+            </Category>
+            <Category Name="src">
+              <Path>src\smc_gen\r_dmaca_rx\src\r_dmaca_rx.c</Path>
+              <Path>src\smc_gen\r_dmaca_rx\src\r_dmaca_rx_private.h</Path>
+              <Category Name="targets">
+                <Category Name="rx72n">
+                  <Path>src\smc_gen\r_dmaca_rx\src\targets\rx72n\r_dmaca_rx_target.c</Path>
+                  <Path>src\smc_gen\r_dmaca_rx\src\targets\rx72n\r_dmaca_rx_target.h</Path>
+                </Category>
+              </Category>
+            </Category>
+          </Category>
+          <Category Name="r_drw2d_rx">
+            <Path>src\smc_gen\r_drw2d_rx\ReadMe.txt</Path>
+            <Category Name="doc">
+              <Category Name="en">
+                <Path>src\smc_gen\r_drw2d_rx\doc\en\r01an5373ej0114-rx-drw2d.pdf</Path>
+              </Category>
+              <Category Name="ja">
+                <Path>src\smc_gen\r_drw2d_rx\doc\ja\r01an5373jj0114-rx-drw2d.pdf</Path>
+              </Category>
+            </Category>
+            <Category Name="inc">
+              <Category Name="tes">
+                <Path>src\smc_gen\r_drw2d_rx\inc\tes\dave_base.h</Path>
+                <Path>src\smc_gen\r_drw2d_rx\inc\tes\dave_driver.h</Path>
+                <Path>src\smc_gen\r_drw2d_rx\inc\tes\dave_errorcodes.h</Path>
+                <Path>src\smc_gen\r_drw2d_rx\inc\tes\dave_math.h</Path>
+                <Path>src\smc_gen\r_drw2d_rx\inc\tes\dave_types.h</Path>
+                <Path>src\smc_gen\r_drw2d_rx\inc\tes\dave_videomodes.h</Path>
+              </Category>
+            </Category>
+            <Category Name="src">
+              <Category Name="rx">
+                <Path>src\smc_gen\r_drw2d_rx\src\rx\dave_base_rx.c</Path>
+                <Path>src\smc_gen\r_drw2d_rx\src\rx\dave_base_rx.h</Path>
+                <Path>src\smc_gen\r_drw2d_rx\src\rx\dave_irq_rx.c</Path>
+                <Path>src\smc_gen\r_drw2d_rx\src\rx\dave_memory_rx.c</Path>
+              </Category>
+              <Category Name="tes">
+                <Path>src\smc_gen\r_drw2d_rx\src\tes\dave_64bitoperation.c</Path>
+                <Path>src\smc_gen\r_drw2d_rx\src\tes\dave_base.c</Path>
+                <Path>src\smc_gen\r_drw2d_rx\src\tes\dave_base.h</Path>
+                <Path>src\smc_gen\r_drw2d_rx\src\tes\dave_blit.c</Path>
+                <Path>src\smc_gen\r_drw2d_rx\src\tes\dave_box.c</Path>
+                <Path>src\smc_gen\r_drw2d_rx\src\tes\dave_box.h</Path>
+                <Path>src\smc_gen\r_drw2d_rx\src\tes\dave_circle.c</Path>
+                <Path>src\smc_gen\r_drw2d_rx\src\tes\dave_circle.h</Path>
+                <Path>src\smc_gen\r_drw2d_rx\src\tes\dave_context.c</Path>
+                <Path>src\smc_gen\r_drw2d_rx\src\tes\dave_context.h</Path>
+                <Path>src\smc_gen\r_drw2d_rx\src\tes\dave_curve.c</Path>
+                <Path>src\smc_gen\r_drw2d_rx\src\tes\dave_curve.h</Path>
+                <Path>src\smc_gen\r_drw2d_rx\src\tes\dave_dlist.c</Path>
+                <Path>src\smc_gen\r_drw2d_rx\src\tes\dave_dlist.h</Path>
+                <Path>src\smc_gen\r_drw2d_rx\src\tes\dave_driver.c</Path>
+                <Path>src\smc_gen\r_drw2d_rx\src\tes\dave_edge.c</Path>
+                <Path>src\smc_gen\r_drw2d_rx\src\tes\dave_edge.h</Path>
+                <Path>src\smc_gen\r_drw2d_rx\src\tes\dave_errorcodes.c</Path>
+                <Path>src\smc_gen\r_drw2d_rx\src\tes\dave_gradient.c</Path>
+                <Path>src\smc_gen\r_drw2d_rx\src\tes\dave_gradient.h</Path>
+                <Path>src\smc_gen\r_drw2d_rx\src\tes\dave_hardware.c</Path>
+                <Path>src\smc_gen\r_drw2d_rx\src\tes\dave_hardware.h</Path>
+                <Path>src\smc_gen\r_drw2d_rx\src\tes\dave_intern.h</Path>
+                <Path>src\smc_gen\r_drw2d_rx\src\tes\dave_line.c</Path>
+                <Path>src\smc_gen\r_drw2d_rx\src\tes\dave_line.h</Path>
+                <Path>src\smc_gen\r_drw2d_rx\src\tes\dave_math.c</Path>
+                <Path>src\smc_gen\r_drw2d_rx\src\tes\dave_memory.c</Path>
+                <Path>src\smc_gen\r_drw2d_rx\src\tes\dave_memory.h</Path>
+                <Path>src\smc_gen\r_drw2d_rx\src\tes\dave_pattern.c</Path>
+                <Path>src\smc_gen\r_drw2d_rx\src\tes\dave_pattern.h</Path>
+                <Path>src\smc_gen\r_drw2d_rx\src\tes\dave_perfcount.c</Path>
+                <Path>src\smc_gen\r_drw2d_rx\src\tes\dave_polyline.c</Path>
+                <Path>src\smc_gen\r_drw2d_rx\src\tes\dave_polyline.h</Path>
+                <Path>src\smc_gen\r_drw2d_rx\src\tes\dave_quad.c</Path>
+                <Path>src\smc_gen\r_drw2d_rx\src\tes\dave_quad.h</Path>
+                <Path>src\smc_gen\r_drw2d_rx\src\tes\dave_rbuffer.c</Path>
+                <Path>src\smc_gen\r_drw2d_rx\src\tes\dave_rbuffer.h</Path>
+                <Path>src\smc_gen\r_drw2d_rx\src\tes\dave_registermap.h</Path>
+                <Path>src\smc_gen\r_drw2d_rx\src\tes\dave_render.c</Path>
+                <Path>src\smc_gen\r_drw2d_rx\src\tes\dave_render.h</Path>
+                <Path>src\smc_gen\r_drw2d_rx\src\tes\dave_texture.c</Path>
+                <Path>src\smc_gen\r_drw2d_rx\src\tes\dave_texture.h</Path>
+                <Path>src\smc_gen\r_drw2d_rx\src\tes\dave_triangle.c</Path>
+                <Path>src\smc_gen\r_drw2d_rx\src\tes\dave_triangle.h</Path>
+                <Path>src\smc_gen\r_drw2d_rx\src\tes\dave_triarray.h</Path>
+                <Path>src\smc_gen\r_drw2d_rx\src\tes\dave_utility.c</Path>
+                <Path>src\smc_gen\r_drw2d_rx\src\tes\dave_utility.h</Path>
+                <Path>src\smc_gen\r_drw2d_rx\src\tes\dave_viewport.c</Path>
+                <Path>src\smc_gen\r_drw2d_rx\src\tes\dave_viewport.h</Path>
+                <Path>src\smc_gen\r_drw2d_rx\src\tes\dave_wedge.c</Path>
+                <Path>src\smc_gen\r_drw2d_rx\src\tes\dave_wedge.h</Path>
+              </Category>
+            </Category>
+          </Category>
+          <Category Name="r_emwin_rx">
+            <Path>src\smc_gen\r_emwin_rx\r_emwin_rx_if.h</Path>
+            <Path>src\smc_gen\r_emwin_rx\readme.txt</Path>
+            <Category Name="doc">
+              <Category Name="Training">
+                <Path>src\smc_gen\r_emwin_rx\doc\Training\emWin_Training.pdf</Path>
+              </Category>
+              <Category Name="emWin_doc">
+                <Path>src\smc_gen\r_emwin_rx\doc\emWin_doc\AN03002_Custom_Widget_Type.pdf</Path>
+                <Path>src\smc_gen\r_emwin_rx\doc\emWin_doc\HowTo_RunSimulationUnderVS2015OrLater.txt</Path>
+                <Path>src\smc_gen\r_emwin_rx\doc\emWin_doc\License_GUI-00678.txt</Path>
+                <Path>src\smc_gen\r_emwin_rx\doc\emWin_doc\UM03001_emWin.pdf</Path>
+              </Category>
+              <Category Name="en">
+                <Path>src\smc_gen\r_emwin_rx\doc\en\r01an8024ej0100-rx-emwin.pdf</Path>
+              </Category>
+              <Category Name="ja">
+                <Path>src\smc_gen\r_emwin_rx\doc\ja\r01an8024jj0100-rx-emwin.pdf</Path>
+              </Category>
+            </Category>
+            <Category Name="lib">
+              <Category Name="Config">
+                <Path>src\smc_gen\r_emwin_rx\lib\Config\APPW_X_NoFS.c</Path>
+                <Path>src\smc_gen\r_emwin_rx\lib\Config\GUIConf.c</Path>
+                <Path>src\smc_gen\r_emwin_rx\lib\Config\GUIConf.h</Path>
+                <Path>src\smc_gen\r_emwin_rx\lib\Config\GUI_X_Ex.c</Path>
+                <Path>src\smc_gen\r_emwin_rx\lib\Config\LCDConf.h</Path>
+                <Path>src\smc_gen\r_emwin_rx\lib\Config\LCDConf_glcdc_if.c</Path>
+                <Path>src\smc_gen\r_emwin_rx\lib\Config\LCDConf_rspi_if.c</Path>
+                <Path>src\smc_gen\r_emwin_rx\lib\Config\LCDConf_sci_spi_if.c</Path>
+                <Path>src\smc_gen\r_emwin_rx\lib\Config\LCDConf_user_if.c</Path>
+                <Path>src\smc_gen\r_emwin_rx\lib\Config\PIDConf.c</Path>
+                <Path>src\smc_gen\r_emwin_rx\lib\Config\PIDConf.h</Path>
+              </Category>
+              <Category Name="GUI">
+                <Path>src\smc_gen\r_emwin_rx\lib\GUI\AppWizard.h</Path>
+                <Path>src\smc_gen\r_emwin_rx\lib\GUI\BUTTON.h</Path>
+                <Path>src\smc_gen\r_emwin_rx\lib\GUI\BUTTON_Private.h</Path>
+                <Path>src\smc_gen\r_emwin_rx\lib\GUI\CALENDAR.h</Path>
+                <Path>src\smc_gen\r_emwin_rx\lib\GUI\CHECKBOX.h</Path>
+                <Path>src\smc_gen\r_emwin_rx\lib\GUI\CHECKBOX_Private.h</Path>
+                <Path>src\smc_gen\r_emwin_rx\lib\GUI\CHOOSECOLOR.h</Path>
+                <Path>src\smc_gen\r_emwin_rx\lib\GUI\CHOOSEFILE.h</Path>
+                <Path>src\smc_gen\r_emwin_rx\lib\GUI\DIALOG.h</Path>
+                <Path>src\smc_gen\r_emwin_rx\lib\GUI\DIALOG_Type.h</Path>
+                <Path>src\smc_gen\r_emwin_rx\lib\GUI\DROPDOWN.h</Path>
+                <Path>src\smc_gen\r_emwin_rx\lib\GUI\DROPDOWN_Private.h</Path>
+                <Path>src\smc_gen\r_emwin_rx\lib\GUI\EDIT.h</Path>
+                <Path>src\smc_gen\r_emwin_rx\lib\GUI\EDIT_Private.h</Path>
+                <Path>src\smc_gen\r_emwin_rx\lib\GUI\FRAMEWIN.h</Path>
+                <Path>src\smc_gen\r_emwin_rx\lib\GUI\FRAMEWIN_Private.h</Path>
+                <Path>src\smc_gen\r_emwin_rx\lib\GUI\GAUGE.h</Path>
+                <Path>src\smc_gen\r_emwin_rx\lib\GUI\GAUGE_Private.h</Path>
+                <Path>src\smc_gen\r_emwin_rx\lib\GUI\GRAPH.h</Path>
+                <Path>src\smc_gen\r_emwin_rx\lib\GUI\GRAPH_Private.h</Path>
+                <Path>src\smc_gen\r_emwin_rx\lib\GUI\GUI.h</Path>
+                <Path>src\smc_gen\r_emwin_rx\lib\GUI\GUIDRV_FlexColor.h</Path>
+                <Path>src\smc_gen\r_emwin_rx\lib\GUI\GUIDRV_FlexColor_Private.h</Path>
+                <Path>src\smc_gen\r_emwin_rx\lib\GUI\GUIDRV_Lin.h</Path>
+                <Path>src\smc_gen\r_emwin_rx\lib\GUI\GUIDRV_Null.h</Path>
+                <Path>src\smc_gen\r_emwin_rx\lib\GUI\GUIDRV_SPage.h</Path>
+                <Path>src\smc_gen\r_emwin_rx\lib\GUI\GUIDRV_SPage_Private.h</Path>
+                <Path>src\smc_gen\r_emwin_rx\lib\GUI\GUI_ARRAY.h</Path>
+                <Path>src\smc_gen\r_emwin_rx\lib\GUI\GUI_ARRAY_Private.h</Path>
+                <Path>src\smc_gen\r_emwin_rx\lib\GUI\GUI_BMP_Private.h</Path>
+                <Path>src\smc_gen\r_emwin_rx\lib\GUI\GUI_ConfDefaults.h</Path>
+                <Path>src\smc_gen\r_emwin_rx\lib\GUI\GUI_DYNARRAY.h</Path>
+                <Path>src\smc_gen\r_emwin_rx\lib\GUI\GUI_Debug.h</Path>
+                <Path>src\smc_gen\r_emwin_rx\lib\GUI\GUI_FontIntern.h</Path>
+                <Path>src\smc_gen\r_emwin_rx\lib\GUI\GUI_GCache_Private.h</Path>
+                <Path>src\smc_gen\r_emwin_rx\lib\GUI\GUI_GIF_Private.h</Path>
+                <Path>src\smc_gen\r_emwin_rx\lib\GUI\GUI_JPEG_Private.h</Path>
+                <Path>src\smc_gen\r_emwin_rx\lib\GUI\GUI_Private.h</Path>
+                <Path>src\smc_gen\r_emwin_rx\lib\GUI\GUI_SPRITE_Private.h</Path>
+                <Path>src\smc_gen\r_emwin_rx\lib\GUI\GUI_SPY_Private.h</Path>
+                <Path>src\smc_gen\r_emwin_rx\lib\GUI\GUI_SVG_Private.h</Path>
+                <Path>src\smc_gen\r_emwin_rx\lib\GUI\GUI_SetOrientation.h</Path>
+                <Path>src\smc_gen\r_emwin_rx\lib\GUI\GUI_SetOrientationCX.h</Path>
+                <Path>src\smc_gen\r_emwin_rx\lib\GUI\GUI_Type.h</Path>
+                <Path>src\smc_gen\r_emwin_rx\lib\GUI\GUI_VG.h</Path>
+                <Path>src\smc_gen\r_emwin_rx\lib\GUI\GUI_VNC.h</Path>
+                <Path>src\smc_gen\r_emwin_rx\lib\GUI\GUI_Version.h</Path>
+                <Path>src\smc_gen\r_emwin_rx\lib\GUI\GUI__BiDi_Brackets.h</Path>
+                <Path>src\smc_gen\r_emwin_rx\lib\GUI\GUI__BiDi_Types.h</Path>
+                <Path>src\smc_gen\r_emwin_rx\lib\GUI\Global.h</Path>
+                <Path>src\smc_gen\r_emwin_rx\lib\GUI\HEADER.h</Path>
+                <Path>src\smc_gen\r_emwin_rx\lib\GUI\HEADER_Private.h</Path>
+                <Path>src\smc_gen\r_emwin_rx\lib\GUI\ICONVIEW.h</Path>
+                <Path>src\smc_gen\r_emwin_rx\lib\GUI\ICONVIEW_Private.h</Path>
+                <Path>src\smc_gen\r_emwin_rx\lib\GUI\IMAGE.h</Path>
+                <Path>src\smc_gen\r_emwin_rx\lib\GUI\IMAGE_Private.h</Path>
+                <Path>src\smc_gen\r_emwin_rx\lib\GUI\IP_FS.h</Path>
+                <Path>src\smc_gen\r_emwin_rx\lib\GUI\KEYBOARD.h</Path>
+                <Path>src\smc_gen\r_emwin_rx\lib\GUI\KEYBOARD_Private.h</Path>
+                <Path>src\smc_gen\r_emwin_rx\lib\GUI\KNOB.h</Path>
+                <Path>src\smc_gen\r_emwin_rx\lib\GUI\KNOB_Private.h</Path>
+                <Path>src\smc_gen\r_emwin_rx\lib\GUI\LCD.h</Path>
+                <Path>src\smc_gen\r_emwin_rx\lib\GUI\LCD_ConfDefaults.h</Path>
+                <Path>src\smc_gen\r_emwin_rx\lib\GUI\LCD_Private.h</Path>
+                <Path>src\smc_gen\r_emwin_rx\lib\GUI\LCD_Protected.h</Path>
+                <Path>src\smc_gen\r_emwin_rx\lib\GUI\LCD_SIM.h</Path>
+                <Path>src\smc_gen\r_emwin_rx\lib\GUI\LISTBOX.h</Path>
+                <Path>src\smc_gen\r_emwin_rx\lib\GUI\LISTBOX_Private.h</Path>
+                <Path>src\smc_gen\r_emwin_rx\lib\GUI\LISTVIEW.h</Path>
+                <Path>src\smc_gen\r_emwin_rx\lib\GUI\LISTVIEW_Private.h</Path>
+                <Path>src\smc_gen\r_emwin_rx\lib\GUI\LISTWHEEL.h</Path>
+                <Path>src\smc_gen\r_emwin_rx\lib\GUI\LISTWHEEL_Private.h</Path>
+                <Path>src\smc_gen\r_emwin_rx\lib\GUI\MENU.h</Path>
+                <Path>src\smc_gen\r_emwin_rx\lib\GUI\MENU_Private.h</Path>
+                <Path>src\smc_gen\r_emwin_rx\lib\GUI\MESSAGEBOX.h</Path>
+                <Path>src\smc_gen\r_emwin_rx\lib\GUI\MOVIE.h</Path>
+                <Path>src\smc_gen\r_emwin_rx\lib\GUI\MOVIE_Private.h</Path>
+                <Path>src\smc_gen\r_emwin_rx\lib\GUI\MULTIEDIT.h</Path>
+                <Path>src\smc_gen\r_emwin_rx\lib\GUI\MULTIEDIT_Private.h</Path>
+                <Path>src\smc_gen\r_emwin_rx\lib\GUI\MULTIPAGE.h</Path>
+                <Path>src\smc_gen\r_emwin_rx\lib\GUI\MULTIPAGE_Private.h</Path>
+                <Path>src\smc_gen\r_emwin_rx\lib\GUI\PROGBAR.h</Path>
+                <Path>src\smc_gen\r_emwin_rx\lib\GUI\PROGBAR_Private.h</Path>
+                <Path>src\smc_gen\r_emwin_rx\lib\GUI\QRCODE.h</Path>
+                <Path>src\smc_gen\r_emwin_rx\lib\GUI\QRCODE_Private.h</Path>
+                <Path>src\smc_gen\r_emwin_rx\lib\GUI\RADIO.h</Path>
+                <Path>src\smc_gen\r_emwin_rx\lib\GUI\RADIO_Private.h</Path>
+                <Path>src\smc_gen\r_emwin_rx\lib\GUI\ROTARY.h</Path>
+                <Path>src\smc_gen\r_emwin_rx\lib\GUI\ROTARY_Private.h</Path>
+                <Path>src\smc_gen\r_emwin_rx\lib\GUI\SCROLLBAR.h</Path>
+                <Path>src\smc_gen\r_emwin_rx\lib\GUI\SCROLLBAR_Private.h</Path>
+                <Path>src\smc_gen\r_emwin_rx\lib\GUI\SCROLLER.h</Path>
+                <Path>src\smc_gen\r_emwin_rx\lib\GUI\SCROLLER_Private.h</Path>
+                <Path>src\smc_gen\r_emwin_rx\lib\GUI\SEGGER.h</Path>
+                <Path>src\smc_gen\r_emwin_rx\lib\GUI\SLIDER.h</Path>
+                <Path>src\smc_gen\r_emwin_rx\lib\GUI\SLIDER_Private.h</Path>
+                <Path>src\smc_gen\r_emwin_rx\lib\GUI\SPINBOX.h</Path>
+                <Path>src\smc_gen\r_emwin_rx\lib\GUI\SPINBOX_Private.h</Path>
+                <Path>src\smc_gen\r_emwin_rx\lib\GUI\SWIPELIST.h</Path>
+                <Path>src\smc_gen\r_emwin_rx\lib\GUI\SWIPELIST_Private.h</Path>
+                <Path>src\smc_gen\r_emwin_rx\lib\GUI\SWITCH.h</Path>
+                <Path>src\smc_gen\r_emwin_rx\lib\GUI\SWITCH_Private.h</Path>
+                <Path>src\smc_gen\r_emwin_rx\lib\GUI\TEXT.h</Path>
+                <Path>src\smc_gen\r_emwin_rx\lib\GUI\TEXT_Private.h</Path>
+                <Path>src\smc_gen\r_emwin_rx\lib\GUI\TICKER.h</Path>
+                <Path>src\smc_gen\r_emwin_rx\lib\GUI\TICKER_Private.h</Path>
+                <Path>src\smc_gen\r_emwin_rx\lib\GUI\TREEVIEW.h</Path>
+                <Path>src\smc_gen\r_emwin_rx\lib\GUI\TREEVIEW_Private.h</Path>
+                <Path>src\smc_gen\r_emwin_rx\lib\GUI\WHEEL.h</Path>
+                <Path>src\smc_gen\r_emwin_rx\lib\GUI\WHEEL_Private.h</Path>
+                <Path>src\smc_gen\r_emwin_rx\lib\GUI\WIDGET.h</Path>
+                <Path>src\smc_gen\r_emwin_rx\lib\GUI\WIDGET_ID.h</Path>
+                <Path>src\smc_gen\r_emwin_rx\lib\GUI\WINDOW_Private.h</Path>
+                <Path>src\smc_gen\r_emwin_rx\lib\GUI\WM.h</Path>
+                <Path>src\smc_gen\r_emwin_rx\lib\GUI\WM_GUI.h</Path>
+                <Path>src\smc_gen\r_emwin_rx\lib\GUI\WM_Intern.h</Path>
+                <Path>src\smc_gen\r_emwin_rx\lib\GUI\WM_Layout.h</Path>
+              </Category>
+            </Category>
+            <Category Name="src">
+              <Path>src\smc_gen\r_emwin_rx\src\r_emwin_rx_if.c</Path>
+              <Path>src\smc_gen\r_emwin_rx\src\r_emwin_rx_lcd_driver_ili9341.h</Path>
+              <Path>src\smc_gen\r_emwin_rx\src\r_emwin_rx_lcd_driver_st7715.h</Path>
+              <Path>src\smc_gen\r_emwin_rx\src\r_emwin_rx_pid_iic_if.c</Path>
+              <Path>src\smc_gen\r_emwin_rx\src\r_emwin_rx_pid_spi_if.c</Path>
+              <Path>src\smc_gen\r_emwin_rx\src\r_emwin_rx_pid_user_if.c</Path>
+              <Path>src\smc_gen\r_emwin_rx\src\r_emwin_rx_private.h</Path>
+            </Category>
+            <Category Name="tool">
+              <Path>src\smc_gen\r_emwin_rx\tool\License.txt</Path>
+            </Category>
           </Category>
           <Category Name="r_ether_rx">
             <Path>src\smc_gen\r_ether_rx\r_ether_rx_if.h</Path>
@@ -1091,14 +1366,11 @@
             <Path>src\smc_gen\r_glcdc_rx\readme.txt</Path>
             <Category Name="doc">
               <Category Name="en">
-                <Path>src\smc_gen\r_glcdc_rx\doc\en\r01an3609ej0130-rx-lcd.pdf</Path>
+                <Path>src\smc_gen\r_glcdc_rx\doc\en\r01an3609ej0161-rx-lcd.pdf</Path>
               </Category>
               <Category Name="ja">
-                <Path>src\smc_gen\r_glcdc_rx\doc\ja\r01an3609jj0130-rx-lcd.pdf</Path>
+                <Path>src\smc_gen\r_glcdc_rx\doc\ja\r01an3609jj0161-rx-lcd.pdf</Path>
               </Category>
-            </Category>
-            <Category Name="ref">
-              <Path>src\smc_gen\r_glcdc_rx\ref\r_glcdc_rx_config_reference.h</Path>
             </Category>
             <Category Name="src">
               <Path>src\smc_gen\r_glcdc_rx\src\r_glcdc_private.c</Path>
@@ -1107,6 +1379,27 @@
               <Category Name="targets">
                 <Category Name="rx72n">
                   <Path>src\smc_gen\r_glcdc_rx\src\targets\rx72n\r_glcdc_rx72n.c</Path>
+                </Category>
+              </Category>
+            </Category>
+          </Category>
+          <Category Name="r_gpio_rx">
+            <Path>src\smc_gen\r_gpio_rx\r_gpio_rx_if.h</Path>
+            <Path>src\smc_gen\r_gpio_rx\readme.txt</Path>
+            <Category Name="doc">
+              <Category Name="en">
+                <Path>src\smc_gen\r_gpio_rx\doc\en\r01an1721ej0520-rx-gpio.pdf</Path>
+              </Category>
+              <Category Name="ja">
+                <Path>src\smc_gen\r_gpio_rx\doc\ja\r01an1721jj0520-rx-gpio.pdf</Path>
+              </Category>
+            </Category>
+            <Category Name="src">
+              <Path>src\smc_gen\r_gpio_rx\src\r_gpio_rx.c</Path>
+              <Category Name="targets">
+                <Category Name="rx72n">
+                  <Path>src\smc_gen\r_gpio_rx\src\targets\rx72n\r_gpio_rx72n.c</Path>
+                  <Path>src\smc_gen\r_gpio_rx\src\targets\rx72n\r_gpio_rx72n.h</Path>
                 </Category>
               </Category>
             </Category>
@@ -1164,6 +1457,29 @@
               </Category>
             </Category>
           </Category>
+          <Category Name="r_sci_iic_rx">
+            <Path>src\smc_gen\r_sci_iic_rx\r_sci_iic_rx_if.h</Path>
+            <Path>src\smc_gen\r_sci_iic_rx\readme.txt</Path>
+            <Category Name="doc">
+              <Category Name="en">
+                <Path>src\smc_gen\r_sci_iic_rx\doc\en\r01an1691ej0290-rx-sci-iic.pdf</Path>
+              </Category>
+              <Category Name="ja">
+                <Path>src\smc_gen\r_sci_iic_rx\doc\ja\r01an1691jj0290-rx-sci-iic.pdf</Path>
+              </Category>
+            </Category>
+            <Category Name="src">
+              <Path>src\smc_gen\r_sci_iic_rx\src\r_sci_iic_rx.c</Path>
+              <Path>src\smc_gen\r_sci_iic_rx\src\r_sci_iic_rx_platform.h</Path>
+              <Path>src\smc_gen\r_sci_iic_rx\src\r_sci_iic_rx_private.h</Path>
+              <Category Name="targets">
+                <Category Name="rx72n">
+                  <Path>src\smc_gen\r_sci_iic_rx\src\targets\rx72n\r_sci_iic_rx72n.c</Path>
+                  <Path>src\smc_gen\r_sci_iic_rx\src\targets\rx72n\r_sci_iic_rx72n_private.h</Path>
+                </Category>
+              </Category>
+            </Category>
+          </Category>
           <Category Name="r_sci_rx">
             <Path>src\smc_gen\r_sci_rx\r_sci_rx_if.h</Path>
             <Path>src\smc_gen\r_sci_rx\readme.txt</Path>
@@ -1190,26 +1506,6 @@
                   <Path>src\smc_gen\r_sci_rx\src\targets\rx72n\r_sci_rx72n_private.h</Path>
                 </Category>
               </Category>
-            </Category>
-          </Category>
-          <Category Name="r_simple_glcdc_config_rx">
-            <Path>src\smc_gen\r_simple_glcdc_config_rx\r_simple_glcdc_config_rx_if.h</Path>
-            <Category Name="ref">
-              <Path>src\smc_gen\r_simple_glcdc_config_rx\ref\r_simple_glcdc_config_rx_config_reference.h</Path>
-            </Category>
-            <Category Name="src">
-              <Path>src\smc_gen\r_simple_glcdc_config_rx\src\r_simple_glcdc_config_rx.c</Path>
-            </Category>
-          </Category>
-          <Category Name="r_simple_graphic_rx">
-            <Path>src\smc_gen\r_simple_graphic_rx\r_simple_graphic_if.h</Path>
-            <Category Name="ref">
-              <Path>src\smc_gen\r_simple_graphic_rx\ref\r_simple_graphic_rx_config_reference.h</Path>
-            </Category>
-            <Category Name="src">
-              <Path>src\smc_gen\r_simple_graphic_rx\src\r_ascii.c</Path>
-              <Path>src\smc_gen\r_simple_graphic_rx\src\r_ascii.h</Path>
-              <Path>src\smc_gen\r_simple_graphic_rx\src\r_simple_graphic.c</Path>
             </Category>
           </Category>
           <Category Name="r_tsip_rx">
@@ -1526,58 +1822,58 @@
           <Option>-include="${ProjDirPath}\src\smc_gen\r_flash_rx\src\flash_type_5"</Option>
           <Option>-include="${ProjDirPath}\src\smc_gen\r_flash_rx\src\targets"</Option>
           <Option>-include="${ProjDirPath}\src\smc_gen\r_tsip_rx"</Option>
-          <Option>-include="C:\ai\codex\_work_iot_reference_rx_20240604\Common\FreeRTOS_common"</Option>
-          <Option>-include="C:\ai\codex\_work_iot_reference_rx_20240604\Common\FreeRTOS_common\compiler_support\ccrx"</Option>
-          <Option>-include="C:\ai\codex\_work_iot_reference_rx_20240604\Common\littlefs_common"</Option>
-          <Option>-include="C:\ai\codex\_work_iot_reference_rx_20240604\Common\littlefs_common\rm_littlefs_df\targets\rx65n"</Option>
-          <Option>-include="C:\ai\codex\_work_iot_reference_rx_20240604\Common\common_api"</Option>
-          <Option>-include="C:\ai\codex\_work_iot_reference_rx_20240604\Demos\cli"</Option>
-          <Option>-include="C:\ai\codex\_work_iot_reference_rx_20240604\Demos\mqtt_agent"</Option>
-          <Option>-include="C:\ai\codex\_work_iot_reference_rx_20240604\Demos\Fleet_Provisioning_With_CSR_Demo"</Option>
-          <Option>-include="C:\ai\codex\_work_iot_reference_rx_20240604\Demos\common\pkcs11_helpers"</Option>
-          <Option>-include="C:\ai\codex\_work_iot_reference_rx_20240604\Demos\dev_mode_key_provisioning\include"</Option>
-          <Option>-include="C:\ai\codex\_work_iot_reference_rx_20240604\Demos\common\mqtt-agent-interface\include"</Option>
-          <Option>-include="C:\ai\codex\_work_iot_reference_rx_20240604\Demos\common\mqtt-agent-interface"</Option>
-          <Option>-include="C:\ai\codex\_work_iot_reference_rx_20240604\Demos\common\Mqtt_Demo_Helpers"</Option>
-          <Option>-include="C:\ai\codex\_work_iot_reference_rx_20240604\Middleware\freertos_plus\standard\crypto\include"</Option>
-          <Option>-include="C:\ai\codex\_work_iot_reference_rx_20240604\Middleware\logging\include"</Option>
-          <Option>-include="C:\ai\codex\_work_iot_reference_rx_20240604\Middleware\FreeRTOS\FreeRTOS-Kernel\include"</Option>
-          <Option>-include="C:\ai\codex\_work_iot_reference_rx_20240604\Middleware\FreeRTOS\FreeRTOS-Plus-TCP\source\include"</Option>
-          <Option>-include="C:\ai\codex\_work_iot_reference_rx_20240604\Middleware\FreeRTOS-Plus-CLI"</Option>
-          <Option>-include="C:\ai\codex\_work_iot_reference_rx_20240604\Middleware\FreeRTOS\coreMQTT\source\include"</Option>
-          <Option>-include="C:\ai\codex\_work_iot_reference_rx_20240604\Middleware\FreeRTOS\coreMQTT\source\interface"</Option>
-          <Option>-include="C:\ai\codex\_work_iot_reference_rx_20240604\Middleware\FreeRTOS\coreMQTT-Agent\source\include"</Option>
-          <Option>-include="C:\ai\codex\_work_iot_reference_rx_20240604\Middleware\FreeRTOS\backoffAlgorithm\source\include"</Option>
-          <Option>-include="C:\ai\codex\_work_iot_reference_rx_20240604\Middleware\network_transport\using_mbedtls_pkcs11"</Option>
-          <Option>-include="C:\ai\codex\_work_iot_reference_rx_20240604\Middleware\FreeRTOS\corePKCS11\source\dependency\3rdparty\pkcs11\published\2-40-errata-1"</Option>
-          <Option>-include="C:\ai\codex\_work_iot_reference_rx_20240604\Middleware\FreeRTOS\corePKCS11\source\include"</Option>
-          <Option>-include="C:\ai\codex\_work_iot_reference_rx_20240604\Middleware\FreeRTOS\corePKCS11\source\dependency\3rdparty\mbedtls_utils"</Option>
-          <Option>-include="C:\ai\codex\_work_iot_reference_rx_20240604\Middleware\3rdparty\littlefs"</Option>
-          <Option>-include="C:\ai\codex\_work_iot_reference_rx_20240604\Middleware\3rdparty\mbedtls_utils"</Option>
-          <Option>-include="C:\ai\codex\_work_iot_reference_rx_20240604\Middleware\3rdparty\mbedtls\include\mbedtls"</Option>
-          <Option>-include="C:\ai\codex\_work_iot_reference_rx_20240604\Middleware\3rdparty\mbedtls\include"</Option>
-          <Option>-include="C:\ai\codex\_work_iot_reference_rx_20240604\Middleware\3rdparty\mbedtls\library"</Option>
-          <Option>-include="C:\ai\codex\_work_iot_reference_rx_20240604\Middleware\3rdparty\mbedtls_config"</Option>
-          <Option>-include="C:\ai\codex\_work_iot_reference_rx_20240604\Middleware\network_transport\sockets_wrapper\include"</Option>
+          <Option>-include="C:\ai\claude\rx72n-envision-kit\Common\FreeRTOS_common"</Option>
+          <Option>-include="C:\ai\claude\rx72n-envision-kit\Common\FreeRTOS_common\compiler_support\ccrx"</Option>
+          <Option>-include="C:\ai\claude\rx72n-envision-kit\Common\littlefs_common"</Option>
+          <Option>-include="C:\ai\claude\rx72n-envision-kit\Common\littlefs_common\rm_littlefs_df\targets\rx65n"</Option>
+          <Option>-include="C:\ai\claude\rx72n-envision-kit\Common\common_api"</Option>
+          <Option>-include="C:\ai\claude\rx72n-envision-kit\Demos\cli"</Option>
+          <Option>-include="C:\ai\claude\rx72n-envision-kit\Demos\mqtt_agent"</Option>
+          <Option>-include="C:\ai\claude\rx72n-envision-kit\Demos\Fleet_Provisioning_With_CSR_Demo"</Option>
+          <Option>-include="C:\ai\claude\rx72n-envision-kit\Demos\common\pkcs11_helpers"</Option>
+          <Option>-include="C:\ai\claude\rx72n-envision-kit\Demos\dev_mode_key_provisioning\include"</Option>
+          <Option>-include="C:\ai\claude\rx72n-envision-kit\Demos\common\mqtt-agent-interface\include"</Option>
+          <Option>-include="C:\ai\claude\rx72n-envision-kit\Demos\common\mqtt-agent-interface"</Option>
+          <Option>-include="C:\ai\claude\rx72n-envision-kit\Demos\common\Mqtt_Demo_Helpers"</Option>
+          <Option>-include="C:\ai\claude\rx72n-envision-kit\Middleware\freertos_plus\standard\crypto\include"</Option>
+          <Option>-include="C:\ai\claude\rx72n-envision-kit\Middleware\logging\include"</Option>
+          <Option>-include="C:\ai\claude\rx72n-envision-kit\Middleware\FreeRTOS\FreeRTOS-Kernel\include"</Option>
+          <Option>-include="C:\ai\claude\rx72n-envision-kit\Middleware\FreeRTOS\FreeRTOS-Plus-TCP\source\include"</Option>
+          <Option>-include="C:\ai\claude\rx72n-envision-kit\Middleware\FreeRTOS-Plus-CLI"</Option>
+          <Option>-include="C:\ai\claude\rx72n-envision-kit\Middleware\FreeRTOS\coreMQTT\source\include"</Option>
+          <Option>-include="C:\ai\claude\rx72n-envision-kit\Middleware\FreeRTOS\coreMQTT\source\interface"</Option>
+          <Option>-include="C:\ai\claude\rx72n-envision-kit\Middleware\FreeRTOS\coreMQTT-Agent\source\include"</Option>
+          <Option>-include="C:\ai\claude\rx72n-envision-kit\Middleware\FreeRTOS\backoffAlgorithm\source\include"</Option>
+          <Option>-include="C:\ai\claude\rx72n-envision-kit\Middleware\network_transport\using_mbedtls_pkcs11"</Option>
+          <Option>-include="C:\ai\claude\rx72n-envision-kit\Middleware\FreeRTOS\corePKCS11\source\dependency\3rdparty\pkcs11\published\2-40-errata-1"</Option>
+          <Option>-include="C:\ai\claude\rx72n-envision-kit\Middleware\FreeRTOS\corePKCS11\source\include"</Option>
+          <Option>-include="C:\ai\claude\rx72n-envision-kit\Middleware\FreeRTOS\corePKCS11\source\dependency\3rdparty\mbedtls_utils"</Option>
+          <Option>-include="C:\ai\claude\rx72n-envision-kit\Middleware\3rdparty\littlefs"</Option>
+          <Option>-include="C:\ai\claude\rx72n-envision-kit\Middleware\3rdparty\mbedtls_utils"</Option>
+          <Option>-include="C:\ai\claude\rx72n-envision-kit\Middleware\3rdparty\mbedtls\include\mbedtls"</Option>
+          <Option>-include="C:\ai\claude\rx72n-envision-kit\Middleware\3rdparty\mbedtls\include"</Option>
+          <Option>-include="C:\ai\claude\rx72n-envision-kit\Middleware\3rdparty\mbedtls\library"</Option>
+          <Option>-include="C:\ai\claude\rx72n-envision-kit\Middleware\3rdparty\mbedtls_config"</Option>
+          <Option>-include="C:\ai\claude\rx72n-envision-kit\Middleware\network_transport\sockets_wrapper\include"</Option>
           <Option>-include="${ProjDirPath}\src\application_code"</Option>
-          <Option>-include="C:\ai\codex\_work_iot_reference_rx_20240604\Demos\include"</Option>
+          <Option>-include="C:\ai\claude\rx72n-envision-kit\Demos\include"</Option>
           <Option>-include="${ProjDirPath}\src\frtos_config"</Option>
           <Option>-include="${ProjDirPath}\src\frtos_startup"</Option>
-          <Option>-include="C:\ai\codex\_work_iot_reference_rx_20240604\Middleware\FreeRTOS\FreeRTOS-Kernel\portable\Renesas\RX700v3_DPFPU"</Option>
-          <Option>-include="C:\ai\codex\_work_iot_reference_rx_20240604\Middleware\FreeRTOS\FreeRTOS-Plus-TCP\source\portable\Compiler\Renesas"</Option>
+          <Option>-include="C:\ai\claude\rx72n-envision-kit\Middleware\FreeRTOS\FreeRTOS-Kernel\portable\Renesas\RX700v3_DPFPU"</Option>
+          <Option>-include="C:\ai\claude\rx72n-envision-kit\Middleware\FreeRTOS\FreeRTOS-Plus-TCP\source\portable\Compiler\Renesas"</Option>
           <Option>-include="${ProjDirPath}\src\smc_gen"</Option>
           <Option>-include="${ProjDirPath}\src\smc_gen\r_ether_rx"</Option>
-          <Option>-include="C:\ai\codex\_work_iot_reference_rx_20240604\Demos\OtaOverMqtt"</Option>
-          <Option>-include="C:\ai\codex\_work_iot_reference_rx_20240604\Demos\common\mqtt-wrapper"</Option>
-          <Option>-include="C:\ai\codex\_work_iot_reference_rx_20240604\Common\patches\Jobs-for-AWS-IoT-embedded-sdk\source\include"</Option>
-          <Option>-include="C:\ai\codex\_work_iot_reference_rx_20240604\Middleware\AWS\Jobs-for-AWS-IoT-embedded-sdk\source\otaJobParser\include"</Option>
-          <Option>-include="C:\ai\codex\_work_iot_reference_rx_20240604\Middleware\AWS\aws-iot-core-mqtt-file-streams-embedded-c\source\include"</Option>
-          <Option>-include="C:\ai\codex\_work_iot_reference_rx_20240604\Middleware\3rdparty\tinycbor\src"</Option>
-          <Option>-include="C:\ai\codex\_work_iot_reference_rx_20240604\Middleware\FreeRTOS\coreJSON\source\include"</Option>
+          <Option>-include="C:\ai\claude\rx72n-envision-kit\Demos\OtaOverMqtt"</Option>
+          <Option>-include="C:\ai\claude\rx72n-envision-kit\Demos\common\mqtt-wrapper"</Option>
+          <Option>-include="C:\ai\claude\rx72n-envision-kit\Common\patches\Jobs-for-AWS-IoT-embedded-sdk\source\include"</Option>
+          <Option>-include="C:\ai\claude\rx72n-envision-kit\Middleware\AWS\Jobs-for-AWS-IoT-embedded-sdk\source\otaJobParser\include"</Option>
+          <Option>-include="C:\ai\claude\rx72n-envision-kit\Middleware\AWS\aws-iot-core-mqtt-file-streams-embedded-c\source\include"</Option>
+          <Option>-include="C:\ai\claude\rx72n-envision-kit\Middleware\3rdparty\tinycbor\src"</Option>
+          <Option>-include="C:\ai\claude\rx72n-envision-kit\Middleware\FreeRTOS\coreJSON\source\include"</Option>
           <Option>-include="${ProjDirPath}\src\application_code\ota_fwup_wrap_code"</Option>
-          <Option>-include="C:\ai\codex\_work_iot_reference_rx_20240604\Demos\OtaOverMqtt\ota_os"</Option>
-          <Option>-include="C:\ai\codex\_work_iot_reference_rx_20240604\Common\ports\ota_pal"</Option>
-          <Option>-include="C:\ai\codex\_work_iot_reference_rx_20240604\Common\FreeRTOS_common\network_support"</Option>
+          <Option>-include="C:\ai\claude\rx72n-envision-kit\Demos\OtaOverMqtt\ota_os"</Option>
+          <Option>-include="C:\ai\claude\rx72n-envision-kit\Common\ports\ota_pal"</Option>
+          <Option>-include="C:\ai\claude\rx72n-envision-kit\Common\FreeRTOS_common\network_support"</Option>
           <Option>-include="${ProjDirPath}\src\smc_gen\r_fwup\src\tinycrypt\source"</Option>
           <Option>-include="${ProjDirPath}\src\smc_gen\r_fwup\src\base64"</Option>
           <Option>-include="${ProjDirPath}\src\smc_gen\r_fwup\src\tinycrypt\include"</Option>
@@ -1586,17 +1882,25 @@
           <Option>-include="${ProjDirPath}\src\smc_gen\r_irq_rx\src"</Option>
           <Option>-include="${ProjDirPath}\src\smc_gen\r_irq_rx"</Option>
           <Option>-include="${ProjDirPath}\src\smc_gen\r_cmt_rx\src"</Option>
-          <Option>-include="${ProjDirPath}\src\smc_gen\r_simple_graphic_rx"</Option>
-          <Option>-include="${ProjDirPath}\src\smc_gen\r_simple_glcdc_config_rx"</Option>
-          <Option>-include="${ProjDirPath}\src\smc_gen\r_simple_glcdc_config_rx\src"</Option>
           <Option>-include="${ProjDirPath}\src\smc_gen\r_glcdc_rx"</Option>
-          <Option>-include="${ProjDirPath}\src\smc_gen\r_simple_graphic_rx\src"</Option>
           <Option>-include="${ProjDirPath}\src\smc_gen\r_cmt_rx"</Option>
+          <Option>-include="${ProjDirPath}\src\smc_gen\r_emwin_rx\lib\GUI"</Option>
+          <Option>-include="${ProjDirPath}\src\smc_gen\r_emwin_rx"</Option>
+          <Option>-include="${ProjDirPath}\src\smc_gen\r_emwin_rx\lib\Config"</Option>
+          <Option>-include="${ProjDirPath}\src\smc_gen\r_sci_iic_rx\src"</Option>
+          <Option>-include="${ProjDirPath}\src\smc_gen\r_dmaca_rx"</Option>
+          <Option>-include="${ProjDirPath}\src\smc_gen\r_emwin_rx\src"</Option>
+          <Option>-include="${ProjDirPath}\src\smc_gen\r_dmaca_rx\src"</Option>
+          <Option>-include="${ProjDirPath}\src\smc_gen\r_gpio_rx"</Option>
+          <Option>-include="${ProjDirPath}\src\smc_gen\r_gpio_rx\src"</Option>
+          <Option>-include="${ProjDirPath}\src\smc_gen\r_drw2d_rx\inc\tes"</Option>
+          <Option>-include="${ProjDirPath}\src\smc_gen\r_sci_iic_rx"</Option>
           <Option>-define=MBEDTLS_CONFIG_FILE=&lt;"aws_mbedtls_config.h"&gt;,CONFIG_FREERTOS_ASSERT_FAIL_ABORT,CONFIG_MEDTLS_USE_AFR_MEMORY,MBEDTLS_ERROR_C,MBEDTLS_ALLOW_PRIVATE_ACCESS,__LITTLE_ENDIAN__</Option>
           <Option>-asmopt=-bank</Option>
           <Option>-utf8</Option>
           <Option>-nomessage=11174,21644,20010,23034,23035,20177,23033</Option>
           <Option>-debug</Option>
+          <Option>-nostuff=C</Option>
           <Option>-outcode=utf8</Option>
           <Option>-goptimize</Option>
           <Option>-tfu=intrinsic</Option>
@@ -1638,12 +1942,19 @@
           <Option>-include="${ProjDirPath}\src\smc_gen\r_irq_rx\src"</Option>
           <Option>-include="${ProjDirPath}\src\smc_gen\r_irq_rx"</Option>
           <Option>-include="${ProjDirPath}\src\smc_gen\r_cmt_rx\src"</Option>
-          <Option>-include="${ProjDirPath}\src\smc_gen\r_simple_graphic_rx"</Option>
-          <Option>-include="${ProjDirPath}\src\smc_gen\r_simple_glcdc_config_rx"</Option>
-          <Option>-include="${ProjDirPath}\src\smc_gen\r_simple_glcdc_config_rx\src"</Option>
           <Option>-include="${ProjDirPath}\src\smc_gen\r_glcdc_rx"</Option>
-          <Option>-include="${ProjDirPath}\src\smc_gen\r_simple_graphic_rx\src"</Option>
           <Option>-include="${ProjDirPath}\src\smc_gen\r_cmt_rx"</Option>
+          <Option>-include="${ProjDirPath}\src\smc_gen\r_emwin_rx\lib\GUI"</Option>
+          <Option>-include="${ProjDirPath}\src\smc_gen\r_emwin_rx"</Option>
+          <Option>-include="${ProjDirPath}\src\smc_gen\r_emwin_rx\lib\Config"</Option>
+          <Option>-include="${ProjDirPath}\src\smc_gen\r_sci_iic_rx\src"</Option>
+          <Option>-include="${ProjDirPath}\src\smc_gen\r_dmaca_rx"</Option>
+          <Option>-include="${ProjDirPath}\src\smc_gen\r_emwin_rx\src"</Option>
+          <Option>-include="${ProjDirPath}\src\smc_gen\r_dmaca_rx\src"</Option>
+          <Option>-include="${ProjDirPath}\src\smc_gen\r_gpio_rx"</Option>
+          <Option>-include="${ProjDirPath}\src\smc_gen\r_gpio_rx\src"</Option>
+          <Option>-include="${ProjDirPath}\src\smc_gen\r_drw2d_rx\inc\tes"</Option>
+          <Option>-include="${ProjDirPath}\src\smc_gen\r_sci_iic_rx"</Option>
           <Option>-utf8</Option>
           <Option>-bank</Option>
           <Option>-debug</Option>
@@ -1664,6 +1975,7 @@
           <Option>-cpu=RAM=00000000-0007ffff,FIX=00080000-00083fff,FIX=00086000-00087fff,FIX=00088000-0009ffff,FIX=000a0000-000a3fff,RAM=000a4000-000a5fff,FIX=000a6000-000bffff,FIX=000c0000-000dffff,FIX=000e0000-000fffff,ROM=00100000-00107fff,FIX=007fc000-007fcfff,FIX=007fe000-007fffff,RAM=00800000-0087ffff,RAM=00ff8000-00ffffff,RAM=fe7f5d00-fe7f5d7f,RAM=fe7f7d70-fe7f7d9f,ROM=ffc00000-ffffffff</Option>
           <Option>-nologo</Option>
           <Option>-change_message=information=2220</Option>
+          <Option>-library="${ProjDirPath}\src\smc_gen\r_emwin_rx\lib\GUI\emWinLib_RXv3_CCRX_d.lib"</Option>
           <Option>-start=SU,SI,R_1,B_2,R,RPFRAM2/04,C_LITTLEFS_MANAGEMENT_AREA,C_FIRMWARE_UPDATE_CONTROL_BLOCK,C_FIRMWARE_UPDATE_CONTROL_BLOCK_MIRROR/0100000,C_USER_APPLICATION_AREA/0102B00,B_ETHERNET_BUFFERS*,B_RX_DESC*,B_TX_DESC*,B,B_1,R_2,B_8,R_8,BEXRAM_1,REXRAM_1,BEXRAM_2,REXRAM_2,BEXRAM,REXRAM,BEXRAM_8,REXRAM_8/0800000,B_FRAME_BUFFER_1/0850000,PResetPRG,C_1,C_2,C,C_8,C$*,D*,W*,L,P,PFRAM2/0FFE00300,EXCEPTVECT/0FFFBFF80,RESETVECT/0FFFBFFFC</Option>
           <Option>-end</Option>
           <Option>-output="${ProjName}.mot"</Option>
@@ -1975,15 +2287,60 @@
           <Path>HardwareDebug\utils.obj</Path>
           <Path>HardwareDebug\MQTTFileDownloader_cbor.obj</Path>
           <Path>HardwareDebug\r_cmt_rx.obj</Path>
+          <Path>HardwareDebug\r_dmaca_rx.obj</Path>
+          <Path>HardwareDebug\r_dmaca_rx_target.obj</Path>
+          <Path>HardwareDebug\dave_base_rx.obj</Path>
+          <Path>HardwareDebug\dave_irq_rx.obj</Path>
+          <Path>HardwareDebug\dave_memory_rx.obj</Path>
+          <Path>HardwareDebug\dave_64bitoperation.obj</Path>
+          <Path>HardwareDebug\dave_base.obj</Path>
+          <Path>HardwareDebug\dave_blit.obj</Path>
+          <Path>HardwareDebug\dave_box.obj</Path>
+          <Path>HardwareDebug\dave_circle.obj</Path>
+          <Path>HardwareDebug\dave_context.obj</Path>
+          <Path>HardwareDebug\dave_curve.obj</Path>
+          <Path>HardwareDebug\dave_dlist.obj</Path>
+          <Path>HardwareDebug\dave_driver.obj</Path>
+          <Path>HardwareDebug\dave_edge.obj</Path>
+          <Path>HardwareDebug\dave_errorcodes.obj</Path>
+          <Path>HardwareDebug\dave_gradient.obj</Path>
+          <Path>HardwareDebug\dave_hardware.obj</Path>
+          <Path>HardwareDebug\dave_line.obj</Path>
+          <Path>HardwareDebug\dave_math.obj</Path>
+          <Path>HardwareDebug\dave_memory.obj</Path>
+          <Path>HardwareDebug\dave_pattern.obj</Path>
+          <Path>HardwareDebug\dave_perfcount.obj</Path>
+          <Path>HardwareDebug\dave_polyline.obj</Path>
+          <Path>HardwareDebug\dave_quad.obj</Path>
+          <Path>HardwareDebug\dave_rbuffer.obj</Path>
+          <Path>HardwareDebug\dave_render.obj</Path>
+          <Path>HardwareDebug\dave_texture.obj</Path>
+          <Path>HardwareDebug\dave_triangle.obj</Path>
+          <Path>HardwareDebug\dave_utility.obj</Path>
+          <Path>HardwareDebug\dave_viewport.obj</Path>
+          <Path>HardwareDebug\dave_wedge.obj</Path>
+          <Path>HardwareDebug\APPW_X_NoFS.obj</Path>
+          <Path>HardwareDebug\GUIConf.obj</Path>
+          <Path>HardwareDebug\GUI_X_Ex.obj</Path>
+          <Path>HardwareDebug\LCDConf_glcdc_if.obj</Path>
+          <Path>HardwareDebug\LCDConf_rspi_if.obj</Path>
+          <Path>HardwareDebug\LCDConf_sci_spi_if.obj</Path>
+          <Path>HardwareDebug\LCDConf_user_if.obj</Path>
+          <Path>HardwareDebug\PIDConf.obj</Path>
+          <Path>HardwareDebug\r_emwin_rx_if.obj</Path>
+          <Path>HardwareDebug\r_emwin_rx_pid_iic_if.obj</Path>
+          <Path>HardwareDebug\r_emwin_rx_pid_spi_if.obj</Path>
+          <Path>HardwareDebug\r_emwin_rx_pid_user_if.obj</Path>
           <Path>HardwareDebug\r_glcdc_private.obj</Path>
           <Path>HardwareDebug\r_glcdc_rx.obj</Path>
           <Path>HardwareDebug\r_glcdc_rx72n.obj</Path>
+          <Path>HardwareDebug\r_gpio_rx.obj</Path>
+          <Path>HardwareDebug\r_gpio_rx72n.obj</Path>
           <Path>HardwareDebug\r_irq_rx.obj</Path>
           <Path>HardwareDebug\r_glcdc_rx_pinset.obj</Path>
           <Path>HardwareDebug\r_irq_rx_pinset.obj</Path>
-          <Path>HardwareDebug\r_simple_glcdc_config_rx.obj</Path>
-          <Path>HardwareDebug\r_ascii.obj</Path>
-          <Path>HardwareDebug\r_simple_graphic.obj</Path>
+          <Path>HardwareDebug\r_sci_iic_rx.obj</Path>
+          <Path>HardwareDebug\r_sci_iic_rx72n.obj</Path>
           <Path>HardwareDebug\r_tsip_rx_function000.obj</Path>
           <Path>HardwareDebug\r_tsip_rx_function001.obj</Path>
           <Path>HardwareDebug\r_tsip_rx_function002.obj</Path>
@@ -2243,6 +2600,7 @@
           <Path>HardwareDebug\r_tsip_rx_private.obj</Path>
           <Path>HardwareDebug\r_tsip_tdes_rx.obj</Path>
           <Path>HardwareDebug\r_tsip_tls_rx.obj</Path>
+          <Path>${ProjDirPath}\src\smc_gen\r_emwin_rx\lib\GUI\emWinLib_RXv3_CCRX_d.lib</Path>
         </LinkOrder>
         <CommonOptions>
           <IncludePathForC>"${ProjDirPath}\src\regen_safe"</IncludePathForC>
@@ -2264,58 +2622,58 @@
           <IncludePathForC>"${ProjDirPath}\src\smc_gen\r_flash_rx\src\flash_type_5"</IncludePathForC>
           <IncludePathForC>"${ProjDirPath}\src\smc_gen\r_flash_rx\src\targets"</IncludePathForC>
           <IncludePathForC>"${ProjDirPath}\src\smc_gen\r_tsip_rx"</IncludePathForC>
-          <IncludePathForC>"C:\ai\codex\_work_iot_reference_rx_20240604\Common\FreeRTOS_common"</IncludePathForC>
-          <IncludePathForC>"C:\ai\codex\_work_iot_reference_rx_20240604\Common\FreeRTOS_common\compiler_support\ccrx"</IncludePathForC>
-          <IncludePathForC>"C:\ai\codex\_work_iot_reference_rx_20240604\Common\littlefs_common"</IncludePathForC>
-          <IncludePathForC>"C:\ai\codex\_work_iot_reference_rx_20240604\Common\littlefs_common\rm_littlefs_df\targets\rx65n"</IncludePathForC>
-          <IncludePathForC>"C:\ai\codex\_work_iot_reference_rx_20240604\Common\common_api"</IncludePathForC>
-          <IncludePathForC>"C:\ai\codex\_work_iot_reference_rx_20240604\Demos\cli"</IncludePathForC>
-          <IncludePathForC>"C:\ai\codex\_work_iot_reference_rx_20240604\Demos\mqtt_agent"</IncludePathForC>
-          <IncludePathForC>"C:\ai\codex\_work_iot_reference_rx_20240604\Demos\Fleet_Provisioning_With_CSR_Demo"</IncludePathForC>
-          <IncludePathForC>"C:\ai\codex\_work_iot_reference_rx_20240604\Demos\common\pkcs11_helpers"</IncludePathForC>
-          <IncludePathForC>"C:\ai\codex\_work_iot_reference_rx_20240604\Demos\dev_mode_key_provisioning\include"</IncludePathForC>
-          <IncludePathForC>"C:\ai\codex\_work_iot_reference_rx_20240604\Demos\common\mqtt-agent-interface\include"</IncludePathForC>
-          <IncludePathForC>"C:\ai\codex\_work_iot_reference_rx_20240604\Demos\common\mqtt-agent-interface"</IncludePathForC>
-          <IncludePathForC>"C:\ai\codex\_work_iot_reference_rx_20240604\Demos\common\Mqtt_Demo_Helpers"</IncludePathForC>
-          <IncludePathForC>"C:\ai\codex\_work_iot_reference_rx_20240604\Middleware\freertos_plus\standard\crypto\include"</IncludePathForC>
-          <IncludePathForC>"C:\ai\codex\_work_iot_reference_rx_20240604\Middleware\logging\include"</IncludePathForC>
-          <IncludePathForC>"C:\ai\codex\_work_iot_reference_rx_20240604\Middleware\FreeRTOS\FreeRTOS-Kernel\include"</IncludePathForC>
-          <IncludePathForC>"C:\ai\codex\_work_iot_reference_rx_20240604\Middleware\FreeRTOS\FreeRTOS-Plus-TCP\source\include"</IncludePathForC>
-          <IncludePathForC>"C:\ai\codex\_work_iot_reference_rx_20240604\Middleware\FreeRTOS-Plus-CLI"</IncludePathForC>
-          <IncludePathForC>"C:\ai\codex\_work_iot_reference_rx_20240604\Middleware\FreeRTOS\coreMQTT\source\include"</IncludePathForC>
-          <IncludePathForC>"C:\ai\codex\_work_iot_reference_rx_20240604\Middleware\FreeRTOS\coreMQTT\source\interface"</IncludePathForC>
-          <IncludePathForC>"C:\ai\codex\_work_iot_reference_rx_20240604\Middleware\FreeRTOS\coreMQTT-Agent\source\include"</IncludePathForC>
-          <IncludePathForC>"C:\ai\codex\_work_iot_reference_rx_20240604\Middleware\FreeRTOS\backoffAlgorithm\source\include"</IncludePathForC>
-          <IncludePathForC>"C:\ai\codex\_work_iot_reference_rx_20240604\Middleware\network_transport\using_mbedtls_pkcs11"</IncludePathForC>
-          <IncludePathForC>"C:\ai\codex\_work_iot_reference_rx_20240604\Middleware\FreeRTOS\corePKCS11\source\dependency\3rdparty\pkcs11\published\2-40-errata-1"</IncludePathForC>
-          <IncludePathForC>"C:\ai\codex\_work_iot_reference_rx_20240604\Middleware\FreeRTOS\corePKCS11\source\include"</IncludePathForC>
-          <IncludePathForC>"C:\ai\codex\_work_iot_reference_rx_20240604\Middleware\FreeRTOS\corePKCS11\source\dependency\3rdparty\mbedtls_utils"</IncludePathForC>
-          <IncludePathForC>"C:\ai\codex\_work_iot_reference_rx_20240604\Middleware\3rdparty\littlefs"</IncludePathForC>
-          <IncludePathForC>"C:\ai\codex\_work_iot_reference_rx_20240604\Middleware\3rdparty\mbedtls_utils"</IncludePathForC>
-          <IncludePathForC>"C:\ai\codex\_work_iot_reference_rx_20240604\Middleware\3rdparty\mbedtls\include\mbedtls"</IncludePathForC>
-          <IncludePathForC>"C:\ai\codex\_work_iot_reference_rx_20240604\Middleware\3rdparty\mbedtls\include"</IncludePathForC>
-          <IncludePathForC>"C:\ai\codex\_work_iot_reference_rx_20240604\Middleware\3rdparty\mbedtls\library"</IncludePathForC>
-          <IncludePathForC>"C:\ai\codex\_work_iot_reference_rx_20240604\Middleware\3rdparty\mbedtls_config"</IncludePathForC>
-          <IncludePathForC>"C:\ai\codex\_work_iot_reference_rx_20240604\Middleware\network_transport\sockets_wrapper\include"</IncludePathForC>
+          <IncludePathForC>"C:\ai\claude\rx72n-envision-kit\Common\FreeRTOS_common"</IncludePathForC>
+          <IncludePathForC>"C:\ai\claude\rx72n-envision-kit\Common\FreeRTOS_common\compiler_support\ccrx"</IncludePathForC>
+          <IncludePathForC>"C:\ai\claude\rx72n-envision-kit\Common\littlefs_common"</IncludePathForC>
+          <IncludePathForC>"C:\ai\claude\rx72n-envision-kit\Common\littlefs_common\rm_littlefs_df\targets\rx65n"</IncludePathForC>
+          <IncludePathForC>"C:\ai\claude\rx72n-envision-kit\Common\common_api"</IncludePathForC>
+          <IncludePathForC>"C:\ai\claude\rx72n-envision-kit\Demos\cli"</IncludePathForC>
+          <IncludePathForC>"C:\ai\claude\rx72n-envision-kit\Demos\mqtt_agent"</IncludePathForC>
+          <IncludePathForC>"C:\ai\claude\rx72n-envision-kit\Demos\Fleet_Provisioning_With_CSR_Demo"</IncludePathForC>
+          <IncludePathForC>"C:\ai\claude\rx72n-envision-kit\Demos\common\pkcs11_helpers"</IncludePathForC>
+          <IncludePathForC>"C:\ai\claude\rx72n-envision-kit\Demos\dev_mode_key_provisioning\include"</IncludePathForC>
+          <IncludePathForC>"C:\ai\claude\rx72n-envision-kit\Demos\common\mqtt-agent-interface\include"</IncludePathForC>
+          <IncludePathForC>"C:\ai\claude\rx72n-envision-kit\Demos\common\mqtt-agent-interface"</IncludePathForC>
+          <IncludePathForC>"C:\ai\claude\rx72n-envision-kit\Demos\common\Mqtt_Demo_Helpers"</IncludePathForC>
+          <IncludePathForC>"C:\ai\claude\rx72n-envision-kit\Middleware\freertos_plus\standard\crypto\include"</IncludePathForC>
+          <IncludePathForC>"C:\ai\claude\rx72n-envision-kit\Middleware\logging\include"</IncludePathForC>
+          <IncludePathForC>"C:\ai\claude\rx72n-envision-kit\Middleware\FreeRTOS\FreeRTOS-Kernel\include"</IncludePathForC>
+          <IncludePathForC>"C:\ai\claude\rx72n-envision-kit\Middleware\FreeRTOS\FreeRTOS-Plus-TCP\source\include"</IncludePathForC>
+          <IncludePathForC>"C:\ai\claude\rx72n-envision-kit\Middleware\FreeRTOS-Plus-CLI"</IncludePathForC>
+          <IncludePathForC>"C:\ai\claude\rx72n-envision-kit\Middleware\FreeRTOS\coreMQTT\source\include"</IncludePathForC>
+          <IncludePathForC>"C:\ai\claude\rx72n-envision-kit\Middleware\FreeRTOS\coreMQTT\source\interface"</IncludePathForC>
+          <IncludePathForC>"C:\ai\claude\rx72n-envision-kit\Middleware\FreeRTOS\coreMQTT-Agent\source\include"</IncludePathForC>
+          <IncludePathForC>"C:\ai\claude\rx72n-envision-kit\Middleware\FreeRTOS\backoffAlgorithm\source\include"</IncludePathForC>
+          <IncludePathForC>"C:\ai\claude\rx72n-envision-kit\Middleware\network_transport\using_mbedtls_pkcs11"</IncludePathForC>
+          <IncludePathForC>"C:\ai\claude\rx72n-envision-kit\Middleware\FreeRTOS\corePKCS11\source\dependency\3rdparty\pkcs11\published\2-40-errata-1"</IncludePathForC>
+          <IncludePathForC>"C:\ai\claude\rx72n-envision-kit\Middleware\FreeRTOS\corePKCS11\source\include"</IncludePathForC>
+          <IncludePathForC>"C:\ai\claude\rx72n-envision-kit\Middleware\FreeRTOS\corePKCS11\source\dependency\3rdparty\mbedtls_utils"</IncludePathForC>
+          <IncludePathForC>"C:\ai\claude\rx72n-envision-kit\Middleware\3rdparty\littlefs"</IncludePathForC>
+          <IncludePathForC>"C:\ai\claude\rx72n-envision-kit\Middleware\3rdparty\mbedtls_utils"</IncludePathForC>
+          <IncludePathForC>"C:\ai\claude\rx72n-envision-kit\Middleware\3rdparty\mbedtls\include\mbedtls"</IncludePathForC>
+          <IncludePathForC>"C:\ai\claude\rx72n-envision-kit\Middleware\3rdparty\mbedtls\include"</IncludePathForC>
+          <IncludePathForC>"C:\ai\claude\rx72n-envision-kit\Middleware\3rdparty\mbedtls\library"</IncludePathForC>
+          <IncludePathForC>"C:\ai\claude\rx72n-envision-kit\Middleware\3rdparty\mbedtls_config"</IncludePathForC>
+          <IncludePathForC>"C:\ai\claude\rx72n-envision-kit\Middleware\network_transport\sockets_wrapper\include"</IncludePathForC>
           <IncludePathForC>"${ProjDirPath}\src\application_code"</IncludePathForC>
-          <IncludePathForC>"C:\ai\codex\_work_iot_reference_rx_20240604\Demos\include"</IncludePathForC>
+          <IncludePathForC>"C:\ai\claude\rx72n-envision-kit\Demos\include"</IncludePathForC>
           <IncludePathForC>"${ProjDirPath}\src\frtos_config"</IncludePathForC>
           <IncludePathForC>"${ProjDirPath}\src\frtos_startup"</IncludePathForC>
-          <IncludePathForC>"C:\ai\codex\_work_iot_reference_rx_20240604\Middleware\FreeRTOS\FreeRTOS-Kernel\portable\Renesas\RX700v3_DPFPU"</IncludePathForC>
-          <IncludePathForC>"C:\ai\codex\_work_iot_reference_rx_20240604\Middleware\FreeRTOS\FreeRTOS-Plus-TCP\source\portable\Compiler\Renesas"</IncludePathForC>
+          <IncludePathForC>"C:\ai\claude\rx72n-envision-kit\Middleware\FreeRTOS\FreeRTOS-Kernel\portable\Renesas\RX700v3_DPFPU"</IncludePathForC>
+          <IncludePathForC>"C:\ai\claude\rx72n-envision-kit\Middleware\FreeRTOS\FreeRTOS-Plus-TCP\source\portable\Compiler\Renesas"</IncludePathForC>
           <IncludePathForC>"${ProjDirPath}\src\smc_gen"</IncludePathForC>
           <IncludePathForC>"${ProjDirPath}\src\smc_gen\r_ether_rx"</IncludePathForC>
-          <IncludePathForC>"C:\ai\codex\_work_iot_reference_rx_20240604\Demos\OtaOverMqtt"</IncludePathForC>
-          <IncludePathForC>"C:\ai\codex\_work_iot_reference_rx_20240604\Demos\common\mqtt-wrapper"</IncludePathForC>
-          <IncludePathForC>"C:\ai\codex\_work_iot_reference_rx_20240604\Common\patches\Jobs-for-AWS-IoT-embedded-sdk\source\include"</IncludePathForC>
-          <IncludePathForC>"C:\ai\codex\_work_iot_reference_rx_20240604\Middleware\AWS\Jobs-for-AWS-IoT-embedded-sdk\source\otaJobParser\include"</IncludePathForC>
-          <IncludePathForC>"C:\ai\codex\_work_iot_reference_rx_20240604\Middleware\AWS\aws-iot-core-mqtt-file-streams-embedded-c\source\include"</IncludePathForC>
-          <IncludePathForC>"C:\ai\codex\_work_iot_reference_rx_20240604\Middleware\3rdparty\tinycbor\src"</IncludePathForC>
-          <IncludePathForC>"C:\ai\codex\_work_iot_reference_rx_20240604\Middleware\FreeRTOS\coreJSON\source\include"</IncludePathForC>
+          <IncludePathForC>"C:\ai\claude\rx72n-envision-kit\Demos\OtaOverMqtt"</IncludePathForC>
+          <IncludePathForC>"C:\ai\claude\rx72n-envision-kit\Demos\common\mqtt-wrapper"</IncludePathForC>
+          <IncludePathForC>"C:\ai\claude\rx72n-envision-kit\Common\patches\Jobs-for-AWS-IoT-embedded-sdk\source\include"</IncludePathForC>
+          <IncludePathForC>"C:\ai\claude\rx72n-envision-kit\Middleware\AWS\Jobs-for-AWS-IoT-embedded-sdk\source\otaJobParser\include"</IncludePathForC>
+          <IncludePathForC>"C:\ai\claude\rx72n-envision-kit\Middleware\AWS\aws-iot-core-mqtt-file-streams-embedded-c\source\include"</IncludePathForC>
+          <IncludePathForC>"C:\ai\claude\rx72n-envision-kit\Middleware\3rdparty\tinycbor\src"</IncludePathForC>
+          <IncludePathForC>"C:\ai\claude\rx72n-envision-kit\Middleware\FreeRTOS\coreJSON\source\include"</IncludePathForC>
           <IncludePathForC>"${ProjDirPath}\src\application_code\ota_fwup_wrap_code"</IncludePathForC>
-          <IncludePathForC>"C:\ai\codex\_work_iot_reference_rx_20240604\Demos\OtaOverMqtt\ota_os"</IncludePathForC>
-          <IncludePathForC>"C:\ai\codex\_work_iot_reference_rx_20240604\Common\ports\ota_pal"</IncludePathForC>
-          <IncludePathForC>"C:\ai\codex\_work_iot_reference_rx_20240604\Common\FreeRTOS_common\network_support"</IncludePathForC>
+          <IncludePathForC>"C:\ai\claude\rx72n-envision-kit\Demos\OtaOverMqtt\ota_os"</IncludePathForC>
+          <IncludePathForC>"C:\ai\claude\rx72n-envision-kit\Common\ports\ota_pal"</IncludePathForC>
+          <IncludePathForC>"C:\ai\claude\rx72n-envision-kit\Common\FreeRTOS_common\network_support"</IncludePathForC>
           <IncludePathForC>"${ProjDirPath}\src\smc_gen\r_fwup\src\tinycrypt\source"</IncludePathForC>
           <IncludePathForC>"${ProjDirPath}\src\smc_gen\r_fwup\src\base64"</IncludePathForC>
           <IncludePathForC>"${ProjDirPath}\src\smc_gen\r_fwup\src\tinycrypt\include"</IncludePathForC>
@@ -2324,12 +2682,19 @@
           <IncludePathForC>"${ProjDirPath}\src\smc_gen\r_irq_rx\src"</IncludePathForC>
           <IncludePathForC>"${ProjDirPath}\src\smc_gen\r_irq_rx"</IncludePathForC>
           <IncludePathForC>"${ProjDirPath}\src\smc_gen\r_cmt_rx\src"</IncludePathForC>
-          <IncludePathForC>"${ProjDirPath}\src\smc_gen\r_simple_graphic_rx"</IncludePathForC>
-          <IncludePathForC>"${ProjDirPath}\src\smc_gen\r_simple_glcdc_config_rx"</IncludePathForC>
-          <IncludePathForC>"${ProjDirPath}\src\smc_gen\r_simple_glcdc_config_rx\src"</IncludePathForC>
           <IncludePathForC>"${ProjDirPath}\src\smc_gen\r_glcdc_rx"</IncludePathForC>
-          <IncludePathForC>"${ProjDirPath}\src\smc_gen\r_simple_graphic_rx\src"</IncludePathForC>
           <IncludePathForC>"${ProjDirPath}\src\smc_gen\r_cmt_rx"</IncludePathForC>
+          <IncludePathForC>"${ProjDirPath}\src\smc_gen\r_emwin_rx\lib\GUI"</IncludePathForC>
+          <IncludePathForC>"${ProjDirPath}\src\smc_gen\r_emwin_rx"</IncludePathForC>
+          <IncludePathForC>"${ProjDirPath}\src\smc_gen\r_emwin_rx\lib\Config"</IncludePathForC>
+          <IncludePathForC>"${ProjDirPath}\src\smc_gen\r_sci_iic_rx\src"</IncludePathForC>
+          <IncludePathForC>"${ProjDirPath}\src\smc_gen\r_dmaca_rx"</IncludePathForC>
+          <IncludePathForC>"${ProjDirPath}\src\smc_gen\r_emwin_rx\src"</IncludePathForC>
+          <IncludePathForC>"${ProjDirPath}\src\smc_gen\r_dmaca_rx\src"</IncludePathForC>
+          <IncludePathForC>"${ProjDirPath}\src\smc_gen\r_gpio_rx"</IncludePathForC>
+          <IncludePathForC>"${ProjDirPath}\src\smc_gen\r_gpio_rx\src"</IncludePathForC>
+          <IncludePathForC>"${ProjDirPath}\src\smc_gen\r_drw2d_rx\inc\tes"</IncludePathForC>
+          <IncludePathForC>"${ProjDirPath}\src\smc_gen\r_sci_iic_rx"</IncludePathForC>
           <IncludePathForAsm>"${ProjDirPath}\src\smc_gen\r_flash_rx"</IncludePathForAsm>
           <IncludePathForAsm>"${ProjDirPath}\src\smc_gen\r_flash_rx\src\flash_type_1"</IncludePathForAsm>
           <IncludePathForAsm>"${ProjDirPath}\src\smc_gen\general"</IncludePathForAsm>
@@ -2358,12 +2723,19 @@
           <IncludePathForAsm>"${ProjDirPath}\src\smc_gen\r_irq_rx\src"</IncludePathForAsm>
           <IncludePathForAsm>"${ProjDirPath}\src\smc_gen\r_irq_rx"</IncludePathForAsm>
           <IncludePathForAsm>"${ProjDirPath}\src\smc_gen\r_cmt_rx\src"</IncludePathForAsm>
-          <IncludePathForAsm>"${ProjDirPath}\src\smc_gen\r_simple_graphic_rx"</IncludePathForAsm>
-          <IncludePathForAsm>"${ProjDirPath}\src\smc_gen\r_simple_glcdc_config_rx"</IncludePathForAsm>
-          <IncludePathForAsm>"${ProjDirPath}\src\smc_gen\r_simple_glcdc_config_rx\src"</IncludePathForAsm>
           <IncludePathForAsm>"${ProjDirPath}\src\smc_gen\r_glcdc_rx"</IncludePathForAsm>
-          <IncludePathForAsm>"${ProjDirPath}\src\smc_gen\r_simple_graphic_rx\src"</IncludePathForAsm>
           <IncludePathForAsm>"${ProjDirPath}\src\smc_gen\r_cmt_rx"</IncludePathForAsm>
+          <IncludePathForAsm>"${ProjDirPath}\src\smc_gen\r_emwin_rx\lib\GUI"</IncludePathForAsm>
+          <IncludePathForAsm>"${ProjDirPath}\src\smc_gen\r_emwin_rx"</IncludePathForAsm>
+          <IncludePathForAsm>"${ProjDirPath}\src\smc_gen\r_emwin_rx\lib\Config"</IncludePathForAsm>
+          <IncludePathForAsm>"${ProjDirPath}\src\smc_gen\r_sci_iic_rx\src"</IncludePathForAsm>
+          <IncludePathForAsm>"${ProjDirPath}\src\smc_gen\r_dmaca_rx"</IncludePathForAsm>
+          <IncludePathForAsm>"${ProjDirPath}\src\smc_gen\r_emwin_rx\src"</IncludePathForAsm>
+          <IncludePathForAsm>"${ProjDirPath}\src\smc_gen\r_dmaca_rx\src"</IncludePathForAsm>
+          <IncludePathForAsm>"${ProjDirPath}\src\smc_gen\r_gpio_rx"</IncludePathForAsm>
+          <IncludePathForAsm>"${ProjDirPath}\src\smc_gen\r_gpio_rx\src"</IncludePathForAsm>
+          <IncludePathForAsm>"${ProjDirPath}\src\smc_gen\r_drw2d_rx\inc\tes"</IncludePathForAsm>
+          <IncludePathForAsm>"${ProjDirPath}\src\smc_gen\r_sci_iic_rx"</IncludePathForAsm>
           <MacroForC>MBEDTLS_CONFIG_FILE=&lt;"aws_mbedtls_config.h"&gt;</MacroForC>
           <MacroForC>CONFIG_FREERTOS_ASSERT_FAIL_ABORT</MacroForC>
           <MacroForC>CONFIG_MEDTLS_USE_AFR_MEMORY</MacroForC>

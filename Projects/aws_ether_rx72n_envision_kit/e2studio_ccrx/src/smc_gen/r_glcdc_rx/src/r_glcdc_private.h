@@ -1,49 +1,43 @@
-/***********************************************************************************************************************
- * DISCLAIMER
- * This software is supplied by Renesas Electronics Corporation and is only intended for use with Renesas products. No
- * other uses are authorized. This software is owned by Renesas Electronics Corporation and is protected under all
- * applicable laws, including copyright laws.
- * THIS SOFTWARE IS PROVIDED "AS IS" AND RENESAS MAKES NO WARRANTIES REGARDING
- * THIS SOFTWARE, WHETHER EXPRESS, IMPLIED OR STATUTORY, INCLUDING BUT NOT LIMITED TO WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT. ALL SUCH WARRANTIES ARE EXPRESSLY DISCLAIMED. TO THE MAXIMUM
- * EXTENT PERMITTED NOT PROHIBITED BY LAW, NEITHER RENESAS ELECTRONICS CORPORATION NOR ANY OF ITS AFFILIATED COMPANIES
- * SHALL BE LIABLE FOR ANY DIRECT, INDIRECT, SPECIAL, INCIDENTAL OR CONSEQUENTIAL DAMAGES FOR ANY REASON RELATED TO THIS
- * SOFTWARE, EVEN IF RENESAS OR ITS AFFILIATES HAVE BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
- * Renesas reserves the right, without notice, to make changes to this software and to discontinue the availability of
- * this software. By using this software, you agree to the additional terms and conditions found by accessing the
- * following link:
- * http://www.renesas.com/disclaimer
+/*
+ * Copyright (c) 2017-2025 Renesas Electronics Corporation and/or its affiliates
  *
- * Copyright (C) 2019 Renesas Electronics Corporation. All rights reserved.
- ***********************************************************************************************************************/
+ * SPDX-License-Identifier: BSD-3-Clause
+ */
 /***********************************************************************************************************************
  * File Name    : r_glcdc_private.h
- * Version      : 1.30
+ * Version      : 1.61
  * Description  : Header file of GLCDC internal functions.
- ***********************************************************************************************************************/
+ **********************************************************************************************************************/
 /***********************************************************************************************************************
  * History : DD.MM.YYYY Version  Description
  *         : 01.10.2017 1.00      First Release
  *         : 04.04.2019 1.10      Added support for GNUC and ICCRX.
  *         : 09.04.2019 1.20      Added support for RX72M.
+ *                                Deleted prototype declaration of r_glcdc_param_check_contrast.
  *         : 20.09.2019 1.30      Added support for RX72N and RX66N.
  *                                Deleted BG_PLANE_H_FRONT_PORCH_MAX and BG_PLANE_V_FRONT_PORCH_MAX.
  *                                Added BG_BGSYNC_HP_MAX and BG_BGSYNC_VP_MAX to extend the range of front porch.
- ***********************************************************************************************************************/
+ *         : 30.06.2020 1.40      Removed include in r_glcdc_rx_config.h.
+ *                                Added prototype declaration of r_glcdc_qe_parameters_setting function
+ *                                and callback function.
+ *                                Added definition of GLCDC_PRV_PCALLBACK and extern declaration of CLUT table.
+ *         : 30.01.2024 1.60      Added prototype declaration of r_glcdc_framebuffer_setting function.
+ *                                Added element config_mode to struct glcdc_ctrl_t.
+ *         : 20.03.2025 1.61      Changed the disclaimer.
+ **********************************************************************************************************************/
 
 #ifndef R_GLCDC_PRIVATE_H
 #define R_GLCDC_PRIVATE_H
 
 /***********************************************************************************************************************
  Includes   <System Includes> , "Project Includes"
- ***********************************************************************************************************************/
+ **********************************************************************************************************************/
 #include <stddef.h>
 #include <stdint.h>
 
 #include "platform.h"
 
 #include "r_glcdc_rx_if.h"
-#include "r_glcdc_rx_config.h"
 
 /* This checks that the module of the GLCDC is supported to the MCU that has been selected for sure. */
 #if ((defined(BSP_MCU_RX65N_2MB))||(defined(BSP_MCU_RX72M))||(defined(BSP_MCU_RX72N))||(defined(BSP_MCU_RX66N)))
@@ -465,7 +459,7 @@ typedef enum e_glcdc_dithering_output_format
 typedef struct st_glcdc_ctrl
 {
     glcdc_operating_status_t state;                                // Status of GLCD module.
-    bool is_entry;                                                 // Flag of subcribed GLCDC interrupt function.
+    bool is_entry;                                                 // Flag of subscribed GLCDC interrupt function.
     glcdc_coordinate_t active_start_pos;                           // Zero coordinate for graphics plane.
     uint16_t hsize;                                                // Horizontal pixel size in a line.
     uint16_t vsize;                                                // Vertical pixel size in a frame.
@@ -473,6 +467,7 @@ typedef struct st_glcdc_ctrl
     void (*p_callback)(void *);                                    // Pointer to callback function.
     bool first_vpos_interrupt_flag;                                // First vpos interrupt after release software reset.
     glcdc_interrupt_cfg_t interrupt;                               // Interrupt setting values.
+    bool config_mode;                                              // Configuration mode value.
 } glcdc_ctrl_t;
 
 /***********************************************************************************************************************
@@ -487,12 +482,38 @@ glcdc_err_t r_glcdc_param_check_brightness(glcdc_brightness_t const * const p_br
 glcdc_err_t r_glcdc_param_check_gamma(glcdc_gamma_correction_t const * const p_gamma);
 #endif
 
+/* Enabled when GLCDC_CFG_CONFIGURATION_MODE is set to "1" or using QE for Display[RX] */
+/* QE for Display[RX] adds the macro definition "QE_DISPLAY_CONFIGURATION" to the compile options. */
+#if ((GLCDC_CFG_CONFIGURATION_MODE) || defined(QE_DISPLAY_CONFIGURATION))
+
+void r_glcdc_qe_parameters_setting(glcdc_cfg_t * const p_glcdc_qe_cfg);
+
+#if (LCD_CH0_CLUT_GR2_ENABLE == true)
+extern uint32_t LCD_CH0_CLUT_GR2_PBASE[];
+#endif
+
+#if (LCD_CH0_CLUT_GR1_ENABLE == true)
+extern uint32_t LCD_CH0_CLUT_GR1_PBASE[];
+#endif
+
+#if (LCD_CH0_CALLBACK_ENABLE == true)
+/* callback function prototype declaration */
+void LCD_CH0_PCALLBACK (void *);
+#define GLCDC_PRV_PCALLBACK ((void (*)(void *))LCD_CH0_PCALLBACK)
+#else
+#define GLCDC_PRV_PCALLBACK (FIT_NO_FUNC)
+#endif
+
+#endif
+
+
 void r_glcdc_clock_set(glcdc_cfg_t const * const p_cfg);
 void r_glcdc_sync_signal_set(glcdc_cfg_t const * const p_cfg);
 void r_glcdc_background_screen_set(glcdc_cfg_t const * const p_cfg);
 void r_glcdc_blend_condition_set(glcdc_blend_t const * const p_blend, glcdc_frame_layer_t frame);
 
 void r_glcdc_graphics_layer_set(glcdc_input_cfg_t const * const p_input, glcdc_frame_layer_t frame);
+void r_glcdc_framebuffer_setting(uint32_t const * const p_base, glcdc_frame_layer_t frame);
 void r_glcdc_graphics_chromakey_set(glcdc_chromakey_t const * const p_chromakey, glcdc_frame_layer_t frame);
 void r_glcdc_output_block_set(glcdc_cfg_t const * const p_cfg);
 void r_glcdc_brightness_correction(glcdc_brightness_t const * const p_brightness);
