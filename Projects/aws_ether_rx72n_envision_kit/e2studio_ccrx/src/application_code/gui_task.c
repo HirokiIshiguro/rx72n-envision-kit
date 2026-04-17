@@ -22,7 +22,8 @@ void gui_task( void * pvParameters );
 /**********************************************************************************************************************
  * Function Name: gui_task
  * Description  : emWin の初期化と AppWizard 初期画面 (ID_SCREEN_00) を表示する。
- *                10ms 周期で WM_Exec() を呼び、emWin のウィンドウマネージャを駆動する。
+ *                10ms 周期で APPW_Exec() + GUI_Exec() を呼び、AppWizard の状態更新と
+ *                emWin ウィンドウマネージャを駆動する (legacy main_10ms_display_update 準拠)。
  *
  *                Legacy aws_demos の gui_task は GUI ready フラグと依存タスクへの xTaskNotifyGive
  *                を持つが、段階5-1 では sdcard / task_manager / serial_flash 等の依存タスクが
@@ -37,10 +38,11 @@ void gui_task( void * pvParameters )
     APPW_Init( APPW_PROJECT_PATH );
     APPW_CreateRoot( APPW_INITIAL_SCREEN, WM_HBKWIN );
 
-    /* 10ms 周期で emWin window manager を駆動 */
+    /* 10ms 周期で AppWizard / emWin を駆動 (legacy main_10ms_display_update 準拠) */
     for( ; ; )
     {
-        WM_Exec();
+        APPW_Exec();
+        GUI_Exec();
         vTaskDelay( pdMS_TO_TICKS( 10 ) );
     }
 }
