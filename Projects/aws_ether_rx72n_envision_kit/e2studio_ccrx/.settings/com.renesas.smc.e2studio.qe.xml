@@ -148,7 +148,7 @@
             <Setting id="BSP_CFG_NONCACHEABLE_AREA0_SIZE" value="0x0"/>
             <Setting id="BSP_CFG_ROM_CACHE_ENABLE" value="0"/>
             <Setting id="BSP_CFG_USER_LOCKING_TYPE" value="bsp_lock_t"/>
-            <Setting id="BSP_CFG_HEAP_BYTES" value="0x2000"/>
+            <Setting id="BSP_CFG_HEAP_BYTES" value="0x4000"/>
             <Setting id="BSP_CFG_FIT_IPL_MAX" value="0xF"/>
             <Setting id="BSP_CFG_BOOTLOADER_PROJECT" value="0"/>
             <Setting id="BSP_CFG_NONCACHEABLE_AREA0_ADDR" value="0xFFE00000"/>

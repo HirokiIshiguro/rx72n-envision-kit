@@ -776,6 +776,7 @@
       </Category>
       <Category Name="src">
         <Category Name="application_code">
+          <Path>src\application_code\gui_task.c</Path>
           <Path>src\application_code\main.c</Path>
           <Path>src\application_code\user_init.c</Path>
           <Category Name="include">
@@ -800,6 +801,49 @@
             </Category>
             <Category Name="rm_littlefs_flash">
               <Path>..\..\..\Common\ports\rm_littlefs_flash\rm_littlefs_flash.c</Path>
+            </Category>
+          </Category>
+        </Category>
+        <Category Name="aw">
+          <Path>src\aw\FileList.txt</Path>
+          <Category Name="Resource">
+            <Category Name="Font">
+              <Path>src\aw\Resource\Font\Roboto_16_Normal_EXT_AA4.c</Path>
+              <Path>src\aw\Resource\Font\Roboto_24_Normal_EXT_AA4.c</Path>
+            </Category>
+            <Category Name="Image">
+              <Path>src\aw\Resource\Image\DARK_Button_Down_100x30.c</Path>
+              <Path>src\aw\Resource\Image\DARK_Button_Up_100x30.c</Path>
+              <Path>src\aw\Resource\Image\DARK_Progbar_Tile_H_Blue_1x16.c</Path>
+              <Path>src\aw\Resource\Image\DARK_Progbar_Tile_H_Gray_1x16.c</Path>
+              <Path>src\aw\Resource\Image\mcu.c</Path>
+              <Path>src\aw\Resource\Image\title_renesas.c</Path>
+            </Category>
+            <Category Name="Text">
+              <Path>src\aw\Resource\Text\APPW_Language_0.c</Path>
+              <Path>src\aw\Resource\Text\APPW_Language_0.txt</Path>
+              <Path>src\aw\Resource\Text\APPW_Pattern.c</Path>
+              <Path>src\aw\Resource\Text\APPW_Pattern.txt</Path>
+            </Category>
+          </Category>
+          <Category Name="Source">
+            <Path>src\aw\Source\APPW_MainTask.c</Path>
+            <Category Name="CustomCode">
+              <Path>src\aw\Source\CustomCode\Application.c</Path>
+              <Path>src\aw\Source\CustomCode\Application.h</Path>
+              <Path>src\aw\Source\CustomCode\ID_SCREEN_00_Slots.c</Path>
+              <Path>src\aw\Source\CustomCode\ID_SCREEN_01_Slots.c</Path>
+              <Path>src\aw\Source\CustomCode\rx72n_envision_kit_system.c</Path>
+              <Path>src\aw\Source\CustomCode\rx72n_envision_kit_system.h</Path>
+            </Category>
+            <Category Name="Generated">
+              <Path>src\aw\Source\Generated\APPWConf.c</Path>
+              <Path>src\aw\Source\Generated\ID_SCREEN_00.c</Path>
+              <Path>src\aw\Source\Generated\ID_SCREEN_00.h</Path>
+              <Path>src\aw\Source\Generated\ID_SCREEN_01.c</Path>
+              <Path>src\aw\Source\Generated\ID_SCREEN_01.h</Path>
+              <Path>src\aw\Source\Generated\Resource.c</Path>
+              <Path>src\aw\Source\Generated\Resource.h</Path>
             </Category>
           </Category>
         </Category>
@@ -1895,6 +1939,8 @@
           <Option>-include="${ProjDirPath}\src\smc_gen\r_gpio_rx\src"</Option>
           <Option>-include="${ProjDirPath}\src\smc_gen\r_drw2d_rx\inc\tes"</Option>
           <Option>-include="${ProjDirPath}\src\smc_gen\r_sci_iic_rx"</Option>
+          <Option>-include="${ProjDirPath}\src\aw\Source\Generated"</Option>
+          <Option>-include="${ProjDirPath}\src\aw\Source\CustomCode"</Option>
           <Option>-define=MBEDTLS_CONFIG_FILE=&lt;"aws_mbedtls_config.h"&gt;,CONFIG_FREERTOS_ASSERT_FAIL_ABORT,CONFIG_MEDTLS_USE_AFR_MEMORY,MBEDTLS_ERROR_C,MBEDTLS_ALLOW_PRIVATE_ACCESS,__LITTLE_ENDIAN__</Option>
           <Option>-asmopt=-bank</Option>
           <Option>-utf8</Option>
@@ -1955,6 +2001,8 @@
           <Option>-include="${ProjDirPath}\src\smc_gen\r_gpio_rx\src"</Option>
           <Option>-include="${ProjDirPath}\src\smc_gen\r_drw2d_rx\inc\tes"</Option>
           <Option>-include="${ProjDirPath}\src\smc_gen\r_sci_iic_rx"</Option>
+          <Option>-include="${ProjDirPath}\src\aw\Source\Generated"</Option>
+          <Option>-include="${ProjDirPath}\src\aw\Source\CustomCode"</Option>
           <Option>-utf8</Option>
           <Option>-bank</Option>
           <Option>-debug</Option>
@@ -2286,6 +2334,26 @@
           <Path>HardwareDebug\sha256.obj</Path>
           <Path>HardwareDebug\utils.obj</Path>
           <Path>HardwareDebug\MQTTFileDownloader_cbor.obj</Path>
+          <Path>HardwareDebug\gui_task.obj</Path>
+          <Path>HardwareDebug\Roboto_16_Normal_EXT_AA4.obj</Path>
+          <Path>HardwareDebug\Roboto_24_Normal_EXT_AA4.obj</Path>
+          <Path>HardwareDebug\DARK_Button_Down_100x30.obj</Path>
+          <Path>HardwareDebug\DARK_Button_Up_100x30.obj</Path>
+          <Path>HardwareDebug\DARK_Progbar_Tile_H_Blue_1x16.obj</Path>
+          <Path>HardwareDebug\DARK_Progbar_Tile_H_Gray_1x16.obj</Path>
+          <Path>HardwareDebug\mcu.obj</Path>
+          <Path>HardwareDebug\title_renesas.obj</Path>
+          <Path>HardwareDebug\APPW_Language_0.obj</Path>
+          <Path>HardwareDebug\APPW_Pattern.obj</Path>
+          <Path>HardwareDebug\APPW_MainTask.obj</Path>
+          <Path>HardwareDebug\Application.obj</Path>
+          <Path>HardwareDebug\ID_SCREEN_00_Slots.obj</Path>
+          <Path>HardwareDebug\ID_SCREEN_01_Slots.obj</Path>
+          <Path>HardwareDebug\rx72n_envision_kit_system.obj</Path>
+          <Path>HardwareDebug\APPWConf.obj</Path>
+          <Path>HardwareDebug\ID_SCREEN_00.obj</Path>
+          <Path>HardwareDebug\ID_SCREEN_01.obj</Path>
+          <Path>HardwareDebug\Resource.obj</Path>
           <Path>HardwareDebug\r_cmt_rx.obj</Path>
           <Path>HardwareDebug\r_dmaca_rx.obj</Path>
           <Path>HardwareDebug\r_dmaca_rx_target.obj</Path>
@@ -2695,6 +2763,8 @@
           <IncludePathForC>"${ProjDirPath}\src\smc_gen\r_gpio_rx\src"</IncludePathForC>
           <IncludePathForC>"${ProjDirPath}\src\smc_gen\r_drw2d_rx\inc\tes"</IncludePathForC>
           <IncludePathForC>"${ProjDirPath}\src\smc_gen\r_sci_iic_rx"</IncludePathForC>
+          <IncludePathForC>"${ProjDirPath}\src\aw\Source\Generated"</IncludePathForC>
+          <IncludePathForC>"${ProjDirPath}\src\aw\Source\CustomCode"</IncludePathForC>
           <IncludePathForAsm>"${ProjDirPath}\src\smc_gen\r_flash_rx"</IncludePathForAsm>
           <IncludePathForAsm>"${ProjDirPath}\src\smc_gen\r_flash_rx\src\flash_type_1"</IncludePathForAsm>
           <IncludePathForAsm>"${ProjDirPath}\src\smc_gen\general"</IncludePathForAsm>
@@ -2736,6 +2806,8 @@
           <IncludePathForAsm>"${ProjDirPath}\src\smc_gen\r_gpio_rx\src"</IncludePathForAsm>
           <IncludePathForAsm>"${ProjDirPath}\src\smc_gen\r_drw2d_rx\inc\tes"</IncludePathForAsm>
           <IncludePathForAsm>"${ProjDirPath}\src\smc_gen\r_sci_iic_rx"</IncludePathForAsm>
+          <IncludePathForAsm>"${ProjDirPath}\src\aw\Source\Generated"</IncludePathForAsm>
+          <IncludePathForAsm>"${ProjDirPath}\src\aw\Source\CustomCode"</IncludePathForAsm>
           <MacroForC>MBEDTLS_CONFIG_FILE=&lt;"aws_mbedtls_config.h"&gt;</MacroForC>
           <MacroForC>CONFIG_FREERTOS_ASSERT_FAIL_ABORT</MacroForC>
           <MacroForC>CONFIG_MEDTLS_USE_AFR_MEMORY</MacroForC>

@@ -229,7 +229,12 @@ void APPW_X_Setup(void) {
   APPW_SetpfInitText(_InitText);
   APPW_X_FS_Init();
   APPW_MULTIBUF_Enable(_MultibufEnable);
-  APPW_SetData(_apRootList, _NumScreens, _aVarList, _NumVars, (APPW_DRAWING_ITEM **)_appDrawing, _NumDrawings);
+  /* Phase 8b 第3次 段階5-1 (rx72n-envision-kit#49 / MR !86): emWin v6.34g.1.20 で
+   * APPW_SetData に Scroller 引数 (paScrollerDef, NumScrollers) が追加されたため、
+   * 既存 AppWizard 自動生成コードと API 不一致となっていた。Scroller 未使用構成のため
+   * NULL, 0 を渡して整合させる。AppWizard tool を再実行する場合はこの edit が再上書き
+   * される可能性があるため、Generated/ 配下を手動編集していることを記録する。 */
+  APPW_SetData(_apRootList, _NumScreens, _aVarList, _NumVars, NULL, 0, (APPW_DRAWING_ITEM **)_appDrawing, _NumDrawings);
   GUI_ShowMissingCharacters(_ShowMissingCharacters);
 }
 
