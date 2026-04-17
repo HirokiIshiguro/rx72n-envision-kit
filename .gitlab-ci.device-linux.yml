@@ -143,6 +143,7 @@ test_commands:
   extends:
     - .pc_device_job
     - .pc_pyserial_job
+  allow_failure: true  # CN8 撤去済み、legacy command IF は CN6 移行まで不通
   timeout: 45 minutes
   rules:
     - if: $RUN_V3_BUILD_ONLY == "true"
@@ -184,6 +185,7 @@ test_screen_navigation:
   extends:
     - .pc_device_job
     - .pc_pyserial_job
+  allow_failure: true  # CN8 撤去済み、legacy command IF は CN6 移行まで不通
   timeout: 3 minutes
   rules:
     - if: $RUN_V3_BUILD_ONLY == "true"
