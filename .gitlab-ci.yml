@@ -17,42 +17,20 @@ include:
     rules:
       - if: $RUN_V3_BUILD_ONLY == "true"
         when: never
-      - if: '$DEVICE_RUNNER_PLATFORM != "windows"'
-  - local: ".gitlab-ci.device-windows.yml"
-    rules:
-      - if: $RUN_V3_BUILD_ONLY == "true"
-        when: never
-      - if: '$DEVICE_RUNNER_PLATFORM == "windows"'
+      - when: always
 
 # すべての実ジョブが rules: ベースに揃ったため、MR パイプラインを許可する。
 # open MR があるブランチへの通常 push は重複実行を避けるため抑止し、
 # MR 判定は merge_request_event 側の pipeline を基準にする。
 workflow:
   rules:
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event" && $DEVICE_RUNNER_PLATFORM == "windows"'
-      variables:
-        DEVICE_ID: "rx72n-01"
-        MAC_ADDR: "${MAC_ADDR_ENVISION_KIT_RX72N1}"
-        UART_PORT: "COM7"
-        COMMAND_PORT: "COM6"
-        DEVICE_RESOURCE_GROUP: "rx72n-device-01"
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
     - if: '$CI_PIPELINE_SOURCE == "push" && $CI_OPEN_MERGE_REQUESTS'
       when: never
-    - if: '$DEVICE_RUNNER_PLATFORM == "windows"'
-      variables:
-        DEVICE_ID: "rx72n-01"
-        MAC_ADDR: "${MAC_ADDR_ENVISION_KIT_RX72N1}"
-        UART_PORT: "COM7"
-        COMMAND_PORT: "COM6"
-        DEVICE_RESOURCE_GROUP: "rx72n-device-01"
     - when: always
 
 variables:
-  # Device runner switch:
-  #   linux   -> Raspberry Pi #3 + RX72N Envision Kit #3 (tag: dev-ek-rx72n-set2)
-  #   windows -> ishiguro-pc + RX72N Envision Kit #1 (USB 抜き保留中)
-  DEVICE_RUNNER_PLATFORM: "linux"
+  # Device runner: Raspberry Pi #3 + RX72N Envision Kit #3 (tag: dev-ek-rx72n-set2)
   E2STUDIO: "C:\\Renesas\\e2_studio_2025_12\\eclipse\\e2studioc.exe"
   WORKSPACE: "C:\\workspace_rx72n"
   E2STUDIO_PROJECTS: "projects_legacy/renesas/rx72n_envision_kit/e2studio"
@@ -62,7 +40,6 @@ variables:
   # --- ハードウェア依存変数（hardware-config リポジトリの CI/CD Variables から取得） ---
   # 既定は Linux device runner (Raspberry Pi #3 + RX72N Envision Kit #3, tag: dev-ek-rx72n-set2)。
   # 2026-04-14 の Runner tag 整理で set2 tag は RPi#3 を指すようになった。
-  # DEVICE_RUNNER_PLATFORM=windows では ishiguro-pc + RX72N Envision Kit #1 へ切り替える (現在 #1 は USB 抜き保留中)。
   # 最新の台帳は hardware-config の CLAUDE.md を参照する。
   # E2 Lite シリアル番号 (ECN1 コネクタ)
   E2LITE_SERIAL: "${E2L_SERIAL_ENVISION_KIT_RX72N_ECN1}"
@@ -72,11 +49,10 @@ variables:
   UART_PORT: "${UART_PORT_ENVISION_KIT_RX72N_CN6_RPI3}"
   UART_BAUD_RATE: "921600"
   UART_TIMEOUT_SEC: "30"
-  # コマンドインターフェース用（CN8 USB Serial, SCI2, 115200bps）
-  # set2 (RPi#3 + ENVK #3) 固定。/oss group CI/CD Variables の stable by-id path を使用する。
-  # オンボード既定経路 (追加パーツ不要、低ボーレート)。
-  COMMAND_PORT: "${UART_PORT_ENVISION_KIT_RX72N_CN8_RPI3}"
-  COMMAND_BAUD_RATE: "115200"
+  # コマンドインターフェース用（CN6 FTDI, SCI7, 921600bps）
+  # 2026-04-17 以降 CN8 (RL78/G1C) は全台撤去済み。CN6 に統一。
+  COMMAND_PORT: "${UART_PORT_ENVISION_KIT_RX72N_CN6_RPI3}"
+  COMMAND_BAUD_RATE: "921600"
   # デバイス ID と MAC address は set2 (ENVK #3) 固定。
   DEVICE_ID: "rx72n-03"
   MAC_ADDR: "${MAC_ADDR_ENVISION_KIT_RX72N3}"
