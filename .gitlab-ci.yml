@@ -857,6 +857,7 @@ ota_v3_monitor_rx72n:
         --log-baud "$UART_BAUD_RATE" \
         --expected-build "$v2" \
         --timeout 600 \
+        --reset-cmd "$RFP_CLI -device RX72x -tool $RFP_TOOL -if fine -speed $RFP_SPEED -auth id FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF -sig -run -noquery" \
         --monitor-results-out "$monitor_results" | tee "$monitor_log"
   artifacts:
     when: always

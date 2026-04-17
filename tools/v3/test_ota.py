@@ -1449,6 +1449,21 @@ def run_monitor_mode(args):
                 print(f"[PASS] New version already confirmed during monitoring: {format_version(monitor_version)}")
                 results["new_version"] = True
             else:
+                # OTA の bank swap で複数回 reboot が発��し UART 接続が不安定に
+                # なるため、明示的に reset して fresh boot 上で version を検出する
+                if hasattr(args, 'reset_cmd') and args.reset_cmd:
+                    print(f"[VERIFY] Forcing device reset via: {args.reset_cmd}")
+                    if log_ser:
+                        log_ser.reset_input_buffer()
+                    rc = subprocess.run(
+                        args.reset_cmd, shell=True,
+                        capture_output=True, text=True, timeout=30
+                    )
+                    print(f"[VERIFY] Reset command exit={rc.returncode}")
+                    import time as _time
+                    _time.sleep(1.0)
+                    if log_ser:
+                        log_ser.reset_input_buffer()
                 if monitor_version:
                     print(
                         f"[INFO] Monitor saw version {format_version(monitor_version)}, "
@@ -1755,6 +1770,8 @@ def main():
                         help="Read monitor results JSON from this path")
     parser.add_argument("--create-start-delay", type=int, default=0,
                         help="Delay before create-job starts AWS upload (seconds)")
+    parser.add_argument("--reset-cmd", default=None,
+                        help="Shell command to reset device (used in monitor mode STEP 3 to force clean reboot for version detection)")
     args = parser.parse_args()
 
     args = load_device_defaults(args)
