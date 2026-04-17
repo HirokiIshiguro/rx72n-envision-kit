@@ -856,7 +856,7 @@
                 <gridItem id="BSP_CFG_USER_STACK_ENABLE" selectedIndex="1"/>
                 <gridItem id="BSP_CFG_USTACK_BYTES" selectedIndex="0x1000"/>
                 <gridItem id="BSP_CFG_ISTACK_BYTES" selectedIndex="0x400"/>
-                <gridItem id="BSP_CFG_HEAP_BYTES" selectedIndex="0x2000"/>
+                <gridItem id="BSP_CFG_HEAP_BYTES" selectedIndex="0x4000"/>
                 <gridItem id="BSP_CFG_IO_LIB_ENABLE" selectedIndex="1"/>
                 <gridItem id="BSP_CFG_USER_CHARGET_ENABLED" selectedIndex="0"/>
                 <gridItem id="BSP_CFG_USER_CHARGET_FUNCTION" selectedIndex="my_sw_charget_function"/>
@@ -1338,7 +1338,7 @@
             <source description="Components supporting Firmware Integration Technology" display="Firmware Integration Technology" id="com.renesas.smc.tools.swcomponent.fit.source"/>
             <source description="Components supporting Firmware Integration Technology" display="Firmware Integration Technology" id="com.renesas.smc.tools.swcomponent.fit.source"/>
         </configuration>
-        <configuration enable="true" exclude="false" id="9956b495-385d-49e0-9366-b7f83b46f53f" inuse="true" name="FreeRTOS_IP">
+        <configuration enable="true" exclude="false" id="31c58057-cb06-4e96-be7b-751a9ab59ec9" inuse="true" name="FreeRTOS_IP">
             <component description="依存モジュール: r_ether_rx&#10;FreeRTOS-Plus-TCP is a scalable, open source and thread safe TCP/IP stack for FreeRTOS." detailDescription="FreeRTOS-Plus-TCP is a scalable, open source and thread safe TCP/IP stack for FreeRTOS." display="FreeRTOS-Plus-TCP" id="FreeRTOS_IP202406.01-LTS-rx-1.1.1" version="4.2.2">
                 <gridItem id="ipconfigBYTE_ORDER" selectedIndex="0"/>
                 <gridItem id="ipconfigHAS_DEBUG_PRINTF" selectedIndex="0"/>
@@ -1363,7 +1363,7 @@
             </component>
             <source description="Code generator for Real-time OS" display="RTOS Configurator" id="com.renesas.smc.tools.swcomponent.rtosconfigurator.source"/>
         </configuration>
-        <configuration enable="true" exclude="false" id="f0f920e2-bf36-42dc-8a94-b85bbaa3c80b" inuse="true" name="FreeRTOS Object">
+        <configuration enable="true" exclude="false" id="0b65ad37-6752-4ef9-ae15-3088cf76c771" inuse="true" name="FreeRTOS Object">
             <allocatable id="OBJECT" name="OBJECT" type="">
                 <allocatable id="TASK" name="TASK" type="">
                     <allocatable id="TASKOBJECTLINK1" name="TASK" readonly="true" type="">
@@ -1399,7 +1399,7 @@
             <component description="This component is a part of RTOS Configurator feature that allow user to use the GUI to create and configure new object of FreeRTOS." detailDescription="" display="FreeRTOS_Object" id="com.renesas.smc.tools.swcomponent.rtosconfigurator.freertos.object" version="202406.01-LTS-rx-1.1.1"/>
             <source description="Code generator for Real-time OS" display="RTOS Configurator" id="com.renesas.smc.tools.swcomponent.rtosconfigurator.source"/>
         </configuration>
-        <configuration enable="true" exclude="false" id="62d0201a-e1b7-4705-9b29-e32caf13bfc3" inuse="true" name="LittleFS">
+        <configuration enable="true" exclude="false" id="5bcbb085-3765-4e06-9f42-e8c751953d6f" inuse="true" name="LittleFS">
             <component description="依存モジュール: なし&#10;LittleFS is a lightweight, fail-safe filesystem designed for microcontrollers." detailDescription="LittleFS is a lightweight, fail-safe filesystem designed for microcontrollers." display="LittleFS" id="LittleFS202406.01-LTS-rx-1.1.1" version="2.5.1">
                 <gridItem id="LFS_FLASH_READ_SIZE" selectedIndex="1"/>
                 <gridItem id="LFS_FLASH_PROGRAM_SIZE" selectedIndex="4"/>
@@ -1409,7 +1409,7 @@
             </component>
             <source description="Code generator for Real-time OS" display="RTOS Configurator" id="com.renesas.smc.tools.swcomponent.rtosconfigurator.source"/>
         </configuration>
-        <configuration enable="true" exclude="false" id="062dac15-425e-4b9b-a6a1-b2947db9f425" inuse="true" name="FreeRTOS_Kernel">
+        <configuration enable="true" exclude="false" id="283ae679-95e3-41fb-926b-692f9d068c34" inuse="true" name="FreeRTOS_Kernel">
             <component description="依存モジュール: なし&#10;FreeRTOS kernel is a real-time operating system (RTOS) designed for building embedded microcontroller applications." detailDescription="FreeRTOS kernel is a real-time operating system (RTOS) designed for building embedded microcontroller applications." display="FreeRTOS Kernel" id="FreeRTOS_Kernel202406.01-LTS-rx-1.1.1" version="11.1.0">
                 <gridItem id="configENABLE_BACKWARD_COMPATIBILITY" selectedIndex="1"/>
                 <gridItem id="configUSE_PREEMPTION" selectedIndex="1"/>

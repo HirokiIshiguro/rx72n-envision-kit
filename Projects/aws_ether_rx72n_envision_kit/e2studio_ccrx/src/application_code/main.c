@@ -50,10 +50,15 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include "demo_config.h"
 #include "store.h"
 #include "mqtt_agent_task.h"
-/* r_simple_glcdc_config_rx / r_simple_graphic_rx removed in Phase 8b 第3次 段階5-1
- * (rx72n-envision-kit#49). emWin (r_emwin_rx) will own the LCD framebuffer
- * starting from 段階5-2. prvDisplayInitialize() / vApplicationLcdLogString()
- * are stubbed below until then. */
+/* r_simple_glcdc_config_rx / r_simple_graphic_rx removed in Phase 8b 第3次
+ * 段階5-1 first checkpoint (MR !85). LCD output now goes through emWin via
+ * gui_task (legacy-aligned APPW_X_Setup → APPW_Init → APPW_CreateRoot
+ * sequence). vApplicationLcdLogString() remains a stub until 段階5-2 wires
+ * a logging window. */
+extern void gui_task( void * pvParameters );
+
+#define appmainGUI_TASK_STACK_SIZE                ( 4096 )
+#define appmainGUI_TASK_PRIORITY                  ( tskIDLE_PRIORITY + 1 )
 
 EventGroupHandle_t xStartDemoEventGroup = NULL;
 
@@ -335,8 +340,17 @@ End of function prvMiscInitialization
 
 static void prvDisplayInitialize( void )
 {
-    /* Stub: r_simple_glcdc_config_rx / r_simple_graphic_rx removed.
-     * Will be replaced with emWin GUI_Init() in 段階5-2. */
+    static TaskHandle_t s_gui_task_handle = NULL;
+
+    if( s_gui_task_handle == NULL )
+    {
+        ( void ) xTaskCreate( gui_task,
+                              "gui",
+                              appmainGUI_TASK_STACK_SIZE,
+                              NULL,
+                              appmainGUI_TASK_PRIORITY,
+                              &s_gui_task_handle );
+    }
 }
 /*-----------------------------------------------------------*/
 
