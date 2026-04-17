@@ -161,11 +161,11 @@ variables:
   RUN_V3_BASELINE: "false"
   # RUN_V3_OTA: Phase 8b 第3次 段階4 (Issue #46) の v3 baseline 上での
   # AWS IoT OTA 動作確認 gate。"true" のとき legacy / v3 baseline ジョブを全 skip し、
-  # build_v3_ota_rx72n → flash_v3_boot_ota_rx72n (manual) →
-  # download_v3_v1_ota_rx72n → provision_v3_ota_rx72n → ota_v3_create_job_rx72n →
-  # ota_v3_monitor_rx72n → ota_v3_finalize_rx72n のみ実行する。
-  # 実機影響 (RX72N ENVK #3 = set2) のため flash は manual gate 必須。
-  RUN_V3_OTA: "false"
+  # build_v3_ota_rx72n → flash_v3_boot_ota_rx72n → download_v3_v1_ota_rx72n →
+  # provision_v3_ota_rx72n → ota_v3_create_job_rx72n → ota_v3_monitor_rx72n →
+  # ota_v3_finalize_rx72n のみ実行する。set2 (RX72N ENVK #3) 単独。
+  # MR merge 後に "false" に戻す。
+  RUN_V3_OTA: "true"
   RX72N_V3_SIGNING_KEY: "sample_keys/secp256r1.privatekey"
 
 .windows_ota_aws_job:
@@ -629,7 +629,7 @@ mqtt_v3_rx72n:
 # --- Phase 8b 第3次 段階4 (Issue #46) v3 OTA pipeline ---
 # Flow:
 #   build_v3_ota_rx72n        (Windows)
-#   -> flash_v3_boot_ota_rx72n   (Pi, manual gate)
+#   -> flash_v3_boot_ota_rx72n   (Pi)
 #      -> download_v3_v1_ota_rx72n (Pi)
 #         -> provision_v3_ota_rx72n   (Pi)
 #            -> ota_v3_create_job_rx72n (Windows, AWS creds, acquire lease)
@@ -676,7 +676,6 @@ flash_v3_boot_ota_rx72n:
   extends: .v3_pi_job
   rules:
     - if: $RUN_V3_OTA == "true"
-      when: manual
     - when: never
   needs:
     - job: build_v3_ota_rx72n
