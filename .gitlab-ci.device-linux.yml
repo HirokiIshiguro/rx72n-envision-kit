@@ -28,6 +28,8 @@ flash_boot_loader:
       when: never
     - if: $RUN_V3_BASELINE == "true"
       when: never
+    - if: $RUN_V3_OTA == "true"
+      when: never
     - if: $RUN_RFP_SOAK_TEST == "true"
       when: never
     - if: $RUN_OTA_BOUNDARY_ONLY == "true"
@@ -66,6 +68,8 @@ rfp_soak_test:
       when: never
     - if: $RUN_V3_BASELINE == "true"
       when: never
+    - if: $RUN_V3_OTA == "true"
+      when: never
     - if: $RUN_RFP_SOAK_TEST == "true"
     - when: never
   needs:
@@ -99,6 +103,8 @@ download_aws_demos:
     - if: $RUN_V3_BUILD_ONLY == "true"
       when: never
     - if: $RUN_V3_BASELINE == "true"
+      when: never
+    - if: $RUN_V3_OTA == "true"
       when: never
     - if: $RUN_RFP_SOAK_TEST == "true"
       when: never
@@ -137,11 +143,14 @@ test_commands:
   extends:
     - .pc_device_job
     - .pc_pyserial_job
+  allow_failure: true  # CN8 撤去済み、legacy command IF は CN6 移行まで不通
   timeout: 45 minutes
   rules:
     - if: $RUN_V3_BUILD_ONLY == "true"
       when: never
     - if: $RUN_V3_BASELINE == "true"
+      when: never
+    - if: $RUN_V3_OTA == "true"
       when: never
     - if: $RUN_RFP_SOAK_TEST == "true"
       when: never
@@ -176,11 +185,14 @@ test_screen_navigation:
   extends:
     - .pc_device_job
     - .pc_pyserial_job
+  allow_failure: true  # CN8 撤去済み、legacy command IF は CN6 移行まで不通
   timeout: 3 minutes
   rules:
     - if: $RUN_V3_BUILD_ONLY == "true"
       when: never
     - if: $RUN_V3_BASELINE == "true"
+      when: never
+    - if: $RUN_V3_OTA == "true"
       when: never
     - if: $RUN_RFP_SOAK_TEST == "true"
       when: never
@@ -205,11 +217,14 @@ provision_aws_credentials:
   extends:
     - .pc_device_job
     - .pc_pyserial_job
+  allow_failure: true  # CN8 撤去済み、legacy command IF は CN6 移行まで不通
   timeout: 5 minutes
   rules:
     - if: $RUN_V3_BUILD_ONLY == "true"
       when: never
     - if: $RUN_V3_BASELINE == "true"
+      when: never
+    - if: $RUN_V3_OTA == "true"
       when: never
     - if: $RUN_RFP_SOAK_TEST == "true"
       when: never
@@ -252,6 +267,8 @@ health_aws_demos_startup:
       when: never
     - if: $RUN_V3_BASELINE == "true"
       when: never
+    - if: $RUN_V3_OTA == "true"
+      when: never
     - if: $RUN_OTA_BOUNDARY_ONLY == "true"
       when: never
     - if: $RUN_OTA_ONLY == "true"
@@ -279,11 +296,14 @@ confirm_aws_mqtt:
   extends:
     - .pc_device_job
     - .pc_pyserial_job
+  allow_failure: true  # CN8 撤去済み、legacy command IF は CN6 移行まで不通
   timeout: 5 minutes
   rules:
     - if: $RUN_V3_BUILD_ONLY == "true"
       when: never
     - if: $RUN_V3_BASELINE == "true"
+      when: never
+    - if: $RUN_V3_OTA == "true"
       when: never
     - if: $RUN_RFP_SOAK_TEST == "true"
       when: never
@@ -323,6 +343,8 @@ test_sd_update:
       when: never
     - if: $RUN_V3_BASELINE == "true"
       when: never
+    - if: $RUN_V3_OTA == "true"
+      when: never
     - if: $RUN_OTA_BOUNDARY_ONLY == "true"
       when: never
     - if: $RUN_HW_HEALTHCHECK == "true"
@@ -355,6 +377,8 @@ prepare_ota:
     - if: $RUN_V3_BUILD_ONLY == "true"
       when: never
     - if: $RUN_V3_BASELINE == "true"
+      when: never
+    - if: $RUN_V3_OTA == "true"
       when: never
     - if: $RUN_PREPARE_OTA_ONLY == "true"
     - if: $RUN_RFP_SOAK_TEST == "true"
@@ -409,6 +433,8 @@ ota_monitor:
     - if: $RUN_V3_BUILD_ONLY == "true"
       when: never
     - if: $RUN_V3_BASELINE == "true"
+      when: never
+    - if: $RUN_V3_OTA == "true"
       when: never
     - if: $RUN_PREPARE_OTA_ONLY == "true"
       when: never

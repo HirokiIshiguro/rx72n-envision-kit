@@ -17,42 +17,20 @@ include:
     rules:
       - if: $RUN_V3_BUILD_ONLY == "true"
         when: never
-      - if: '$DEVICE_RUNNER_PLATFORM != "windows"'
-  - local: ".gitlab-ci.device-windows.yml"
-    rules:
-      - if: $RUN_V3_BUILD_ONLY == "true"
-        when: never
-      - if: '$DEVICE_RUNNER_PLATFORM == "windows"'
+      - when: always
 
 # すべての実ジョブが rules: ベースに揃ったため、MR パイプラインを許可する。
 # open MR があるブランチへの通常 push は重複実行を避けるため抑止し、
 # MR 判定は merge_request_event 側の pipeline を基準にする。
 workflow:
   rules:
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event" && $DEVICE_RUNNER_PLATFORM == "windows"'
-      variables:
-        DEVICE_ID: "rx72n-01"
-        MAC_ADDR: "${MAC_ADDR_ENVISION_KIT_RX72N1}"
-        UART_PORT: "COM7"
-        COMMAND_PORT: "COM6"
-        DEVICE_RESOURCE_GROUP: "rx72n-device-01"
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
     - if: '$CI_PIPELINE_SOURCE == "push" && $CI_OPEN_MERGE_REQUESTS'
       when: never
-    - if: '$DEVICE_RUNNER_PLATFORM == "windows"'
-      variables:
-        DEVICE_ID: "rx72n-01"
-        MAC_ADDR: "${MAC_ADDR_ENVISION_KIT_RX72N1}"
-        UART_PORT: "COM7"
-        COMMAND_PORT: "COM6"
-        DEVICE_RESOURCE_GROUP: "rx72n-device-01"
     - when: always
 
 variables:
-  # Device runner switch:
-  #   linux   -> Raspberry Pi #3 + RX72N Envision Kit #3 (tag: dev-ek-rx72n-set2)
-  #   windows -> ishiguro-pc + RX72N Envision Kit #1 (USB 抜き保留中)
-  DEVICE_RUNNER_PLATFORM: "linux"
+  # Device runner: Raspberry Pi #3 + RX72N Envision Kit #3 (tag: dev-ek-rx72n-set2)
   E2STUDIO: "C:\\Renesas\\e2_studio_2025_12\\eclipse\\e2studioc.exe"
   WORKSPACE: "C:\\workspace_rx72n"
   E2STUDIO_PROJECTS: "projects_legacy/renesas/rx72n_envision_kit/e2studio"
@@ -62,7 +40,6 @@ variables:
   # --- ハードウェア依存変数（hardware-config リポジトリの CI/CD Variables から取得） ---
   # 既定は Linux device runner (Raspberry Pi #3 + RX72N Envision Kit #3, tag: dev-ek-rx72n-set2)。
   # 2026-04-14 の Runner tag 整理で set2 tag は RPi#3 を指すようになった。
-  # DEVICE_RUNNER_PLATFORM=windows では ishiguro-pc + RX72N Envision Kit #1 へ切り替える (現在 #1 は USB 抜き保留中)。
   # 最新の台帳は hardware-config の CLAUDE.md を参照する。
   # E2 Lite シリアル番号 (ECN1 コネクタ)
   E2LITE_SERIAL: "${E2L_SERIAL_ENVISION_KIT_RX72N_ECN1}"
@@ -72,11 +49,10 @@ variables:
   UART_PORT: "${UART_PORT_ENVISION_KIT_RX72N_CN6_RPI3}"
   UART_BAUD_RATE: "921600"
   UART_TIMEOUT_SEC: "30"
-  # コマンドインターフェース用（CN8 USB Serial, SCI2, 115200bps）
-  # set2 (RPi#3 + ENVK #3) 固定。/oss group CI/CD Variables の stable by-id path を使用する。
-  # オンボード既定経路 (追加パーツ不要、低ボーレート)。
-  COMMAND_PORT: "${UART_PORT_ENVISION_KIT_RX72N_CN8_RPI3}"
-  COMMAND_BAUD_RATE: "115200"
+  # コマンドインターフェース用（CN6 FTDI, SCI7, 921600bps）
+  # 2026-04-17 以降 CN8 (RL78/G1C) は全台撤去済み。CN6 に統一。
+  COMMAND_PORT: "${UART_PORT_ENVISION_KIT_RX72N_CN6_RPI3}"
+  COMMAND_BAUD_RATE: "921600"
   # デバイス ID と MAC address は set2 (ENVK #3) 固定。
   DEVICE_ID: "rx72n-03"
   MAC_ADDR: "${MAC_ADDR_ENVISION_KIT_RX72N3}"
@@ -159,6 +135,12 @@ variables:
   # のみを実行する。実機影響 (RX72N ENVK #3 = set2) のため flash は when: manual
   # による人間承認必須。既定は "false" で master pipeline 無影響。
   RUN_V3_BASELINE: "false"
+  # RUN_V3_OTA: Phase 8b 第3次 段階4 (Issue #46) の v3 baseline 上での
+  # AWS IoT OTA 動作確認 gate。"true" のとき legacy / v3 baseline ジョブを全 skip し、
+  # build_v3_ota_rx72n → flash_v3_boot_ota_rx72n → download_v3_v1_ota_rx72n →
+  # provision_v3_ota_rx72n → ota_v3_create_job_rx72n → ota_v3_monitor_rx72n →
+  # ota_v3_finalize_rx72n のみ実行する。set2 (RX72N ENVK #3) 単独。
+  RUN_V3_OTA: "false"
   RX72N_V3_SIGNING_KEY: "sample_keys/secp256r1.privatekey"
 
 .windows_ota_aws_job:
@@ -189,6 +171,8 @@ build:
     - if: $RUN_V3_BUILD_ONLY == "true"
       when: never
     - if: $RUN_V3_BASELINE == "true"
+      when: never
+    - if: $RUN_V3_OTA == "true"
       when: never
     - if: $RUN_OTA_BOUNDARY_ONLY == "true"
       when: never
@@ -617,6 +601,313 @@ mqtt_v3_rx72n:
     expire_in: 1 week
 
 
+# --- Phase 8b 第3次 段階4 (Issue #46) v3 OTA pipeline ---
+# Flow:
+#   build_v3_ota_rx72n        (Windows)
+#   -> flash_v3_boot_ota_rx72n   (Pi)
+#      -> download_v3_v1_ota_rx72n (Pi)
+#         -> provision_v3_ota_rx72n   (Pi)
+#            -> ota_v3_create_job_rx72n (Windows, AWS creds, acquire lease)
+#               -> ota_v3_monitor_rx72n  (Pi, UART monitor)
+#                  -> ota_v3_finalize_rx72n (Windows, release lease, always)
+
+build_v3_ota_rx72n:
+  stage: build
+  tags:
+    - run_ishiguro_machine
+  rules:
+    - if: $RUN_V3_OTA == "true"
+    - when: never
+  variables:
+    GIT_SUBMODULE_STRATEGY: recursive
+  script:
+    - |
+      Write-Host "=== RX72N v3 OTA build (v1 + v2 RSU generation) ==="
+      Write-Host "Project root: $env:CI_PROJECT_DIR"
+      Write-Host "Workspace   : C:\rx72n-v3-ota-ws"
+      Write-Host "Pipeline IID: $env:CI_PIPELINE_IID"
+      python -m pip install --quiet --user cryptography
+      & "$env:CI_PROJECT_DIR\tools\ci\build_v3_rx72n_ota.ps1" `
+        -ProjectRoot    "$env:CI_PROJECT_DIR" `
+        -E2Studio       "$env:E2STUDIO" `
+        -Workspace      "C:\rx72n-v3-ota-ws" `
+        -V3ProjectsPath "Projects"
+  artifacts:
+    when: always
+    paths:
+      - rx72n_v3_ota_build_v1.log
+      - rx72n_v3_ota_build_v2.log
+      - rx72n_v3_ota_v1.rsu
+      - rx72n_v3_ota_v2.rsu
+      - rx72n_codesign_cert.pem
+      - Projects/boot_loader_rx72n_envision_kit/e2studio_ccrx/HardwareDebug/*.mot
+      - Projects/aws_ether_rx72n_envision_kit/e2studio_ccrx/HardwareDebug/*.mot
+      - Projects/aws_ether_rx72n_envision_kit/e2studio_ccrx/HardwareDebug/*.abs
+      - Projects/aws_ether_rx72n_envision_kit/e2studio_ccrx/HardwareDebug/*.x
+    expire_in: 1 week
+
+flash_v3_boot_ota_rx72n:
+  stage: flash_boot
+  extends: .v3_pi_job
+  rules:
+    - if: $RUN_V3_OTA == "true"
+    - when: never
+  needs:
+    - job: build_v3_ota_rx72n
+      artifacts: true
+  script:
+    - set -e
+    - |
+      {
+        echo "=== v3 OTA - erase-chip + flash boot_loader (bank0 + bank1) ==="
+        echo "Device=RX72x Tool=$RFP_TOOL Speed=$RFP_SPEED"
+        "$RFP_CLI" -device RX72x -tool "$RFP_TOOL" -if fine -speed "$RFP_SPEED" \
+          -auth id FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF -erase-chip -noquery
+        "$RFP_CLI" -device RX72x -tool "$RFP_TOOL" -if fine -speed "$RFP_SPEED" \
+          -auth id FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF \
+          -p "$CI_PROJECT_DIR/Projects/boot_loader_rx72n_envision_kit/e2studio_ccrx/HardwareDebug/boot_loader_rx72n_envision_kit.mot" \
+          -v -noquery
+        "$RFP_CLI" -device RX72x -tool "$RFP_TOOL" -if fine -speed "$RFP_SPEED" \
+          -auth id FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF \
+          -p "$CI_PROJECT_DIR/Projects/boot_loader_rx72n_envision_kit/e2studio_ccrx/HardwareDebug/boot_loader_rx72n_envision_kit_bank1.mot" \
+          -v -run -noquery
+      } 2>&1 | tee "$CI_PROJECT_DIR/flash_v3_boot_ota.log"
+  artifacts:
+    when: always
+    paths:
+      - flash_v3_boot_ota.log
+    expire_in: 1 week
+
+download_v3_v1_ota_rx72n:
+  stage: download
+  extends: .v3_pi_job
+  rules:
+    - if: $RUN_V3_OTA == "true"
+    - when: never
+  needs:
+    - job: build_v3_ota_rx72n
+      artifacts: true
+    - job: flash_v3_boot_ota_rx72n
+      artifacts: false
+  script:
+    - set -e
+    - 'echo "=== v3 OTA - UART download rx72n_v3_ota_v1.rsu via boot_loader ==="'
+    - >-
+      python3 "$CI_PROJECT_DIR/tools/v3/test_uart_download_rx72n.py"
+      --rsu "$CI_PROJECT_DIR/rx72n_v3_ota_v1.rsu"
+      --port "$UART_PORT"
+      --baud "$UART_BAUD_RATE"
+      --timeout 420
+      --post-tx-wait 120
+      --diag
+      --wait-for-ready
+      --ready-timeout 90
+      --reset-cmd "$RFP_CLI -device RX72x -tool $RFP_TOOL -if fine -speed $RFP_SPEED -auth id FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF -sig -run -noquery"
+      2>&1 | tee "$CI_PROJECT_DIR/download_v3_v1_ota.log"
+  artifacts:
+    when: always
+    paths:
+      - download_v3_v1_ota.log
+    expire_in: 1 week
+
+provision_v3_ota_rx72n:
+  stage: provision
+  extends: .v3_pi_job
+  timeout: 10 minutes
+  rules:
+    - if: $RUN_V3_OTA == "true"
+    - when: never
+  needs:
+    - job: build_v3_ota_rx72n
+      artifacts: true
+    - job: download_v3_v1_ota_rx72n
+      artifacts: false
+  script:
+    - set -e
+    - 'echo "=== v3 OTA - provision (endpoint/thingname/cert/key/codesigncert via UART CLI) ==="'
+    - >-
+      python3 "$CI_PROJECT_DIR/tools/v3/provision_rx72n.py"
+      --port "$UART_PORT"
+      --baud "$UART_BAUD_RATE"
+      --thing-name "$DEVICE_ID"
+      --endpoint "$AWS_IOT_ENDPOINT"
+      --cert "$AWS_CLIENT_CERT_RX72N_03"
+      --key "$AWS_PRIVATE_KEY_RX72N_03"
+      --codesigner-cert "$CI_PROJECT_DIR/rx72n_codesign_cert.pem"
+      --reset-cmd "$RFP_CLI -device RX72x -tool $RFP_TOOL -if fine -speed $RFP_SPEED -auth id FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF -sig -run -noquery"
+      --reset-after-open
+      --boot-wait 12
+      --cli-timeout 25
+      --attempts 3
+      2>&1 | tee "$CI_PROJECT_DIR/provision_v3_ota.log"
+  artifacts:
+    when: always
+    paths:
+      - provision_v3_ota.log
+    expire_in: 1 week
+
+ota_v3_create_job_rx72n:
+  stage: ota_run
+  extends:
+    - .windows_ota_aws_job
+  timeout: 10 minutes
+  rules:
+    - if: $RUN_V3_OTA == "true"
+    - when: never
+  needs:
+    - job: build_v3_ota_rx72n
+      artifacts: true
+    - job: provision_v3_ota_rx72n
+      artifacts: false
+  script:
+    - |
+      $owner = "$($env:CI_PROJECT_ID):$($env:CI_PIPELINE_ID):$($env:DEVICE_ID)"
+      $leaseArgs = @(
+        '-u',
+        "$env:CI_PROJECT_DIR\tools\ci\ota_boundary_reservation.py",
+        '--action', 'acquire',
+        '--device-id', "$env:DEVICE_ID",
+        '--owner', $owner,
+        '--project-id', "$env:CI_PROJECT_ID",
+        '--pipeline-id', "$env:CI_PIPELINE_ID",
+        '--pipeline-url', "$env:CI_PIPELINE_URL",
+        '--ref', "$env:CI_COMMIT_REF_NAME",
+        '--state-dir', "$env:OTA_BOUNDARY_RESERVATION_ROOT",
+        '--stale-seconds', "$env:OTA_BOUNDARY_RESERVATION_STALE_SECONDS",
+        '--host', "$env:PI_HOST"
+      )
+      & python @leaseArgs
+      if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      $v2 = [int]$env:CI_PIPELINE_IID * 2 + 1
+      $metadataFile = "$env:CI_PROJECT_DIR\ota_v3_job_metadata_$env:DEVICE_ID.json"
+      Write-Host "=== AWS IoT OTA Create Job (v3) ==="
+      Write-Host "  Expected version build: $v2"
+      python -u "$env:CI_PROJECT_DIR\tools\v3\test_ota.py" `
+        --mode create-job `
+        --device-id "$env:DEVICE_ID" `
+        --rsu "$env:CI_PROJECT_DIR\rx72n_v3_ota_v2.rsu" `
+        --s3-bucket "$env:OTA_S3_BUCKET" `
+        --ota-role-arn "$env:OTA_ROLE_ARN" `
+        --metadata-out $metadataFile
+  artifacts:
+    when: always
+    paths:
+      - ota_v3_job_metadata_*.json
+    expire_in: 1 week
+
+ota_v3_monitor_rx72n:
+  stage: ota_run
+  extends: .v3_pi_job
+  timeout: 15 minutes
+  rules:
+    - if: $RUN_V3_OTA == "true"
+    - when: never
+  needs:
+    - job: ota_v3_create_job_rx72n
+      artifacts: true
+  script:
+    - |
+      set -euo pipefail
+      printf '{}\n' > "$CI_PROJECT_DIR/ota_v3_monitor_results_${DEVICE_ID}.json"
+      printf 'monitor started\n' > "$CI_PROJECT_DIR/ota_v3_monitor_${DEVICE_ID}.log"
+      python3 "$CI_PROJECT_DIR/tools/ci/ota_boundary_reservation.py" \
+        --action assert \
+        --device-id "$DEVICE_ID" \
+        --owner "${CI_PROJECT_ID}:${CI_PIPELINE_ID}:${DEVICE_ID}" \
+        --project-id "${CI_PROJECT_ID}" \
+        --pipeline-id "${CI_PIPELINE_ID}" \
+        --pipeline-url "${CI_PIPELINE_URL:-}" \
+        --ref "${CI_COMMIT_REF_NAME:-}" \
+        --state-dir "${OTA_BOUNDARY_RESERVATION_ROOT}" \
+        --stale-seconds "${OTA_BOUNDARY_RESERVATION_STALE_SECONDS}"
+      v2=$((CI_PIPELINE_IID * 2 + 1))
+      monitor_results="$CI_PROJECT_DIR/ota_v3_monitor_results_${DEVICE_ID}.json"
+      monitor_log="$CI_PROJECT_DIR/ota_v3_monitor_${DEVICE_ID}.log"
+      echo "=== AWS IoT OTA Monitor (v3) ==="
+      echo "  Expected version build: $v2"
+      python3 -u "$CI_PROJECT_DIR/tools/v3/test_ota.py" \
+        --mode monitor \
+        --device-id "$DEVICE_ID" \
+        --log-port "$UART_PORT" \
+        --log-baud "$UART_BAUD_RATE" \
+        --expected-build "$v2" \
+        --timeout 600 \
+        --reset-cmd "$RFP_CLI -device RX72x -tool $RFP_TOOL -if fine -speed $RFP_SPEED -auth id FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF -sig -run -noquery" \
+        --monitor-results-out "$monitor_results" | tee "$monitor_log"
+  artifacts:
+    when: always
+    paths:
+      - ota_v3_monitor_results_*.json
+      - ota_v3_monitor_*.log
+    expire_in: 1 week
+
+ota_v3_finalize_rx72n:
+  stage: ota_finalize
+  extends:
+    - .windows_ota_aws_job
+  timeout: 10 minutes
+  when: always
+  rules:
+    - if: $RUN_V3_OTA == "true"
+    - when: never
+  script:
+    - |
+      $owner = "$($env:CI_PROJECT_ID):$($env:CI_PIPELINE_ID):$($env:DEVICE_ID)"
+      $leaseReleaseArgs = @(
+        '-u',
+        "$env:CI_PROJECT_DIR\tools\ci\ota_boundary_reservation.py",
+        '--action', 'release',
+        '--device-id', "$env:DEVICE_ID",
+        '--owner', $owner,
+        '--project-id', "$env:CI_PROJECT_ID",
+        '--pipeline-id', "$env:CI_PIPELINE_ID",
+        '--pipeline-url', "$env:CI_PIPELINE_URL",
+        '--ref', "$env:CI_COMMIT_REF_NAME",
+        '--state-dir', "$env:OTA_BOUNDARY_RESERVATION_ROOT",
+        '--stale-seconds', "$env:OTA_BOUNDARY_RESERVATION_STALE_SECONDS",
+        '--host', "$env:PI_HOST"
+      )
+      $metadataFile = "$env:CI_PROJECT_DIR\ota_v3_job_metadata_$env:DEVICE_ID.json"
+      $monitorResultsFile = "$env:CI_PROJECT_DIR\ota_v3_monitor_results_$env:DEVICE_ID.json"
+      $finalizeLogFile = "$env:CI_PROJECT_DIR\ota_v3_finalize_$env:DEVICE_ID.log"
+      $finalExit = 0
+      try {
+        if (-not (Test-Path $metadataFile) -or -not (Test-Path $monitorResultsFile)) {
+          @(
+            "Skipping ota_v3_finalize because prerequisite files are missing.",
+            "DEVICE_ID=$env:DEVICE_ID",
+            "metadata_exists=$([bool](Test-Path $metadataFile))",
+            "monitor_results_exists=$([bool](Test-Path $monitorResultsFile))"
+          ) | Set-Content -Encoding UTF8 $finalizeLogFile
+          Write-Host "Skipping ota_v3_finalize because prerequisite files are missing."
+          Write-Host "  metadata: $metadataFile"
+          Write-Host "  monitor : $monitorResultsFile"
+        } else {
+          & python -u "$env:CI_PROJECT_DIR\tools\v3\test_ota.py" `
+            --mode finalize `
+            --metadata-in $metadataFile `
+            --monitor-results-in $monitorResultsFile 2>&1 | Tee-Object -FilePath $finalizeLogFile
+          if ($LASTEXITCODE -ne 0) {
+            $finalExit = $LASTEXITCODE
+          }
+        }
+      } finally {
+        & python @leaseReleaseArgs
+        if ($LASTEXITCODE -ne 0) {
+          Write-Warning "OTA boundary lease release failed for $env:DEVICE_ID (exit=$LASTEXITCODE)."
+        }
+      }
+      exit $finalExit
+  artifacts:
+    when: always
+    paths:
+      - ota_v3_job_metadata_*.json
+      - ota_v3_monitor_results_*.json
+      - ota_v3_monitor_*.log
+      - ota_v3_finalize_*.log
+    expire_in: 1 week
+
+
 capture_after_download_aws_demos:
   stage: observe
   extends:
@@ -627,6 +918,8 @@ capture_after_download_aws_demos:
     - if: $RUN_V3_BUILD_ONLY == "true"
       when: never
     - if: $RUN_V3_BASELINE == "true"
+      when: never
+    - if: $RUN_V3_OTA == "true"
       when: never
     - if: $RUN_OTA_BOUNDARY_ONLY == "true"
       when: never
@@ -671,6 +964,8 @@ build_ota:
     - if: $RUN_V3_BUILD_ONLY == "true"
       when: never
     - if: $RUN_V3_BASELINE == "true"
+      when: never
+    - if: $RUN_V3_OTA == "true"
       when: never
     - if: $RUN_RFP_SOAK_TEST == "true"
       when: never
@@ -866,6 +1161,8 @@ ota_create_job:
       when: never
     - if: $RUN_V3_BASELINE == "true"
       when: never
+    - if: $RUN_V3_OTA == "true"
+      when: never
     - if: $RUN_PREPARE_OTA_ONLY == "true"
       when: never
     - if: $RUN_RFP_SOAK_TEST == "true"
@@ -922,6 +1219,8 @@ ota_finalize:
     - if: $RUN_V3_BUILD_ONLY == "true"
       when: never
     - if: $RUN_V3_BASELINE == "true"
+      when: never
+    - if: $RUN_V3_OTA == "true"
       when: never
     - if: $RUN_PREPARE_OTA_ONLY == "true"
       when: never
@@ -998,6 +1297,8 @@ ota_release_reservation:
     - if: $RUN_V3_BUILD_ONLY == "true"
       when: never
     - if: $RUN_V3_BASELINE == "true"
+      when: never
+    - if: $RUN_V3_OTA == "true"
       when: never
     - if: $RUN_PREPARE_OTA_ONLY == "true"
       when: never

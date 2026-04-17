@@ -24,6 +24,8 @@ flash_boot_loader:
       when: never
     - if: $RUN_V3_BASELINE == "true"
       when: never
+    - if: $RUN_V3_OTA == "true"
+      when: never
     - if: $RUN_RFP_SOAK_TEST == "true"
       when: never
     - if: $RUN_OTA_BOUNDARY_ONLY == "true"
@@ -62,6 +64,8 @@ rfp_soak_test:
       when: never
     - if: $RUN_V3_BASELINE == "true"
       when: never
+    - if: $RUN_V3_OTA == "true"
+      when: never
     - if: $RUN_RFP_SOAK_TEST == "true"
     - when: never
   needs:
@@ -95,6 +99,8 @@ download_aws_demos:
     - if: $RUN_V3_BUILD_ONLY == "true"
       when: never
     - if: $RUN_V3_BASELINE == "true"
+      when: never
+    - if: $RUN_V3_OTA == "true"
       when: never
     - if: $RUN_RFP_SOAK_TEST == "true"
       when: never
@@ -139,6 +145,8 @@ test_commands:
       when: never
     - if: $RUN_V3_BASELINE == "true"
       when: never
+    - if: $RUN_V3_OTA == "true"
+      when: never
     - if: $RUN_RFP_SOAK_TEST == "true"
       when: never
     - if: $RUN_OTA_BOUNDARY_ONLY == "true"
@@ -178,6 +186,8 @@ test_screen_navigation:
       when: never
     - if: $RUN_V3_BASELINE == "true"
       when: never
+    - if: $RUN_V3_OTA == "true"
+      when: never
     - if: $RUN_RFP_SOAK_TEST == "true"
       when: never
     - if: $RUN_OTA_BOUNDARY_ONLY == "true"
@@ -206,6 +216,8 @@ provision_aws_credentials:
     - if: $RUN_V3_BUILD_ONLY == "true"
       when: never
     - if: $RUN_V3_BASELINE == "true"
+      when: never
+    - if: $RUN_V3_OTA == "true"
       when: never
     - if: $RUN_RFP_SOAK_TEST == "true"
       when: never
@@ -248,6 +260,8 @@ health_aws_demos_startup:
       when: never
     - if: $RUN_V3_BASELINE == "true"
       when: never
+    - if: $RUN_V3_OTA == "true"
+      when: never
     - if: $RUN_OTA_BOUNDARY_ONLY == "true"
       when: never
     - if: $RUN_OTA_ONLY == "true"
@@ -280,6 +294,8 @@ confirm_aws_mqtt:
     - if: $RUN_V3_BUILD_ONLY == "true"
       when: never
     - if: $RUN_V3_BASELINE == "true"
+      when: never
+    - if: $RUN_V3_OTA == "true"
       when: never
     - if: $RUN_RFP_SOAK_TEST == "true"
       when: never
@@ -319,6 +335,8 @@ test_sd_update:
       when: never
     - if: $RUN_V3_BASELINE == "true"
       when: never
+    - if: $RUN_V3_OTA == "true"
+      when: never
     - if: $RUN_OTA_BOUNDARY_ONLY == "true"
       when: never
     - if: $RUN_HW_HEALTHCHECK == "true"
@@ -351,6 +369,8 @@ prepare_ota:
     - if: $RUN_V3_BUILD_ONLY == "true"
       when: never
     - if: $RUN_V3_BASELINE == "true"
+      when: never
+    - if: $RUN_V3_OTA == "true"
       when: never
     - if: $RUN_PREPARE_OTA_ONLY == "true"
     - if: $RUN_RFP_SOAK_TEST == "true"
@@ -405,6 +425,8 @@ ota_monitor:
     - if: $RUN_V3_BUILD_ONLY == "true"
       when: never
     - if: $RUN_V3_BASELINE == "true"
+      when: never
+    - if: $RUN_V3_OTA == "true"
       when: never
     - if: $RUN_PREPARE_OTA_ONLY == "true"
       when: never
