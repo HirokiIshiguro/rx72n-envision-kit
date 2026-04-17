@@ -113,7 +113,7 @@ Configuration Options
 /* Touch Interface */
 #define EMWIN_USE_TOUCH               (1)
 #define EMWIN_TOUCH_IF                (TOUCH_IF_SCI_IIC)
-#define EMWIN_TOUCH_IF_NUMBER         (0)
+#define EMWIN_TOUCH_IF_NUMBER         (6)
 #define EMWIN_SLAVE_ADDRESS           (0x00000038)
 #define EMWIN_TOUCH_BAUDRATE          (1000000)
 

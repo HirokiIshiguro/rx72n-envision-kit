@@ -822,7 +822,7 @@
             <Setting id="EMWIN_USE_DRW2D" value="1"/>
             <Setting id="EMWIN_USE_DISP_SIGNAL_PIN" value="1"/>
             <Setting id="EMWIN_DATA_CMD_PIN" value="GPIO_PORT_B_PIN_7"/>
-            <Setting id="EMWIN_TOUCH_IF_NUMBER" value="0"/>
+            <Setting id="EMWIN_TOUCH_IF_NUMBER" value="6"/>
             <Setting id="EMWIN_MAX_NUM_TOUCHPOINTS" value="10"/>
             <Setting id="EMWIN_DMAC_NUMBER" value="0"/>
             <Setting id="EMWIN_USE_MULTITOUCH" value="0"/>

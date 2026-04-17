@@ -1668,7 +1668,7 @@
                 <gridItem id="EMWIN_LCD_CS_PIN" selectedIndex="GPIO_PORT_B_PIN_1"/>
                 <gridItem id="EMWIN_USE_TOUCH" selectedIndex="1"/>
                 <gridItem id="EMWIN_TOUCH_IF" selectedIndex="0"/>
-                <gridItem id="EMWIN_TOUCH_IF_NUMBER" selectedIndex="0"/>
+                <gridItem id="EMWIN_TOUCH_IF_NUMBER" selectedIndex="6"/>
                 <gridItem id="EMWIN_SLAVE_ADDRESS" selectedIndex="0x00000038"/>
                 <gridItem id="EMWIN_TOUCH_BAUDRATE" selectedIndex="1000000"/>
                 <gridItem id="EMWIN_USE_MULTITOUCH" selectedIndex="0"/>
