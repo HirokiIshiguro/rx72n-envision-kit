@@ -370,8 +370,8 @@
         <Item currentVect="23" id="FCU_FRDYI" priority="15" usedState="未使用"/>
         <Item currentVect="26" id="ICU_SWINT2" priority="15" usedState="未使用"/>
         <Item currentVect="27" id="ICU_SWINT" priority="15" usedState="未使用"/>
-        <Item currentVect="28" id="CMT0_CMI0" priority="5" usedState="使用中"/>
-        <Item currentVect="29" id="CMT1_CMI1" priority="5" usedState="使用中"/>
+        <Item currentVect="28" id="CMT0_CMI0" priority="4" usedState="使用中"/>
+        <Item currentVect="29" id="CMT1_CMI1" priority="4" usedState="使用中"/>
         <Item currentVect="30" id="CMTW0_CMWI0" priority="15" usedState="未使用"/>
         <Item currentVect="31" id="CMTW1_CMWI1" priority="15" usedState="未使用"/>
         <Item currentVect="34" id="USB0_D0FIFO0" priority="15" usedState="未使用"/>
@@ -422,7 +422,7 @@
         <Item currentVect="84" id="SCI5_RXI5" priority="3" usedState="未使用"/>
         <Item currentVect="85" id="SCI5_TXI5" priority="3" usedState="未使用"/>
         <Item currentVect="86" id="SCI6_RXI6" priority="15" usedState="未使用"/>
-        <Item currentVect="87" id="SCI6_TXI6" priority="15" usedState="未使用"/>
+        <Item currentVect="87" id="SCI6_TXI6" priority="2" usedState="使用中"/>
         <Item currentVect="88" id="LVD1_LVD1" priority="15" usedState="未使用"/>
         <Item currentVect="89" id="LVD2_LVD2" priority="15" usedState="未使用"/>
         <Item currentVect="90" id="USB0_USBR0" priority="15" usedState="未使用"/>
@@ -446,7 +446,7 @@
         <Item currentVect="110" groupchild="&lt;br&gt;0-TEI0&lt;br&gt;1-ERI0&lt;br&gt;2-TEI1&lt;br&gt;3-ERI1&lt;br&gt;4-TEI2&lt;br&gt;5-ERI2&lt;br&gt;6-TEI3&lt;br&gt;7-ERI3&lt;br&gt;8-TEI4&lt;br&gt;9-ERI4&lt;br&gt;10-TEI5&lt;br&gt;11-ERI5&lt;br&gt;12-TEI6&lt;br&gt;13-ERI6&lt;br&gt;16-TEI12&lt;br&gt;17-ERI12&lt;br&gt;18-SCIX0&lt;br&gt;19-SCIX1&lt;br&gt;20-SCIX2&lt;br&gt;21-SCIX3&lt;br&gt;24-QSPSSLI&lt;br&gt;26-FERRI&lt;br&gt;27-MENDI&lt;br&gt;28-OVFI&lt;br&gt;29-DOPCI&lt;br&gt;30-PCFEI&lt;br&gt;31-PCERI" id="BL0" priority="15" usedState="使用中"/>
         <Item currentVect="111" groupchild="&lt;br&gt;3-CDETI&lt;br&gt;4-CACI&lt;br&gt;5-SDACI&lt;br&gt;6-CDETIO&lt;br&gt;7-ERRIO&lt;br&gt;8-ACCIO&lt;br&gt;9-OEI1&lt;br&gt;10-OEI2&lt;br&gt;11-OEI3&lt;br&gt;12-OEI4&lt;br&gt;13-TEI0&lt;br&gt;14-EEI0&lt;br&gt;15-TEI2&lt;br&gt;16-EEI2&lt;br&gt;17-SSIF0&lt;br&gt;18-SSIF1&lt;br&gt;20-S12CMPAI&lt;br&gt;21-S12CMPBI&lt;br&gt;22-S12CMPAI1&lt;br&gt;23-S12CMPBI1&lt;br&gt;28-TEI1&lt;br&gt;29-EEI1" id="BL1" priority="15" usedState="未使用"/>
         <Item currentVect="112" groupchild="&lt;br&gt;0-TEI8&lt;br&gt;1-ERI8&lt;br&gt;4-TEI9&lt;br&gt;5-ERI9&lt;br&gt;8-TEI10&lt;br&gt;9-ERI10&lt;br&gt;12-TEI11&lt;br&gt;13-ERI11&lt;br&gt;16-SPII0&lt;br&gt;17-SPEI0&lt;br&gt;18-SPII1&lt;br&gt;19-SPEI1&lt;br&gt;20-SPII2&lt;br&gt;21-SPEI2&lt;br&gt;22-TEI7&lt;br&gt;23-ERI7" id="AL0" priority="15" usedState="使用中"/>
-        <Item currentVect="113" groupchild="&lt;br&gt;0-MINT&lt;br&gt;1-PINT&lt;br&gt;4-EINT0&lt;br&gt;5-EINT1&lt;br&gt;8-VPOS&lt;br&gt;9-GR1UF&lt;br&gt;10-GR2UF&lt;br&gt;11-DRW_IRQ" id="AL1" priority="14" usedState="使用中"/>
+        <Item currentVect="113" groupchild="&lt;br&gt;0-MINT&lt;br&gt;1-PINT&lt;br&gt;4-EINT0&lt;br&gt;5-EINT1&lt;br&gt;8-VPOS&lt;br&gt;9-GR1UF&lt;br&gt;10-GR2UF&lt;br&gt;11-DRW_IRQ" id="AL1" priority="4" usedState="使用中"/>
         <Item currentVect="114" id="SCI11_RXI11" priority="15" usedState="未使用"/>
         <Item currentVect="115" id="SCI11_TXI11" priority="15" usedState="未使用"/>
         <Item currentVect="116" id="SCI12_RXI12" priority="15" usedState="未使用"/>
@@ -459,8 +459,8 @@
         <Item currentVect="125" id="OST_OSTDI" priority="15" usedState="未使用"/>
         <Item currentVect="126" id="EXDMAC_EXDMAC0I" priority="15" usedState="未使用"/>
         <Item currentVect="127" id="EXDMAC_EXDMAC1I" priority="15" usedState="未使用"/>
-        <Item currentVect="128" defaultVect="128" id="CMT2_CMI2" priority="5" usedState="使用中"/>
-        <Item currentVect="129" defaultVect="129" id="CMT3_CMI3" priority="5" usedState="使用中"/>
+        <Item currentVect="128" defaultVect="128" id="CMT2_CMI2" priority="4" usedState="使用中"/>
+        <Item currentVect="129" defaultVect="129" id="CMT3_CMI3" priority="4" usedState="使用中"/>
         <Item currentVect="130" defaultVect="130" id="TPU0_TGI0A" priority="15" usedState="未使用"/>
         <Item currentVect="131" defaultVect="131" id="TPU0_TGI0B" priority="15" usedState="未使用"/>
         <Item currentVect="132" defaultVect="132" id="TPU0_TGI0C" priority="15" usedState="未使用"/>
@@ -595,6 +595,7 @@
         <pinItem allocation="83$B" comments="" direction="None" id="LCD_TCON2" isUsedBySoftware="true" locked="false" operationMode="" status="0"/>
         <pinItem allocation="81$B" comments="" direction="None" id="LCD_TCON0" isUsedBySoftware="true" locked="false" operationMode="" status="0"/>
         <pinItem allocation="50" comments="" direction="None" id="CLKOUT25M" isUsedBySoftware="true" locked="false" operationMode="" status="0"/>
+        <pinItem allocation="27" comments="" direction="None" id="SSDA6" isUsedBySoftware="true" locked="false" operationMode="" status="0"/>
         <pinItem allocation="124" comments="" direction="None" id="IRQ2" isUsedBySoftware="true" locked="false" operationMode="" status="65280"/>
         <pinItem allocation="45" comments="" direction="None" id="RXD2" isUsedBySoftware="true" locked="false" operationMode="" status="0"/>
         <pinItem allocation="128" comments="" direction="None" id="RXD7" isUsedBySoftware="true" locked="false" operationMode="" status="0"/>
@@ -609,6 +610,7 @@
         <pinItem allocation="44" comments="" direction="None" id="TXD2" isUsedBySoftware="true" locked="false" operationMode="" status="0"/>
         <pinItem allocation="80$B" comments="" direction="None" id="LCD_CLK" isUsedBySoftware="true" locked="false" operationMode="" status="0"/>
         <pinItem allocation="22" comments="" direction="None" id="EXTAL" isUsedBySoftware="true" locked="false" operationMode="" status="0"/>
+        <pinItem allocation="26" comments="" direction="None" id="SSCL6" isUsedBySoftware="true" locked="false" operationMode="" status="0"/>
         <pinItem allocation="16" comments="" direction="None" id="FINED" isUsedBySoftware="true" locked="false" operationMode="" status="0"/>
         <pinItem allocation="70" comments="" direction="None" id="ET0_RX_DV" isUsedBySoftware="true" locked="false" operationMode="" status="0"/>
         <pinItem allocation="110$B" comments="" direction="None" id="LCD_DATA15" isUsedBySoftware="true" locked="false" operationMode="" status="0"/>
@@ -1336,7 +1338,7 @@
             <source description="Components supporting Firmware Integration Technology" display="Firmware Integration Technology" id="com.renesas.smc.tools.swcomponent.fit.source"/>
             <source description="Components supporting Firmware Integration Technology" display="Firmware Integration Technology" id="com.renesas.smc.tools.swcomponent.fit.source"/>
         </configuration>
-        <configuration enable="true" exclude="false" id="9bf3e4f5-9ce9-41c3-b24b-bba82511eea4" inuse="true" name="FreeRTOS_IP">
+        <configuration enable="true" exclude="false" id="9956b495-385d-49e0-9366-b7f83b46f53f" inuse="true" name="FreeRTOS_IP">
             <component description="依存モジュール: r_ether_rx&#10;FreeRTOS-Plus-TCP is a scalable, open source and thread safe TCP/IP stack for FreeRTOS." detailDescription="FreeRTOS-Plus-TCP is a scalable, open source and thread safe TCP/IP stack for FreeRTOS." display="FreeRTOS-Plus-TCP" id="FreeRTOS_IP202406.01-LTS-rx-1.1.1" version="4.2.2">
                 <gridItem id="ipconfigBYTE_ORDER" selectedIndex="0"/>
                 <gridItem id="ipconfigHAS_DEBUG_PRINTF" selectedIndex="0"/>
@@ -1361,7 +1363,7 @@
             </component>
             <source description="Code generator for Real-time OS" display="RTOS Configurator" id="com.renesas.smc.tools.swcomponent.rtosconfigurator.source"/>
         </configuration>
-        <configuration enable="true" exclude="false" id="4aaa6dce-bf28-49cd-9ecf-df0cbd5f7b80" inuse="true" name="FreeRTOS Object">
+        <configuration enable="true" exclude="false" id="f0f920e2-bf36-42dc-8a94-b85bbaa3c80b" inuse="true" name="FreeRTOS Object">
             <allocatable id="OBJECT" name="OBJECT" type="">
                 <allocatable id="TASK" name="TASK" type="">
                     <allocatable id="TASKOBJECTLINK1" name="TASK" readonly="true" type="">
@@ -1397,7 +1399,7 @@
             <component description="This component is a part of RTOS Configurator feature that allow user to use the GUI to create and configure new object of FreeRTOS." detailDescription="" display="FreeRTOS_Object" id="com.renesas.smc.tools.swcomponent.rtosconfigurator.freertos.object" version="202406.01-LTS-rx-1.1.1"/>
             <source description="Code generator for Real-time OS" display="RTOS Configurator" id="com.renesas.smc.tools.swcomponent.rtosconfigurator.source"/>
         </configuration>
-        <configuration enable="true" exclude="false" id="142536aa-d7d7-413b-a6fa-20077a20fd2c" inuse="true" name="LittleFS">
+        <configuration enable="true" exclude="false" id="62d0201a-e1b7-4705-9b29-e32caf13bfc3" inuse="true" name="LittleFS">
             <component description="依存モジュール: なし&#10;LittleFS is a lightweight, fail-safe filesystem designed for microcontrollers." detailDescription="LittleFS is a lightweight, fail-safe filesystem designed for microcontrollers." display="LittleFS" id="LittleFS202406.01-LTS-rx-1.1.1" version="2.5.1">
                 <gridItem id="LFS_FLASH_READ_SIZE" selectedIndex="1"/>
                 <gridItem id="LFS_FLASH_PROGRAM_SIZE" selectedIndex="4"/>
@@ -1407,7 +1409,7 @@
             </component>
             <source description="Code generator for Real-time OS" display="RTOS Configurator" id="com.renesas.smc.tools.swcomponent.rtosconfigurator.source"/>
         </configuration>
-        <configuration enable="true" exclude="false" id="ad70dd8c-5c58-4288-8f66-b150afef3473" inuse="true" name="FreeRTOS_Kernel">
+        <configuration enable="true" exclude="false" id="062dac15-425e-4b9b-a6a1-b2947db9f425" inuse="true" name="FreeRTOS_Kernel">
             <component description="依存モジュール: なし&#10;FreeRTOS kernel is a real-time operating system (RTOS) designed for building embedded microcontroller applications." detailDescription="FreeRTOS kernel is a real-time operating system (RTOS) designed for building embedded microcontroller applications." display="FreeRTOS Kernel" id="FreeRTOS_Kernel202406.01-LTS-rx-1.1.1" version="11.1.0">
                 <gridItem id="configENABLE_BACKWARD_COMPATIBILITY" selectedIndex="1"/>
                 <gridItem id="configUSE_PREEMPTION" selectedIndex="1"/>
@@ -1623,22 +1625,6 @@
             <source description="Components supporting Firmware Integration Technology" display="Firmware Integration Technology" id="com.renesas.smc.tools.swcomponent.fit.source"/>
             <source description="Components supporting Firmware Integration Technology" display="Firmware Integration Technology" id="com.renesas.smc.tools.swcomponent.fit.source"/>
         </configuration>
-        <configuration inuse="true" name="r_simple_glcdc_config_rx">
-            <component description="依存モジュール: r_bsp バージョン 7.52&#10;依存モジュール: r_glcdc_rx バージョン 1.30&#10;This module wraps r_glcdc_rx setup for a 480x272 RGB565 LCD panel and exposes R_SIMPLE_GLCDC_CONFIG_Open/Close plus lcd_get_frame_buffer_pointer. It is extracted from the RX72N Envision Kit bootloader display path and is intended to be used together with r_simple_graphic_rx for basic text output." detailDescription="Simple GLCDC configuration helper for RX72N Envision Kit style RGB565 LCD output." display="r_simple_glcdc_config_rx" id="r_simple_glcdc_config_rx1.00" version="1.00">
-                <gridItem id="XSIZE_PHYS" selectedIndex="480"/>
-                <gridItem id="YSIZE_PHYS" selectedIndex="272"/>
-                <gridItem id="XSIZE_OUTOF_DISPLAY" selectedIndex="32"/>
-                <gridItem id="_BRIGHTNESS" selectedIndex="0x200"/>
-                <gridItem id="_CONTRAST" selectedIndex="0x80"/>
-            </component>
-            <source description="Components supporting Firmware Integration Technology" display="Firmware Integration Technology" id="com.renesas.smc.tools.swcomponent.fit.source"/>
-            <source description="Components supporting Firmware Integration Technology" display="Firmware Integration Technology" id="com.renesas.smc.tools.swcomponent.fit.source"/>
-        </configuration>
-        <configuration inuse="true" name="r_simple_graphic_rx">
-            <component description="依存モジュール: r_bsp バージョン 7.52&#10;依存モジュール: r_cmt_rx バージョン 5.20&#10;依存モジュール: r_simple_glcdc_config_rx バージョン 1.00&#10;This module provides a tiny fixed-font text renderer with R_SIMPLE_GRAPHIC_Open/Close/PutCharacter. It uses a frame buffer supplied by r_simple_glcdc_config_rx and periodically refreshes the display through r_cmt_rx." detailDescription="Simple text renderer for CLUT8 LCD frame buffers on RX." display="r_simple_graphic_rx" id="r_simple_graphic_rx1.00" version="1.00"/>
-            <source description="Components supporting Firmware Integration Technology" display="Firmware Integration Technology" id="com.renesas.smc.tools.swcomponent.fit.source"/>
-            <source description="Components supporting Firmware Integration Technology" display="Firmware Integration Technology" id="com.renesas.smc.tools.swcomponent.fit.source"/>
-        </configuration>
         <configuration inuse="true" name="r_cmt_rx">
             <component description="依存モジュール: r_bsp バージョン 7.70&#10;This module creates a timer tick using a CMT channel based on a frequency input by the user." detailDescription="CMT driver" display="r_cmt_rx" id="r_cmt_rx5.80" version="5.80">
                 <gridItem id="CMT_RX_CFG_IPR" selectedIndex="4"/>
@@ -1650,8 +1636,200 @@
             <source description="Components supporting Firmware Integration Technology" display="Firmware Integration Technology" id="com.renesas.smc.tools.swcomponent.fit.source"/>
             <source description="Components supporting Firmware Integration Technology" display="Firmware Integration Technology" id="com.renesas.smc.tools.swcomponent.fit.source"/>
         </configuration>
+        <configuration inuse="true" name="r_emwin_rx">
+            <component description="依存モジュール: r_cmt_rx バージョン 5.72&#10;依存モジュール: r_gpio_rx バージョン 5.20&#10;emWin is designed to provide an efficient, processor- and display controller-independent graphical user interface for any application that operates with a graphical display. It is compatible with single-task and multitask environments, with a proprietary operating system or with any commercial RTOS. emWin is shipped as C source code. It may be adapted to any size physical and virtual display with any display controller and CPU.&#10;The version number 6.52 means the version of emWin library, and 1.00 means that of FIT module.&#10;This FIT module includes an installer of AppWizard v1.60." detailDescription="Graphic Library with Graphical User Interface" display="r_emwin_rx" id="r_emwin_rx6.52.1.00" version="6.52.1.00">
+                <gridItem id="EMWIN_GUI_NUM_BYTES" selectedIndex="102400"/>
+                <gridItem id="EMWIN_XSIZE_PHYS" selectedIndex="480"/>
+                <gridItem id="EMWIN_YSIZE_PHYS" selectedIndex="272"/>
+                <gridItem id="EMWIN_BITS_PER_PIXEL" selectedIndex="3"/>
+                <gridItem id="EMWIN_DISPLAY_ORIENTATION" selectedIndex="0"/>
+                <gridItem id="EMWIN_USE_RUNTIME_ORIENTATION" selectedIndex="0"/>
+                <gridItem id="EMWIN_LCD_IF" selectedIndex="0"/>
+                <gridItem id="EMWIN_NUM_BUFFERS" selectedIndex="2"/>
+                <gridItem id="EMWIN_GUI_FRAME_BUFFER1" selectedIndex="0x00800000"/>
+                <gridItem id="EMWIN_GUI_FRAME_BUFFER2" selectedIndex="0x00840000"/>
+                <gridItem id="EMWIN_GUI_FRAME_BUFFER3" selectedIndex="0x00000000"/>
+                <gridItem id="EMWIN_USE_DRW2D" selectedIndex="1"/>
+                <gridItem id="EMWIN_DMAC_NUMBER" selectedIndex="0"/>
+                <gridItem id="EMWIN_DMAC_NUMBER2" selectedIndex="1"/>
+                <gridItem id="EMWIN_INIT_DMAC" selectedIndex="1"/>
+                <gridItem id="EMWIN_SELECT_DMAC_DTC" selectedIndex="2"/>
+                <gridItem id="EMWIN_LCD_IF_NUMBER" selectedIndex="0"/>
+                <gridItem id="EMWIN_LCD_DRIVER_IC" selectedIndex="0"/>
+                <gridItem id="EMWIN_LCD_BAUDRATE" selectedIndex="1000000"/>
+                <gridItem id="EMWIN_GUI_USE_CACHE" selectedIndex="0"/>
+                <gridItem id="EMWIN_USE_DISP_SIGNAL_PIN" selectedIndex="1"/>
+                <gridItem id="EMWIN_DISP_SIGNAL_PIN" selectedIndex="GPIO_PORT_B_PIN_3"/>
+                <gridItem id="EMWIN_USE_BACKLIGHT_PIN" selectedIndex="1"/>
+                <gridItem id="EMWIN_BACKLIGHT_PIN" selectedIndex="GPIO_PORT_6_PIN_7"/>
+                <gridItem id="EMWIN_USE_DATA_CMD_PIN" selectedIndex="1"/>
+                <gridItem id="EMWIN_DATA_CMD_PIN" selectedIndex="GPIO_PORT_B_PIN_7"/>
+                <gridItem id="EMWIN_USE_LCD_CS_PIN" selectedIndex="1"/>
+                <gridItem id="EMWIN_LCD_CS_PIN" selectedIndex="GPIO_PORT_B_PIN_1"/>
+                <gridItem id="EMWIN_USE_TOUCH" selectedIndex="1"/>
+                <gridItem id="EMWIN_TOUCH_IF" selectedIndex="0"/>
+                <gridItem id="EMWIN_TOUCH_IF_NUMBER" selectedIndex="6"/>
+                <gridItem id="EMWIN_SLAVE_ADDRESS" selectedIndex="0x00000038"/>
+                <gridItem id="EMWIN_TOUCH_BAUDRATE" selectedIndex="1000000"/>
+                <gridItem id="EMWIN_USE_MULTITOUCH" selectedIndex="0"/>
+                <gridItem id="EMWIN_MAX_NUM_TOUCHPOINTS" selectedIndex="10"/>
+                <gridItem id="EMWIN_USE_TOUCH_IC_RESET_PIN" selectedIndex="1"/>
+                <gridItem id="EMWIN_TOUCH_IC_RESET_PIN" selectedIndex="GPIO_PORT_6_PIN_6"/>
+                <gridItem id="EMWIN_USE_TOUCH_CS_PIN" selectedIndex="1"/>
+                <gridItem id="EMWIN_TOUCH_CS_PIN" selectedIndex="GPIO_PORT_9_PIN_3"/>
+            </component>
+            <source description="Components supporting Firmware Integration Technology" display="Firmware Integration Technology" id="com.renesas.smc.tools.swcomponent.fit.source"/>
+            <source description="Components supporting Firmware Integration Technology" display="Firmware Integration Technology" id="com.renesas.smc.tools.swcomponent.fit.source"/>
+        </configuration>
+        <configuration inuse="true" name="r_gpio_rx">
+            <component description="依存モジュール: r_bsp バージョン 7.60&#10;This code implements a General Purpose Input/Output driver. Common features such as reading, writing, and setting the direction of ports and pins is supported. Enabling features such as open-drain outputs and internal pull-ups are also supported." detailDescription="GPIO Driver" display="r_gpio_rx" id="r_gpio_rx5.20" version="5.20">
+                <gridItem id="GPIO_CFG_PARAM_CHECKING_ENABLE" selectedIndex="0"/>
+            </component>
+            <source description="Components supporting Firmware Integration Technology" display="Firmware Integration Technology" id="com.renesas.smc.tools.swcomponent.fit.source"/>
+            <source description="Components supporting Firmware Integration Technology" display="Firmware Integration Technology" id="com.renesas.smc.tools.swcomponent.fit.source"/>
+        </configuration>
+        <configuration inuse="true" name="r_dmaca_rx">
+            <component description="依存モジュール: r_bsp バージョン 7.60&#10;This driver gives the user an easy API to control the MCU's DMAC. DMAC module transfers the data&#10;                 corresponding to an interrupt when it signals to DMAC. Each module can register its transfer settings with DMAC driver such as: interrupt number, destination and source address, data counter, transfer mode (3 modes: normal, repeat, block), enable or disable chain transfer." detailDescription="DMAC driver" display="r_dmaca_rx" id="r_dmaca_rx3.42" version="3.42">
+                <gridItem id="DMACA_CFG_PARAM_CHECKING_ENABLE" selectedIndex="0"/>
+                <gridItem id="DMACA_CFG_USE_DTC_FIT_MODULE" selectedIndex="0"/>
+                <gridItem id="DMACA_CFG_EN_NESTED_INT" selectedIndex="0"/>
+            </component>
+            <source description="Components supporting Firmware Integration Technology" display="Firmware Integration Technology" id="com.renesas.smc.tools.swcomponent.fit.source"/>
+            <source description="Components supporting Firmware Integration Technology" display="Firmware Integration Technology" id="com.renesas.smc.tools.swcomponent.fit.source"/>
+        </configuration>
+        <configuration inuse="true" name="r_drw2d_rx">
+            <component description="依存モジュール: なし&#10;Drawing 2D engine(DRW2D) driver for RX MCUs" detailDescription="Drawing 2D engine driver for RX MCUs" display="r_drw2d_rx" id="r_drw2d_rx1.14" version="1.14"/>
+            <source description="Components supporting Firmware Integration Technology" display="Firmware Integration Technology" id="com.renesas.smc.tools.swcomponent.fit.source"/>
+            <source description="Components supporting Firmware Integration Technology" display="Firmware Integration Technology" id="com.renesas.smc.tools.swcomponent.fit.source"/>
+        </configuration>
+        <configuration inuse="true" name="r_sci_iic_rx">
+            <component description="依存モジュール: r_bsp バージョン 7.70&#10; The SCI simple I2C mode fit module provides a method to transmit and receive data between the master and slave devices using the serial communications interface (SCI). The SCI simple I2C mode is in compliance with single master mode of the NXP I2C-bus (Inter-IC-Bus) interface.  " detailDescription="Simple IIC Driver." display="r_sci_iic_rx" id="r_sci_iic_rx2.90" version="2.90">
+                <gridItem id="SSCL0" selectedIndex="0"/>
+                <gridItem id="SSDA0" selectedIndex="0"/>
+                <gridItem id="SCI0" selectedIndex="0"/>
+                <gridItem id="SSCL1" selectedIndex="0"/>
+                <gridItem id="SSDA1" selectedIndex="0"/>
+                <gridItem id="SCI1" selectedIndex="0"/>
+                <gridItem id="SSCL2" selectedIndex="0"/>
+                <gridItem id="SSDA2" selectedIndex="0"/>
+                <gridItem id="SCI2" selectedIndex="0"/>
+                <gridItem id="SSCL3" selectedIndex="0"/>
+                <gridItem id="SSDA3" selectedIndex="0"/>
+                <gridItem id="SCI3" selectedIndex="0"/>
+                <gridItem id="SSCL4" selectedIndex="0"/>
+                <gridItem id="SSDA4" selectedIndex="0"/>
+                <gridItem id="SCI4" selectedIndex="0"/>
+                <gridItem id="SSCL5" selectedIndex="0"/>
+                <gridItem id="SSDA5" selectedIndex="0"/>
+                <gridItem id="SCI5" selectedIndex="0"/>
+                <gridItem id="SSCL6" selectedIndex="1"/>
+                <gridItem id="SSDA6" selectedIndex="1"/>
+                <gridItem id="SCI6" selectedIndex="1"/>
+                <gridItem id="SSCL7" selectedIndex="0"/>
+                <gridItem id="SSDA7" selectedIndex="0"/>
+                <gridItem id="SCI7" selectedIndex="0"/>
+                <gridItem id="SSCL8" selectedIndex="0"/>
+                <gridItem id="SSDA8" selectedIndex="0"/>
+                <gridItem id="SCI8" selectedIndex="0"/>
+                <gridItem id="SSCL9" selectedIndex="0"/>
+                <gridItem id="SSDA9" selectedIndex="0"/>
+                <gridItem id="SCI9" selectedIndex="0"/>
+                <gridItem id="SSCL10" selectedIndex="0"/>
+                <gridItem id="SSDA10" selectedIndex="0"/>
+                <gridItem id="SCI10" selectedIndex="0"/>
+                <gridItem id="SSCL11" selectedIndex="1"/>
+                <gridItem id="SSDA11" selectedIndex="1"/>
+                <gridItem id="SCI11" selectedIndex="1"/>
+                <gridItem id="SSCL12" selectedIndex="0"/>
+                <gridItem id="SSDA12" selectedIndex="0"/>
+                <gridItem id="SCI12" selectedIndex="0"/>
+                <gridItem id="SCI_IIC_CFG_PARAM_CHECKING_ENABLE" selectedIndex="2"/>
+                <gridItem id="SCI_IIC_CFG_CH0_INCLUDED" selectedIndex="0"/>
+                <gridItem id="SCI_IIC_CFG_CH1_INCLUDED" selectedIndex="0"/>
+                <gridItem id="SCI_IIC_CFG_CH2_INCLUDED" selectedIndex="0"/>
+                <gridItem id="SCI_IIC_CFG_CH3_INCLUDED" selectedIndex="0"/>
+                <gridItem id="SCI_IIC_CFG_CH4_INCLUDED" selectedIndex="0"/>
+                <gridItem id="SCI_IIC_CFG_CH5_INCLUDED" selectedIndex="0"/>
+                <gridItem id="SCI_IIC_CFG_CH6_INCLUDED" selectedIndex="1"/>
+                <gridItem id="SCI_IIC_CFG_CH7_INCLUDED" selectedIndex="0"/>
+                <gridItem id="SCI_IIC_CFG_CH8_INCLUDED" selectedIndex="0"/>
+                <gridItem id="SCI_IIC_CFG_CH9_INCLUDED" selectedIndex="0"/>
+                <gridItem id="SCI_IIC_CFG_CH10_INCLUDED" selectedIndex="0"/>
+                <gridItem id="SCI_IIC_CFG_CH11_INCLUDED" selectedIndex="0"/>
+                <gridItem id="SCI_IIC_CFG_CH12_INCLUDED" selectedIndex="0"/>
+                <gridItem id="SCI_IIC_CFG_CH0_BITRATE_BPS" selectedIndex="384000"/>
+                <gridItem id="SCI_IIC_CFG_CH1_BITRATE_BPS" selectedIndex="384000"/>
+                <gridItem id="SCI_IIC_CFG_CH2_BITRATE_BPS" selectedIndex="384000"/>
+                <gridItem id="SCI_IIC_CFG_CH3_BITRATE_BPS" selectedIndex="384000"/>
+                <gridItem id="SCI_IIC_CFG_CH4_BITRATE_BPS" selectedIndex="384000"/>
+                <gridItem id="SCI_IIC_CFG_CH5_BITRATE_BPS" selectedIndex="384000"/>
+                <gridItem id="SCI_IIC_CFG_CH6_BITRATE_BPS" selectedIndex="384000"/>
+                <gridItem id="SCI_IIC_CFG_CH7_BITRATE_BPS" selectedIndex="384000"/>
+                <gridItem id="SCI_IIC_CFG_CH8_BITRATE_BPS" selectedIndex="384000"/>
+                <gridItem id="SCI_IIC_CFG_CH9_BITRATE_BPS" selectedIndex="384000"/>
+                <gridItem id="SCI_IIC_CFG_CH10_BITRATE_BPS" selectedIndex="384000"/>
+                <gridItem id="SCI_IIC_CFG_CH11_BITRATE_BPS" selectedIndex="384000"/>
+                <gridItem id="SCI_IIC_CFG_CH12_BITRATE_BPS" selectedIndex="384000"/>
+                <gridItem id="SCI_IIC_CFG_CH0_INT_PRIORITY" selectedIndex="1"/>
+                <gridItem id="SCI_IIC_CFG_CH1_INT_PRIORITY" selectedIndex="1"/>
+                <gridItem id="SCI_IIC_CFG_CH2_INT_PRIORITY" selectedIndex="1"/>
+                <gridItem id="SCI_IIC_CFG_CH3_INT_PRIORITY" selectedIndex="1"/>
+                <gridItem id="SCI_IIC_CFG_CH4_INT_PRIORITY" selectedIndex="1"/>
+                <gridItem id="SCI_IIC_CFG_CH5_INT_PRIORITY" selectedIndex="1"/>
+                <gridItem id="SCI_IIC_CFG_CH6_INT_PRIORITY" selectedIndex="1"/>
+                <gridItem id="SCI_IIC_CFG_CH7_INT_PRIORITY" selectedIndex="1"/>
+                <gridItem id="SCI_IIC_CFG_CH8_INT_PRIORITY" selectedIndex="1"/>
+                <gridItem id="SCI_IIC_CFG_CH9_INT_PRIORITY" selectedIndex="1"/>
+                <gridItem id="SCI_IIC_CFG_CH10_INT_PRIORITY" selectedIndex="1"/>
+                <gridItem id="SCI_IIC_CFG_CH11_INT_PRIORITY" selectedIndex="1"/>
+                <gridItem id="SCI_IIC_CFG_CH12_INT_PRIORITY" selectedIndex="1"/>
+                <gridItem id="SCI_IIC_CFG_CH0_DIGITAL_FILTER" selectedIndex="1"/>
+                <gridItem id="SCI_IIC_CFG_CH1_DIGITAL_FILTER" selectedIndex="1"/>
+                <gridItem id="SCI_IIC_CFG_CH2_DIGITAL_FILTER" selectedIndex="1"/>
+                <gridItem id="SCI_IIC_CFG_CH3_DIGITAL_FILTER" selectedIndex="1"/>
+                <gridItem id="SCI_IIC_CFG_CH4_DIGITAL_FILTER" selectedIndex="1"/>
+                <gridItem id="SCI_IIC_CFG_CH5_DIGITAL_FILTER" selectedIndex="1"/>
+                <gridItem id="SCI_IIC_CFG_CH6_DIGITAL_FILTER" selectedIndex="1"/>
+                <gridItem id="SCI_IIC_CFG_CH7_DIGITAL_FILTER" selectedIndex="1"/>
+                <gridItem id="SCI_IIC_CFG_CH8_DIGITAL_FILTER" selectedIndex="1"/>
+                <gridItem id="SCI_IIC_CFG_CH9_DIGITAL_FILTER" selectedIndex="1"/>
+                <gridItem id="SCI_IIC_CFG_CH10_DIGITAL_FILTER" selectedIndex="1"/>
+                <gridItem id="SCI_IIC_CFG_CH11_DIGITAL_FILTER" selectedIndex="1"/>
+                <gridItem id="SCI_IIC_CFG_CH12_DIGITAL_FILTER" selectedIndex="1"/>
+                <gridItem id="SCI_IIC_CFG_CH0_FILTER_CLOCK" selectedIndex="0"/>
+                <gridItem id="SCI_IIC_CFG_CH1_FILTER_CLOCK" selectedIndex="0"/>
+                <gridItem id="SCI_IIC_CFG_CH2_FILTER_CLOCK" selectedIndex="0"/>
+                <gridItem id="SCI_IIC_CFG_CH3_FILTER_CLOCK" selectedIndex="0"/>
+                <gridItem id="SCI_IIC_CFG_CH4_FILTER_CLOCK" selectedIndex="0"/>
+                <gridItem id="SCI_IIC_CFG_CH5_FILTER_CLOCK" selectedIndex="0"/>
+                <gridItem id="SCI_IIC_CFG_CH6_FILTER_CLOCK" selectedIndex="0"/>
+                <gridItem id="SCI_IIC_CFG_CH7_FILTER_CLOCK" selectedIndex="0"/>
+                <gridItem id="SCI_IIC_CFG_CH8_FILTER_CLOCK" selectedIndex="0"/>
+                <gridItem id="SCI_IIC_CFG_CH9_FILTER_CLOCK" selectedIndex="0"/>
+                <gridItem id="SCI_IIC_CFG_CH10_FILTER_CLOCK" selectedIndex="0"/>
+                <gridItem id="SCI_IIC_CFG_CH11_FILTER_CLOCK" selectedIndex="0"/>
+                <gridItem id="SCI_IIC_CFG_CH12_FILTER_CLOCK" selectedIndex="0"/>
+                <gridItem id="SCI_IIC_CFG_CH0_SSDA_DELAY_SELECT" selectedIndex="18"/>
+                <gridItem id="SCI_IIC_CFG_CH1_SSDA_DELAY_SELECT" selectedIndex="18"/>
+                <gridItem id="SCI_IIC_CFG_CH2_SSDA_DELAY_SELECT" selectedIndex="18"/>
+                <gridItem id="SCI_IIC_CFG_CH3_SSDA_DELAY_SELECT" selectedIndex="18"/>
+                <gridItem id="SCI_IIC_CFG_CH4_SSDA_DELAY_SELECT" selectedIndex="18"/>
+                <gridItem id="SCI_IIC_CFG_CH5_SSDA_DELAY_SELECT" selectedIndex="18"/>
+                <gridItem id="SCI_IIC_CFG_CH6_SSDA_DELAY_SELECT" selectedIndex="18"/>
+                <gridItem id="SCI_IIC_CFG_CH7_SSDA_DELAY_SELECT" selectedIndex="18"/>
+                <gridItem id="SCI_IIC_CFG_CH8_SSDA_DELAY_SELECT" selectedIndex="18"/>
+                <gridItem id="SCI_IIC_CFG_CH9_SSDA_DELAY_SELECT" selectedIndex="18"/>
+                <gridItem id="SCI_IIC_CFG_CH10_SSDA_DELAY_SELECT" selectedIndex="18"/>
+                <gridItem id="SCI_IIC_CFG_CH11_SSDA_DELAY_SELECT" selectedIndex="18"/>
+                <gridItem id="SCI_IIC_CFG_CH12_SSDA_DELAY_SELECT" selectedIndex="18"/>
+                <gridItem id="SCI_IIC_CFG_BUS_CHECK_COUNTER" selectedIndex="1000"/>
+                <gridItem id="SCI_IIC_CFG_PORT_SETTING_PROCESSING" selectedIndex="1"/>
+            </component>
+            <source description="Components supporting Firmware Integration Technology" display="Firmware Integration Technology" id="com.renesas.smc.tools.swcomponent.fit.source"/>
+            <source description="Components supporting Firmware Integration Technology" display="Firmware Integration Technology" id="com.renesas.smc.tools.swcomponent.fit.source"/>
+        </configuration>
         <configuration inuse="true" name="r_glcdc_rx">
-            <component description="依存モジュール: r_bsp バージョン 5.20, 5.50&#10;The GLCDC FIT module provides the method to output image data read from memory to the LCD panel. " detailDescription="Graphics LCD Controller Module." display="r_glcdc_rx" id="r_glcdc_rx1.30" version="1.30">
+            <component description="依存モジュール: r_bsp バージョン 5.20, 5.50, 5.52, 7.42&#10;The GLCDC FIT module provides the method to output image data read from memory to the LCD panel. " detailDescription="Graphics LCD Controller Module." display="r_glcdc_rx" id="r_glcdc_rx1.61" version="1.61">
                 <gridItem id="LCD_CLK" selectedIndex="1"/>
                 <gridItem id="LCD_TCON0" selectedIndex="1"/>
                 <gridItem id="LCD_TCON1" selectedIndex="0"/>
@@ -1684,6 +1862,195 @@
                 <gridItem id="LCD_EXTCLK" selectedIndex="0"/>
                 <gridItem id="GLCDC_CFG_PARAM_CHECKING_ENABLE" selectedIndex="1"/>
                 <gridItem id="GLCDC_CFG_INTERRUPT_PRIORITY_LEVEL" selectedIndex="4"/>
+                <gridItem id="GLCDC_CFG_CONFIGURATION_MODE" selectedIndex="0"/>
+                <gridItem id="USE_QE_DISPLAY_CONFIGURATION" selectedIndex="0"/>
+                <gridItem id="LCD_CH0_W_HFP" selectedIndex="17"/>
+                <gridItem id="LCD_CH0_W_HBP" selectedIndex="62"/>
+                <gridItem id="LCD_CH0_DISP_HW" selectedIndex="480"/>
+                <gridItem id="LCD_CH0_W_HSYNC" selectedIndex="25"/>
+                <gridItem id="LCD_CH0_W_VFP" selectedIndex="8"/>
+                <gridItem id="LCD_CH0_W_VBP" selectedIndex="7"/>
+                <gridItem id="LCD_CH0_DISP_VW" selectedIndex="272"/>
+                <gridItem id="LCD_CH0_W_VSYNC" selectedIndex="1"/>
+                <gridItem id="LCD_CH0_OUT_FORMAT" selectedIndex="2"/>
+                <gridItem id="LCD_CH0_OUT_ENDIAN" selectedIndex="0"/>
+                <gridItem id="LCD_CH0_OUT_COLOR_ORDER" selectedIndex="0"/>
+                <gridItem id="LCD_CH0_OUT_EDGE" selectedIndex="0"/>
+                <gridItem id="LCD_CH0_OUT_BG_COLOR" selectedIndex="0x00000000"/>
+                <gridItem id="LCD_CH0_TCON_PIN_HSYNC" selectedIndex="2"/>
+                <gridItem id="LCD_CH0_TCON_PIN_VSYNC" selectedIndex="0"/>
+                <gridItem id="LCD_CH0_TCON_PIN_DE" selectedIndex="3"/>
+                <gridItem id="LCD_CH0_TCON_POL_HSYNC" selectedIndex="0"/>
+                <gridItem id="LCD_CH0_TCON_POL_VSYNC" selectedIndex="0"/>
+                <gridItem id="LCD_CH0_TCON_POL_DE" selectedIndex="1"/>
+                <gridItem id="LCD_CH0_OUT_CLK_DIV_RATIO" selectedIndex="11"/>
+                <gridItem id="LCD_CH0_IN_GR2_PBASE" selectedIndex="0x00800000"/>
+                <gridItem id="LCD_CH0_IN_GR2_HSIZE" selectedIndex="480"/>
+                <gridItem id="LCD_CH0_IN_GR2_VSIZE" selectedIndex="272"/>
+                <gridItem id="LCD_CH0_IN_GR2_LINEOFFSET" selectedIndex="960"/>
+                <gridItem id="LCD_CH0_IN_GR2_FORMAT" selectedIndex="2"/>
+                <gridItem id="LCD_CH0_IN_GR2_COORD_X" selectedIndex="0"/>
+                <gridItem id="LCD_CH0_IN_GR2_COORD_Y" selectedIndex="0"/>
+                <gridItem id="LCD_CH0_IN_GR2_FRAME_EDGE" selectedIndex="0"/>
+                <gridItem id="LCD_CH0_IN_GR2_BG_COLOR" selectedIndex="0x00000000"/>
+                <gridItem id="LCD_CH0_BLEND_GR2_VISIBLE" selectedIndex="1"/>
+                <gridItem id="LCD_CH0_BLEND_GR2_BLEND_CONTROL" selectedIndex="0"/>
+                <gridItem id="LCD_CH0_BLEND_GR2_FRAME_EDGE" selectedIndex="0"/>
+                <gridItem id="LCD_CH0_BLEND_GR2_FIXED_BLEND_VALUE" selectedIndex="255"/>
+                <gridItem id="LCD_CH0_BLEND_GR2_FADE_SPEED" selectedIndex="255"/>
+                <gridItem id="LCD_CH0_BLEND_GR2_START_COORD_X" selectedIndex="0"/>
+                <gridItem id="LCD_CH0_BLEND_GR2_START_COORD_Y" selectedIndex="0"/>
+                <gridItem id="LCD_CH0_BLEND_GR2_END_COORD_X" selectedIndex="0"/>
+                <gridItem id="LCD_CH0_BLEND_GR2_END_COORD_Y" selectedIndex="0"/>
+                <gridItem id="LCD_CH0_CHROMAKEY_GR2_ENABLE" selectedIndex="0"/>
+                <gridItem id="LCD_CH0_CHROMAKEY_GR2_BEFORE_ARGB" selectedIndex="0x00000000"/>
+                <gridItem id="LCD_CH0_CHROMAKEY_GR2_AFTER_ARGB" selectedIndex="0x00000000"/>
+                <gridItem id="LCD_CH0_CLUT_GR2_ENABLE" selectedIndex="0"/>
+                <gridItem id="LCD_CH0_CLUT_GR2_PBASE" selectedIndex="FIT_NO_PTR"/>
+                <gridItem id="LCD_CH0_CLUT_GR2_START" selectedIndex="0"/>
+                <gridItem id="LCD_CH0_CLUT_GR2_SIZE" selectedIndex="256"/>
+                <gridItem id="LCD_CH0_IN_GR1_PBASE" selectedIndex="NULL"/>
+                <gridItem id="LCD_CH0_IN_GR1_HSIZE" selectedIndex="480"/>
+                <gridItem id="LCD_CH0_IN_GR1_VSIZE" selectedIndex="272"/>
+                <gridItem id="LCD_CH0_IN_GR1_LINEOFFSET" selectedIndex="960"/>
+                <gridItem id="LCD_CH0_IN_GR1_FORMAT" selectedIndex="2"/>
+                <gridItem id="LCD_CH0_IN_GR1_COORD_X" selectedIndex="0"/>
+                <gridItem id="LCD_CH0_IN_GR1_COORD_Y" selectedIndex="0"/>
+                <gridItem id="LCD_CH0_IN_GR1_FRAME_EDGE" selectedIndex="0"/>
+                <gridItem id="LCD_CH0_IN_GR1_BG_COLOR" selectedIndex="0x00000000"/>
+                <gridItem id="LCD_CH0_BLEND_GR1_VISIBLE" selectedIndex="1"/>
+                <gridItem id="LCD_CH0_BLEND_GR1_BLEND_CONTROL" selectedIndex="0"/>
+                <gridItem id="LCD_CH0_BLEND_GR1_FRAME_EDGE" selectedIndex="0"/>
+                <gridItem id="LCD_CH0_BLEND_GR1_FIXED_BLEND_VALUE" selectedIndex="255"/>
+                <gridItem id="LCD_CH0_BLEND_GR1_FADE_SPEED" selectedIndex="255"/>
+                <gridItem id="LCD_CH0_BLEND_GR1_START_COORD_X" selectedIndex="0"/>
+                <gridItem id="LCD_CH0_BLEND_GR1_START_COORD_Y" selectedIndex="0"/>
+                <gridItem id="LCD_CH0_BLEND_GR1_END_COORD_X" selectedIndex="0"/>
+                <gridItem id="LCD_CH0_BLEND_GR1_END_COORD_Y" selectedIndex="0"/>
+                <gridItem id="LCD_CH0_CHROMAKEY_GR1_ENABLE" selectedIndex="0"/>
+                <gridItem id="LCD_CH0_CHROMAKEY_GR1_BEFORE_ARGB" selectedIndex="0x00000000"/>
+                <gridItem id="LCD_CH0_CHROMAKEY_GR1_AFTER_ARGB" selectedIndex="0x00000000"/>
+                <gridItem id="LCD_CH0_CLUT_GR1_ENABLE" selectedIndex="0"/>
+                <gridItem id="LCD_CH0_CLUT_GR1_PBASE" selectedIndex="FIT_NO_PTR"/>
+                <gridItem id="LCD_CH0_CLUT_GR1_START" selectedIndex="0"/>
+                <gridItem id="LCD_CH0_CLUT_GR1_SIZE" selectedIndex="256"/>
+                <gridItem id="LCD_CH0_DETECT_VPOS" selectedIndex="0"/>
+                <gridItem id="LCD_CH0_DETECT_GR1UF" selectedIndex="0"/>
+                <gridItem id="LCD_CH0_DETECT_GR2UF" selectedIndex="0"/>
+                <gridItem id="LCD_CH0_INTERRUPT_VPOS_ENABLE" selectedIndex="0"/>
+                <gridItem id="LCD_CH0_INTERRUPT_GR1UF_ENABLE" selectedIndex="0"/>
+                <gridItem id="LCD_CH0_INTERRUPT_GR2UF_ENABLE" selectedIndex="0"/>
+                <gridItem id="LCD_CH0_CALLBACK_ENABLE" selectedIndex="0"/>
+                <gridItem id="LCD_CH0_PCALLBACK" selectedIndex="glcdc_callback"/>
+                <gridItem id="IMGC_OUTCTL_CALIB_ROUTE" selectedIndex="0"/>
+                <gridItem id="IMGC_BRIGHT_OUTCTL_ACTIVE" selectedIndex="1"/>
+                <gridItem id="IMGC_BRIGHT_OUTCTL_OFFSET_G" selectedIndex="512"/>
+                <gridItem id="IMGC_BRIGHT_OUTCTL_OFFSET_B" selectedIndex="512"/>
+                <gridItem id="IMGC_BRIGHT_OUTCTL_OFFSET_R" selectedIndex="512"/>
+                <gridItem id="IMGC_CONTRAST_OUTCTL_ACTIVE" selectedIndex="1"/>
+                <gridItem id="IMGC_CONTRAST_OUTCTL_GAIN_G" selectedIndex="128"/>
+                <gridItem id="IMGC_CONTRAST_OUTCTL_GAIN_B" selectedIndex="128"/>
+                <gridItem id="IMGC_CONTRAST_OUTCTL_GAIN_R" selectedIndex="128"/>
+                <gridItem id="IMGC_GAMMA_ACTIVE" selectedIndex="1"/>
+                <gridItem id="IMGC_GAMMA_G_GAIN_00" selectedIndex="1317"/>
+                <gridItem id="IMGC_GAMMA_G_GAIN_01" selectedIndex="1157"/>
+                <gridItem id="IMGC_GAMMA_G_GAIN_02" selectedIndex="1103"/>
+                <gridItem id="IMGC_GAMMA_G_GAIN_03" selectedIndex="1069"/>
+                <gridItem id="IMGC_GAMMA_G_GAIN_04" selectedIndex="1045"/>
+                <gridItem id="IMGC_GAMMA_G_GAIN_05" selectedIndex="1026"/>
+                <gridItem id="IMGC_GAMMA_G_GAIN_06" selectedIndex="1010"/>
+                <gridItem id="IMGC_GAMMA_G_GAIN_07" selectedIndex="997"/>
+                <gridItem id="IMGC_GAMMA_G_GAIN_08" selectedIndex="986"/>
+                <gridItem id="IMGC_GAMMA_G_GAIN_09" selectedIndex="976"/>
+                <gridItem id="IMGC_GAMMA_G_GAIN_10" selectedIndex="967"/>
+                <gridItem id="IMGC_GAMMA_G_GAIN_11" selectedIndex="959"/>
+                <gridItem id="IMGC_GAMMA_G_GAIN_12" selectedIndex="952"/>
+                <gridItem id="IMGC_GAMMA_G_GAIN_13" selectedIndex="945"/>
+                <gridItem id="IMGC_GAMMA_G_GAIN_14" selectedIndex="939"/>
+                <gridItem id="IMGC_GAMMA_G_GAIN_15" selectedIndex="919"/>
+                <gridItem id="IMGC_GAMMA_G_TH_01" selectedIndex="64"/>
+                <gridItem id="IMGC_GAMMA_G_TH_02" selectedIndex="128"/>
+                <gridItem id="IMGC_GAMMA_G_TH_03" selectedIndex="192"/>
+                <gridItem id="IMGC_GAMMA_G_TH_04" selectedIndex="256"/>
+                <gridItem id="IMGC_GAMMA_G_TH_05" selectedIndex="320"/>
+                <gridItem id="IMGC_GAMMA_G_TH_06" selectedIndex="384"/>
+                <gridItem id="IMGC_GAMMA_G_TH_07" selectedIndex="448"/>
+                <gridItem id="IMGC_GAMMA_G_TH_08" selectedIndex="512"/>
+                <gridItem id="IMGC_GAMMA_G_TH_09" selectedIndex="576"/>
+                <gridItem id="IMGC_GAMMA_G_TH_10" selectedIndex="640"/>
+                <gridItem id="IMGC_GAMMA_G_TH_11" selectedIndex="704"/>
+                <gridItem id="IMGC_GAMMA_G_TH_12" selectedIndex="768"/>
+                <gridItem id="IMGC_GAMMA_G_TH_13" selectedIndex="832"/>
+                <gridItem id="IMGC_GAMMA_G_TH_14" selectedIndex="896"/>
+                <gridItem id="IMGC_GAMMA_G_TH_15" selectedIndex="960"/>
+                <gridItem id="IMGC_GAMMA_B_GAIN_00" selectedIndex="1317"/>
+                <gridItem id="IMGC_GAMMA_B_GAIN_01" selectedIndex="1157"/>
+                <gridItem id="IMGC_GAMMA_B_GAIN_02" selectedIndex="1103"/>
+                <gridItem id="IMGC_GAMMA_B_GAIN_03" selectedIndex="1069"/>
+                <gridItem id="IMGC_GAMMA_B_GAIN_04" selectedIndex="1045"/>
+                <gridItem id="IMGC_GAMMA_B_GAIN_05" selectedIndex="1026"/>
+                <gridItem id="IMGC_GAMMA_B_GAIN_06" selectedIndex="1010"/>
+                <gridItem id="IMGC_GAMMA_B_GAIN_07" selectedIndex="997"/>
+                <gridItem id="IMGC_GAMMA_B_GAIN_08" selectedIndex="986"/>
+                <gridItem id="IMGC_GAMMA_B_GAIN_09" selectedIndex="976"/>
+                <gridItem id="IMGC_GAMMA_B_GAIN_10" selectedIndex="967"/>
+                <gridItem id="IMGC_GAMMA_B_GAIN_11" selectedIndex="959"/>
+                <gridItem id="IMGC_GAMMA_B_GAIN_12" selectedIndex="952"/>
+                <gridItem id="IMGC_GAMMA_B_GAIN_13" selectedIndex="945"/>
+                <gridItem id="IMGC_GAMMA_B_GAIN_14" selectedIndex="939"/>
+                <gridItem id="IMGC_GAMMA_B_GAIN_15" selectedIndex="919"/>
+                <gridItem id="IMGC_GAMMA_B_TH_01" selectedIndex="64"/>
+                <gridItem id="IMGC_GAMMA_B_TH_02" selectedIndex="128"/>
+                <gridItem id="IMGC_GAMMA_B_TH_03" selectedIndex="192"/>
+                <gridItem id="IMGC_GAMMA_B_TH_04" selectedIndex="256"/>
+                <gridItem id="IMGC_GAMMA_B_TH_05" selectedIndex="320"/>
+                <gridItem id="IMGC_GAMMA_B_TH_06" selectedIndex="384"/>
+                <gridItem id="IMGC_GAMMA_B_TH_07" selectedIndex="448"/>
+                <gridItem id="IMGC_GAMMA_B_TH_08" selectedIndex="512"/>
+                <gridItem id="IMGC_GAMMA_B_TH_09" selectedIndex="576"/>
+                <gridItem id="IMGC_GAMMA_B_TH_10" selectedIndex="640"/>
+                <gridItem id="IMGC_GAMMA_B_TH_11" selectedIndex="704"/>
+                <gridItem id="IMGC_GAMMA_B_TH_12" selectedIndex="768"/>
+                <gridItem id="IMGC_GAMMA_B_TH_13" selectedIndex="832"/>
+                <gridItem id="IMGC_GAMMA_B_TH_14" selectedIndex="896"/>
+                <gridItem id="IMGC_GAMMA_B_TH_15" selectedIndex="960"/>
+                <gridItem id="IMGC_GAMMA_R_GAIN_00" selectedIndex="1317"/>
+                <gridItem id="IMGC_GAMMA_R_GAIN_01" selectedIndex="1157"/>
+                <gridItem id="IMGC_GAMMA_R_GAIN_02" selectedIndex="1103"/>
+                <gridItem id="IMGC_GAMMA_R_GAIN_03" selectedIndex="1069"/>
+                <gridItem id="IMGC_GAMMA_R_GAIN_04" selectedIndex="1045"/>
+                <gridItem id="IMGC_GAMMA_R_GAIN_05" selectedIndex="1026"/>
+                <gridItem id="IMGC_GAMMA_R_GAIN_06" selectedIndex="1010"/>
+                <gridItem id="IMGC_GAMMA_R_GAIN_07" selectedIndex="997"/>
+                <gridItem id="IMGC_GAMMA_R_GAIN_08" selectedIndex="986"/>
+                <gridItem id="IMGC_GAMMA_R_GAIN_09" selectedIndex="976"/>
+                <gridItem id="IMGC_GAMMA_R_GAIN_10" selectedIndex="967"/>
+                <gridItem id="IMGC_GAMMA_R_GAIN_11" selectedIndex="959"/>
+                <gridItem id="IMGC_GAMMA_R_GAIN_12" selectedIndex="952"/>
+                <gridItem id="IMGC_GAMMA_R_GAIN_13" selectedIndex="945"/>
+                <gridItem id="IMGC_GAMMA_R_GAIN_14" selectedIndex="939"/>
+                <gridItem id="IMGC_GAMMA_R_GAIN_15" selectedIndex="919"/>
+                <gridItem id="IMGC_GAMMA_R_TH_01" selectedIndex="64"/>
+                <gridItem id="IMGC_GAMMA_R_TH_02" selectedIndex="128"/>
+                <gridItem id="IMGC_GAMMA_R_TH_03" selectedIndex="192"/>
+                <gridItem id="IMGC_GAMMA_R_TH_04" selectedIndex="256"/>
+                <gridItem id="IMGC_GAMMA_R_TH_05" selectedIndex="320"/>
+                <gridItem id="IMGC_GAMMA_R_TH_06" selectedIndex="384"/>
+                <gridItem id="IMGC_GAMMA_R_TH_07" selectedIndex="448"/>
+                <gridItem id="IMGC_GAMMA_R_TH_08" selectedIndex="512"/>
+                <gridItem id="IMGC_GAMMA_R_TH_09" selectedIndex="576"/>
+                <gridItem id="IMGC_GAMMA_R_TH_10" selectedIndex="640"/>
+                <gridItem id="IMGC_GAMMA_R_TH_11" selectedIndex="704"/>
+                <gridItem id="IMGC_GAMMA_R_TH_12" selectedIndex="768"/>
+                <gridItem id="IMGC_GAMMA_R_TH_13" selectedIndex="832"/>
+                <gridItem id="IMGC_GAMMA_R_TH_14" selectedIndex="896"/>
+                <gridItem id="IMGC_GAMMA_R_TH_15" selectedIndex="960"/>
+                <gridItem id="IMGC_DITHER_ACTIVE" selectedIndex="0"/>
+                <gridItem id="IMGC_DITHER_MODE" selectedIndex="0"/>
+                <gridItem id="IMGC_DITHER_2X2_PA" selectedIndex="3"/>
+                <gridItem id="IMGC_DITHER_2X2_PB" selectedIndex="0"/>
+                <gridItem id="IMGC_DITHER_2X2_PC" selectedIndex="2"/>
+                <gridItem id="IMGC_DITHER_2X2_PD" selectedIndex="1"/>
             </component>
             <source description="Components supporting Firmware Integration Technology" display="Firmware Integration Technology" id="com.renesas.smc.tools.swcomponent.fit.source"/>
             <source description="Components supporting Firmware Integration Technology" display="Firmware Integration Technology" id="com.renesas.smc.tools.swcomponent.fit.source"/>

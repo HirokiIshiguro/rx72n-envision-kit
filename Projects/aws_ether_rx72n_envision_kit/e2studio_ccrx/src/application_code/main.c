@@ -50,8 +50,10 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include "demo_config.h"
 #include "store.h"
 #include "mqtt_agent_task.h"
-#include "r_simple_glcdc_config_rx_if.h"
-#include "r_simple_graphic_if.h"
+/* r_simple_glcdc_config_rx / r_simple_graphic_rx removed in Phase 8b 第3次 段階5-1
+ * (rx72n-envision-kit#49). emWin (r_emwin_rx) will own the LCD framebuffer
+ * starting from 段階5-2. prvDisplayInitialize() / vApplicationLcdLogString()
+ * are stubbed below until then. */
 
 EventGroupHandle_t xStartDemoEventGroup = NULL;
 
@@ -333,13 +335,8 @@ End of function prvMiscInitialization
 
 static void prvDisplayInitialize( void )
 {
-    if( pdFALSE == xDisplayInitialized )
-    {
-        R_SIMPLE_GLCDC_CONFIG_Open();
-        R_SIMPLE_GRAPHIC_Open();
-        xDisplayInitialized = pdTRUE;
-        prvDisplayWriteBanner();
-    }
+    /* Stub: r_simple_glcdc_config_rx / r_simple_graphic_rx removed.
+     * Will be replaced with emWin GUI_Init() in 段階5-2. */
 }
 /*-----------------------------------------------------------*/
 
@@ -385,15 +382,11 @@ static void prvDisplayWrite( const char * pcMessage )
 
 void vApplicationLcdLogString( const char * pcMessage, unsigned short usStringLength )
 {
-    unsigned short usIndex;
-
-    if( ( pdFALSE != xDisplayInitialized ) && ( NULL != pcMessage ) )
-    {
-        for( usIndex = 0; usIndex < usStringLength; usIndex++ )
-        {
-            R_SIMPLE_GRAPHIC_PutCharacter(pcMessage[usIndex]);
-        }
-    }
+    /* Stub: r_simple_graphic_rx removed.
+     * Will be replaced with emWin GUI_DispString() in 段階5-2.
+     * UART logging continues unaffected. */
+    (void) pcMessage;
+    (void) usStringLength;
 }
 /*-----------------------------------------------------------*/
 

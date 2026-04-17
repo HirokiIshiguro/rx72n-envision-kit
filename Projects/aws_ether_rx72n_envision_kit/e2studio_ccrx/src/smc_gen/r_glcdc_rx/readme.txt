@@ -5,12 +5,12 @@ r_glcdc_rx
 
 Document Number
 ---------------
-R01AN3609EJ0130 (English version)
-R01AN3609JJ0130 (Japanese version)
+R01AN3609EJ0161 (English version)
+R01AN3609JJ0161 (Japanese version)
 
 Version
 -------
-v1.30
+v1.61
 
 Overview
 --------
@@ -29,14 +29,15 @@ Features
 Supported MCUs
 --------------
 * RX65N Group
-* RX72M
-* RX72N
-* RX66N
+* RX72M Group
+* RX72N Group
+* RX66N Group
 
 Boards Tested On
 ----------------
 * RSKRX65N_2MB
 * RSKRX72N
+* Renesas Envision Kit RPBRX72N
 
 Limitations
 -----------
@@ -51,21 +52,18 @@ Required Packages
 -----------------
 * r_bsp (Rev.5.20 or higher)
 
-How to add to your project
---------------------------
-Please refer to the Adding Firmware Integration Technology Modules to Projects.
-"r01an1723eu0121-rx.pdf/r01an1826ej0110-rx.pdf"(Only English version)
-"r01an1723ju0121-rx.pdf/r01an1826jj0110-rx.pdf"(Only Japanese version)
-
 
 Toolchain(s) Used
 -----------------
-* Renesas RX v3.01.00
-* GCC for Renesas RX 4.8.4.201902
-* IAR C/C++ Compiler for Renesas RX version 4.12.1
+* Renesas RX v3.07.00
+* GCC for Renesas RX 8.3.0 202411
+* IAR C/C++ Compiler for Renesas RX version 5.10.1
 
 File Structure
 --------------
+r_config
+    r_glcdc_rx_config.h
+
 r_glcdc_rx
 |       readme.txt
 |       r_glcdc_rx_if.h
@@ -73,13 +71,11 @@ r_glcdc_rx
 +---doc
 |   |
 |   +---en
-|   |   r01an3609ej0130-rx.pdf
+|   |   r01an3609ej0161-rx-lcd.pdf
 |   |
 |   \---ja
-|       r01an3609jj0130-rx.pdf
+|       r01an3609jj0161-rx-lcd.pdf
 |
-+---ref
-|       r_glcdc_rx_config_reference.h
 |
 \---src
     |   r_glcdc_rx.c
@@ -98,4 +94,4 @@ r_glcdc_rx
         |    r_glcdc_rx72n.c
         |
         \---rx66n
-            r_glcdc_rx66n.c
+             r_glcdc_rx66n.c

@@ -1,44 +1,33 @@
-/***********************************************************************************************************************
- * DISCLAIMER
- * This software is supplied by Renesas Electronics Corporation and is only intended for use with Renesas products. No
- * other uses are authorized. This software is owned by Renesas Electronics Corporation and is protected under all
- * applicable laws, including copyright laws.
- * THIS SOFTWARE IS PROVIDED "AS IS" AND RENESAS MAKES NO WARRANTIES REGARDING
- * THIS SOFTWARE, WHETHER EXPRESS, IMPLIED OR STATUTORY, INCLUDING BUT NOT LIMITED TO WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT. ALL SUCH WARRANTIES ARE EXPRESSLY DISCLAIMED. TO THE MAXIMUM
- * EXTENT PERMITTED NOT PROHIBITED BY LAW, NEITHER RENESAS ELECTRONICS CORPORATION NOR ANY OF ITS AFFILIATED COMPANIES
- * SHALL BE LIABLE FOR ANY DIRECT, INDIRECT, SPECIAL, INCIDENTAL OR CONSEQUENTIAL DAMAGES FOR ANY REASON RELATED TO THIS
- * SOFTWARE, EVEN IF RENESAS OR ITS AFFILIATES HAVE BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
- * Renesas reserves the right, without notice, to make changes to this software and to discontinue the availability of
- * this software. By using this software, you agree to the additional terms and conditions found by accessing the
- * following link:
- * http://www.renesas.com/disclaimer
+/*
+ * Copyright (c) 2019-2025 Renesas Electronics Corporation and/or its affiliates
  *
- * Copyright (C) 2019 Renesas Electronics Corporation. All rights reserved.
- ***********************************************************************************************************************/
+ * SPDX-License-Identifier: BSD-3-Clause
+ */
 /***********************************************************************************************************************
  * File Name    : r_glcdc_rx72n.c
- * Version      : 1.30
+ * Version      : 1.61
  * Description  : Internal function program using in GLCDC API functions.
- ************************************************************************************************************************/
+ **********************************************************************************************************************/
 /***********************************************************************************************************************
  * History : DD.MM.YYYY Version   Description
  *         : 20.09.2019 1.30      First Release
+ *         : 30.06.2020 1.40      Fixed preprocessor condition of BSP version.
+ *         : 20.03.2025 1.61      Changed the disclaimer.
 ***********************************************************************************************************************/
 /***********************************************************************************************************************
  Includes <System Includes> , "Project Includes"
- ************************************************************************************************************************/
+ **********************************************************************************************************************/
 #include "../../r_glcdc_private.h"
 
 /* Check MCU Group */
 #if defined(BSP_MCU_RX72N)
 /***********************************************************************************************************************
  Imported global variables and functions (from other files)
- ***********************************************************************************************************************/
+ **********************************************************************************************************************/
 
 /***********************************************************************************************************************
  Private global variables and functions
- ***********************************************************************************************************************/
+ **********************************************************************************************************************/
 
 /*******************************************************************************
  * Outline      : Interrupt setting.
@@ -54,7 +43,7 @@ void r_glcdc_interrupt_setting(glcdc_interrupt_cfg_t const * const p_interrupt)
 {
     bsp_int_ctrl_t grpal1;
 
-#if (R_BSP_VERSION_MAJOR >= 5) && (R_BSP_VERSION_MINOR >= 30)
+#if ((R_BSP_VERSION_MAJOR == 5) && (R_BSP_VERSION_MINOR >= 30)) || (R_BSP_VERSION_MAJOR >= 6)
     bsp_int_ctrl_t int_ctrl;
 #endif
 
@@ -69,7 +58,7 @@ void r_glcdc_interrupt_setting(glcdc_interrupt_cfg_t const * const p_interrupt)
         b0     VPOSINTEN  - VPOS Interrupt Enable. - Enable VPOS interrupt request. */
         GLCDC.INTEN.BIT.VPOSINTEN = 1;
 
-#if (R_BSP_VERSION_MAJOR >= 5) && (R_BSP_VERSION_MINOR >= 30)
+#if ((R_BSP_VERSION_MAJOR == 5) && (R_BSP_VERSION_MINOR >= 30)) || (R_BSP_VERSION_MAJOR >= 6)
         R_BSP_InterruptControl(BSP_INT_SRC_EMPTY, BSP_INT_CMD_FIT_INTERRUPT_DISABLE, &int_ctrl);
 #endif
 
@@ -77,7 +66,7 @@ void r_glcdc_interrupt_setting(glcdc_interrupt_cfg_t const * const p_interrupt)
         b8 EN8 - Interrupt Request Enable 8 - Interrupt request is enabled. */
         EN(GLCDC,VPOS) = 1;
 
-#if (R_BSP_VERSION_MAJOR >= 5) && (R_BSP_VERSION_MINOR >= 30)
+#if ((R_BSP_VERSION_MAJOR == 5) && (R_BSP_VERSION_MINOR >= 30)) || (R_BSP_VERSION_MAJOR >= 6)
         R_BSP_InterruptControl(BSP_INT_SRC_EMPTY, BSP_INT_CMD_FIT_INTERRUPT_ENABLE, &int_ctrl);
 #endif
 
@@ -88,7 +77,7 @@ void r_glcdc_interrupt_setting(glcdc_interrupt_cfg_t const * const p_interrupt)
         b0 VPOSINTEN  - VPOS Interrupt Enable. - Disable VPOS interrupt request. */
         GLCDC.INTEN.BIT.VPOSINTEN = 0;
 
-#if (R_BSP_VERSION_MAJOR >= 5) && (R_BSP_VERSION_MINOR >= 30)
+#if ((R_BSP_VERSION_MAJOR == 5) && (R_BSP_VERSION_MINOR >= 30)) || (R_BSP_VERSION_MAJOR >= 6)
         R_BSP_InterruptControl(BSP_INT_SRC_EMPTY, BSP_INT_CMD_FIT_INTERRUPT_DISABLE, &int_ctrl);
 #endif        
 
@@ -96,7 +85,7 @@ void r_glcdc_interrupt_setting(glcdc_interrupt_cfg_t const * const p_interrupt)
         b8 EN8 - Interrupt Request Enable 8 - Interrupt request is disabled. */
         EN(GLCDC,VPOS) = 0;
 
-#if (R_BSP_VERSION_MAJOR >= 5) && (R_BSP_VERSION_MINOR >= 30)
+#if ((R_BSP_VERSION_MAJOR == 5) && (R_BSP_VERSION_MINOR >= 30)) || (R_BSP_VERSION_MAJOR >= 6)
         R_BSP_InterruptControl(BSP_INT_SRC_EMPTY, BSP_INT_CMD_FIT_INTERRUPT_ENABLE, &int_ctrl);
 #endif
 
@@ -116,7 +105,7 @@ void r_glcdc_interrupt_setting(glcdc_interrupt_cfg_t const * const p_interrupt)
         b1 GR1UFINTEN - GR1UF Interrupt enable. */
         GLCDC.INTEN.BIT.GR1UFINTEN = 1;
 
-#if (R_BSP_VERSION_MAJOR >= 5) && (R_BSP_VERSION_MINOR >= 30)
+#if ((R_BSP_VERSION_MAJOR == 5) && (R_BSP_VERSION_MINOR >= 30)) || (R_BSP_VERSION_MAJOR >= 6)
         R_BSP_InterruptControl(BSP_INT_SRC_EMPTY, BSP_INT_CMD_FIT_INTERRUPT_DISABLE, &int_ctrl);
 #endif    
 
@@ -124,7 +113,7 @@ void r_glcdc_interrupt_setting(glcdc_interrupt_cfg_t const * const p_interrupt)
         b9 EN9 - Interrupt Request Enable 9 - Interrupt request is enabled. */
         EN(GLCDC,GR1UF) = 1;
 
-#if (R_BSP_VERSION_MAJOR >= 5) && (R_BSP_VERSION_MINOR >= 30)
+#if ((R_BSP_VERSION_MAJOR == 5) && (R_BSP_VERSION_MINOR >= 30)) || (R_BSP_VERSION_MAJOR >= 6)
         R_BSP_InterruptControl(BSP_INT_SRC_EMPTY, BSP_INT_CMD_FIT_INTERRUPT_ENABLE, &int_ctrl);
 #endif
     }
@@ -134,7 +123,7 @@ void r_glcdc_interrupt_setting(glcdc_interrupt_cfg_t const * const p_interrupt)
         b1 GR1UFINTEN - GR1UF Interrupt disable. */
         GLCDC.INTEN.BIT.GR1UFINTEN = 0;
 
-#if (R_BSP_VERSION_MAJOR >= 5) && (R_BSP_VERSION_MINOR >= 30)
+#if ((R_BSP_VERSION_MAJOR == 5) && (R_BSP_VERSION_MINOR >= 30)) || (R_BSP_VERSION_MAJOR >= 6)
         R_BSP_InterruptControl(BSP_INT_SRC_EMPTY, BSP_INT_CMD_FIT_INTERRUPT_DISABLE, &int_ctrl);
 #endif  
 
@@ -142,7 +131,7 @@ void r_glcdc_interrupt_setting(glcdc_interrupt_cfg_t const * const p_interrupt)
         b9 EN9 - Interrupt Request Enable 9 - Interrupt request is disabled. */
         EN(GLCDC,GR1UF) = 0;
 
-#if (R_BSP_VERSION_MAJOR >= 5) && (R_BSP_VERSION_MINOR >= 30)
+#if ((R_BSP_VERSION_MAJOR == 5) && (R_BSP_VERSION_MINOR >= 30)) || (R_BSP_VERSION_MAJOR >= 6)
         R_BSP_InterruptControl(BSP_INT_SRC_EMPTY, BSP_INT_CMD_FIT_INTERRUPT_ENABLE, &int_ctrl);
 #endif
 
@@ -162,7 +151,7 @@ void r_glcdc_interrupt_setting(glcdc_interrupt_cfg_t const * const p_interrupt)
         b2 GR2UFINTEN - GR2UF Interrupt enable. */
         GLCDC.INTEN.BIT.GR2UFINTEN = 1;
 
-#if (R_BSP_VERSION_MAJOR >= 5) && (R_BSP_VERSION_MINOR >= 30)
+#if ((R_BSP_VERSION_MAJOR == 5) && (R_BSP_VERSION_MINOR >= 30)) || (R_BSP_VERSION_MAJOR >= 6)
         R_BSP_InterruptControl(BSP_INT_SRC_EMPTY, BSP_INT_CMD_FIT_INTERRUPT_DISABLE, &int_ctrl);
 #endif
 
@@ -170,7 +159,7 @@ void r_glcdc_interrupt_setting(glcdc_interrupt_cfg_t const * const p_interrupt)
         b10 EN10 - Interrupt Request Enable 10 - Interrupt request is enabled. */
         EN(GLCDC,GR2UF) = 1;
 
-#if (R_BSP_VERSION_MAJOR >= 5) && (R_BSP_VERSION_MINOR >= 30)
+#if ((R_BSP_VERSION_MAJOR == 5) && (R_BSP_VERSION_MINOR >= 30)) || (R_BSP_VERSION_MAJOR >= 6)
         R_BSP_InterruptControl(BSP_INT_SRC_EMPTY, BSP_INT_CMD_FIT_INTERRUPT_ENABLE, &int_ctrl);
 #endif
     }
@@ -180,7 +169,7 @@ void r_glcdc_interrupt_setting(glcdc_interrupt_cfg_t const * const p_interrupt)
         b2 GR2UFINTEN - GR2UF Interrupt disable. */
         GLCDC.INTEN.BIT.GR2UFINTEN = 0;
 
-#if (R_BSP_VERSION_MAJOR >= 5) && (R_BSP_VERSION_MINOR >= 30)
+#if ((R_BSP_VERSION_MAJOR == 5) && (R_BSP_VERSION_MINOR >= 30)) || (R_BSP_VERSION_MAJOR >= 6)
         R_BSP_InterruptControl(BSP_INT_SRC_EMPTY, BSP_INT_CMD_FIT_INTERRUPT_DISABLE, &int_ctrl);
 #endif
 
@@ -188,7 +177,7 @@ void r_glcdc_interrupt_setting(glcdc_interrupt_cfg_t const * const p_interrupt)
         b10 EN10 - Interrupt Request Enable 10 - Interrupt request is disabled. */
         EN(GLCDC,GR2UF) = 0;
 
-#if (R_BSP_VERSION_MAJOR >= 5) && (R_BSP_VERSION_MINOR >= 30)
+#if ((R_BSP_VERSION_MAJOR == 5) && (R_BSP_VERSION_MINOR >= 30)) || (R_BSP_VERSION_MAJOR >= 6)
         R_BSP_InterruptControl(BSP_INT_SRC_EMPTY, BSP_INT_CMD_FIT_INTERRUPT_ENABLE, &int_ctrl);
 #endif
 

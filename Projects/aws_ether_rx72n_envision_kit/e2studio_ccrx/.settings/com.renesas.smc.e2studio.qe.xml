@@ -21,8 +21,10 @@
         <Setting id="P71" value="ET0_MDIO"/>
         <Setting id="P74" value="ET0_ERXD1"/>
         <Setting id="P76" value="ET0_RX_CLK"/>
+        <Setting id="P32" value="SSDA6"/>
         <Setting id="P75" value="ET0_ERXD0"/>
         <Setting id="P77" value="ET0_RX_ER"/>
+        <Setting id="P33" value="SSCL6"/>
         <Setting id="P36" value="EXTAL"/>
         <Setting id="P37" value="XTAL"/>
         <Setting id="PD2" value="IRQ2"/>
@@ -79,19 +81,22 @@
     </Segment>
     <Segment id="Component">
         <Setting id="r_bsp" value="FIT"/>
+        <Setting id="r_dmaca_rx" value="FIT"/>
+        <Setting id="r_drw2d_rx" value="FIT"/>
         <Setting id="r_glcdc_rx" value="FIT"/>
         <Setting id="r_tsip_rx" value="FIT"/>
-        <Setting id="r_simple_graphic_rx" value="FIT"/>
+        <Setting id="r_sci_iic_rx" value="FIT"/>
         <Setting id="r_fwup" value="FIT"/>
         <Setting id="LittleFS" value=""/>
+        <Setting id="r_gpio_rx" value="FIT"/>
         <Setting id="r_sci_rx" value="FIT"/>
         <Setting id="r_s12ad_rx" value="FIT"/>
         <Setting id="r_ether_rx" value="FIT"/>
         <Setting id="r_cmt_rx" value="FIT"/>
         <Setting id="r_irq_rx" value="FIT"/>
-        <Setting id="r_simple_glcdc_config_rx" value="FIT"/>
         <Setting id="r_byteq" value="FIT"/>
         <Setting id="FreeRTOS Object" value=""/>
+        <Setting id="r_emwin_rx" value="FIT"/>
         <Setting id="FreeRTOS_IP" value=""/>
         <Setting id="r_flash_rx" value="FIT"/>
         <Setting id="FreeRTOS_Kernel" value=""/>
@@ -163,12 +168,289 @@
             <Setting id="BSP_CFG_USER_WARM_START_CALLBACK_POST_INITC_ENABLED" value="0"/>
             <Setting id="BSP_CFG_EBMAPCR_1ST_PRIORITY" value="0"/>
         </Segment>
-        <Segment component="r_glcdc_rx1.30" id="r_glcdc_rx" source="com.renesas.smc.tools.swcomponent.fit.source">
+        <Segment component="r_dmaca_rx3.42" id="r_dmaca_rx" source="com.renesas.smc.tools.swcomponent.fit.source">
+            <Setting id="DMACA_CFG_USE_DTC_FIT_MODULE" value="0"/>
+            <Setting id="DMACA_CFG_PARAM_CHECKING_ENABLE" value="BSP_CFG_PARAM_CHECKING_ENABLE"/>
+            <Setting id="DMACA_CFG_EN_NESTED_INT" value="0"/>
+        </Segment>
+        <Segment component="r_drw2d_rx1.14" id="r_drw2d_rx" source="com.renesas.smc.tools.swcomponent.fit.source"/>
+        <Segment component="r_glcdc_rx1.61" id="r_glcdc_rx" source="com.renesas.smc.tools.swcomponent.fit.source">
+            <Setting id="LCD_CH0_CLUT_GR1_PBASE" value="FIT_NO_PTR"/>
+            <Setting id="IMGC_GAMMA_B_GAIN_10" value="967"/>
+            <Setting id="IMGC_GAMMA_B_GAIN_12" value="952"/>
+            <Setting id="LCD_CH0_BLEND_GR1_BLEND_CONTROL" value="GLCDC_BLEND_CONTROL_NONE"/>
+            <Setting id="IMGC_GAMMA_B_GAIN_11" value="959"/>
+            <Setting id="IMGC_GAMMA_B_GAIN_14" value="939"/>
+            <Setting id="IMGC_GAMMA_B_GAIN_13" value="945"/>
+            <Setting id="IMGC_GAMMA_R_TH_01" value="64"/>
+            <Setting id="IMGC_GAMMA_R_TH_02" value="128"/>
+            <Setting id="IMGC_GAMMA_R_TH_03" value="192"/>
+            <Setting id="LCD_CH0_OUT_EDGE" value="GLCDC_SIGNAL_SYNC_EDGE_RISING"/>
+            <Setting id="LCD_CH0_DETECT_GR2UF" value="false"/>
+            <Setting id="IMGC_GAMMA_R_TH_04" value="256"/>
+            <Setting id="IMGC_GAMMA_R_TH_05" value="320"/>
+            <Setting id="IMGC_GAMMA_R_TH_06" value="384"/>
+            <Setting id="IMGC_GAMMA_R_TH_07" value="448"/>
+            <Setting id="IMGC_GAMMA_R_TH_08" value="512"/>
+            <Setting id="LCD_CH0_IN_GR1_COORD_X" value="0"/>
+            <Setting id="IMGC_GAMMA_R_TH_09" value="576"/>
+            <Setting id="LCD_CH0_OUT_ENDIAN" value="GLCDC_ENDIAN_LITTLE"/>
+            <Setting id="LCD_CH0_IN_GR1_COORD_Y" value="0"/>
+            <Setting id="LCD_CH0_CLUT_GR1_SIZE" value="256"/>
+            <Setting id="LCD_CH0_INTERRUPT_GR1UF_ENABLE" value="false"/>
+            <Setting id="IMGC_GAMMA_B_GAIN_15" value="919"/>
+            <Setting id="LCD_CH0_IN_GR2_FORMAT" value="GLCDC_IN_FORMAT_16BITS_RGB565"/>
+            <Setting id="LCD_CH0_IN_GR1_FORMAT" value="GLCDC_IN_FORMAT_16BITS_RGB565"/>
             <Setting id="GLCDC_CFG_INTERRUPT_PRIORITY_LEVEL" value="4"/>
+            <Setting id="IMGC_GAMMA_G_TH_03" value="192"/>
+            <Setting id="IMGC_GAMMA_B_GAIN_01" value="1157"/>
+            <Setting id="IMGC_GAMMA_G_TH_02" value="128"/>
+            <Setting id="IMGC_GAMMA_B_GAIN_00" value="1317"/>
+            <Setting id="IMGC_GAMMA_G_TH_01" value="64"/>
+            <Setting id="IMGC_GAMMA_B_GAIN_03" value="1069"/>
+            <Setting id="IMGC_GAMMA_R_TH_10" value="640"/>
+            <Setting id="LCD_CH0_DISP_HW" value="480"/>
+            <Setting id="IMGC_GAMMA_B_GAIN_02" value="1103"/>
+            <Setting id="IMGC_GAMMA_R_TH_11" value="704"/>
+            <Setting id="LCD_CH0_W_HBP" value="62"/>
+            <Setting id="IMGC_GAMMA_R_TH_12" value="768"/>
+            <Setting id="IMGC_GAMMA_R_TH_13" value="832"/>
+            <Setting id="LCD_CH0_BLEND_GR1_START_COORD_Y" value="0"/>
+            <Setting id="IMGC_GAMMA_R_TH_14" value="896"/>
+            <Setting id="LCD_CH0_BLEND_GR1_START_COORD_X" value="0"/>
+            <Setting id="IMGC_GAMMA_R_TH_15" value="960"/>
+            <Setting id="LCD_CH0_IN_GR1_BG_COLOR" value="0x00000000"/>
+            <Setting id="LCD_CH0_BLEND_GR2_END_COORD_Y" value="0"/>
+            <Setting id="LCD_CH0_CHROMAKEY_GR2_AFTER_ARGB" value="0x00000000"/>
+            <Setting id="LCD_CH0_DETECT_VPOS" value="false"/>
+            <Setting id="LCD_CH0_BLEND_GR2_END_COORD_X" value="0"/>
+            <Setting id="LCD_CH0_CALLBACK_ENABLE" value="false"/>
+            <Setting id="LCD_CH0_BLEND_GR1_END_COORD_Y" value="0"/>
+            <Setting id="LCD_CH0_CLUT_GR1_START" value="0"/>
+            <Setting id="IMGC_GAMMA_R_GAIN_15" value="919"/>
+            <Setting id="LCD_CH0_IN_GR2_BG_COLOR" value="0x00000000"/>
+            <Setting id="LCD_CH0_W_VFP" value="8"/>
+            <Setting id="LCD_CH0_INTERRUPT_GR2UF_ENABLE" value="false"/>
+            <Setting id="LCD_CH0_BLEND_GR1_END_COORD_X" value="0"/>
+            <Setting id="LCD_CH0_TCON_PIN_HSYNC" value="GLCDC_TCON_PIN_2"/>
+            <Setting id="LCD_CH0_BLEND_GR1_VISIBLE" value="true"/>
+            <Setting id="IMGC_GAMMA_B_GAIN_05" value="1026"/>
+            <Setting id="IMGC_GAMMA_B_GAIN_04" value="1045"/>
+            <Setting id="IMGC_GAMMA_B_GAIN_07" value="997"/>
+            <Setting id="LCD_CH0_CLUT_GR2_SIZE" value="256"/>
+            <Setting id="IMGC_GAMMA_B_GAIN_06" value="1010"/>
+            <Setting id="IMGC_GAMMA_B_GAIN_09" value="976"/>
+            <Setting id="IMGC_GAMMA_B_GAIN_08" value="986"/>
+            <Setting id="LCD_CH0_IN_GR1_FRAME_EDGE" value="false"/>
+            <Setting id="LCD_CH0_CLUT_GR1_ENABLE" value="false"/>
+            <Setting id="IMGC_CONTRAST_OUTCTL_GAIN_G" value="128"/>
+            <Setting id="LCD_CH0_CLUT_GR2_ENABLE" value="false"/>
+            <Setting id="IMGC_BRIGHT_OUTCTL_OFFSET_B" value="512"/>
+            <Setting id="LCD_CH0_IN_GR2_PBASE" value="0x00800000"/>
+            <Setting id="IMGC_BRIGHT_OUTCTL_OFFSET_G" value="512"/>
+            <Setting id="LCD_CH0_BLEND_GR2_FRAME_EDGE" value="false"/>
+            <Setting id="LCD_CH0_DETECT_GR1UF" value="false"/>
+            <Setting id="IMGC_OUTCTL_CALIB_ROUTE" value="GLCDC_BRIGHTNESS_CONTRAST_TO_GAMMA"/>
+            <Setting id="IMGC_CONTRAST_OUTCTL_GAIN_B" value="128"/>
+            <Setting id="IMGC_BRIGHT_OUTCTL_OFFSET_R" value="512"/>
+            <Setting id="LCD_CH0_DISP_VW" value="272"/>
+            <Setting id="LCD_CH0_CHROMAKEY_GR2_ENABLE" value="false"/>
+            <Setting id="LCD_CH0_TCON_PIN_VSYNC" value="GLCDC_TCON_PIN_0"/>
+            <Setting id="LCD_CH0_CLUT_GR2_PBASE" value="FIT_NO_PTR"/>
+            <Setting id="LCD_CH0_BLEND_GR2_FADE_SPEED" value="255"/>
+            <Setting id="LCD_CH0_IN_GR2_FRAME_EDGE" value="false"/>
+            <Setting id="IMGC_DITHER_MODE" value="GLCDC_DITHERING_MODE_TRUNCATE"/>
+            <Setting id="LCD_CH0_BLEND_GR1_FADE_SPEED" value="255"/>
+            <Setting id="IMGC_CONTRAST_OUTCTL_GAIN_R" value="128"/>
+            <Setting id="LCD_CH0_OUT_CLK_DIV_RATIO" value="GLCDC_PANEL_CLK_DIVISOR_24"/>
+            <Setting id="LCD_CH0_TCON_POL_DE" value="GLCDC_SIGNAL_POLARITY_HIACTIVE"/>
+            <Setting id="LCD_CH0_BLEND_GR1_FIXED_BLEND_VALUE" value="255"/>
+            <Setting id="IMGC_GAMMA_B_TH_12" value="768"/>
+            <Setting id="IMGC_GAMMA_B_TH_13" value="832"/>
             <Setting id="GLCDC_CFG_PARAM_CHECKING_ENABLE" value="1"/>
+            <Setting id="IMGC_GAMMA_B_TH_14" value="896"/>
+            <Setting id="IMGC_GAMMA_B_TH_15" value="960"/>
+            <Setting id="IMGC_GAMMA_B_TH_10" value="640"/>
+            <Setting id="IMGC_GAMMA_B_TH_11" value="704"/>
+            <Setting id="LCD_CH0_BLEND_GR2_START_COORD_Y" value="0"/>
+            <Setting id="IMGC_DITHER_2X2_PD" value="GLCDC_DITHERING_PATTERN_01"/>
+            <Setting id="IMGC_DITHER_ACTIVE" value="false"/>
+            <Setting id="IMGC_DITHER_2X2_PC" value="GLCDC_DITHERING_PATTERN_10"/>
+            <Setting id="LCD_CH0_BLEND_GR2_START_COORD_X" value="0"/>
+            <Setting id="IMGC_BRIGHT_OUTCTL_ACTIVE" value="true"/>
+            <Setting id="LCD_CH0_BLEND_GR1_FRAME_EDGE" value="false"/>
+            <Setting id="LCD_CH0_CHROMAKEY_GR1_AFTER_ARGB" value="0x00000000"/>
+            <Setting id="LCD_CH0_INTERRUPT_VPOS_ENABLE" value="false"/>
+            <Setting id="IMGC_GAMMA_B_TH_09" value="576"/>
+            <Setting id="LCD_CH0_TCON_PIN_DE" value="GLCDC_TCON_PIN_3"/>
+            <Setting id="USE_QE_DISPLAY_CONFIGURATION" value="0"/>
+            <Setting id="LCD_CH0_W_HFP" value="17"/>
+            <Setting id="IMGC_CONTRAST_OUTCTL_ACTIVE" value="true"/>
+            <Setting id="IMGC_GAMMA_ACTIVE" value="true"/>
+            <Setting id="LCD_CH0_TCON_POL_VSYNC" value="GLCDC_SIGNAL_POLARITY_LOACTIVE"/>
+            <Setting id="LCD_CH0_W_VSYNC" value="1"/>
+            <Setting id="LCD_CH0_IN_GR1_LINEOFFSET" value="960"/>
+            <Setting id="LCD_CH0_W_VBP" value="7"/>
+            <Setting id="LCD_CH0_IN_GR1_PBASE" value="NULL"/>
+            <Setting id="IMGC_GAMMA_G_TH_10" value="640"/>
+            <Setting id="LCD_CH0_IN_GR1_VSIZE" value="272"/>
+            <Setting id="LCD_CH0_CHROMAKEY_GR1_BEFORE_ARGB" value="0x00000000"/>
+            <Setting id="IMGC_GAMMA_G_TH_14" value="896"/>
+            <Setting id="IMGC_GAMMA_G_TH_13" value="832"/>
+            <Setting id="IMGC_GAMMA_G_TH_12" value="768"/>
+            <Setting id="IMGC_GAMMA_G_TH_11" value="704"/>
+            <Setting id="IMGC_GAMMA_G_GAIN_15" value="919"/>
+            <Setting id="IMGC_GAMMA_G_GAIN_14" value="939"/>
+            <Setting id="IMGC_GAMMA_R_GAIN_10" value="967"/>
+            <Setting id="IMGC_GAMMA_G_GAIN_13" value="945"/>
+            <Setting id="IMGC_GAMMA_R_GAIN_11" value="959"/>
+            <Setting id="IMGC_GAMMA_G_GAIN_12" value="952"/>
+            <Setting id="IMGC_GAMMA_R_GAIN_12" value="952"/>
+            <Setting id="LCD_CH0_CHROMAKEY_GR2_BEFORE_ARGB" value="0x00000000"/>
+            <Setting id="IMGC_GAMMA_G_GAIN_11" value="959"/>
+            <Setting id="IMGC_GAMMA_R_GAIN_13" value="945"/>
+            <Setting id="LCD_CH0_OUT_COLOR_ORDER" value="GLCDC_COLOR_ORDER_RGB"/>
+            <Setting id="IMGC_GAMMA_G_GAIN_10" value="967"/>
+            <Setting id="IMGC_GAMMA_R_GAIN_14" value="939"/>
+            <Setting id="IMGC_GAMMA_R_GAIN_04" value="1045"/>
+            <Setting id="IMGC_GAMMA_R_GAIN_05" value="1026"/>
+            <Setting id="IMGC_GAMMA_R_GAIN_06" value="1010"/>
+            <Setting id="IMGC_GAMMA_R_GAIN_07" value="997"/>
+            <Setting id="LCD_CH0_IN_GR2_HSIZE" value="480"/>
+            <Setting id="IMGC_GAMMA_R_GAIN_08" value="986"/>
+            <Setting id="IMGC_GAMMA_R_GAIN_09" value="976"/>
+            <Setting id="LCD_CH0_IN_GR2_COORD_Y" value="0"/>
+            <Setting id="LCD_CH0_IN_GR2_COORD_X" value="0"/>
+            <Setting id="LCD_CH0_CLUT_GR2_START" value="0"/>
+            <Setting id="IMGC_GAMMA_G_TH_07" value="448"/>
+            <Setting id="IMGC_GAMMA_G_TH_06" value="384"/>
+            <Setting id="IMGC_GAMMA_G_TH_05" value="320"/>
+            <Setting id="IMGC_GAMMA_G_TH_04" value="256"/>
+            <Setting id="LCD_CH0_W_HSYNC" value="25"/>
+            <Setting id="LCD_CH0_IN_GR2_LINEOFFSET" value="960"/>
+            <Setting id="IMGC_GAMMA_G_TH_09" value="576"/>
+            <Setting id="LCD_CH0_CHROMAKEY_GR1_ENABLE" value="false"/>
+            <Setting id="IMGC_GAMMA_G_TH_08" value="512"/>
+            <Setting id="LCD_CH0_BLEND_GR2_BLEND_CONTROL" value="GLCDC_BLEND_CONTROL_NONE"/>
+            <Setting id="IMGC_GAMMA_B_TH_05" value="320"/>
+            <Setting id="IMGC_GAMMA_B_TH_06" value="384"/>
+            <Setting id="IMGC_GAMMA_B_TH_07" value="448"/>
+            <Setting id="IMGC_GAMMA_B_TH_08" value="512"/>
+            <Setting id="LCD_CH0_OUT_FORMAT" value="GLCDC_OUT_FORMAT_16BITS_RGB565"/>
+            <Setting id="IMGC_GAMMA_B_TH_01" value="64"/>
+            <Setting id="LCD_CH0_IN_GR2_VSIZE" value="272"/>
+            <Setting id="IMGC_GAMMA_G_GAIN_09" value="976"/>
+            <Setting id="IMGC_GAMMA_B_TH_02" value="128"/>
+            <Setting id="IMGC_GAMMA_G_GAIN_08" value="986"/>
+            <Setting id="IMGC_GAMMA_B_TH_03" value="192"/>
+            <Setting id="IMGC_GAMMA_G_GAIN_07" value="997"/>
+            <Setting id="IMGC_GAMMA_B_TH_04" value="256"/>
+            <Setting id="IMGC_GAMMA_G_GAIN_06" value="1010"/>
+            <Setting id="IMGC_GAMMA_G_GAIN_05" value="1026"/>
+            <Setting id="IMGC_GAMMA_G_GAIN_04" value="1045"/>
+            <Setting id="IMGC_GAMMA_G_GAIN_03" value="1069"/>
+            <Setting id="IMGC_GAMMA_G_GAIN_02" value="1103"/>
+            <Setting id="IMGC_GAMMA_R_GAIN_00" value="1317"/>
+            <Setting id="IMGC_GAMMA_G_GAIN_01" value="1157"/>
+            <Setting id="IMGC_GAMMA_R_GAIN_01" value="1157"/>
+            <Setting id="IMGC_GAMMA_G_GAIN_00" value="1317"/>
+            <Setting id="IMGC_GAMMA_R_GAIN_02" value="1103"/>
+            <Setting id="IMGC_GAMMA_R_GAIN_03" value="1069"/>
+            <Setting id="LCD_CH0_BLEND_GR2_VISIBLE" value="true"/>
+            <Setting id="IMGC_DITHER_2X2_PB" value="GLCDC_DITHERING_PATTERN_00"/>
+            <Setting id="IMGC_DITHER_2X2_PA" value="GLCDC_DITHERING_PATTERN_11"/>
+            <Setting id="LCD_CH0_TCON_POL_HSYNC" value="GLCDC_SIGNAL_POLARITY_LOACTIVE"/>
+            <Setting id="LCD_CH0_PCALLBACK" value="glcdc_callback"/>
+            <Setting id="GLCDC_CFG_CONFIGURATION_MODE" value="0"/>
+            <Setting id="LCD_CH0_BLEND_GR2_FIXED_BLEND_VALUE" value="255"/>
+            <Setting id="IMGC_GAMMA_G_TH_15" value="960"/>
+            <Setting id="LCD_CH0_OUT_BG_COLOR" value="0x00000000"/>
+            <Setting id="LCD_CH0_IN_GR1_HSIZE" value="480"/>
         </Segment>
         <Segment component="r_tsip_rx1.21" id="r_tsip_rx" source="com.renesas.smc.tools.swcomponent.fit.source"/>
-        <Segment component="r_simple_graphic_rx1.00" id="r_simple_graphic_rx" source="com.renesas.smc.tools.swcomponent.fit.source"/>
+        <Segment component="r_sci_iic_rx2.90" id="r_sci_iic_rx" source="com.renesas.smc.tools.swcomponent.fit.source">
+            <Setting id="SCI_IIC_CFG_CH10_INT_PRIORITY" value="2"/>
+            <Setting id="SCI_IIC_CFG_PORT_SETTING_PROCESSING" value="1"/>
+            <Setting id="SCI_IIC_CFG_CH4_INCLUDED" value="0"/>
+            <Setting id="SCI_IIC_CFG_CH1_INCLUDED" value="0"/>
+            <Setting id="SCI_IIC_CFG_CH8_SSDA_DELAY_SELECT" value="18"/>
+            <Setting id="SCI_IIC_CFG_CH0_BITRATE_BPS" value="384000"/>
+            <Setting id="SCI_IIC_CFG_CH2_BITRATE_BPS" value="384000"/>
+            <Setting id="SCI_IIC_CFG_CH11_DIGITAL_FILTER" value="1"/>
+            <Setting id="SCI_IIC_CFG_CH1_BITRATE_BPS" value="384000"/>
+            <Setting id="SCI_IIC_CFG_CH3_BITRATE_BPS" value="384000"/>
+            <Setting id="SCI_IIC_CFG_CH5_DIGITAL_FILTER" value="1"/>
+            <Setting id="SCI_IIC_CFG_CH7_INCLUDED" value="0"/>
+            <Setting id="SCI_IIC_CFG_CH11_INCLUDED" value="0"/>
+            <Setting id="SCI_IIC_CFG_CH6_BITRATE_BPS" value="384000"/>
+            <Setting id="SCI_IIC_CFG_CH7_FILTER_CLOCK" value="1"/>
+            <Setting id="SCI_IIC_CFG_CH5_BITRATE_BPS" value="384000"/>
+            <Setting id="SCI_IIC_CFG_CH7_BITRATE_BPS" value="384000"/>
+            <Setting id="SCI_IIC_CFG_CH4_BITRATE_BPS" value="384000"/>
+            <Setting id="SCI_IIC_CFG_CH8_BITRATE_BPS" value="384000"/>
+            <Setting id="SCI_IIC_CFG_CH12_FILTER_CLOCK" value="1"/>
+            <Setting id="SCI_IIC_CFG_CH8_DIGITAL_FILTER" value="1"/>
+            <Setting id="SCI_IIC_CFG_CH5_FILTER_CLOCK" value="1"/>
+            <Setting id="SCI_IIC_CFG_CH2_SSDA_DELAY_SELECT" value="18"/>
+            <Setting id="SCI_IIC_CFG_CH1_FILTER_CLOCK" value="1"/>
+            <Setting id="SCI_IIC_CFG_CH10_FILTER_CLOCK" value="1"/>
+            <Setting id="SCI_IIC_CFG_CH4_INT_PRIORITY" value="2"/>
+            <Setting id="SCI_IIC_CFG_CH12_INT_PRIORITY" value="2"/>
+            <Setting id="SCI_IIC_CFG_CH0_DIGITAL_FILTER" value="1"/>
+            <Setting id="SCI_IIC_CFG_CH3_FILTER_CLOCK" value="1"/>
+            <Setting id="SCI_IIC_CFG_CH1_SSDA_DELAY_SELECT" value="18"/>
+            <Setting id="SCI_IIC_CFG_CH6_INT_PRIORITY" value="2"/>
+            <Setting id="SCI_IIC_CFG_CH10_SSDA_DELAY_SELECT" value="18"/>
+            <Setting id="SCI_IIC_CFG_CH7_INT_PRIORITY" value="2"/>
+            <Setting id="SCI_IIC_CFG_CH3_INCLUDED" value="0"/>
+            <Setting id="SCI_IIC_CFG_CH3_DIGITAL_FILTER" value="1"/>
+            <Setting id="SCI_IIC_CFG_CH8_INT_PRIORITY" value="2"/>
+            <Setting id="SCI_IIC_CFG_CH9_INT_PRIORITY" value="2"/>
+            <Setting id="SCI_IIC_CFG_CH6_SSDA_DELAY_SELECT" value="18"/>
+            <Setting id="SCI_IIC_CFG_CH2_INCLUDED" value="0"/>
+            <Setting id="SCI_IIC_CFG_CH8_INCLUDED" value="0"/>
+            <Setting id="SCI_IIC_CFG_CH10_INCLUDED" value="0"/>
+            <Setting id="SCI_IIC_CFG_CH0_SSDA_DELAY_SELECT" value="18"/>
+            <Setting id="SCI_IIC_CFG_CH7_SSDA_DELAY_SELECT" value="18"/>
+            <Setting id="SCI_IIC_CFG_CH2_DIGITAL_FILTER" value="1"/>
+            <Setting id="SCI_IIC_CFG_CH11_SSDA_DELAY_SELECT" value="18"/>
+            <Setting id="SCI_IIC_CFG_CH11_INT_PRIORITY" value="2"/>
+            <Setting id="SCI_IIC_CFG_CH9_DIGITAL_FILTER" value="1"/>
+            <Setting id="SCI_IIC_CFG_CH0_FILTER_CLOCK" value="1"/>
+            <Setting id="SCI_IIC_CFG_CH1_DIGITAL_FILTER" value="1"/>
+            <Setting id="SCI_IIC_CFG_CH12_BITRATE_BPS" value="384000"/>
+            <Setting id="SCI_IIC_CFG_CH12_SSDA_DELAY_SELECT" value="18"/>
+            <Setting id="SCI_IIC_CFG_CH6_FILTER_CLOCK" value="1"/>
+            <Setting id="SCI_IIC_CFG_CH11_BITRATE_BPS" value="384000"/>
+            <Setting id="SCI_IIC_CFG_CH10_BITRATE_BPS" value="384000"/>
+            <Setting id="SCI_IIC_CFG_CH12_INCLUDED" value="0"/>
+            <Setting id="SCI_IIC_CFG_CH6_INCLUDED" value="1"/>
+            <Setting id="SCI_IIC_CFG_CH4_DIGITAL_FILTER" value="1"/>
+            <Setting id="SCI_IIC_CFG_CH2_FILTER_CLOCK" value="1"/>
+            <Setting id="SCI_IIC_CFG_CH5_INT_PRIORITY" value="2"/>
+            <Setting id="SCI_IIC_CFG_CH4_FILTER_CLOCK" value="1"/>
+            <Setting id="SCI_IIC_CFG_CH5_SSDA_DELAY_SELECT" value="18"/>
+            <Setting id="SCI_IIC_CFG_CH12_DIGITAL_FILTER" value="1"/>
+            <Setting id="SCI_IIC_CFG_CH11_FILTER_CLOCK" value="1"/>
+            <Setting id="SCI_IIC_CFG_CH9_INCLUDED" value="0"/>
+            <Setting id="SCI_IIC_CFG_CH2_INT_PRIORITY" value="2"/>
+            <Setting id="SCI_IIC_CFG_CH1_INT_PRIORITY" value="2"/>
+            <Setting id="SCI_IIC_CFG_CH0_INT_PRIORITY" value="2"/>
+            <Setting id="SCI_IIC_CFG_CH7_DIGITAL_FILTER" value="1"/>
+            <Setting id="SCI_IIC_CFG_CH3_INT_PRIORITY" value="2"/>
+            <Setting id="SCI_IIC_CFG_CH4_SSDA_DELAY_SELECT" value="18"/>
+            <Setting id="SCI_IIC_CFG_CH0_INCLUDED" value="0"/>
+            <Setting id="SCI_IIC_CFG_CH9_BITRATE_BPS" value="384000"/>
+            <Setting id="SCI_IIC_CFG_CH9_SSDA_DELAY_SELECT" value="18"/>
+            <Setting id="SCI_IIC_CFG_BUS_CHECK_COUNTER" value="1000"/>
+            <Setting id="SCI_IIC_CFG_CH8_FILTER_CLOCK" value="1"/>
+            <Setting id="SCI_IIC_CFG_PARAM_CHECKING_ENABLE" value="1"/>
+            <Setting id="SCI_IIC_CFG_CH9_FILTER_CLOCK" value="1"/>
+            <Setting id="SCI_IIC_CFG_CH3_SSDA_DELAY_SELECT" value="18"/>
+            <Setting id="SCI_IIC_CFG_CH6_DIGITAL_FILTER" value="1"/>
+            <Setting id="SCI_IIC_CFG_CH5_INCLUDED" value="0"/>
+            <Setting id="SCI_IIC_CFG_CH10_DIGITAL_FILTER" value="1"/>
+        </Segment>
         <Segment component="r_fwup2.04" id="r_fwup" source="com.renesas.smc.tools.swcomponent.fit.source">
             <Setting id="FWUP_CFG_USER_BANK_SWAP_FUNCTION" value="ota_bank_swap_function"/>
             <Setting id="FWUP_CFG_UPDATE_MODE" value="0"/>
@@ -217,6 +499,9 @@
             <Setting id="FWUP_CFG_USER_FLASH_ERASE_FUNCTION" value="ota_flash_erase_function"/>
         </Segment>
         <Segment component="LittleFS202406.01-LTS-rx-1.1.1" id="LittleFS" source="com.renesas.smc.tools.swcomponent.rtosconfigurator.source"/>
+        <Segment component="r_gpio_rx5.20" id="r_gpio_rx" source="com.renesas.smc.tools.swcomponent.fit.source">
+            <Setting id="GPIO_CFG_PARAM_CHECKING_ENABLE" value="BSP_CFG_PARAM_CHECKING_ENABLE"/>
+        </Segment>
         <Segment component="r_sci_rx5.40" id="r_sci_rx" source="com.renesas.smc.tools.swcomponent.fit.source">
             <Setting id="SCI_CFG_CH9_FIFO_INCLUDED" value="0"/>
             <Setting id="SCI_CFG_CH4_INCLUDED" value="0"/>
@@ -510,13 +795,6 @@
             <Setting id="IRQ_CFG_NESTED_INT_EN_IRQ15" value="0"/>
             <Setting id="IRQ_CFG_NESTED_INT_EN_IRQ10" value="0"/>
         </Segment>
-        <Segment component="r_simple_glcdc_config_rx1.00" id="r_simple_glcdc_config_rx" source="com.renesas.smc.tools.swcomponent.fit.source">
-            <Setting id="_CONTRAST" value="0x80"/>
-            <Setting id="YSIZE_PHYS" value="272"/>
-            <Setting id="_BRIGHTNESS" value="0x200"/>
-            <Setting id="XSIZE_PHYS" value="480"/>
-            <Setting id="XSIZE_OUTOF_DISPLAY" value="32"/>
-        </Segment>
         <Segment component="r_byteq2.10" id="r_byteq" source="com.renesas.smc.tools.swcomponent.fit.source">
             <Setting id="BYTEQ_CFG_PARAM_CHECKING_ENABLE" value="BSP_CFG_PARAM_CHECKING_ENABLE"/>
             <Setting id="BYTEQ_CFG_MAX_CTRL_BLKS" value="32"/>
@@ -525,6 +803,47 @@
             <Setting id="BYTEQ_CFG_PROTECT_QUEUE" value="0"/>
         </Segment>
         <Segment component="com.renesas.smc.tools.swcomponent.rtosconfigurator.freertos.objectfreertoslts202406.01-LTS-rx-1.1.1" id="FreeRTOS Object" source="com.renesas.smc.tools.swcomponent.rtosconfigurator.source"/>
+        <Segment component="r_emwin_rx6.52.1.00" id="r_emwin_rx" source="com.renesas.smc.tools.swcomponent.fit.source">
+            <Setting id="EMWIN_LCD_DRIVER_IC" value="LCD_DRV_IC_ST7715"/>
+            <Setting id="EMWIN_BITS_PER_PIXEL" value="16"/>
+            <Setting id="EMWIN_SLAVE_ADDRESS" value="0x00000038"/>
+            <Setting id="EMWIN_GUI_FRAME_BUFFER3" value="0x00000000"/>
+            <Setting id="EMWIN_GUI_FRAME_BUFFER2" value="0x00840000"/>
+            <Setting id="EMWIN_GUI_FRAME_BUFFER1" value="0x00800000"/>
+            <Setting id="EMWIN_LCD_IF" value="LCD_IF_GLCDC"/>
+            <Setting id="EMWIN_USE_TOUCH_IC_RESET_PIN" value="1"/>
+            <Setting id="EMWIN_TOUCH_IC_RESET_PIN" value="GPIO_PORT_6_PIN_6"/>
+            <Setting id="EMWIN_TOUCH_IF" value="TOUCH_IF_SCI_IIC"/>
+            <Setting id="EMWIN_TOUCH_CS_PIN" value="GPIO_PORT_9_PIN_3"/>
+            <Setting id="EMWIN_DISP_SIGNAL_PIN" value="GPIO_PORT_B_PIN_3"/>
+            <Setting id="EMWIN_TOUCH_BAUDRATE" value="1000000"/>
+            <Setting id="EMWIN_USE_BACKLIGHT_PIN" value="1"/>
+            <Setting id="EMWIN_LCD_CS_PIN" value="GPIO_PORT_B_PIN_1"/>
+            <Setting id="EMWIN_USE_DRW2D" value="1"/>
+            <Setting id="EMWIN_USE_DISP_SIGNAL_PIN" value="1"/>
+            <Setting id="EMWIN_DATA_CMD_PIN" value="GPIO_PORT_B_PIN_7"/>
+            <Setting id="EMWIN_TOUCH_IF_NUMBER" value="6"/>
+            <Setting id="EMWIN_MAX_NUM_TOUCHPOINTS" value="10"/>
+            <Setting id="EMWIN_DMAC_NUMBER" value="0"/>
+            <Setting id="EMWIN_USE_MULTITOUCH" value="0"/>
+            <Setting id="EMWIN_NUM_BUFFERS" value="2"/>
+            <Setting id="EMWIN_DMAC_NUMBER2" value="1"/>
+            <Setting id="EMWIN_USE_RUNTIME_ORIENTATION" value="0"/>
+            <Setting id="EMWIN_YSIZE_PHYS" value="272"/>
+            <Setting id="EMWIN_USE_DATA_CMD_PIN" value="1"/>
+            <Setting id="EMWIN_BACKLIGHT_PIN" value="GPIO_PORT_6_PIN_7"/>
+            <Setting id="EMWIN_LCD_IF_NUMBER" value="0"/>
+            <Setting id="EMWIN_USE_TOUCH_CS_PIN" value="1"/>
+            <Setting id="EMWIN_DISPLAY_ORIENTATION" value="ORIENTATION_0"/>
+            <Setting id="EMWIN_USE_LCD_CS_PIN" value="1"/>
+            <Setting id="EMWIN_LCD_BAUDRATE" value="1000000"/>
+            <Setting id="EMWIN_SELECT_DMAC_DTC" value="2"/>
+            <Setting id="EMWIN_GUI_NUM_BYTES" value="102400"/>
+            <Setting id="EMWIN_XSIZE_PHYS" value="480"/>
+            <Setting id="EMWIN_GUI_USE_CACHE" value="0"/>
+            <Setting id="EMWIN_USE_TOUCH" value="1"/>
+            <Setting id="EMWIN_INIT_DMAC" value="1"/>
+        </Segment>
         <Segment component="FreeRTOS_IP202406.01-LTS-rx-1.1.1" id="FreeRTOS_IP" source="com.renesas.smc.tools.swcomponent.rtosconfigurator.source"/>
         <Segment component="r_flash_rx5.21" id="r_flash_rx" source="com.renesas.smc.tools.swcomponent.fit.source">
             <Setting id="FLASH_CFG_PARAM_CHECKING_ENABLE" value="1"/>
