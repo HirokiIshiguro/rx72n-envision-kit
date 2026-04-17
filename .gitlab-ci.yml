@@ -164,8 +164,7 @@ variables:
   # build_v3_ota_rx72n → flash_v3_boot_ota_rx72n → download_v3_v1_ota_rx72n →
   # provision_v3_ota_rx72n → ota_v3_create_job_rx72n → ota_v3_monitor_rx72n →
   # ota_v3_finalize_rx72n のみ実行する。set2 (RX72N ENVK #3) 単独。
-  # MR merge 後に "false" に戻す。
-  RUN_V3_OTA: "true"
+  RUN_V3_OTA: "false"
   RX72N_V3_SIGNING_KEY: "sample_keys/secp256r1.privatekey"
 
 .windows_ota_aws_job:
