@@ -96,7 +96,7 @@ Phase 8b は親 issue [#11](https://shelty2.servegame.com/oss/import/github/rene
 
 **現在の進捗:**
 - 8b-1 / 8b-2 / 8b-3 / 8b-3b は完了。`phase8b/` staging root から `aws_ether_rx72n_envision_kit` / `boot_loader_rx72n_envision_kit` の build → flash → MQTT baseline までを CI へ接続済み。
-- 8b-4 (OTA 再検証) は **Phase 8b 第3次 段階1-4** として再構成し、v3 baseline (iot-reference-rx HEAD `023e13ea` 同期) 上で完了。MR !77 (段階1: build-only gate) → MR !79 (段階2: flash/download) → MR !82 (段階3: AWS provisioning + MQTT, Pipeline #3006 で 4/4 markers PASS) → MR !83 (段階4: OTA, Pipeline #3123 で `RUN_V3_OTA=true` の OTA 全 7 jobs success / Pipeline #3148 で legacy full test success)。実行モードは `RUN_V3_BUILD_ONLY` / `RUN_V3_BASELINE` / `RUN_V3_OTA` の 3 系統 (旧 `RUN_PHASE8B_*` から rename)。
+- 8b-4 (OTA 再検証) は **Phase 8b 第3次 段階1-4** として再構成し、v3 baseline (iot-reference-rx HEAD `023e13ea` 同期) 上で完了。MR !77 (段階1: build-only gate) → MR !79 (段階2: flash/download) → MR !82 (段階3: AWS provisioning + MQTT, Pipeline #3006 で 4/4 markers PASS) → MR !83 (段階4: OTA, Pipeline #3123 で `RUN_V3_OTA=true` の OTA 全 7 jobs success / Pipeline #3148 で legacy full test は pipeline status success だが allow_failure failures が 5 件残る: CN8 撤去 expected な 4 jobs (`test_commands` / `test_screen_navigation` / `provision_aws_credentials` / `confirm_aws_mqtt`) + 別件 `capture_after_download_aws_demos`)。実行モードは `RUN_V3_BUILD_ONLY` / `RUN_V3_BASELINE` / `RUN_V3_OTA` の 3 系統 (旧 `RUN_PHASE8B_*` から rename)。
 - 段階4 で特定した重要 issue は本ファイル末尾 Changelog `2026-04-17` エントリに集約 (decodedData stack overflow → BSS 化 / `ota_pal.c` を iot-reference-rx HEAD と sync / RSU builder 二系統の混同 / monitor STEP 3 `--reset-cmd` / CN8 撤去)。
 - 8b-5 (GUI / SD update / Envision Kit 固有 UX 再統合) は次着手。新規 Issue 要起票 (旧 #12 は 2026-03-15 閉鎖)。
 - 直近の残課題: warning cleanup (`r_tsip_rx` の RX72N 正式化、`C_LITTLEFS_*` / `C_USER_APPLICATION_AREA` section warning) と E2 Lite / E2OB の物理安定化 (CN8 撤去後も deep hung が観測される場合のリモート電源制御導入)。3 セット並列運用は `DEVICE_RUNNER_TAG` / `DEVICE_RESOURCE_GROUP` / `RFP_TOOL=e2l` の枠組みを CI 側で受けられる状態だが、hardware-config 側の set #2 / #3 個体値登録は未完了。
@@ -215,7 +215,7 @@ CI/CD Variables を変更すること。
 | CI/CD Variable | .gitlab-ci.yml 変数 | 説明 |
 |---|---|---|
 | `E2L_SERIAL_ENVISION_KIT_RX72N_ECN1` | `E2LITE_SERIAL` | E2 Lite シリアル番号 (ECN1) |
-| `UART_PORT_ENVISION_KIT_RX72N_CN6` | `UART_PORT` / `COMMAND_PORT` | SCI7 ログ + コマンド統合 (CN6 PMOD, FTDI, 921600bps)。Pi では `/dev/serial/by-id/...` を設定。2026-04-17 に CN8 (RL78/G1C) を物理撤去し、`COMMAND_PORT` も CN6 に統一。レガシー 4 jobs は `allow_failure: true` に降格 |
+| `UART_PORT_ENVISION_KIT_RX72N_CN6_RPI3` | `UART_PORT` / `COMMAND_PORT` | SCI7 ログ + コマンド統合 (CN6 PMOD, FTDI, 921600bps)。set2 (RPi#3 + ENVK #3) 固定の by-id path。Pi では `/dev/serial/by-id/...` を設定。2026-04-17 に CN8 (RL78/G1C) を物理撤去し、`COMMAND_PORT` も CN6 に統一。レガシー 4 jobs は `allow_failure: true` に降格。set #1 / #2 を回す際は対応する `_RPI1` / `_RPI2` 変数を割り当てる (hardware-config 側で命名規則維持) |
 | ~~`UART_PORT_ENVISION_KIT_RX72N_CN8`~~ | ~~`COMMAND_PORT`~~ | **2026-04-17 廃止**。CN8 (SCI2 / RL78/G1C / 115200bps) は USB ケーブルごと撤去。E2OB の deep hung 誘発回避 + COM7 一本化。詳細は memory `project_com7_unification.md` |
 
 `device_config_loader.py` も `COMMAND_PORT` / `UART_PORT` / `E2LITE_SERIAL` 環境変数を検出すると
@@ -798,7 +798,7 @@ python test_scripts/uart_test/provision_aws.py \
 
 ### 2026-04-17: Phase 8b 第3次 段階4 (OTA) 完了 — MR !83 / Issue #46
 
-v3 baseline 上での OTA 再検証が完了。Pipeline `#3123` で `RUN_V3_OTA=true` の v3 OTA 全 7 jobs success、Pipeline `#3148` で legacy full test も success（CN8 撤去に伴う expected warnings 付き）。段階1 (MR !77) → 段階2 (MR !79) → 段階3 (MR !82, MQTT 4/4 markers PASS at #3006) → 段階4 (MR !83) で第3次 baseline は OTA まで通った。次は段階5 (GUI/SD UX 再統合) — 新規 Issue 要起票 (旧 #12 は 2026-03-15 閉鎖)。
+v3 baseline 上での OTA 再検証が完了。Pipeline `#3123` で `RUN_V3_OTA=true` の v3 OTA 全 7 jobs success、Pipeline `#3148` で legacy full test は pipeline status success (allow_failure failures 5 件あり)。allow_failure failed jobs の内訳は CN8 撤去 expected な 4 jobs (`test_commands` / `test_screen_navigation` / `provision_aws_credentials` / `confirm_aws_mqtt`) と、別件で前から不安定な `capture_after_download_aws_demos`。段階1 (MR !77) → 段階2 (MR !79) → 段階3 (MR !82, MQTT 4/4 markers PASS at #3006) → 段階4 (MR !83) で第3次 baseline は OTA まで通った。次は段階5 (GUI/SD UX 再統合) — 新規 Issue 要起票 (旧 #12 は 2026-03-15 閉鎖)。
 
 段階4 で発見・修正した重要 issue:
 
