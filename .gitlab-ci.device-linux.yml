@@ -217,6 +217,7 @@ provision_aws_credentials:
   extends:
     - .pc_device_job
     - .pc_pyserial_job
+  allow_failure: true  # CN8 撤去済み、legacy command IF は CN6 移行まで不通
   timeout: 5 minutes
   rules:
     - if: $RUN_V3_BUILD_ONLY == "true"
@@ -295,6 +296,7 @@ confirm_aws_mqtt:
   extends:
     - .pc_device_job
     - .pc_pyserial_job
+  allow_failure: true  # CN8 撤去済み、legacy command IF は CN6 移行まで不通
   timeout: 5 minutes
   rules:
     - if: $RUN_V3_BUILD_ONLY == "true"
