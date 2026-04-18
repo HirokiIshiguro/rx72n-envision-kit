@@ -217,9 +217,13 @@ void main_task(void *pvParameters)
     prvDisplayWrite("FreeRTOS init\r\n");
 
 #if (ENABLE_CREDENTIAL_BY_CLI == 1)
-    /* Register the standard CLI commands. */
-    vRegisterSampleCLICommands();
-    vUARTCommandConsoleStart(mainUART_COMMAND_CONSOLE_STACK_SIZE, mainUART_COMMAND_CONSOLE_TASK_PRIORITY);
+    {
+        /* Register the standard CLI commands. */
+        extern void vRegisterSdcardCLICommands(void); /* Phase 8b 第3次 段階5-4a (#53) */
+        vRegisterSampleCLICommands();
+        vRegisterSdcardCLICommands();
+        vUARTCommandConsoleStart(mainUART_COMMAND_CONSOLE_STACK_SIZE, mainUART_COMMAND_CONSOLE_TASK_PRIORITY);
+    }
 #endif
 
     xResults = littlFs_init();
