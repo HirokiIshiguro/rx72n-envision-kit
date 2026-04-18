@@ -280,6 +280,16 @@ void main_task(void *pvParameters)
         FreeRTOS_printf(("Initialise the RTOS's TCP/IP stack\n"));
         prvDisplayWrite("Network up\r\n");
 
+        /* Phase 8b 第3次 段階5-2 (rx72n-envision-kit#50): Tracealyzer recorder
+         * の起動。FreeRTOS-Plus-TCP streamport (Middleware/3rdparty/
+         * tracealyzer_recorder/streamports/FreeRTOS_Plus_TCP/) が socket を開いて
+         * 初期接続するため、本タイミング (network up 確認後、demo task 起動前) に
+         * vTraceEnable() を呼ぶ。Tracealyzer host 接続失敗時は port 内で
+         * vTraceStop() が呼ばれ trace 出力は無効化される (boot は継続)。 */
+        vTraceEnable( TRC_INIT );
+        vTraceEnable( TRC_START );
+        prvDisplayWrite("Tracealyzer init\r\n");
+
         FreeRTOS_printf(("---------STARTING DEMO---------\r\n"));
         prvDisplayWrite("Starting demo\r\n");
 

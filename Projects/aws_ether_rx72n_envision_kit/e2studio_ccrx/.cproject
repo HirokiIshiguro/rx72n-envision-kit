@@ -152,6 +152,10 @@
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/src/smc_gen/r_sci_iic_rx}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/src/aw/Source/Generated}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/src/aw/Source/CustomCode}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/Middleware/3rdparty/tracealyzer_recorder/Include}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/Middleware/3rdparty/tracealyzer_recorder/config}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/Middleware/3rdparty/tracealyzer_recorder/streamports/FreeRTOS_Plus_TCP/include}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/src/smc_gen/r_bsp/mcu/rx72n/register_access/ccrx}&quot;"/>
 								</option>
 								<option IS_BUILTIN_EMPTY="false" IS_VALUE_EMPTY="false" id="com.renesas.cdt.managedbuild.renesas.ccrx.compiler.option.userBefore.1291333214" name="追加するオプション（すべての指定オプションの前に追加）" superClass="com.renesas.cdt.managedbuild.renesas.ccrx.compiler.option.userBefore" useByScannerDiscovery="false" valueType="stringList">
 									<listOptionValue builtIn="false" value=""/>
@@ -229,6 +233,10 @@
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/src/smc_gen/r_sci_iic_rx}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/src/aw/Source/Generated}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/src/aw/Source/CustomCode}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/Middleware/3rdparty/tracealyzer_recorder/Include}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/Middleware/3rdparty/tracealyzer_recorder/config}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/Middleware/3rdparty/tracealyzer_recorder/streamports/FreeRTOS_Plus_TCP/include}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/src/smc_gen/r_bsp/mcu/rx72n/register_access/ccrx}&quot;"/>
 								</option>
 								<inputType id="com.renesas.cdt.managedbuild.renesas.ccrx.assembler.inputType.1379273115" name="Assembler InputType" superClass="com.renesas.cdt.managedbuild.renesas.ccrx.assembler.inputType"/>
 							</tool>
@@ -843,7 +851,7 @@
 						</toolChain>
 					</folderInfo>
 					<sourceEntries>
-						<entry excluding="trash/|src/smc_gen/r_bsp/board/generic_rx65n|src/smc_gen/r_bsp/mcu/rx65n|src/smc_gen/r_ether_rx/src/targets/rx65n|src/smc_gen/r_s12ad_rx/src/targets/rx65n|src/smc_gen/r_sci_rx/src/targets/rx65n" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
+						<entry excluding="trash/|src/smc_gen/r_bsp/board/generic_rx65n|src/smc_gen/r_bsp/mcu/rx65n|src/smc_gen/r_ether_rx/src/targets/rx65n|src/smc_gen/r_s12ad_rx/src/targets/rx65n|src/smc_gen/r_sci_rx/src/targets/rx65n|Middleware/3rdparty/tracealyzer_recorder/trcSnapshotRecorder.c|Middleware/3rdparty/tracealyzer_recorder/streamports/AFR_WIFI_LOCAL|Middleware/3rdparty/tracealyzer_recorder/streamports/ARM_ITM|Middleware/3rdparty/tracealyzer_recorder/streamports/File|Middleware/3rdparty/tracealyzer_recorder/streamports/Jlink_RTT|Middleware/3rdparty/tracealyzer_recorder/streamports/TCPIP|Middleware/3rdparty/tracealyzer_recorder/streamports/TCPIP_Win32|Middleware/3rdparty/tracealyzer_recorder/streamports/USB_CDC" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
 					</sourceEntries>
 				</configuration>
 			</storageModule>
