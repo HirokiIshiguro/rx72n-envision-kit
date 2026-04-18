@@ -294,8 +294,10 @@ uint32_t ulRand(void);
 /* The platform FreeRTOS is running on. */
 #define configPLATFORM_NAME    "RenesasRX65N"
 
-/* Header required for the tracealyzer recorder library. */
-//#include "trcRecorder.h"
+/* Header required for the tracealyzer recorder library.
+ * Phase 8b 第3次 段階5-2 (rx72n-envision-kit#50) で uncomment。
+ * trace hook macros (traceTASK_CREATE 等) を kernel に注入する。 */
+#include "trcRecorder.h"
 
 /* When the FIT configurator or the Smart Configurator is used, platform.h has to be used. */
 #define configINCLUDE_PLATFORM_H_INSTEAD_OF_IODEFINE_H  1

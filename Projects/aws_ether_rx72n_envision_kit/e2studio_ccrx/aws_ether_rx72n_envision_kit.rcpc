@@ -452,6 +452,88 @@
               <Path>..\..\..\Middleware\3rdparty\tinycbor\src\utf8_p.h</Path>
             </Category>
           </Category>
+          <Category Name="tracealyzer_recorder">
+            <Path>..\..\..\Middleware\3rdparty\tracealyzer_recorder\readme.txt</Path>
+            <Path>..\..\..\Middleware\3rdparty\tracealyzer_recorder\tracealyzer_readme.txt</Path>
+            <Path>..\..\..\Middleware\3rdparty\tracealyzer_recorder\trcKernelPort.c</Path>
+            <Path>..\..\..\Middleware\3rdparty\tracealyzer_recorder\trcSnapshotRecorder.c</Path>
+            <Path>..\..\..\Middleware\3rdparty\tracealyzer_recorder\trcStreamingRecorder.c</Path>
+            <Category Name="Include">
+              <Path>..\..\..\Middleware\3rdparty\tracealyzer_recorder\Include\aws_secure_sockets.tzext.h</Path>
+              <Path>..\..\..\Middleware\3rdparty\tracealyzer_recorder\Include\aws_wifi.tzext.h</Path>
+              <Path>..\..\..\Middleware\3rdparty\tracealyzer_recorder\Include\trcExtensions.h</Path>
+              <Path>..\..\..\Middleware\3rdparty\tracealyzer_recorder\Include\trcHardwarePort.h</Path>
+              <Path>..\..\..\Middleware\3rdparty\tracealyzer_recorder\Include\trcKernelPort.h</Path>
+              <Path>..\..\..\Middleware\3rdparty\tracealyzer_recorder\Include\trcPortDefines.h</Path>
+              <Path>..\..\..\Middleware\3rdparty\tracealyzer_recorder\Include\trcRecorder.h</Path>
+            </Category>
+            <Category Name="config">
+              <Path>..\..\..\Middleware\3rdparty\tracealyzer_recorder\config\trcConfig.h</Path>
+              <Path>..\..\..\Middleware\3rdparty\tracealyzer_recorder\config\trcSnapshotConfig.h</Path>
+              <Path>..\..\..\Middleware\3rdparty\tracealyzer_recorder\config\trcStreamingConfig.h</Path>
+            </Category>
+            <Category Name="streamports">
+              <Category Name="AFR_WIFI_LOCAL">
+                <Path>..\..\..\Middleware\3rdparty\tracealyzer_recorder\streamports\AFR_WIFI_LOCAL\Readme-Streamport.txt</Path>
+                <Path>..\..\..\Middleware\3rdparty\tracealyzer_recorder\streamports\AFR_WIFI_LOCAL\trcStreamingPort.c</Path>
+                <Category Name="include">
+                  <Path>..\..\..\Middleware\3rdparty\tracealyzer_recorder\streamports\AFR_WIFI_LOCAL\include\trcStreamingPort.h</Path>
+                </Category>
+              </Category>
+              <Category Name="ARM_ITM">
+                <Path>..\..\..\Middleware\3rdparty\tracealyzer_recorder\streamports\ARM_ITM\Readme-ARM_ITM.txt</Path>
+                <Path>..\..\..\Middleware\3rdparty\tracealyzer_recorder\streamports\ARM_ITM\trcStreamingPort.c</Path>
+                <Category Name="include">
+                  <Path>..\..\..\Middleware\3rdparty\tracealyzer_recorder\streamports\ARM_ITM\include\trcStreamingPort.h</Path>
+                </Category>
+              </Category>
+              <Category Name="File">
+                <Path>..\..\..\Middleware\3rdparty\tracealyzer_recorder\streamports\File\Readme-Streamport.txt</Path>
+                <Path>..\..\..\Middleware\3rdparty\tracealyzer_recorder\streamports\File\trcStreamingPort.c</Path>
+                <Category Name="include">
+                  <Path>..\..\..\Middleware\3rdparty\tracealyzer_recorder\streamports\File\include\trcStreamingPort.h</Path>
+                </Category>
+              </Category>
+              <Category Name="FreeRTOS_Plus_TCP">
+                <Path>..\..\..\Middleware\3rdparty\tracealyzer_recorder\streamports\FreeRTOS_Plus_TCP\trcStreamingPort.c</Path>
+                <Category Name="include">
+                  <Path>..\..\..\Middleware\3rdparty\tracealyzer_recorder\streamports\FreeRTOS_Plus_TCP\include\trcStreamingPort.h</Path>
+                </Category>
+              </Category>
+              <Category Name="Jlink_RTT">
+                <Path>..\..\..\Middleware\3rdparty\tracealyzer_recorder\streamports\Jlink_RTT\Readme-Streamport.txt</Path>
+                <Path>..\..\..\Middleware\3rdparty\tracealyzer_recorder\streamports\Jlink_RTT\SEGGER_RTT.c</Path>
+                <Path>..\..\..\Middleware\3rdparty\tracealyzer_recorder\streamports\Jlink_RTT\SEGGER_RTT_Printf.c</Path>
+                <Path>..\..\..\Middleware\3rdparty\tracealyzer_recorder\streamports\Jlink_RTT\trcStreamingPort.c</Path>
+                <Category Name="include">
+                  <Path>..\..\..\Middleware\3rdparty\tracealyzer_recorder\streamports\Jlink_RTT\include\SEGGER_RTT.h</Path>
+                  <Path>..\..\..\Middleware\3rdparty\tracealyzer_recorder\streamports\Jlink_RTT\include\SEGGER_RTT_Conf.h</Path>
+                  <Path>..\..\..\Middleware\3rdparty\tracealyzer_recorder\streamports\Jlink_RTT\include\trcStreamingPort.h</Path>
+                </Category>
+              </Category>
+              <Category Name="TCPIP">
+                <Path>..\..\..\Middleware\3rdparty\tracealyzer_recorder\streamports\TCPIP\Readme-Streamport.txt</Path>
+                <Path>..\..\..\Middleware\3rdparty\tracealyzer_recorder\streamports\TCPIP\trcStreamingPort.c</Path>
+                <Category Name="include">
+                  <Path>..\..\..\Middleware\3rdparty\tracealyzer_recorder\streamports\TCPIP\include\trcStreamingPort.h</Path>
+                </Category>
+              </Category>
+              <Category Name="TCPIP_Win32">
+                <Path>..\..\..\Middleware\3rdparty\tracealyzer_recorder\streamports\TCPIP_Win32\Readme-Streamport.txt</Path>
+                <Path>..\..\..\Middleware\3rdparty\tracealyzer_recorder\streamports\TCPIP_Win32\trcStreamingPort.c</Path>
+                <Category Name="include">
+                  <Path>..\..\..\Middleware\3rdparty\tracealyzer_recorder\streamports\TCPIP_Win32\include\trcStreamingPort.h</Path>
+                </Category>
+              </Category>
+              <Category Name="USB_CDC">
+                <Path>..\..\..\Middleware\3rdparty\tracealyzer_recorder\streamports\USB_CDC\Readme-Streamport.txt</Path>
+                <Path>..\..\..\Middleware\3rdparty\tracealyzer_recorder\streamports\USB_CDC\trcStreamingPort.c</Path>
+                <Category Name="include">
+                  <Path>..\..\..\Middleware\3rdparty\tracealyzer_recorder\streamports\USB_CDC\include\trcStreamingPort.h</Path>
+                </Category>
+              </Category>
+            </Category>
+          </Category>
         </Category>
         <Category Name="AWS">
           <Category Name="Jobs-for-AWS-IoT-embedded-sdk">
@@ -1941,6 +2023,10 @@
           <Option>-include="${ProjDirPath}\src\smc_gen\r_sci_iic_rx"</Option>
           <Option>-include="${ProjDirPath}\src\aw\Source\Generated"</Option>
           <Option>-include="${ProjDirPath}\src\aw\Source\CustomCode"</Option>
+          <Option>-include="C:\ai\claude\rx72n-envision-kit\Middleware\3rdparty\tracealyzer_recorder\Include"</Option>
+          <Option>-include="C:\ai\claude\rx72n-envision-kit\Middleware\3rdparty\tracealyzer_recorder\config"</Option>
+          <Option>-include="C:\ai\claude\rx72n-envision-kit\Middleware\3rdparty\tracealyzer_recorder\streamports\FreeRTOS_Plus_TCP\include"</Option>
+          <Option>-include="${ProjDirPath}\src\smc_gen\r_bsp\mcu\rx72n\register_access\ccrx"</Option>
           <Option>-define=MBEDTLS_CONFIG_FILE=&lt;"aws_mbedtls_config.h"&gt;,CONFIG_FREERTOS_ASSERT_FAIL_ABORT,CONFIG_MEDTLS_USE_AFR_MEMORY,MBEDTLS_ERROR_C,MBEDTLS_ALLOW_PRIVATE_ACCESS,__LITTLE_ENDIAN__</Option>
           <Option>-asmopt=-bank</Option>
           <Option>-utf8</Option>
@@ -2003,6 +2089,10 @@
           <Option>-include="${ProjDirPath}\src\smc_gen\r_sci_iic_rx"</Option>
           <Option>-include="${ProjDirPath}\src\aw\Source\Generated"</Option>
           <Option>-include="${ProjDirPath}\src\aw\Source\CustomCode"</Option>
+          <Option>-include="C:\ai\claude\rx72n-envision-kit\Middleware\3rdparty\tracealyzer_recorder\Include"</Option>
+          <Option>-include="C:\ai\claude\rx72n-envision-kit\Middleware\3rdparty\tracealyzer_recorder\config"</Option>
+          <Option>-include="C:\ai\claude\rx72n-envision-kit\Middleware\3rdparty\tracealyzer_recorder\streamports\FreeRTOS_Plus_TCP\include"</Option>
+          <Option>-include="${ProjDirPath}\src\smc_gen\r_bsp\mcu\rx72n\register_access\ccrx"</Option>
           <Option>-utf8</Option>
           <Option>-bank</Option>
           <Option>-debug</Option>
@@ -2334,6 +2424,9 @@
           <Path>HardwareDebug\sha256.obj</Path>
           <Path>HardwareDebug\utils.obj</Path>
           <Path>HardwareDebug\MQTTFileDownloader_cbor.obj</Path>
+          <Path>HardwareDebug\trcStreamingPort.obj</Path>
+          <Path>HardwareDebug\trcKernelPort.obj</Path>
+          <Path>HardwareDebug\trcStreamingRecorder.obj</Path>
           <Path>HardwareDebug\gui_task.obj</Path>
           <Path>HardwareDebug\Roboto_16_Normal_EXT_AA4.obj</Path>
           <Path>HardwareDebug\Roboto_24_Normal_EXT_AA4.obj</Path>
@@ -2670,6 +2763,16 @@
           <Path>HardwareDebug\r_tsip_tls_rx.obj</Path>
           <Path>${ProjDirPath}\src\smc_gen\r_emwin_rx\lib\GUI\emWinLib_RXv3_CCRX_d.lib</Path>
         </LinkOrder>
+        <NoTargetFile Target="..\..\..\Middleware\3rdparty\tracealyzer_recorder\streamports\AFR_WIFI_LOCAL\trcStreamingPort.c"/>
+        <NoTargetFile Target="..\..\..\Middleware\3rdparty\tracealyzer_recorder\streamports\ARM_ITM\trcStreamingPort.c"/>
+        <NoTargetFile Target="..\..\..\Middleware\3rdparty\tracealyzer_recorder\streamports\File\trcStreamingPort.c"/>
+        <NoTargetFile Target="..\..\..\Middleware\3rdparty\tracealyzer_recorder\streamports\Jlink_RTT\SEGGER_RTT.c"/>
+        <NoTargetFile Target="..\..\..\Middleware\3rdparty\tracealyzer_recorder\streamports\Jlink_RTT\SEGGER_RTT_Printf.c"/>
+        <NoTargetFile Target="..\..\..\Middleware\3rdparty\tracealyzer_recorder\streamports\Jlink_RTT\trcStreamingPort.c"/>
+        <NoTargetFile Target="..\..\..\Middleware\3rdparty\tracealyzer_recorder\streamports\TCPIP\trcStreamingPort.c"/>
+        <NoTargetFile Target="..\..\..\Middleware\3rdparty\tracealyzer_recorder\streamports\TCPIP_Win32\trcStreamingPort.c"/>
+        <NoTargetFile Target="..\..\..\Middleware\3rdparty\tracealyzer_recorder\streamports\USB_CDC\trcStreamingPort.c"/>
+        <NoTargetFile Target="..\..\..\Middleware\3rdparty\tracealyzer_recorder\trcSnapshotRecorder.c"/>
         <CommonOptions>
           <IncludePathForC>"${ProjDirPath}\src\regen_safe"</IncludePathForC>
           <IncludePathForC>"${ProjDirPath}\src\smc_gen\r_bsp"</IncludePathForC>
@@ -2765,6 +2868,10 @@
           <IncludePathForC>"${ProjDirPath}\src\smc_gen\r_sci_iic_rx"</IncludePathForC>
           <IncludePathForC>"${ProjDirPath}\src\aw\Source\Generated"</IncludePathForC>
           <IncludePathForC>"${ProjDirPath}\src\aw\Source\CustomCode"</IncludePathForC>
+          <IncludePathForC>"C:\ai\claude\rx72n-envision-kit\Middleware\3rdparty\tracealyzer_recorder\Include"</IncludePathForC>
+          <IncludePathForC>"C:\ai\claude\rx72n-envision-kit\Middleware\3rdparty\tracealyzer_recorder\config"</IncludePathForC>
+          <IncludePathForC>"C:\ai\claude\rx72n-envision-kit\Middleware\3rdparty\tracealyzer_recorder\streamports\FreeRTOS_Plus_TCP\include"</IncludePathForC>
+          <IncludePathForC>"${ProjDirPath}\src\smc_gen\r_bsp\mcu\rx72n\register_access\ccrx"</IncludePathForC>
           <IncludePathForAsm>"${ProjDirPath}\src\smc_gen\r_flash_rx"</IncludePathForAsm>
           <IncludePathForAsm>"${ProjDirPath}\src\smc_gen\r_flash_rx\src\flash_type_1"</IncludePathForAsm>
           <IncludePathForAsm>"${ProjDirPath}\src\smc_gen\general"</IncludePathForAsm>
@@ -2808,6 +2915,10 @@
           <IncludePathForAsm>"${ProjDirPath}\src\smc_gen\r_sci_iic_rx"</IncludePathForAsm>
           <IncludePathForAsm>"${ProjDirPath}\src\aw\Source\Generated"</IncludePathForAsm>
           <IncludePathForAsm>"${ProjDirPath}\src\aw\Source\CustomCode"</IncludePathForAsm>
+          <IncludePathForAsm>"C:\ai\claude\rx72n-envision-kit\Middleware\3rdparty\tracealyzer_recorder\Include"</IncludePathForAsm>
+          <IncludePathForAsm>"C:\ai\claude\rx72n-envision-kit\Middleware\3rdparty\tracealyzer_recorder\config"</IncludePathForAsm>
+          <IncludePathForAsm>"C:\ai\claude\rx72n-envision-kit\Middleware\3rdparty\tracealyzer_recorder\streamports\FreeRTOS_Plus_TCP\include"</IncludePathForAsm>
+          <IncludePathForAsm>"${ProjDirPath}\src\smc_gen\r_bsp\mcu\rx72n\register_access\ccrx"</IncludePathForAsm>
           <MacroForC>MBEDTLS_CONFIG_FILE=&lt;"aws_mbedtls_config.h"&gt;</MacroForC>
           <MacroForC>CONFIG_FREERTOS_ASSERT_FAIL_ABORT</MacroForC>
           <MacroForC>CONFIG_MEDTLS_USE_AFR_MEMORY</MacroForC>
