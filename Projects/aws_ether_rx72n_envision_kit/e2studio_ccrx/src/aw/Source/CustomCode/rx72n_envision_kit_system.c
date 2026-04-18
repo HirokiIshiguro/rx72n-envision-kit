@@ -27,22 +27,19 @@ TASK_INFO * get_task_info( void )
 /* Phase 8b 第3次 段階5-4c-2 (#56): code flash 排他制御用 global semaphore.
  * firm_update.c / bank_swap.c が触る。本実体定義のみ提供 (NULL 初期値)。
  * `xSemaphoreCreateBinary()` + `xSemaphoreGive()` は main_task() の早期に
- * 呼ぶ必要がある (5-4c-3 で sdcard_task と一緒に組み込み)。本 sub では
- * extern declaration の解決のため実体だけ用意する形で build green。 */
+ * 呼ぶ必要がある。 */
 SemaphoreHandle_t xSemaphoreCodeFlashAccess = NULL;
 
-/* Phase 8b 第3次 段階5-4c-2 (#56): 段階5-1 で追加した firmware_update_*
- * stub のうち、`firmware_update_request()` / `is_firmware_updating()` は
- * sd_update/firm_update.c が本実装を提供するため削除。
- * `firmware_update_log_string()` は legacy では sdcard_task / GUI 連動の log
- * 関数だが、段階5-4c-3 で sdcard_task 移植時に正式実装する予定。それまで
- * stub を維持する。 */
+/* Phase 8b 第3次 段階5-4c-3 (#57): sdcard_task が SD mount 時に使う
+ * global FATFS / FILINFO / DIR インスタンス (legacy 同位置)。 */
+FATFS   fatfs;
+FILINFO filinfo;
+DIR     dir;
 
-void firmware_update_log_string( TASK_INFO * task_info, const char * msg )
-{
-    (void) task_info;
-    (void) msg;
-}
+/* Phase 8b 第3次 段階5-4c-3 (#57): 段階5-1〜5-4c-2 で stub だった
+ * firmware_update_log_string / firmware_update_request / is_firmware_updating は
+ * sdcard_task.c (sd_update/) と firm_update.c (sd_update/) が本実装を提供する
+ * ようになったため、ここからは全削除。 */
 
 /* Phase 8b 第3次 段階5-4c-2 (#56): legacy r_simple_filesystem_on_dataflash (SFD) は
  * v3 baseline では LittleFS に置換済で不要。firm_update.c が SFD と code flash 競合
