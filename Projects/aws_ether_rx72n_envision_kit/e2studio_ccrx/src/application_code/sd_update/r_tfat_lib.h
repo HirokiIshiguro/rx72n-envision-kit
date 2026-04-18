@@ -61,8 +61,10 @@
 #define TFAT_RES_NOTRDY         3
 #define TFAT_RES_PARERR         4
 
-/* ===== Drive number (legacy TFAT_DRIVE_NUM_0) ===== */
-#define TFAT_DRIVE_NUM_0        0
+/* ===== Drive number (legacy TFAT_DRIVE_NUM_0)
+ * 注: v3 の r_tfat_driver_rx_if.h は enum で TFAT_DRIVE_NUM_0 を提供するため、
+ * #define で先に定義すると enum 宣言が `0 = 0x00` に展開されて syntax error になる。
+ * #define 提供は v3 では行わない (enum 値が利用可能)。 */
 
 /* ===== Function wrappers ===== */
 /* legacy R_tfat_f_open(FIL*, const char*, uint8_t)  → ff.h f_open(FIL*, const TCHAR*, BYTE) */
@@ -117,6 +119,24 @@ static inline FRESULT R_tfat_f_mount( uint8_t drv, FATFS * fs )
     path[ 1 ] = ':';
     path[ 2 ] = '\0';
     return f_mount( fs, path, 1U );
+}
+
+/* legacy R_tfat_f_opendir(DIR*, const char*) → ff.h f_opendir */
+static inline FRESULT R_tfat_f_opendir( DIR * dp, const char * path )
+{
+    return f_opendir( dp, path );
+}
+
+/* legacy R_tfat_f_readdir(DIR*, FILINFO*) → ff.h f_readdir */
+static inline FRESULT R_tfat_f_readdir( DIR * dp, FILINFO * fno )
+{
+    return f_readdir( dp, fno );
+}
+
+/* legacy R_tfat_f_closedir(DIR*) → ff.h f_closedir */
+static inline FRESULT R_tfat_f_closedir( DIR * dp )
+{
+    return f_closedir( dp );
 }
 
 #endif /* R_TFAT_LIB_H_SHIM */

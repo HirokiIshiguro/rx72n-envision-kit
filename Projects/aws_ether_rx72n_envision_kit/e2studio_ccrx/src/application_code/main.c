@@ -60,6 +60,12 @@ extern void gui_task( void * pvParameters );
 #define appmainGUI_TASK_STACK_SIZE                ( 4096 )
 #define appmainGUI_TASK_PRIORITY                  ( tskIDLE_PRIORITY + 1 )
 
+/* Phase 8b 第3次 段階5-4c-3 (rx72n-envision-kit#57): SD update task. */
+extern void sdcard_task( void * pvParameters );
+
+#define appmainSDCARD_TASK_STACK_SIZE             ( 4096 )
+#define appmainSDCARD_TASK_PRIORITY               ( tskIDLE_PRIORITY + 1 )
+
 EventGroupHandle_t xStartDemoEventGroup = NULL;
 
 bool ApplicationCounter (uint32_t xWaitTime);
@@ -213,8 +219,34 @@ void main_task(void *pvParameters)
 
     prvMiscInitialization();
     UserInitialization();
+
+    /* Phase 8b 第3次 段階5-4c-3 (#57): code flash 排他制御用 semaphore を初期化。
+     * sdcard_task / firm_update.c が xSemaphoreTake/Give する。
+     * legacy aws_demos の main.c L164-165 と同じパターン。 */
+    {
+        extern SemaphoreHandle_t xSemaphoreCodeFlashAccess;
+        xSemaphoreCodeFlashAccess = xSemaphoreCreateBinary();
+        xSemaphoreGive( xSemaphoreCodeFlashAccess );
+    }
+
     prvDisplayInitialize();
     prvDisplayWrite("FreeRTOS init\r\n");
+
+    /* Phase 8b 第3次 段階5-4c-3 (#57): SD update task を起動。
+     * sdcard_task は SD カード挿抜検出 + 自動 mount + firm_update 進捗監視 +
+     * GUI 連動を行う。gui_task の完了通知を待ってから動き始める設計。 */
+    {
+        static TaskHandle_t s_sdcard_task_handle = NULL;
+        if( s_sdcard_task_handle == NULL )
+        {
+            ( void ) xTaskCreate( sdcard_task,
+                                  "sdcard",
+                                  appmainSDCARD_TASK_STACK_SIZE,
+                                  NULL,
+                                  appmainSDCARD_TASK_PRIORITY,
+                                  &s_sdcard_task_handle );
+        }
+    }
 
 #if (ENABLE_CREDENTIAL_BY_CLI == 1)
     {

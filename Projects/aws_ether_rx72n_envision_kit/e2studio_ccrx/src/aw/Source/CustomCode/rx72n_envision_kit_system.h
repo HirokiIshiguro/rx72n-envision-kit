@@ -26,18 +26,10 @@
 #define FIRMWARE_VERSION_STRING_LENGTH  ( 16 )
 #define SOFTWARE_RESET_WAIT_TIME        ( 5000 )  /* ms */
 
-/* SYS_TIME mirrors r_sys_time_rx_if.h SYS_TIME (FIT module not yet imported in v3). */
-typedef struct sys_time_
-{
-    uint32_t sec;
-    uint32_t min;
-    uint32_t hour;
-    uint32_t day;
-    uint32_t month;
-    uint32_t year;
-    uint32_t unix_time;
-    uint8_t  time_zone[ 16 ];
-} SYS_TIME;
+/* Phase 8b 第3次 段階5-4c-3 (#57): r_sys_time_rx FIT module を段階5-3 で取り込んだため、
+ * SYS_TIME は r_sys_time_rx_if.h が提供する。本ヘッダの自前 SYS_TIME stub 定義は重複に
+ * なるため削除し、代わりに r_sys_time_rx_if.h を include する。 */
+#include "r_sys_time_rx_if.h"
 
 typedef struct _hardware_info
 {
@@ -116,10 +108,16 @@ extern TASK_INFO * get_task_info( void );
  * `rx72n_envision_kit_system.c` の起動時 (or main_task) で行う。 */
 extern SemaphoreHandle_t xSemaphoreCodeFlashAccess;
 
-/* Phase 8b 第3次 段階5-4c-2 (#56): is_firmware_updating / firmware_update_request
- * は sd_update/firm_update.h が正式宣言を提供するため、ここからは削除。
- * firmware_update_log_string は legacy 互換 GUI ログ関数で、5-4c-3 で
- * sdcard_task と一緒に正式実装するまで stub のまま維持。 */
-extern void firmware_update_log_string( TASK_INFO * task_info, const char * msg );
+/* Phase 8b 第3次 段階5-4c-3 (#57): legacy sdcard_task が SD カード mount 時に
+ * 使う global FATFS / FILINFO / DIR インスタンス。legacy rx72n_envision_kit_system.h で
+ * extern で公開していたため v3 でも同じ位置に持ち込む。実体は .c で定義。
+ * include "ff.h" で FATFS / FILINFO / DIR 型が解決される。 */
+#include "ff.h"
+extern FATFS   fatfs;
+extern FILINFO filinfo;
+extern DIR     dir;
+
+/* Phase 8b 第3次 段階5-4c-3 (#57): firmware_update_log_string は
+ * sdcard_task.c が本実装を提供するため、ここからは削除。 */
 
 #endif /* RX72N_ENVISION_KIT_SYSTEM_H */
