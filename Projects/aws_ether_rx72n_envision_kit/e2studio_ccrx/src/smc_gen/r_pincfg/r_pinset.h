@@ -21,5 +21,6 @@ Includes
 #include "r_irq_rx_pinset.h"
 #include "r_s12ad_rx_pinset.h"
 #include "r_sci_rx_pinset.h"
+#include "r_sdhi_rx_pinset.h"
 
 #endif /* R_PINSET_H */

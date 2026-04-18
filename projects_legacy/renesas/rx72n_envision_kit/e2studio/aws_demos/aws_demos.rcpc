@@ -7,6 +7,34 @@
   </Placeholders>
   <Project Name="aws_demos" Type="Application">
     <Files>
+      <Category Name="Middleware">
+        <Category Name="3rdparty">
+          <Category Name="tracealyzer_recorder">
+            <Path>..\..\..\..\..\Middleware\3rdparty\tracealyzer_recorder\trcKernelPort.c</Path>
+            <Path>..\..\..\..\..\Middleware\3rdparty\tracealyzer_recorder\trcSnapshotRecorder.c</Path>
+            <Path>..\..\..\..\..\Middleware\3rdparty\tracealyzer_recorder\trcStreamingRecorder.c</Path>
+            <Category Name="Include">
+              <Path>..\..\..\..\..\Middleware\3rdparty\tracealyzer_recorder\Include\aws_secure_sockets.tzext.h</Path>
+              <Path>..\..\..\..\..\Middleware\3rdparty\tracealyzer_recorder\Include\aws_wifi.tzext.h</Path>
+              <Path>..\..\..\..\..\Middleware\3rdparty\tracealyzer_recorder\Include\trcExtensions.h</Path>
+              <Path>..\..\..\..\..\Middleware\3rdparty\tracealyzer_recorder\Include\trcHardwarePort.h</Path>
+              <Path>..\..\..\..\..\Middleware\3rdparty\tracealyzer_recorder\Include\trcKernelPort.h</Path>
+              <Path>..\..\..\..\..\Middleware\3rdparty\tracealyzer_recorder\Include\trcPortDefines.h</Path>
+              <Path>..\..\..\..\..\Middleware\3rdparty\tracealyzer_recorder\Include\trcRecorder.h</Path>
+            </Category>
+            <Category Name="config">
+              <Path>..\..\..\..\..\Middleware\3rdparty\tracealyzer_recorder\config\trcConfig.h</Path>
+              <Path>..\..\..\..\..\Middleware\3rdparty\tracealyzer_recorder\config\trcSnapshotConfig.h</Path>
+              <Path>..\..\..\..\..\Middleware\3rdparty\tracealyzer_recorder\config\trcStreamingConfig.h</Path>
+            </Category>
+            <Category Name="streamports">
+              <Category Name="AFR_WIFI_LOCAL">
+                <Path>..\..\..\..\..\Middleware\3rdparty\tracealyzer_recorder\streamports\AFR_WIFI_LOCAL\trcStreamingPort.c</Path>
+              </Category>
+            </Category>
+          </Category>
+        </Category>
+      </Category>
       <Category Name="application_code">
         <Path>..\..\..\..\..\vendors\renesas\boards\rx72n-envision-kit\aws_demos\application_code\main.c</Path>
         <Category Name="aws_code">
@@ -843,151 +871,6 @@
             <Path>aw\Resource\Text\APPW_Pattern.txt</Path>
           </Category>
         </Category>
-        <Category Name="Simulation">
-          <Category Name="Config">
-            <Path>aw\Simulation\Config\APPW_X_WIN32.c</Path>
-            <Path>aw\Simulation\Config\GUIConf.c</Path>
-            <Path>aw\Simulation\Config\GUIConf.h</Path>
-            <Path>aw\Simulation\Config\GUI_SIM_Win32.h</Path>
-            <Path>aw\Simulation\Config\LCDConf.c</Path>
-            <Path>aw\Simulation\Config\LCDConf.h</Path>
-            <Path>aw\Simulation\Config\SIMConf.c</Path>
-          </Category>
-          <Category Name="GUI_Lib">
-            <Path>aw\Simulation\GUI_Lib\AppWizard.h</Path>
-            <Path>aw\Simulation\GUI_Lib\BUTTON.h</Path>
-            <Path>aw\Simulation\GUI_Lib\BUTTON_Private.h</Path>
-            <Path>aw\Simulation\GUI_Lib\CALENDAR.h</Path>
-            <Path>aw\Simulation\GUI_Lib\CHECKBOX.h</Path>
-            <Path>aw\Simulation\GUI_Lib\CHECKBOX_Private.h</Path>
-            <Path>aw\Simulation\GUI_Lib\CHOOSECOLOR.h</Path>
-            <Path>aw\Simulation\GUI_Lib\CHOOSEFILE.h</Path>
-            <Path>aw\Simulation\GUI_Lib\DIALOG.h</Path>
-            <Path>aw\Simulation\GUI_Lib\DIALOG_Type.h</Path>
-            <Path>aw\Simulation\GUI_Lib\DROPDOWN.h</Path>
-            <Path>aw\Simulation\GUI_Lib\DROPDOWN_Private.h</Path>
-            <Path>aw\Simulation\GUI_Lib\EDIT.h</Path>
-            <Path>aw\Simulation\GUI_Lib\EDIT_Private.h</Path>
-            <Path>aw\Simulation\GUI_Lib\FRAMEWIN.h</Path>
-            <Path>aw\Simulation\GUI_Lib\FRAMEWIN_Private.h</Path>
-            <Path>aw\Simulation\GUI_Lib\GAUGE.h</Path>
-            <Path>aw\Simulation\GUI_Lib\GAUGE_Private.h</Path>
-            <Path>aw\Simulation\GUI_Lib\GRAPH.h</Path>
-            <Path>aw\Simulation\GUI_Lib\GRAPH_Private.h</Path>
-            <Path>aw\Simulation\GUI_Lib\GUI.h</Path>
-            <Path>aw\Simulation\GUI_Lib\GUIDRV_BitPlains.h</Path>
-            <Path>aw\Simulation\GUI_Lib\GUIDRV_FlexColor.h</Path>
-            <Path>aw\Simulation\GUI_Lib\GUIDRV_FlexColor_Private.h</Path>
-            <Path>aw\Simulation\GUI_Lib\GUIDRV_Lin.h</Path>
-            <Path>aw\Simulation\GUI_Lib\GUIDRV_Null.h</Path>
-            <Path>aw\Simulation\GUI_Lib\GUIDRV_S1D13513.h</Path>
-            <Path>aw\Simulation\GUI_Lib\GUIDRV_S1D13517.h</Path>
-            <Path>aw\Simulation\GUI_Lib\GUIDRV_S1D13748.h</Path>
-            <Path>aw\Simulation\GUI_Lib\GUIDRV_S1D13781.h</Path>
-            <Path>aw\Simulation\GUI_Lib\GUIDRV_S1D13L01.h</Path>
-            <Path>aw\Simulation\GUI_Lib\GUIDRV_S1D13L02.h</Path>
-            <Path>aw\Simulation\GUI_Lib\GUIDRV_S1D13L04.h</Path>
-            <Path>aw\Simulation\GUI_Lib\GUIDRV_S1D15G00.h</Path>
-            <Path>aw\Simulation\GUI_Lib\GUIDRV_SH_MEM.h</Path>
-            <Path>aw\Simulation\GUI_Lib\GUIDRV_SLin.h</Path>
-            <Path>aw\Simulation\GUI_Lib\GUIDRV_SLinEPD.h</Path>
-            <Path>aw\Simulation\GUI_Lib\GUIDRV_SLinEPD_Private.h</Path>
-            <Path>aw\Simulation\GUI_Lib\GUIDRV_SPage.h</Path>
-            <Path>aw\Simulation\GUI_Lib\GUIDRV_SPage_Private.h</Path>
-            <Path>aw\Simulation\GUI_Lib\GUIDRV_SSD1322.h</Path>
-            <Path>aw\Simulation\GUI_Lib\GUIDRV_SSD1926.h</Path>
-            <Path>aw\Simulation\GUI_Lib\GUIDRV_ST7591_DCache.h</Path>
-            <Path>aw\Simulation\GUI_Lib\GUIDRV_TemplateI.h</Path>
-            <Path>aw\Simulation\GUI_Lib\GUIDRV_UC1698G.h</Path>
-            <Path>aw\Simulation\GUI_Lib\GUIDRV_Win32.h</Path>
-            <Path>aw\Simulation\GUI_Lib\GUI_ARRAY.h</Path>
-            <Path>aw\Simulation\GUI_Lib\GUI_ARRAY_Private.h</Path>
-            <Path>aw\Simulation\GUI_Lib\GUI_BMP_Private.h</Path>
-            <Path>aw\Simulation\GUI_Lib\GUI_ConfDefaults.h</Path>
-            <Path>aw\Simulation\GUI_Lib\GUI_Debug.h</Path>
-            <Path>aw\Simulation\GUI_Lib\GUI_FontIntern.h</Path>
-            <Path>aw\Simulation\GUI_Lib\GUI_GCache_Private.h</Path>
-            <Path>aw\Simulation\GUI_Lib\GUI_GIF_Private.h</Path>
-            <Path>aw\Simulation\GUI_Lib\GUI_HOOK.h</Path>
-            <Path>aw\Simulation\GUI_Lib\GUI_JPEG_Private.h</Path>
-            <Path>aw\Simulation\GUI_Lib\GUI_Private.h</Path>
-            <Path>aw\Simulation\GUI_Lib\GUI_SPRITE_Private.h</Path>
-            <Path>aw\Simulation\GUI_Lib\GUI_SPY_Private.h</Path>
-            <Path>aw\Simulation\GUI_Lib\GUI_SetOrientation.h</Path>
-            <Path>aw\Simulation\GUI_Lib\GUI_SetOrientationCX.h</Path>
-            <Path>aw\Simulation\GUI_Lib\GUI_Type.h</Path>
-            <Path>aw\Simulation\GUI_Lib\GUI_VNC.h</Path>
-            <Path>aw\Simulation\GUI_Lib\GUI_Version.h</Path>
-            <Path>aw\Simulation\GUI_Lib\GUI__BiDi2_Brackets_800.h</Path>
-            <Path>aw\Simulation\GUI_Lib\GUI__BiDi2_Types_800.h</Path>
-            <Path>aw\Simulation\GUI_Lib\Global.h</Path>
-            <Path>aw\Simulation\GUI_Lib\HEADER.h</Path>
-            <Path>aw\Simulation\GUI_Lib\HEADER_Private.h</Path>
-            <Path>aw\Simulation\GUI_Lib\ICONVIEW.h</Path>
-            <Path>aw\Simulation\GUI_Lib\ICONVIEW_Private.h</Path>
-            <Path>aw\Simulation\GUI_Lib\IMAGE.h</Path>
-            <Path>aw\Simulation\GUI_Lib\IMAGE_Private.h</Path>
-            <Path>aw\Simulation\GUI_Lib\IP_FS.h</Path>
-            <Path>aw\Simulation\GUI_Lib\KEYBOARD.h</Path>
-            <Path>aw\Simulation\GUI_Lib\KEYBOARD_Private.h</Path>
-            <Path>aw\Simulation\GUI_Lib\KNOB.h</Path>
-            <Path>aw\Simulation\GUI_Lib\KNOB_Private.h</Path>
-            <Path>aw\Simulation\GUI_Lib\LCD.h</Path>
-            <Path>aw\Simulation\GUI_Lib\LCD_ConfDefaults.h</Path>
-            <Path>aw\Simulation\GUI_Lib\LCD_Private.h</Path>
-            <Path>aw\Simulation\GUI_Lib\LCD_Protected.h</Path>
-            <Path>aw\Simulation\GUI_Lib\LCD_SIM.h</Path>
-            <Path>aw\Simulation\GUI_Lib\LISTBOX.h</Path>
-            <Path>aw\Simulation\GUI_Lib\LISTBOX_Private.h</Path>
-            <Path>aw\Simulation\GUI_Lib\LISTVIEW.h</Path>
-            <Path>aw\Simulation\GUI_Lib\LISTVIEW_Private.h</Path>
-            <Path>aw\Simulation\GUI_Lib\LISTWHEEL.h</Path>
-            <Path>aw\Simulation\GUI_Lib\LISTWHEEL_Private.h</Path>
-            <Path>aw\Simulation\GUI_Lib\MENU.h</Path>
-            <Path>aw\Simulation\GUI_Lib\MENU_Private.h</Path>
-            <Path>aw\Simulation\GUI_Lib\MESSAGEBOX.h</Path>
-            <Path>aw\Simulation\GUI_Lib\MULTIEDIT.h</Path>
-            <Path>aw\Simulation\GUI_Lib\MULTIEDIT_Private.h</Path>
-            <Path>aw\Simulation\GUI_Lib\MULTIPAGE.h</Path>
-            <Path>aw\Simulation\GUI_Lib\MULTIPAGE_Private.h</Path>
-            <Path>aw\Simulation\GUI_Lib\PROGBAR.h</Path>
-            <Path>aw\Simulation\GUI_Lib\PROGBAR_Private.h</Path>
-            <Path>aw\Simulation\GUI_Lib\QRCODE.h</Path>
-            <Path>aw\Simulation\GUI_Lib\QRCODE_Private.h</Path>
-            <Path>aw\Simulation\GUI_Lib\RADIO.h</Path>
-            <Path>aw\Simulation\GUI_Lib\RADIO_Private.h</Path>
-            <Path>aw\Simulation\GUI_Lib\ROTARY.h</Path>
-            <Path>aw\Simulation\GUI_Lib\ROTARY_Private.h</Path>
-            <Path>aw\Simulation\GUI_Lib\SCROLLBAR.h</Path>
-            <Path>aw\Simulation\GUI_Lib\SCROLLBAR_Private.h</Path>
-            <Path>aw\Simulation\GUI_Lib\SCROLLER.h</Path>
-            <Path>aw\Simulation\GUI_Lib\SCROLLER_Private.h</Path>
-            <Path>aw\Simulation\GUI_Lib\SEGGER.h</Path>
-            <Path>aw\Simulation\GUI_Lib\SLIDER.h</Path>
-            <Path>aw\Simulation\GUI_Lib\SLIDER_Private.h</Path>
-            <Path>aw\Simulation\GUI_Lib\SPINBOX.h</Path>
-            <Path>aw\Simulation\GUI_Lib\SPINBOX_Private.h</Path>
-            <Path>aw\Simulation\GUI_Lib\SWIPELIST.h</Path>
-            <Path>aw\Simulation\GUI_Lib\SWIPELIST_Private.h</Path>
-            <Path>aw\Simulation\GUI_Lib\SWITCH.h</Path>
-            <Path>aw\Simulation\GUI_Lib\SWITCH_Private.h</Path>
-            <Path>aw\Simulation\GUI_Lib\TEXT.h</Path>
-            <Path>aw\Simulation\GUI_Lib\TEXT_Private.h</Path>
-            <Path>aw\Simulation\GUI_Lib\TREEVIEW.h</Path>
-            <Path>aw\Simulation\GUI_Lib\TREEVIEW_Private.h</Path>
-            <Path>aw\Simulation\GUI_Lib\WHEEL.h</Path>
-            <Path>aw\Simulation\GUI_Lib\WHEEL_Private.h</Path>
-            <Path>aw\Simulation\GUI_Lib\WIDGET.h</Path>
-            <Path>aw\Simulation\GUI_Lib\WINDOW_Private.h</Path>
-            <Path>aw\Simulation\GUI_Lib\WM.h</Path>
-            <Path>aw\Simulation\GUI_Lib\WM_GUI.h</Path>
-            <Path>aw\Simulation\GUI_Lib\WM_Intern.h</Path>
-          </Category>
-          <Category Name="Simulation">
-            <Path>aw\Simulation\Simulation\GUI_SIM_Win32.h</Path>
-            <Path>aw\Simulation\Simulation\WinMain.c</Path>
-          </Category>
-        </Category>
         <Category Name="Source">
           <Path>aw\Source\APPW_MainTask.c</Path>
           <Category Name="CustomCode">
@@ -1040,97 +923,97 @@
         <Path>..\..\..\..\..\vendors\renesas\boards\rx72n-envision-kit\aws_demos\config_files\shadow_config.h</Path>
         <Path>..\..\..\..\..\vendors\renesas\boards\rx72n-envision-kit\aws_demos\config_files\shadow_demo_config.h</Path>
       </Category>
-      <Category Name="demos">
+      <Category Name="demos_legacy">
         <Category Name="common">
           <Category Name="http_demo_helpers">
-            <Path>..\..\..\..\..\demos\common\http_demo_helpers\http_demo_utils.c</Path>
+            <Path>..\..\..\..\..\demos_legacy\common\http_demo_helpers\http_demo_utils.c</Path>
           </Category>
           <Category Name="mqtt_demo_helpers">
-            <Path>..\..\..\..\..\demos\common\mqtt_demo_helpers\mqtt_demo_helpers.c</Path>
+            <Path>..\..\..\..\..\demos_legacy\common\mqtt_demo_helpers\mqtt_demo_helpers.c</Path>
           </Category>
           <Category Name="mqtt_subscription_manager">
-            <Path>..\..\..\..\..\demos\common\mqtt_subscription_manager\mqtt_subscription_manager.c</Path>
+            <Path>..\..\..\..\..\demos_legacy\common\mqtt_subscription_manager\mqtt_subscription_manager.c</Path>
           </Category>
           <Category Name="ota_demo_helpers">
-            <Path>..\..\..\..\..\demos\common\ota_demo_helpers\ota_application_version.c</Path>
+            <Path>..\..\..\..\..\demos_legacy\common\ota_demo_helpers\ota_application_version.c</Path>
           </Category>
           <Category Name="pkcs11_helpers">
-            <Path>..\..\..\..\..\demos\common\pkcs11_helpers\pkcs11_helpers.c</Path>
+            <Path>..\..\..\..\..\demos_legacy\common\pkcs11_helpers\pkcs11_helpers.c</Path>
           </Category>
         </Category>
         <Category Name="coreHTTP">
-          <Path>..\..\..\..\..\demos\coreHTTP\http_demo_mutual_auth.c</Path>
-          <Path>..\..\..\..\..\demos\coreHTTP\http_demo_s3_download.c</Path>
-          <Path>..\..\..\..\..\demos\coreHTTP\http_demo_s3_download_multithreaded.c</Path>
-          <Path>..\..\..\..\..\demos\coreHTTP\http_demo_s3_upload.c</Path>
+          <Path>..\..\..\..\..\demos_legacy\coreHTTP\http_demo_mutual_auth.c</Path>
+          <Path>..\..\..\..\..\demos_legacy\coreHTTP\http_demo_s3_download.c</Path>
+          <Path>..\..\..\..\..\demos_legacy\coreHTTP\http_demo_s3_download_multithreaded.c</Path>
+          <Path>..\..\..\..\..\demos_legacy\coreHTTP\http_demo_s3_upload.c</Path>
         </Category>
         <Category Name="coreMQTT">
-          <Path>..\..\..\..\..\demos\coreMQTT\mqtt_demo_mutual_auth.c</Path>
+          <Path>..\..\..\..\..\demos_legacy\coreMQTT\mqtt_demo_mutual_auth.c</Path>
         </Category>
         <Category Name="coreMQTT_Agent">
-          <Path>..\..\..\..\..\demos\coreMQTT_Agent\mqtt_agent_task.c</Path>
-          <Path>..\..\..\..\..\demos\coreMQTT_Agent\simple_sub_pub_demo.c</Path>
-          <Path>..\..\..\..\..\demos\coreMQTT_Agent\subscription_manager.c</Path>
-          <Path>..\..\..\..\..\demos\coreMQTT_Agent\subscription_manager.h</Path>
+          <Path>..\..\..\..\..\demos_legacy\coreMQTT_Agent\mqtt_agent_task.c</Path>
+          <Path>..\..\..\..\..\demos_legacy\coreMQTT_Agent\simple_sub_pub_demo.c</Path>
+          <Path>..\..\..\..\..\demos_legacy\coreMQTT_Agent\subscription_manager.c</Path>
+          <Path>..\..\..\..\..\demos_legacy\coreMQTT_Agent\subscription_manager.h</Path>
         </Category>
         <Category Name="demo_runner">
-          <Path>..\..\..\..\..\demos\demo_runner\aws_demo.c</Path>
-          <Path>..\..\..\..\..\demos\demo_runner\aws_demo_network_addr.c</Path>
-          <Path>..\..\..\..\..\demos\demo_runner\iot_demo_freertos.c</Path>
-          <Path>..\..\..\..\..\demos\demo_runner\iot_demo_runner.c</Path>
+          <Path>..\..\..\..\..\demos_legacy\demo_runner\aws_demo.c</Path>
+          <Path>..\..\..\..\..\demos_legacy\demo_runner\aws_demo_network_addr.c</Path>
+          <Path>..\..\..\..\..\demos_legacy\demo_runner\iot_demo_freertos.c</Path>
+          <Path>..\..\..\..\..\demos_legacy\demo_runner\iot_demo_runner.c</Path>
         </Category>
         <Category Name="dev_mode_key_provisioning">
           <Category Name="include">
-            <Path>..\..\..\..\..\demos\dev_mode_key_provisioning\include\aws_dev_mode_key_provisioning.h</Path>
+            <Path>..\..\..\..\..\demos_legacy\dev_mode_key_provisioning\include\aws_dev_mode_key_provisioning.h</Path>
           </Category>
           <Category Name="src">
-            <Path>..\..\..\..\..\demos\dev_mode_key_provisioning\src\aws_dev_mode_key_provisioning.c</Path>
+            <Path>..\..\..\..\..\demos_legacy\dev_mode_key_provisioning\src\aws_dev_mode_key_provisioning.c</Path>
           </Category>
         </Category>
         <Category Name="device_defender_for_aws">
-          <Path>..\..\..\..\..\demos\device_defender_for_aws\defender_demo.c</Path>
-          <Path>..\..\..\..\..\demos\device_defender_for_aws\metrics_collector.h</Path>
-          <Path>..\..\..\..\..\demos\device_defender_for_aws\report_builder.c</Path>
-          <Path>..\..\..\..\..\demos\device_defender_for_aws\report_builder.h</Path>
+          <Path>..\..\..\..\..\demos_legacy\device_defender_for_aws\defender_demo.c</Path>
+          <Path>..\..\..\..\..\demos_legacy\device_defender_for_aws\metrics_collector.h</Path>
+          <Path>..\..\..\..\..\demos_legacy\device_defender_for_aws\report_builder.c</Path>
+          <Path>..\..\..\..\..\demos_legacy\device_defender_for_aws\report_builder.h</Path>
           <Category Name="metrics_collector">
             <Category Name="freertos_plus_tcp">
-              <Path>..\..\..\..\..\demos\device_defender_for_aws\metrics_collector\freertos_plus_tcp\metrics_collector.c</Path>
+              <Path>..\..\..\..\..\demos_legacy\device_defender_for_aws\metrics_collector\freertos_plus_tcp\metrics_collector.c</Path>
             </Category>
           </Category>
         </Category>
         <Category Name="device_shadow_for_aws">
-          <Path>..\..\..\..\..\demos\device_shadow_for_aws\shadow_demo_main.c</Path>
+          <Path>..\..\..\..\..\demos_legacy\device_shadow_for_aws\shadow_demo_main.c</Path>
         </Category>
         <Category Name="greengrass_connectivity">
-          <Path>..\..\..\..\..\demos\greengrass_connectivity\aws_greengrass_discovery_demo.c</Path>
+          <Path>..\..\..\..\..\demos_legacy\greengrass_connectivity\aws_greengrass_discovery_demo.c</Path>
         </Category>
         <Category Name="include">
-          <Path>..\..\..\..\..\demos\include\aws_clientcredential.h</Path>
-          <Path>..\..\..\..\..\demos\include\aws_clientcredential_keys.h</Path>
-          <Path>..\..\..\..\..\demos\include\aws_demo.h</Path>
-          <Path>..\..\..\..\..\demos\include\aws_iot_metrics.h</Path>
-          <Path>..\..\..\..\..\demos\include\iot_config_common.h</Path>
-          <Path>..\..\..\..\..\demos\include\iot_demo_logging.h</Path>
-          <Path>..\..\..\..\..\demos\include\iot_demo_runner.h</Path>
+          <Path>..\..\..\..\..\demos_legacy\include\aws_clientcredential.h</Path>
+          <Path>..\..\..\..\..\demos_legacy\include\aws_clientcredential_keys.h</Path>
+          <Path>..\..\..\..\..\demos_legacy\include\aws_demo.h</Path>
+          <Path>..\..\..\..\..\demos_legacy\include\aws_iot_metrics.h</Path>
+          <Path>..\..\..\..\..\demos_legacy\include\iot_config_common.h</Path>
+          <Path>..\..\..\..\..\demos_legacy\include\iot_demo_logging.h</Path>
+          <Path>..\..\..\..\..\demos_legacy\include\iot_demo_runner.h</Path>
         </Category>
         <Category Name="jobs_for_aws">
-          <Path>..\..\..\..\..\demos\jobs_for_aws\jobs_demo.c</Path>
+          <Path>..\..\..\..\..\demos_legacy\jobs_for_aws\jobs_demo.c</Path>
         </Category>
         <Category Name="network_manager">
-          <Path>..\..\..\..\..\demos\network_manager\aws_iot_network_manager.c</Path>
-          <Path>..\..\..\..\..\demos\network_manager\iot_network_manager_private.h</Path>
+          <Path>..\..\..\..\..\demos_legacy\network_manager\aws_iot_network_manager.c</Path>
+          <Path>..\..\..\..\..\demos_legacy\network_manager\iot_network_manager_private.h</Path>
         </Category>
         <Category Name="ota">
           <Category Name="ota_demo_core_http">
-            <Path>..\..\..\..\..\demos\ota\ota_demo_core_http\ota_demo_core_http.c</Path>
+            <Path>..\..\..\..\..\demos_legacy\ota\ota_demo_core_http\ota_demo_core_http.c</Path>
           </Category>
           <Category Name="ota_demo_core_mqtt">
-            <Path>..\..\..\..\..\demos\ota\ota_demo_core_mqtt\ota_demo_core_mqtt.c</Path>
+            <Path>..\..\..\..\..\demos_legacy\ota\ota_demo_core_mqtt\ota_demo_core_mqtt.c</Path>
           </Category>
         </Category>
         <Category Name="tcp">
-          <Path>..\..\..\..\..\demos\tcp\aws_tcp_echo_client_single_task.c</Path>
-          <Path>..\..\..\..\..\demos\tcp\aws_tcp_echo_client_single_tasks.h</Path>
+          <Path>..\..\..\..\..\demos_legacy\tcp\aws_tcp_echo_client_single_task.c</Path>
+          <Path>..\..\..\..\..\demos_legacy\tcp\aws_tcp_echo_client_single_tasks.h</Path>
         </Category>
       </Category>
       <Category Name="freertos_kernel">
@@ -1419,30 +1302,6 @@
                 <Path>..\..\..\..\..\libraries\3rdparty\tinycrypt\lib\source\ecc_dsa.c</Path>
                 <Path>..\..\..\..\..\libraries\3rdparty\tinycrypt\lib\source\sha256.c</Path>
                 <Path>..\..\..\..\..\libraries\3rdparty\tinycrypt\lib\source\utils.c</Path>
-              </Category>
-            </Category>
-          </Category>
-          <Category Name="tracealyzer_recorder">
-            <Path>..\..\..\..\..\libraries\3rdparty\tracealyzer_recorder\trcKernelPort.c</Path>
-            <Path>..\..\..\..\..\libraries\3rdparty\tracealyzer_recorder\trcSnapshotRecorder.c</Path>
-            <Path>..\..\..\..\..\libraries\3rdparty\tracealyzer_recorder\trcStreamingRecorder.c</Path>
-            <Category Name="Include">
-              <Path>..\..\..\..\..\libraries\3rdparty\tracealyzer_recorder\Include\aws_secure_sockets.tzext.h</Path>
-              <Path>..\..\..\..\..\libraries\3rdparty\tracealyzer_recorder\Include\aws_wifi.tzext.h</Path>
-              <Path>..\..\..\..\..\libraries\3rdparty\tracealyzer_recorder\Include\trcExtensions.h</Path>
-              <Path>..\..\..\..\..\libraries\3rdparty\tracealyzer_recorder\Include\trcHardwarePort.h</Path>
-              <Path>..\..\..\..\..\libraries\3rdparty\tracealyzer_recorder\Include\trcKernelPort.h</Path>
-              <Path>..\..\..\..\..\libraries\3rdparty\tracealyzer_recorder\Include\trcPortDefines.h</Path>
-              <Path>..\..\..\..\..\libraries\3rdparty\tracealyzer_recorder\Include\trcRecorder.h</Path>
-            </Category>
-            <Category Name="config">
-              <Path>..\..\..\..\..\libraries\3rdparty\tracealyzer_recorder\config\trcConfig.h</Path>
-              <Path>..\..\..\..\..\libraries\3rdparty\tracealyzer_recorder\config\trcSnapshotConfig.h</Path>
-              <Path>..\..\..\..\..\libraries\3rdparty\tracealyzer_recorder\config\trcStreamingConfig.h</Path>
-            </Category>
-            <Category Name="streamports">
-              <Category Name="AFR_WIFI_LOCAL">
-                <Path>..\..\..\..\..\libraries\3rdparty\tracealyzer_recorder\streamports\AFR_WIFI_LOCAL\trcStreamingPort.c</Path>
               </Category>
             </Category>
           </Category>
@@ -2156,8 +2015,8 @@
           <Option>-dpfpu</Option>
           <Option>-branch=32</Option>
           <Option>-include="${ProjDirPath}\..\..\..\..\..\vendors\renesas\boards\rx72n-envision-kit\aws_demos\src\smc_gen\r_bsp"</Option>
-          <Option>-include="C:\git\rx72n-envision-kit\vendors\renesas\boards\rx72n-envision-kit\aws_demos\application_code\renesas_code\utility"</Option>
-          <Option>-include="C:\git\rx72n-envision-kit\vendors\renesas\boards\rx72n-envision-kit\aws_demos\application_code\renesas_code\key"</Option>
+          <Option>-include="C:\ai\claude\rx72n-envision-kit\vendors\renesas\boards\rx72n-envision-kit\aws_demos\application_code\renesas_code\utility"</Option>
+          <Option>-include="C:\ai\claude\rx72n-envision-kit\vendors\renesas\boards\rx72n-envision-kit\aws_demos\application_code\renesas_code\key"</Option>
           <Option>-include="${ProjDirPath}\..\..\..\..\..\freertos_kernel\include"</Option>
           <Option>-include="${ProjDirPath}\..\..\..\..\..\vendors\renesas\amazon_freertos_common"</Option>
           <Option>-include="${ProjDirPath}\..\..\..\..\..\vendors\renesas\amazon_freertos_common\compiler_support\ccrx"</Option>
@@ -2186,19 +2045,19 @@
           <Option>-include="${ProjDirPath}\..\..\..\..\..\vendors\renesas\rx_driver_package\v125\r_s12ad_rx"</Option>
           <Option>-include="${ProjDirPath}\..\..\..\..\..\vendors\renesas\rx_driver_package\v125\r_s12ad_rx\src"</Option>
           <Option>-include="${ProjDirPath}\..\..\..\..\..\vendors\renesas\rx_driver_package\v125\r_s12ad_rx\src\targets\rx72n"</Option>
-          <Option>-include="${ProjDirPath}\..\..\..\..\..\freertos_kernel\portable\Renesas\RX600v2"</Option>
+          <Option>-include="${ProjDirPath}\..\..\..\..\..\freertos_kernel\portable\Renesas\RX700v3_DPFPU"</Option>
           <Option>-include="${ProjDirPath}\..\..\..\..\..\vendors\renesas\boards\rx72n-envision-kit\aws_demos\config_files"</Option>
           <Option>-include="${ProjDirPath}\..\..\..\..\..\vendors\renesas\boards\rx72n-envision-kit\aws_demos\application_code\renesas_code"</Option>
           <Option>-include="${ProjDirPath}\..\..\..\..\..\vendors\renesas\boards\rx72n-envision-kit\aws_demos\application_code\renesas_code\utility"</Option>
           <Option>-include="${ProjDirPath}\..\..\..\..\..\vendors\renesas\boards\rx72n-envision-kit\aws_demos\application_code\aws_code"</Option>
           <Option>-include="${ProjDirPath}\..\..\..\..\..\vendors\renesas\boards\rx72n-envision-kit\ports\ota_pal_for_aws"</Option>
-          <Option>-include="${ProjDirPath}\..\..\..\..\..\demos\include"</Option>
-          <Option>-include="${ProjDirPath}\..\..\..\..\..\demos\network_manager"</Option>
-          <Option>-include="${ProjDirPath}\..\..\..\..\..\demos\common\mqtt_demo_helpers"</Option>
-          <Option>-include="${ProjDirPath}\..\..\..\..\..\demos\common\http_demo_helpers"</Option>
-          <Option>-include="${ProjDirPath}\..\..\..\..\..\demos\common\pkcs11_helpers"</Option>
-          <Option>-include="${ProjDirPath}\..\..\..\..\..\demos\common\mqtt_subscription_manager"</Option>
-          <Option>-include="${ProjDirPath}\..\..\..\..\..\demos\device_defender_for_aws"</Option>
+          <Option>-include="${ProjDirPath}\..\..\..\..\..\demos_legacy\include"</Option>
+          <Option>-include="${ProjDirPath}\..\..\..\..\..\demos_legacy\network_manager"</Option>
+          <Option>-include="${ProjDirPath}\..\..\..\..\..\demos_legacy\common\mqtt_demo_helpers"</Option>
+          <Option>-include="${ProjDirPath}\..\..\..\..\..\demos_legacy\common\http_demo_helpers"</Option>
+          <Option>-include="${ProjDirPath}\..\..\..\..\..\demos_legacy\common\pkcs11_helpers"</Option>
+          <Option>-include="${ProjDirPath}\..\..\..\..\..\demos_legacy\common\mqtt_subscription_manager"</Option>
+          <Option>-include="${ProjDirPath}\..\..\..\..\..\demos_legacy\device_defender_for_aws"</Option>
           <Option>-include="${ProjDirPath}\..\..\..\..\..\libraries\c_sdk\standard\common\include\private"</Option>
           <Option>-include="${ProjDirPath}\..\..\..\..\..\libraries\c_sdk\standard\common\include"</Option>
           <Option>-include="${ProjDirPath}\..\..\..\..\..\libraries\abstractions\platform\include"</Option>
@@ -2214,7 +2073,7 @@
           <Option>-include="${ProjDirPath}\..\..\..\..\..\libraries\freertos_plus\standard\pkcs11\include"</Option>
           <Option>-include="${ProjDirPath}\..\..\..\..\..\libraries\abstractions\pkcs11\include"</Option>
           <Option>-include="${ProjDirPath}\..\..\..\..\..\libraries\freertos_plus\standard\utils\include"</Option>
-          <Option>-include="${ProjDirPath}\..\..\..\..\..\demos\dev_mode_key_provisioning\include"</Option>
+          <Option>-include="${ProjDirPath}\..\..\..\..\..\demos_legacy\dev_mode_key_provisioning\include"</Option>
           <Option>-include="${ProjDirPath}\..\..\..\..\..\libraries\c_sdk\aws\defender\include"</Option>
           <Option>-include="${ProjDirPath}\..\..\..\..\..\libraries\c_sdk\standard\mqtt\include"</Option>
           <Option>-include="${ProjDirPath}\..\..\..\..\..\libraries\c_sdk\standard\serializer\include"</Option>
@@ -2232,9 +2091,9 @@
           <Option>-include="${ProjDirPath}\..\..\..\..\..\libraries\3rdparty\tinycrypt\lib\include"</Option>
           <Option>-include="${ProjDirPath}\..\..\..\..\..\libraries\3rdparty\http_parser"</Option>
           <Option>-include="${ProjDirPath}\..\..\..\..\..\libraries\3rdparty\jsmn"</Option>
-          <Option>-include="${ProjDirPath}\..\..\..\..\..\libraries\3rdparty\tracealyzer_recorder\streamports\AFR_WIFI_LOCAL\include"</Option>
-          <Option>-include="${ProjDirPath}\..\..\..\..\..\libraries\3rdparty\tracealyzer_recorder\Include"</Option>
-          <Option>-include="${ProjDirPath}\..\..\..\..\..\libraries\3rdparty\tracealyzer_recorder\config"</Option>
+          <Option>-include="${ProjDirPath}\..\..\..\..\..\Middleware\3rdparty\tracealyzer_recorder\streamports\AFR_WIFI_LOCAL\include"</Option>
+          <Option>-include="${ProjDirPath}\..\..\..\..\..\Middleware\3rdparty\tracealyzer_recorder\Include"</Option>
+          <Option>-include="${ProjDirPath}\..\..\..\..\..\Middleware\3rdparty\tracealyzer_recorder\config"</Option>
           <Option>-include="${ProjDirPath}\..\..\..\..\..\libraries\coreMQTT\source\include"</Option>
           <Option>-include="${ProjDirPath}\..\..\..\..\..\libraries\coreMQTT\source\interface"</Option>
           <Option>-include="${ProjDirPath}\..\..\..\..\..\libraries\coreSNTP\source\include"</Option>
@@ -2254,11 +2113,12 @@
           <Option>-include="${ProjDirPath}\..\..\..\..\..\libraries\device_shadow_for_aws\source\include"</Option>
           <Option>-include="${ProjDirPath}\..\..\..\..\..\libraries\device_defender_for_aws\source\include"</Option>
           <Option>-include="${ProjDirPath}\generate"</Option>
-          <Option>-include="${ProjDirPath}\..\..\..\..\..\..\..\Users\a5088582\e2_studio\workspace5\${ProjName}\src"</Option>
-          <Option>-include="${ProjDirPath}\..\..\..\..\..\..\..\Users\a5088582\e2_studio\workspace5\${ProjName}\aw\Source"</Option>
+          <Option>-include="${ProjDirPath}\src"</Option>
+          <Option>-include="${ProjDirPath}\aw\Source"</Option>
           <Option>-include="${ProjDirPath}\..\..\..\..\..\vendors\renesas\boards\rx72n-envision-kit\aws_demos\src\smc_gen\general"</Option>
           <Option>-include="${ProjDirPath}\..\..\..\..\..\vendors\renesas\boards\rx72n-envision-kit\aws_demos\src\smc_gen\r_pincfg"</Option>
           <Option>-include="${ProjDirPath}\..\..\..\..\..\vendors\renesas\boards\rx72n-envision-kit\aws_demos\src\smc_gen\r_config"</Option>
+          <Option>-include="${ProjDirPath}\src\smc_gen\r_config"</Option>
           <Option>-include="${ProjDirPath}\..\..\..\..\..\vendors\renesas\boards\rx72n-envision-kit\aws_demos\src\smc_gen\r_ether_rx"</Option>
           <Option>-include="${ProjDirPath}\..\..\..\..\..\vendors\renesas\boards\rx72n-envision-kit\aws_demos\src\smc_gen\r_byteq"</Option>
           <Option>-include="${ProjDirPath}\..\..\..\..\..\vendors\renesas\boards\rx72n-envision-kit\aws_demos\src\smc_gen\r_byteq\src"</Option>
@@ -2305,6 +2165,7 @@
           <Option>-include="${ProjDirPath}\..\..\..\..\..\vendors\renesas\boards\rx72n-envision-kit\aws_demos\src\smc_gen\r_emwin_rx\lib\Config"</Option>
           <Option>-include="${ProjDirPath}\..\..\..\..\..\vendors\renesas\boards\rx72n-envision-kit\aws_demos\src\smc_gen\r_emwin_rx\lib\GUI"</Option>
           <Option>-include="${ProjDirPath}\..\..\..\..\..\vendors\renesas\boards\rx72n-envision-kit\aws_demos\src\smc_gen\r_glcdc_rx"</Option>
+          <Option>-include="${ProjDirPath}\..\..\..\..\..\vendors\renesas\boards\rx72n-envision-kit\aws_demos\src\smc_gen"</Option>
           <Option>-preinclude="${ProjDirPath}\..\..\..\..\..\vendors\renesas\amazon_freertos_common\compiler_support\ccrx\implicitlyinclude.h"</Option>
           <Option>-define=MBEDTLS_CONFIG_FILE="&lt;aws_mbedtls_config.h&gt;",CONFIG_MEDTLS_USE_AFR_MEMORY,QE_DISPLAY_CONFIGURATION,QE_EMWIN_CONFIGURATION</Option>
           <Option>-asmopt=-bank</Option>
@@ -2329,6 +2190,7 @@
           <Option>-include="${ProjDirPath}\..\..\..\..\..\vendors\renesas\boards\rx72n-envision-kit\aws_demos\src\smc_gen\general"</Option>
           <Option>-include="${ProjDirPath}\..\..\..\..\..\vendors\renesas\boards\rx72n-envision-kit\aws_demos\src\smc_gen\r_pincfg"</Option>
           <Option>-include="${ProjDirPath}\..\..\..\..\..\vendors\renesas\boards\rx72n-envision-kit\aws_demos\src\smc_gen\r_config"</Option>
+          <Option>-include="${ProjDirPath}\src\smc_gen\r_config"</Option>
           <Option>-include="${ProjDirPath}\..\..\..\..\..\vendors\renesas\boards\rx72n-envision-kit\aws_demos\src\smc_gen\r_ether_rx"</Option>
           <Option>-include="${ProjDirPath}\..\..\..\..\..\vendors\renesas\boards\rx72n-envision-kit\aws_demos\src\smc_gen\r_byteq"</Option>
           <Option>-include="${ProjDirPath}\..\..\..\..\..\vendors\renesas\boards\rx72n-envision-kit\aws_demos\src\smc_gen\r_byteq\src"</Option>
@@ -2375,6 +2237,7 @@
           <Option>-include="${ProjDirPath}\..\..\..\..\..\vendors\renesas\boards\rx72n-envision-kit\aws_demos\src\smc_gen\r_emwin_rx\lib\Config"</Option>
           <Option>-include="${ProjDirPath}\..\..\..\..\..\vendors\renesas\boards\rx72n-envision-kit\aws_demos\src\smc_gen\r_emwin_rx\lib\GUI"</Option>
           <Option>-include="${ProjDirPath}\..\..\..\..\..\vendors\renesas\boards\rx72n-envision-kit\aws_demos\src\smc_gen\r_glcdc_rx"</Option>
+          <Option>-include="${ProjDirPath}\..\..\..\..\..\vendors\renesas\boards\rx72n-envision-kit\aws_demos\src\smc_gen"</Option>
           <Option>-utf8</Option>
           <Option>-bank</Option>
           <Option>-debug</Option>
@@ -2386,14 +2249,15 @@
           <Option>-form=absolute</Option>
           <Option>-nomessage</Option>
           <Option>-vect=_undefined_interrupt_source_isr</Option>
-          <Option>-list=${ProjName}.map</Option>
+          <Option>-list</Option>
           <Option>-show=all</Option>
           <Option>-nooptimize</Option>
+          <Option>-start=B_ETHERNET_BUFFERS_1,B_RX_DESC_1,B_TX_DESC_1,R,R_1,R_2,R_8,B_8,B,B_1,B_2,RPFRAM2*,SU,SI\0,C_BOOTLOADER_KEY_STORAGE*\0100000,C_SYSTEM_CONFIG*\0100800,C_1,C_2,C,C_8,C$*,D*,W*,L,P*\0FFE00300,EXCEPTVECT\0FFFBFF80,RESETVECT\0FFFBFFFC</Option>
           <Option>-rom=D=R,D_1=R_1,D_2=R_2,D_8=R_8,PFRAM2=RPFRAM2</Option>
           <Option>-cpu=RAM=00000000-0007ffff,FIX=00080000-00083fff,FIX=00086000-00087fff,FIX=00088000-0009ffff,FIX=000a0000-000a3fff,RAM=000a4000-000a5fff,FIX=000a6000-000bffff,FIX=000c0000-000dffff,FIX=000e0000-000fffff,ROM=00100000-00107fff,FIX=007fc000-007fcfff,FIX=007fe000-007fffff,RAM=00800000-0087ffff,RAM=00ff8000-00ffffff,RAM=fe7f5d00-fe7f5d7f,RAM=fe7f7d70-fe7f7d9f,ROM=ffc00000-ffffffff</Option>
           <Option>-nologo</Option>
-          <Option>-library="${ProjDirPath}/../../../../../vendors/renesas/boards/rx72n-envision-kit/aws_demos/src/smc_gen/r_tfat_rx/lib/tfat_rx600_little.lib"</Option>
-          <Option>-library="${ProjDirPath}/../../../../../vendors/renesas/boards/rx72n-envision-kit/aws_demos/src/smc_gen/r_emwin_rx/lib/GUI/emWinLib_CCRX.lib"</Option>
+          <Option>-library="${ProjDirPath}\..\..\..\..\..\vendors\renesas\boards\rx72n-envision-kit\aws_demos\src\smc_gen\r_tfat_rx\lib\tfat_rx600_little.lib"</Option>
+          <Option>-library="${ProjDirPath}\..\..\..\..\..\vendors\renesas\boards\rx72n-envision-kit\aws_demos\src\smc_gen\r_emwin_rx\lib\GUI\emWinLib_CCRX.lib"</Option>
           <Option>-start=B_ETHERNET_BUFFERS_1,B_RX_DESC_1,B_TX_DESC_1,R,R_1,R_2,R_8,B_8,B,B_1,B_2,RPFRAM2*,SU,SI/0,C_BOOTLOADER_KEY_STORAGE*/0100000,C_SYSTEM_CONFIG*/0100800,C_1,C_2,C,C_8,C$*,D*,W*,L,P*/0FFE00300,EXCEPTVECT/0FFFBFF80,RESETVECT/0FFFBFFFC</Option>
           <Option>-end</Option>
           <Option>-output="${ProjName}.mot"</Option>
@@ -2418,6 +2282,10 @@
         <LinkOrder>
           <Path>HardwareDebug\port_asm.obj</Path>
           <Path>HardwareDebug\reset_program.obj</Path>
+          <Path>HardwareDebug\trcStreamingPort.obj</Path>
+          <Path>HardwareDebug\trcKernelPort.obj</Path>
+          <Path>HardwareDebug\trcSnapshotRecorder.obj</Path>
+          <Path>HardwareDebug\trcStreamingRecorder.obj</Path>
           <Path>HardwareDebug\SNTPClientTask.obj</Path>
           <Path>HardwareDebug\SampleAppTask.obj</Path>
           <Path>HardwareDebug\main.obj</Path>
@@ -2735,10 +2603,6 @@
           <Path>HardwareDebug\ecc_dsa.obj</Path>
           <Path>HardwareDebug\sha256.obj</Path>
           <Path>HardwareDebug\utils.obj</Path>
-          <Path>HardwareDebug\trcStreamingPort.obj</Path>
-          <Path>HardwareDebug\trcKernelPort.obj</Path>
-          <Path>HardwareDebug\trcSnapshotRecorder.obj</Path>
-          <Path>HardwareDebug\trcStreamingRecorder.obj</Path>
           <Path>HardwareDebug\backoff_algorithm.obj</Path>
           <Path>HardwareDebug\freertos_agent_message.obj</Path>
           <Path>HardwareDebug\freertos_command_pool.obj</Path>
@@ -2862,17 +2726,12 @@
           <Path>HardwareDebug\r_sci_rx72n_data.obj</Path>
           <Path>HardwareDebug\aws_demos.lib</Path>
         </LinkOrder>
-        <NoTargetFile Target="aw\Simulation\Config\APPW_X_WIN32.c"/>
-        <NoTargetFile Target="aw\Simulation\Config\GUIConf.c"/>
-        <NoTargetFile Target="aw\Simulation\Config\LCDConf.c"/>
-        <NoTargetFile Target="aw\Simulation\Config\SIMConf.c"/>
-        <NoTargetFile Target="aw\Simulation\Simulation\WinMain.c"/>
-        <NoTargetFile Target="AWS_IOT_MCU_ROOT\demos\common\http_demo_helpers\http_demo_utils.c"/>
-        <NoTargetFile Target="AWS_IOT_MCU_ROOT\demos\coreHTTP\http_demo_mutual_auth.c"/>
-        <NoTargetFile Target="AWS_IOT_MCU_ROOT\demos\coreHTTP\http_demo_s3_download.c"/>
-        <NoTargetFile Target="AWS_IOT_MCU_ROOT\demos\coreHTTP\http_demo_s3_download_multithreaded.c"/>
-        <NoTargetFile Target="AWS_IOT_MCU_ROOT\demos\coreHTTP\http_demo_s3_upload.c"/>
-        <NoTargetFile Target="AWS_IOT_MCU_ROOT\demos\ota\ota_demo_core_http\ota_demo_core_http.c"/>
+        <NoTargetFile Target="AWS_IOT_MCU_ROOT\demos_legacy\common\http_demo_helpers\http_demo_utils.c"/>
+        <NoTargetFile Target="AWS_IOT_MCU_ROOT\demos_legacy\coreHTTP\http_demo_mutual_auth.c"/>
+        <NoTargetFile Target="AWS_IOT_MCU_ROOT\demos_legacy\coreHTTP\http_demo_s3_download.c"/>
+        <NoTargetFile Target="AWS_IOT_MCU_ROOT\demos_legacy\coreHTTP\http_demo_s3_download_multithreaded.c"/>
+        <NoTargetFile Target="AWS_IOT_MCU_ROOT\demos_legacy\coreHTTP\http_demo_s3_upload.c"/>
+        <NoTargetFile Target="AWS_IOT_MCU_ROOT\demos_legacy\ota\ota_demo_core_http\ota_demo_core_http.c"/>
         <NoTargetFile Target="AWS_IOT_MCU_ROOT\libraries\coreHTTP\source\core_http_client.c"/>
         <NoTargetFile Target="AWS_IOT_MCU_ROOT\libraries\coreHTTP\source\dependency\3rdparty\http_parser\http_parser.c"/>
         <NoTargetFile Target="AWS_IOT_MCU_ROOT\vendors\renesas\boards\rx72n-envision-kit\aws_demos\src\smc_gen\general\r_cg_hardware_setup.c"/>
@@ -2885,8 +2744,8 @@
         <NoTargetFile Target="AWS_IOT_MCU_ROOT\vendors\renesas\boards\rx72n-envision-kit\aws_demos\src\smc_gen\r_pincfg\r_sci_rx_pinset.c"/>
         <CommonOptions>
           <IncludePathForC>"${ProjDirPath}\..\..\..\..\..\vendors\renesas\boards\rx72n-envision-kit\aws_demos\src\smc_gen\r_bsp"</IncludePathForC>
-          <IncludePathForC>"C:\git\rx72n-envision-kit\vendors\renesas\boards\rx72n-envision-kit\aws_demos\application_code\renesas_code\utility"</IncludePathForC>
-          <IncludePathForC>"C:\git\rx72n-envision-kit\vendors\renesas\boards\rx72n-envision-kit\aws_demos\application_code\renesas_code\key"</IncludePathForC>
+          <IncludePathForC>"C:\ai\claude\rx72n-envision-kit\vendors\renesas\boards\rx72n-envision-kit\aws_demos\application_code\renesas_code\utility"</IncludePathForC>
+          <IncludePathForC>"C:\ai\claude\rx72n-envision-kit\vendors\renesas\boards\rx72n-envision-kit\aws_demos\application_code\renesas_code\key"</IncludePathForC>
           <IncludePathForC>"${ProjDirPath}\..\..\..\..\..\freertos_kernel\include"</IncludePathForC>
           <IncludePathForC>"${ProjDirPath}\..\..\..\..\..\vendors\renesas\amazon_freertos_common"</IncludePathForC>
           <IncludePathForC>"${ProjDirPath}\..\..\..\..\..\vendors\renesas\amazon_freertos_common\compiler_support\ccrx"</IncludePathForC>
@@ -2915,19 +2774,19 @@
           <IncludePathForC>"${ProjDirPath}\..\..\..\..\..\vendors\renesas\rx_driver_package\v125\r_s12ad_rx"</IncludePathForC>
           <IncludePathForC>"${ProjDirPath}\..\..\..\..\..\vendors\renesas\rx_driver_package\v125\r_s12ad_rx\src"</IncludePathForC>
           <IncludePathForC>"${ProjDirPath}\..\..\..\..\..\vendors\renesas\rx_driver_package\v125\r_s12ad_rx\src\targets\rx72n"</IncludePathForC>
-          <IncludePathForC>"${ProjDirPath}\..\..\..\..\..\freertos_kernel\portable\Renesas\RX600v2"</IncludePathForC>
+          <IncludePathForC>"${ProjDirPath}\..\..\..\..\..\freertos_kernel\portable\Renesas\RX700v3_DPFPU"</IncludePathForC>
           <IncludePathForC>"${ProjDirPath}\..\..\..\..\..\vendors\renesas\boards\rx72n-envision-kit\aws_demos\config_files"</IncludePathForC>
           <IncludePathForC>"${ProjDirPath}\..\..\..\..\..\vendors\renesas\boards\rx72n-envision-kit\aws_demos\application_code\renesas_code"</IncludePathForC>
           <IncludePathForC>"${ProjDirPath}\..\..\..\..\..\vendors\renesas\boards\rx72n-envision-kit\aws_demos\application_code\renesas_code\utility"</IncludePathForC>
           <IncludePathForC>"${ProjDirPath}\..\..\..\..\..\vendors\renesas\boards\rx72n-envision-kit\aws_demos\application_code\aws_code"</IncludePathForC>
           <IncludePathForC>"${ProjDirPath}\..\..\..\..\..\vendors\renesas\boards\rx72n-envision-kit\ports\ota_pal_for_aws"</IncludePathForC>
-          <IncludePathForC>"${ProjDirPath}\..\..\..\..\..\demos\include"</IncludePathForC>
-          <IncludePathForC>"${ProjDirPath}\..\..\..\..\..\demos\network_manager"</IncludePathForC>
-          <IncludePathForC>"${ProjDirPath}\..\..\..\..\..\demos\common\mqtt_demo_helpers"</IncludePathForC>
-          <IncludePathForC>"${ProjDirPath}\..\..\..\..\..\demos\common\http_demo_helpers"</IncludePathForC>
-          <IncludePathForC>"${ProjDirPath}\..\..\..\..\..\demos\common\pkcs11_helpers"</IncludePathForC>
-          <IncludePathForC>"${ProjDirPath}\..\..\..\..\..\demos\common\mqtt_subscription_manager"</IncludePathForC>
-          <IncludePathForC>"${ProjDirPath}\..\..\..\..\..\demos\device_defender_for_aws"</IncludePathForC>
+          <IncludePathForC>"${ProjDirPath}\..\..\..\..\..\demos_legacy\include"</IncludePathForC>
+          <IncludePathForC>"${ProjDirPath}\..\..\..\..\..\demos_legacy\network_manager"</IncludePathForC>
+          <IncludePathForC>"${ProjDirPath}\..\..\..\..\..\demos_legacy\common\mqtt_demo_helpers"</IncludePathForC>
+          <IncludePathForC>"${ProjDirPath}\..\..\..\..\..\demos_legacy\common\http_demo_helpers"</IncludePathForC>
+          <IncludePathForC>"${ProjDirPath}\..\..\..\..\..\demos_legacy\common\pkcs11_helpers"</IncludePathForC>
+          <IncludePathForC>"${ProjDirPath}\..\..\..\..\..\demos_legacy\common\mqtt_subscription_manager"</IncludePathForC>
+          <IncludePathForC>"${ProjDirPath}\..\..\..\..\..\demos_legacy\device_defender_for_aws"</IncludePathForC>
           <IncludePathForC>"${ProjDirPath}\..\..\..\..\..\libraries\c_sdk\standard\common\include\private"</IncludePathForC>
           <IncludePathForC>"${ProjDirPath}\..\..\..\..\..\libraries\c_sdk\standard\common\include"</IncludePathForC>
           <IncludePathForC>"${ProjDirPath}\..\..\..\..\..\libraries\abstractions\platform\include"</IncludePathForC>
@@ -2943,7 +2802,7 @@
           <IncludePathForC>"${ProjDirPath}\..\..\..\..\..\libraries\freertos_plus\standard\pkcs11\include"</IncludePathForC>
           <IncludePathForC>"${ProjDirPath}\..\..\..\..\..\libraries\abstractions\pkcs11\include"</IncludePathForC>
           <IncludePathForC>"${ProjDirPath}\..\..\..\..\..\libraries\freertos_plus\standard\utils\include"</IncludePathForC>
-          <IncludePathForC>"${ProjDirPath}\..\..\..\..\..\demos\dev_mode_key_provisioning\include"</IncludePathForC>
+          <IncludePathForC>"${ProjDirPath}\..\..\..\..\..\demos_legacy\dev_mode_key_provisioning\include"</IncludePathForC>
           <IncludePathForC>"${ProjDirPath}\..\..\..\..\..\libraries\c_sdk\aws\defender\include"</IncludePathForC>
           <IncludePathForC>"${ProjDirPath}\..\..\..\..\..\libraries\c_sdk\standard\mqtt\include"</IncludePathForC>
           <IncludePathForC>"${ProjDirPath}\..\..\..\..\..\libraries\c_sdk\standard\serializer\include"</IncludePathForC>
@@ -2961,9 +2820,9 @@
           <IncludePathForC>"${ProjDirPath}\..\..\..\..\..\libraries\3rdparty\tinycrypt\lib\include"</IncludePathForC>
           <IncludePathForC>"${ProjDirPath}\..\..\..\..\..\libraries\3rdparty\http_parser"</IncludePathForC>
           <IncludePathForC>"${ProjDirPath}\..\..\..\..\..\libraries\3rdparty\jsmn"</IncludePathForC>
-          <IncludePathForC>"${ProjDirPath}\..\..\..\..\..\libraries\3rdparty\tracealyzer_recorder\streamports\AFR_WIFI_LOCAL\include"</IncludePathForC>
-          <IncludePathForC>"${ProjDirPath}\..\..\..\..\..\libraries\3rdparty\tracealyzer_recorder\Include"</IncludePathForC>
-          <IncludePathForC>"${ProjDirPath}\..\..\..\..\..\libraries\3rdparty\tracealyzer_recorder\config"</IncludePathForC>
+          <IncludePathForC>"${ProjDirPath}\..\..\..\..\..\Middleware\3rdparty\tracealyzer_recorder\streamports\AFR_WIFI_LOCAL\include"</IncludePathForC>
+          <IncludePathForC>"${ProjDirPath}\..\..\..\..\..\Middleware\3rdparty\tracealyzer_recorder\Include"</IncludePathForC>
+          <IncludePathForC>"${ProjDirPath}\..\..\..\..\..\Middleware\3rdparty\tracealyzer_recorder\config"</IncludePathForC>
           <IncludePathForC>"${ProjDirPath}\..\..\..\..\..\libraries\coreMQTT\source\include"</IncludePathForC>
           <IncludePathForC>"${ProjDirPath}\..\..\..\..\..\libraries\coreMQTT\source\interface"</IncludePathForC>
           <IncludePathForC>"${ProjDirPath}\..\..\..\..\..\libraries\coreSNTP\source\include"</IncludePathForC>
@@ -2983,11 +2842,12 @@
           <IncludePathForC>"${ProjDirPath}\..\..\..\..\..\libraries\device_shadow_for_aws\source\include"</IncludePathForC>
           <IncludePathForC>"${ProjDirPath}\..\..\..\..\..\libraries\device_defender_for_aws\source\include"</IncludePathForC>
           <IncludePathForC>"${ProjDirPath}\generate"</IncludePathForC>
-          <IncludePathForC>"${ProjDirPath}\..\..\..\..\..\..\..\Users\a5088582\e2_studio\workspace5\${ProjName}\src"</IncludePathForC>
-          <IncludePathForC>"${ProjDirPath}\..\..\..\..\..\..\..\Users\a5088582\e2_studio\workspace5\${ProjName}\aw\Source"</IncludePathForC>
+          <IncludePathForC>"${ProjDirPath}\src"</IncludePathForC>
+          <IncludePathForC>"${ProjDirPath}\aw\Source"</IncludePathForC>
           <IncludePathForC>"${ProjDirPath}\..\..\..\..\..\vendors\renesas\boards\rx72n-envision-kit\aws_demos\src\smc_gen\general"</IncludePathForC>
           <IncludePathForC>"${ProjDirPath}\..\..\..\..\..\vendors\renesas\boards\rx72n-envision-kit\aws_demos\src\smc_gen\r_pincfg"</IncludePathForC>
           <IncludePathForC>"${ProjDirPath}\..\..\..\..\..\vendors\renesas\boards\rx72n-envision-kit\aws_demos\src\smc_gen\r_config"</IncludePathForC>
+          <IncludePathForC>"${ProjDirPath}\src\smc_gen\r_config"</IncludePathForC>
           <IncludePathForC>"${ProjDirPath}\..\..\..\..\..\vendors\renesas\boards\rx72n-envision-kit\aws_demos\src\smc_gen\r_ether_rx"</IncludePathForC>
           <IncludePathForC>"${ProjDirPath}\..\..\..\..\..\vendors\renesas\boards\rx72n-envision-kit\aws_demos\src\smc_gen\r_byteq"</IncludePathForC>
           <IncludePathForC>"${ProjDirPath}\..\..\..\..\..\vendors\renesas\boards\rx72n-envision-kit\aws_demos\src\smc_gen\r_byteq\src"</IncludePathForC>
@@ -3034,11 +2894,13 @@
           <IncludePathForC>"${ProjDirPath}\..\..\..\..\..\vendors\renesas\boards\rx72n-envision-kit\aws_demos\src\smc_gen\r_emwin_rx\lib\Config"</IncludePathForC>
           <IncludePathForC>"${ProjDirPath}\..\..\..\..\..\vendors\renesas\boards\rx72n-envision-kit\aws_demos\src\smc_gen\r_emwin_rx\lib\GUI"</IncludePathForC>
           <IncludePathForC>"${ProjDirPath}\..\..\..\..\..\vendors\renesas\boards\rx72n-envision-kit\aws_demos\src\smc_gen\r_glcdc_rx"</IncludePathForC>
+          <IncludePathForC>"${ProjDirPath}\..\..\..\..\..\vendors\renesas\boards\rx72n-envision-kit\aws_demos\src\smc_gen"</IncludePathForC>
           <IncludePathForAsm>"${ProjDirPath}\..\..\..\..\..\vendors\renesas\boards\rx72n-envision-kit\aws_tests\src\smc_gen\r_pincfg"</IncludePathForAsm>
           <IncludePathForAsm>"${ProjDirPath}\..\..\..\..\..\vendors\renesas\boards\rx72n-envision-kit\aws_demos\src\smc_gen\r_bsp"</IncludePathForAsm>
           <IncludePathForAsm>"${ProjDirPath}\..\..\..\..\..\vendors\renesas\boards\rx72n-envision-kit\aws_demos\src\smc_gen\general"</IncludePathForAsm>
           <IncludePathForAsm>"${ProjDirPath}\..\..\..\..\..\vendors\renesas\boards\rx72n-envision-kit\aws_demos\src\smc_gen\r_pincfg"</IncludePathForAsm>
           <IncludePathForAsm>"${ProjDirPath}\..\..\..\..\..\vendors\renesas\boards\rx72n-envision-kit\aws_demos\src\smc_gen\r_config"</IncludePathForAsm>
+          <IncludePathForAsm>"${ProjDirPath}\src\smc_gen\r_config"</IncludePathForAsm>
           <IncludePathForAsm>"${ProjDirPath}\..\..\..\..\..\vendors\renesas\boards\rx72n-envision-kit\aws_demos\src\smc_gen\r_ether_rx"</IncludePathForAsm>
           <IncludePathForAsm>"${ProjDirPath}\..\..\..\..\..\vendors\renesas\boards\rx72n-envision-kit\aws_demos\src\smc_gen\r_byteq"</IncludePathForAsm>
           <IncludePathForAsm>"${ProjDirPath}\..\..\..\..\..\vendors\renesas\boards\rx72n-envision-kit\aws_demos\src\smc_gen\r_byteq\src"</IncludePathForAsm>
@@ -3085,6 +2947,7 @@
           <IncludePathForAsm>"${ProjDirPath}\..\..\..\..\..\vendors\renesas\boards\rx72n-envision-kit\aws_demos\src\smc_gen\r_emwin_rx\lib\Config"</IncludePathForAsm>
           <IncludePathForAsm>"${ProjDirPath}\..\..\..\..\..\vendors\renesas\boards\rx72n-envision-kit\aws_demos\src\smc_gen\r_emwin_rx\lib\GUI"</IncludePathForAsm>
           <IncludePathForAsm>"${ProjDirPath}\..\..\..\..\..\vendors\renesas\boards\rx72n-envision-kit\aws_demos\src\smc_gen\r_glcdc_rx"</IncludePathForAsm>
+          <IncludePathForAsm>"${ProjDirPath}\..\..\..\..\..\vendors\renesas\boards\rx72n-envision-kit\aws_demos\src\smc_gen"</IncludePathForAsm>
           <MacroForC>MBEDTLS_CONFIG_FILE="&lt;aws_mbedtls_config.h&gt;"</MacroForC>
           <MacroForC>CONFIG_MEDTLS_USE_AFR_MEMORY</MacroForC>
           <MacroForC>QE_DISPLAY_CONFIGURATION</MacroForC>
