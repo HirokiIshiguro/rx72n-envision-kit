@@ -81,6 +81,17 @@ extern "C" {
  * See trcHardwarePort.h for available ports and information on how to
  * define your own port, if not already present.
  ******************************************************************************/
+/* Phase 8b 第3次 段階5-3 (rx72n-envision-kit#51): 暫定的に Renesas_RX600 を
+ * 使用 (CMT0 高精度タイマ)。SC 環境では iodefine.h を直接 include する設計
+ * は古く、正規には platform.h 経由の BSP 抽象でレジスタにアクセスする想定
+ * だが、trcHardwarePort.h の Renesas_RX600 ブロックが #include "iodefine.h"
+ * を直書きしているため当面 .cproject 側で iodefine.h パス
+ * (src/smc_gen/r_bsp/mcu/rx72n/register_access/ccrx) を include 列に
+ * 追加して legacy と同手法で動かす。HWIndependent は critical section 未定義
+ * でビルドエラー、APPLICATION_DEFINED + platform.h は FreeRTOSConfig.h
+ * チェーン汚染で型衝突、いずれも見送り。Tracealyzer license 取得後の
+ * 実機検証で必要なら APPLICATION_DEFINED + 別 .c ラッパー (CMT0 を BSP
+ * 経由で隔離する setter / getter) へ昇格させる方が正規。 */
 #define TRC_CFG_HARDWARE_PORT TRC_HARDWARE_PORT_Renesas_RX600
 
 /*******************************************************************************

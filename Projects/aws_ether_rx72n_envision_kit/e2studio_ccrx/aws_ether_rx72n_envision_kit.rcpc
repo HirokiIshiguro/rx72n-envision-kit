@@ -1095,6 +1095,11 @@
             <Path>src\smc_gen\r_config\r_sci_iic_rx_config.h</Path>
             <Path>src\smc_gen\r_config\r_sci_iic_rx_pin_config.h</Path>
             <Path>src\smc_gen\r_config\r_sci_rx_config.h</Path>
+            <Path>src\smc_gen\r_config\r_sdc_sd_rx_config.h</Path>
+            <Path>src\smc_gen\r_config\r_sdhi_rx_config.h</Path>
+            <Path>src\smc_gen\r_config\r_sys_time_rx_config.h</Path>
+            <Path>src\smc_gen\r_config\r_tfat_driver_rx_config.h</Path>
+            <Path>src\smc_gen\r_config\r_tfat_rx_config.h</Path>
             <Path>src\smc_gen\r_config\r_tsip_rx_config.h</Path>
           </Category>
           <Category Name="r_dmaca_rx">
@@ -1560,6 +1565,8 @@
             <Path>src\smc_gen\r_pincfg\r_s12ad_rx_pinset.h</Path>
             <Path>src\smc_gen\r_pincfg\r_sci_rx_pinset.c</Path>
             <Path>src\smc_gen\r_pincfg\r_sci_rx_pinset.h</Path>
+            <Path>src\smc_gen\r_pincfg\r_sdhi_rx_pinset.c</Path>
+            <Path>src\smc_gen\r_pincfg\r_sdhi_rx_pinset.h</Path>
           </Category>
           <Category Name="r_s12ad_rx">
             <Path>src\smc_gen\r_s12ad_rx\r_s12ad_rx_if.h</Path>
@@ -1632,6 +1639,137 @@
                   <Path>src\smc_gen\r_sci_rx\src\targets\rx72n\r_sci_rx72n_private.h</Path>
                 </Category>
               </Category>
+            </Category>
+          </Category>
+          <Category Name="r_sdc_sdmem_rx">
+            <Path>src\smc_gen\r_sdc_sdmem_rx\r_sdc_sd_rx_if.h</Path>
+            <Path>src\smc_gen\r_sdc_sdmem_rx\readme.txt</Path>
+            <Category Name="doc">
+              <Category Name="en">
+                <Path>src\smc_gen\r_sdc_sdmem_rx\doc\en\r01an4233ej0301-rx-sdmemory.pdf</Path>
+              </Category>
+              <Category Name="ja">
+                <Path>src\smc_gen\r_sdc_sdmem_rx\doc\ja\r01an4233jj0301-rx-sdmemory.pdf</Path>
+              </Category>
+            </Category>
+            <Category Name="src">
+              <Path>src\smc_gen\r_sdc_sdmem_rx\src\r_sdc_sd_cd.c</Path>
+              <Path>src\smc_gen\r_sdc_sdmem_rx\src\r_sdc_sd_cmd.c</Path>
+              <Path>src\smc_gen\r_sdc_sdmem_rx\src\r_sdc_sd_config.c</Path>
+              <Path>src\smc_gen\r_sdc_sdmem_rx\src\r_sdc_sd_initialize.c</Path>
+              <Path>src\smc_gen\r_sdc_sdmem_rx\src\r_sdc_sd_int.c</Path>
+              <Path>src\smc_gen\r_sdc_sdmem_rx\src\r_sdc_sd_open.c</Path>
+              <Path>src\smc_gen\r_sdc_sdmem_rx\src\r_sdc_sd_rx_private.h</Path>
+              <Path>src\smc_gen\r_sdc_sdmem_rx\src\r_sdc_sd_trans.c</Path>
+              <Path>src\smc_gen\r_sdc_sdmem_rx\src\r_sdc_sd_util.c</Path>
+              <Path>src\smc_gen\r_sdc_sdmem_rx\src\r_sdc_sd_wrapper.c</Path>
+              <Category Name="mem">
+                <Path>src\smc_gen\r_sdc_sdmem_rx\src\mem\r_sdc_sdmem_initialize.c</Path>
+                <Path>src\smc_gen\r_sdc_sdmem_rx\src\mem\r_sdc_sdmem_param.c</Path>
+                <Path>src\smc_gen\r_sdc_sdmem_rx\src\mem\r_sdc_sdmem_read.c</Path>
+                <Path>src\smc_gen\r_sdc_sdmem_rx\src\mem\r_sdc_sdmem_util.c</Path>
+                <Path>src\smc_gen\r_sdc_sdmem_rx\src\mem\r_sdc_sdmem_wrapper.c</Path>
+                <Path>src\smc_gen\r_sdc_sdmem_rx\src\mem\r_sdc_sdmem_write.c</Path>
+              </Category>
+            </Category>
+          </Category>
+          <Category Name="r_sdhi_rx">
+            <Path>src\smc_gen\r_sdhi_rx\r_sdhi_rx_if.h</Path>
+            <Path>src\smc_gen\r_sdhi_rx\readme.txt</Path>
+            <Category Name="doc">
+              <Category Name="en">
+                <Path>src\smc_gen\r_sdhi_rx\doc\en\r01an3852ej0220-rx-communication.pdf</Path>
+              </Category>
+              <Category Name="ja">
+                <Path>src\smc_gen\r_sdhi_rx\doc\ja\r01an3852jj0220-rx-communication.pdf</Path>
+              </Category>
+            </Category>
+            <Category Name="src">
+              <Path>src\smc_gen\r_sdhi_rx\src\r_sdhi_int.c</Path>
+              <Path>src\smc_gen\r_sdhi_rx\src\r_sdhi_open.c</Path>
+              <Path>src\smc_gen\r_sdhi_rx\src\r_sdhi_rx_private.h</Path>
+              <Path>src\smc_gen\r_sdhi_rx\src\r_sdhi_util.c</Path>
+              <Category Name="targets">
+                <Category Name="rx72n">
+                  <Path>src\smc_gen\r_sdhi_rx\src\targets\rx72n\r_sdhi_dev.c</Path>
+                  <Path>src\smc_gen\r_sdhi_rx\src\targets\rx72n\r_sdhi_register.c</Path>
+                  <Path>src\smc_gen\r_sdhi_rx\src\targets\rx72n\r_sdhi_rx_target.h</Path>
+                </Category>
+              </Category>
+            </Category>
+          </Category>
+          <Category Name="r_sys_time_rx">
+            <Path>src\smc_gen\r_sys_time_rx\r_sys_time_rx_if.h</Path>
+            <Path>src\smc_gen\r_sys_time_rx\readme.txt</Path>
+            <Category Name="doc">
+              <Category Name="en">
+                <Path>src\smc_gen\r_sys_time_rx\doc\en\r20an0431ej0101-rx-middle.pdf</Path>
+              </Category>
+              <Category Name="ja">
+                <Path>src\smc_gen\r_sys_time_rx\doc\ja\r20an0431jj0101-rx-middle.pdf</Path>
+              </Category>
+            </Category>
+            <Category Name="ref">
+              <Path>src\smc_gen\r_sys_time_rx\ref\r_sys_time_rx_config_reference.h</Path>
+            </Category>
+            <Category Name="src">
+              <Path>src\smc_gen\r_sys_time_rx\src\r_sys_time_rx.c</Path>
+              <Path>src\smc_gen\r_sys_time_rx\src\r_sys_time_rx_private.h</Path>
+            </Category>
+          </Category>
+          <Category Name="r_tfat_driver_rx">
+            <Path>src\smc_gen\r_tfat_driver_rx\r_tfat_driver_rx_if.h</Path>
+            <Path>src\smc_gen\r_tfat_driver_rx\readme.txt</Path>
+            <Category Name="doc">
+              <Category Name="en">
+                <Path>src\smc_gen\r_tfat_driver_rx\doc\en\r20an0335ej0262-rx-tfat.pdf</Path>
+              </Category>
+              <Category Name="ja">
+                <Path>src\smc_gen\r_tfat_driver_rx\doc\ja\r20an0335jj0262-rx-tfat.pdf</Path>
+              </Category>
+            </Category>
+            <Category Name="src">
+              <Path>src\smc_gen\r_tfat_driver_rx\src\r_tfat_drv_if.c</Path>
+              <Path>src\smc_gen\r_tfat_driver_rx\src\r_tfat_drv_if_dev.h</Path>
+              <Category Name="device">
+                <Category Name="mmc">
+                  <Path>src\smc_gen\r_tfat_driver_rx\src\device\mmc\r_tfat_drv_if_mmc.c</Path>
+                </Category>
+                <Category Name="sdmem">
+                  <Path>src\smc_gen\r_tfat_driver_rx\src\device\sdmem\r_tfat_drv_if_sdmem.c</Path>
+                </Category>
+                <Category Name="serial_flash">
+                  <Path>src\smc_gen\r_tfat_driver_rx\src\device\serial_flash\r_tfat_drv_if_flash.c</Path>
+                </Category>
+                <Category Name="spi_sdmem">
+                  <Path>src\smc_gen\r_tfat_driver_rx\src\device\spi_sdmem\r_tfat_drv_if_spi_sdmem.c</Path>
+                </Category>
+                <Category Name="usb">
+                  <Path>src\smc_gen\r_tfat_driver_rx\src\device\usb\r_tfat_drv_if_usb.c</Path>
+                </Category>
+                <Category Name="usb_mini">
+                  <Path>src\smc_gen\r_tfat_driver_rx\src\device\usb_mini\r_tfat_drv_if_usb_mini.c</Path>
+                </Category>
+              </Category>
+            </Category>
+          </Category>
+          <Category Name="r_tfat_rx">
+            <Path>src\smc_gen\r_tfat_rx\readme.txt</Path>
+            <Category Name="doc">
+              <Category Name="en">
+                <Path>src\smc_gen\r_tfat_rx\doc\en\r20an0038ej0415-rx-tfat.pdf</Path>
+              </Category>
+              <Category Name="ja">
+                <Path>src\smc_gen\r_tfat_rx\doc\ja\r20an0038jj0415-rx-tfat.pdf</Path>
+              </Category>
+            </Category>
+            <Category Name="src">
+              <Path>src\smc_gen\r_tfat_rx\src\diskio.h</Path>
+              <Path>src\smc_gen\r_tfat_rx\src\ff.c</Path>
+              <Path>src\smc_gen\r_tfat_rx\src\ff.h</Path>
+              <Path>src\smc_gen\r_tfat_rx\src\ffconf.h</Path>
+              <Path>src\smc_gen\r_tfat_rx\src\ffsystem.c</Path>
+              <Path>src\smc_gen\r_tfat_rx\src\ffunicode.c</Path>
             </Category>
           </Category>
           <Category Name="r_tsip_rx">
@@ -2027,6 +2165,14 @@
           <Option>-include="C:\ai\claude\rx72n-envision-kit\Middleware\3rdparty\tracealyzer_recorder\config"</Option>
           <Option>-include="C:\ai\claude\rx72n-envision-kit\Middleware\3rdparty\tracealyzer_recorder\streamports\FreeRTOS_Plus_TCP\include"</Option>
           <Option>-include="${ProjDirPath}\src\smc_gen\r_bsp\mcu\rx72n\register_access\ccrx"</Option>
+          <Option>-include="${ProjDirPath}\src\smc_gen\r_tfat_rx\src"</Option>
+          <Option>-include="${ProjDirPath}\src\smc_gen\r_sys_time_rx\src"</Option>
+          <Option>-include="${ProjDirPath}\src\smc_gen\r_tfat_rx"</Option>
+          <Option>-include="${ProjDirPath}\src\smc_gen\r_sys_time_rx"</Option>
+          <Option>-include="${ProjDirPath}\src\smc_gen\r_sdhi_rx"</Option>
+          <Option>-include="${ProjDirPath}\src\smc_gen\r_tfat_driver_rx"</Option>
+          <Option>-include="${ProjDirPath}\src\smc_gen\r_tfat_driver_rx\src"</Option>
+          <Option>-include="${ProjDirPath}\src\smc_gen\r_sdc_sdmem_rx"</Option>
           <Option>-define=MBEDTLS_CONFIG_FILE=&lt;"aws_mbedtls_config.h"&gt;,CONFIG_FREERTOS_ASSERT_FAIL_ABORT,CONFIG_MEDTLS_USE_AFR_MEMORY,MBEDTLS_ERROR_C,MBEDTLS_ALLOW_PRIVATE_ACCESS,__LITTLE_ENDIAN__</Option>
           <Option>-asmopt=-bank</Option>
           <Option>-utf8</Option>
@@ -2093,6 +2239,14 @@
           <Option>-include="C:\ai\claude\rx72n-envision-kit\Middleware\3rdparty\tracealyzer_recorder\config"</Option>
           <Option>-include="C:\ai\claude\rx72n-envision-kit\Middleware\3rdparty\tracealyzer_recorder\streamports\FreeRTOS_Plus_TCP\include"</Option>
           <Option>-include="${ProjDirPath}\src\smc_gen\r_bsp\mcu\rx72n\register_access\ccrx"</Option>
+          <Option>-include="${ProjDirPath}\src\smc_gen\r_tfat_rx\src"</Option>
+          <Option>-include="${ProjDirPath}\src\smc_gen\r_sys_time_rx\src"</Option>
+          <Option>-include="${ProjDirPath}\src\smc_gen\r_tfat_rx"</Option>
+          <Option>-include="${ProjDirPath}\src\smc_gen\r_sys_time_rx"</Option>
+          <Option>-include="${ProjDirPath}\src\smc_gen\r_sdhi_rx"</Option>
+          <Option>-include="${ProjDirPath}\src\smc_gen\r_tfat_driver_rx"</Option>
+          <Option>-include="${ProjDirPath}\src\smc_gen\r_tfat_driver_rx\src"</Option>
+          <Option>-include="${ProjDirPath}\src\smc_gen\r_sdc_sdmem_rx"</Option>
           <Option>-utf8</Option>
           <Option>-bank</Option>
           <Option>-debug</Option>
@@ -2500,8 +2654,35 @@
           <Path>HardwareDebug\r_irq_rx.obj</Path>
           <Path>HardwareDebug\r_glcdc_rx_pinset.obj</Path>
           <Path>HardwareDebug\r_irq_rx_pinset.obj</Path>
+          <Path>HardwareDebug\r_sdhi_rx_pinset.obj</Path>
           <Path>HardwareDebug\r_sci_iic_rx.obj</Path>
           <Path>HardwareDebug\r_sci_iic_rx72n.obj</Path>
+          <Path>HardwareDebug\r_sdc_sdmem_initialize.obj</Path>
+          <Path>HardwareDebug\r_sdc_sdmem_param.obj</Path>
+          <Path>HardwareDebug\r_sdc_sdmem_read.obj</Path>
+          <Path>HardwareDebug\r_sdc_sdmem_util.obj</Path>
+          <Path>HardwareDebug\r_sdc_sdmem_wrapper.obj</Path>
+          <Path>HardwareDebug\r_sdc_sdmem_write.obj</Path>
+          <Path>HardwareDebug\r_sdc_sd_cd.obj</Path>
+          <Path>HardwareDebug\r_sdc_sd_cmd.obj</Path>
+          <Path>HardwareDebug\r_sdc_sd_config.obj</Path>
+          <Path>HardwareDebug\r_sdc_sd_initialize.obj</Path>
+          <Path>HardwareDebug\r_sdc_sd_int.obj</Path>
+          <Path>HardwareDebug\r_sdc_sd_open.obj</Path>
+          <Path>HardwareDebug\r_sdc_sd_trans.obj</Path>
+          <Path>HardwareDebug\r_sdc_sd_util.obj</Path>
+          <Path>HardwareDebug\r_sdc_sd_wrapper.obj</Path>
+          <Path>HardwareDebug\r_sdhi_int.obj</Path>
+          <Path>HardwareDebug\r_sdhi_open.obj</Path>
+          <Path>HardwareDebug\r_sdhi_util.obj</Path>
+          <Path>HardwareDebug\r_sdhi_dev.obj</Path>
+          <Path>HardwareDebug\r_sdhi_register.obj</Path>
+          <Path>HardwareDebug\r_sys_time_rx.obj</Path>
+          <Path>HardwareDebug\r_tfat_drv_if_sdmem.obj</Path>
+          <Path>HardwareDebug\r_tfat_drv_if.obj</Path>
+          <Path>HardwareDebug\ff.obj</Path>
+          <Path>HardwareDebug\ffsystem.obj</Path>
+          <Path>HardwareDebug\ffunicode.obj</Path>
           <Path>HardwareDebug\r_tsip_rx_function000.obj</Path>
           <Path>HardwareDebug\r_tsip_rx_function001.obj</Path>
           <Path>HardwareDebug\r_tsip_rx_function002.obj</Path>
@@ -2773,6 +2954,11 @@
         <NoTargetFile Target="..\..\..\Middleware\3rdparty\tracealyzer_recorder\streamports\TCPIP_Win32\trcStreamingPort.c"/>
         <NoTargetFile Target="..\..\..\Middleware\3rdparty\tracealyzer_recorder\streamports\USB_CDC\trcStreamingPort.c"/>
         <NoTargetFile Target="..\..\..\Middleware\3rdparty\tracealyzer_recorder\trcSnapshotRecorder.c"/>
+        <NoTargetFile Target="src\smc_gen\r_tfat_driver_rx\src\device\mmc\r_tfat_drv_if_mmc.c"/>
+        <NoTargetFile Target="src\smc_gen\r_tfat_driver_rx\src\device\serial_flash\r_tfat_drv_if_flash.c"/>
+        <NoTargetFile Target="src\smc_gen\r_tfat_driver_rx\src\device\spi_sdmem\r_tfat_drv_if_spi_sdmem.c"/>
+        <NoTargetFile Target="src\smc_gen\r_tfat_driver_rx\src\device\usb\r_tfat_drv_if_usb.c"/>
+        <NoTargetFile Target="src\smc_gen\r_tfat_driver_rx\src\device\usb_mini\r_tfat_drv_if_usb_mini.c"/>
         <CommonOptions>
           <IncludePathForC>"${ProjDirPath}\src\regen_safe"</IncludePathForC>
           <IncludePathForC>"${ProjDirPath}\src\smc_gen\r_bsp"</IncludePathForC>
@@ -2872,6 +3058,14 @@
           <IncludePathForC>"C:\ai\claude\rx72n-envision-kit\Middleware\3rdparty\tracealyzer_recorder\config"</IncludePathForC>
           <IncludePathForC>"C:\ai\claude\rx72n-envision-kit\Middleware\3rdparty\tracealyzer_recorder\streamports\FreeRTOS_Plus_TCP\include"</IncludePathForC>
           <IncludePathForC>"${ProjDirPath}\src\smc_gen\r_bsp\mcu\rx72n\register_access\ccrx"</IncludePathForC>
+          <IncludePathForC>"${ProjDirPath}\src\smc_gen\r_tfat_rx\src"</IncludePathForC>
+          <IncludePathForC>"${ProjDirPath}\src\smc_gen\r_sys_time_rx\src"</IncludePathForC>
+          <IncludePathForC>"${ProjDirPath}\src\smc_gen\r_tfat_rx"</IncludePathForC>
+          <IncludePathForC>"${ProjDirPath}\src\smc_gen\r_sys_time_rx"</IncludePathForC>
+          <IncludePathForC>"${ProjDirPath}\src\smc_gen\r_sdhi_rx"</IncludePathForC>
+          <IncludePathForC>"${ProjDirPath}\src\smc_gen\r_tfat_driver_rx"</IncludePathForC>
+          <IncludePathForC>"${ProjDirPath}\src\smc_gen\r_tfat_driver_rx\src"</IncludePathForC>
+          <IncludePathForC>"${ProjDirPath}\src\smc_gen\r_sdc_sdmem_rx"</IncludePathForC>
           <IncludePathForAsm>"${ProjDirPath}\src\smc_gen\r_flash_rx"</IncludePathForAsm>
           <IncludePathForAsm>"${ProjDirPath}\src\smc_gen\r_flash_rx\src\flash_type_1"</IncludePathForAsm>
           <IncludePathForAsm>"${ProjDirPath}\src\smc_gen\general"</IncludePathForAsm>
@@ -2919,6 +3113,14 @@
           <IncludePathForAsm>"C:\ai\claude\rx72n-envision-kit\Middleware\3rdparty\tracealyzer_recorder\config"</IncludePathForAsm>
           <IncludePathForAsm>"C:\ai\claude\rx72n-envision-kit\Middleware\3rdparty\tracealyzer_recorder\streamports\FreeRTOS_Plus_TCP\include"</IncludePathForAsm>
           <IncludePathForAsm>"${ProjDirPath}\src\smc_gen\r_bsp\mcu\rx72n\register_access\ccrx"</IncludePathForAsm>
+          <IncludePathForAsm>"${ProjDirPath}\src\smc_gen\r_tfat_rx\src"</IncludePathForAsm>
+          <IncludePathForAsm>"${ProjDirPath}\src\smc_gen\r_sys_time_rx\src"</IncludePathForAsm>
+          <IncludePathForAsm>"${ProjDirPath}\src\smc_gen\r_tfat_rx"</IncludePathForAsm>
+          <IncludePathForAsm>"${ProjDirPath}\src\smc_gen\r_sys_time_rx"</IncludePathForAsm>
+          <IncludePathForAsm>"${ProjDirPath}\src\smc_gen\r_sdhi_rx"</IncludePathForAsm>
+          <IncludePathForAsm>"${ProjDirPath}\src\smc_gen\r_tfat_driver_rx"</IncludePathForAsm>
+          <IncludePathForAsm>"${ProjDirPath}\src\smc_gen\r_tfat_driver_rx\src"</IncludePathForAsm>
+          <IncludePathForAsm>"${ProjDirPath}\src\smc_gen\r_sdc_sdmem_rx"</IncludePathForAsm>
           <MacroForC>MBEDTLS_CONFIG_FILE=&lt;"aws_mbedtls_config.h"&gt;</MacroForC>
           <MacroForC>CONFIG_FREERTOS_ASSERT_FAIL_ABORT</MacroForC>
           <MacroForC>CONFIG_MEDTLS_USE_AFR_MEMORY</MacroForC>

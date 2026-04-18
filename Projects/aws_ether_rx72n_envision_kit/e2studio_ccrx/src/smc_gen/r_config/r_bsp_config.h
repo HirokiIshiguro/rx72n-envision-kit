@@ -130,13 +130,13 @@ NOTE: The RAM areas are not contiguous.It is separated by 512 KB each.
    Character(s) = Description
    2N           = RX72N Group
 */
-#define BSP_CFG_MCU_PART_GROUP          ("RX72N") /* Generated value. Do not edit this manually */
+#define BSP_CFG_MCU_PART_GROUP          (0x0)     /* Phase 8b 第3次 段階5-3 (#51): SC が ("RX72N") string を生成したが mcu_info.h:59 は integer 比較 (== 0x0)。legacy / boot_loader と整合する (0x0) へ手動修正。 */
 
 /* Series name.
    Character(s) = Description
    57           = RX700 Series
 */
-#define BSP_CFG_MCU_PART_SERIES         ("RX700") /* Generated value. Do not edit this manually */
+#define BSP_CFG_MCU_PART_SERIES         (0x0)     /* Phase 8b 第3次 段階5-3 (#51): SC が ("RX700") string を生成したが mcu_info.h:49 は integer 比較 (== 0x0) のため build error 化。legacy / boot_loader と整合する (0x0) へ手動修正。SC 再生成で再上書きされる可能性あり、その都度修正。 */
 
 /* Memory type.
    Character(s) = Value for macro = Description
