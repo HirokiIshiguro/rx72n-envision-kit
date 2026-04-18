@@ -15,6 +15,7 @@
 
 #include "FreeRTOS.h"
 #include "task.h"
+#include "semphr.h"
 
 #include "GUI.h"
 #include "DIALOG.h"
@@ -107,14 +108,18 @@ typedef struct _task_info
 
 extern TASK_INFO * get_task_info( void );
 
-/* Legacy firmware update API stubs.
- * 段階5-4 で `firm_update.c` / `sdcard_task.c` を v3 に取り込む際、本宣言は
- * 正式な firm_update.h に置き換わる予定。それまでは AppWizard CustomCode
- * (ID_SCREEN_01_Slots.c の SD update ボタンハンドラ) が link 解決できる
- * ようにスタブ実装を提供する。
- */
-extern bool is_firmware_updating( void );
-extern void firmware_update_request( const char * file_name );
+/* Phase 8b 第3次 段階5-4c-2 (#56): firm_update.c / bank_swap.c が code flash
+ * 並行アクセスを防ぐために `xSemaphoreTake/Give(xSemaphoreCodeFlashAccess, ...)` で
+ * 排他制御する。legacy aws_demos の rx72n_envision_kit_system.h で同名で declare
+ * されていた global semaphore handle を v3 にも持ち込む。実体定義と
+ * `xSemaphoreCreateBinary()` + `xSemaphoreGive()` 初期化は
+ * `rx72n_envision_kit_system.c` の起動時 (or main_task) で行う。 */
+extern SemaphoreHandle_t xSemaphoreCodeFlashAccess;
+
+/* Phase 8b 第3次 段階5-4c-2 (#56): is_firmware_updating / firmware_update_request
+ * は sd_update/firm_update.h が正式宣言を提供するため、ここからは削除。
+ * firmware_update_log_string は legacy 互換 GUI ログ関数で、5-4c-3 で
+ * sdcard_task と一緒に正式実装するまで stub のまま維持。 */
 extern void firmware_update_log_string( TASK_INFO * task_info, const char * msg );
 
 #endif /* RX72N_ENVISION_KIT_SYSTEM_H */
