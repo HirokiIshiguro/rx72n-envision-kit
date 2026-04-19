@@ -82,6 +82,16 @@ extern void serial_flash_task( void * pvParameters );
 #define appmainSERIAL_FLASH_TASK_STACK_SIZE       ( 4096 )
 #define appmainSERIAL_FLASH_TASK_PRIORITY         ( tskIDLE_PRIORITY + 1 )
 
+/* Phase 8b 第3次 段階5-6 (rx72n-envision-kit#59): audio task placeholder.
+ * legacy aws_demos の audio_task.c も実装は永久 sleep のみで、実 audio 機能
+ * (SSI codec / DMA driver) は無かった。本 wiring は将来の audio 機能実装に
+ * 備えた main_task / TASK_INFO::audio_task_handle の placeholder。
+ * sdcard / serial_flash と同じローカル static handle / get_task_info() pattern。 */
+extern void audio_task( void * pvParameters );
+
+#define appmainAUDIO_TASK_STACK_SIZE              ( 4096 )
+#define appmainAUDIO_TASK_PRIORITY                ( tskIDLE_PRIORITY + 1 )
+
 EventGroupHandle_t xStartDemoEventGroup = NULL;
 
 bool ApplicationCounter (uint32_t xWaitTime);
@@ -279,6 +289,23 @@ void main_task(void *pvParameters)
                                   appmainSERIAL_FLASH_TASK_PRIORITY,
                                   &s_serial_flash_task_handle );
             get_task_info()->serial_flash_task_handle = s_serial_flash_task_handle;
+        }
+    }
+
+    /* Phase 8b 第3次 段階5-6 (#59): audio task placeholder を起動。
+     * legacy aws_demos と同じく実装は永久 sleep のみで、実 audio 機能は無い。
+     * 段階5-6b 以降で SSI/DMA を取り込んだ際に本実装に差し替える。 */
+    {
+        static TaskHandle_t s_audio_task_handle = NULL;
+        if( s_audio_task_handle == NULL )
+        {
+            ( void ) xTaskCreate( audio_task,
+                                  "audio",
+                                  appmainAUDIO_TASK_STACK_SIZE,
+                                  get_task_info(),
+                                  appmainAUDIO_TASK_PRIORITY,
+                                  &s_audio_task_handle );
+            get_task_info()->audio_task_handle = s_audio_task_handle;
         }
     }
 
