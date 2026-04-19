@@ -18,16 +18,19 @@
  *********************************************************************************************************************/
 /**********************************************************************************************************************
  * File Name    : tcp_send_performance_task.c
- * Description  : Phase 8b 第3次 段階5-7 B-1 (rx72n-envision-kit#60) で legacy aws_demos の同名ファイル
+ * Description  : Phase 8b 第3次 段階5-7 (rx72n-envision-kit#60 / #61) で legacy aws_demos の同名ファイル
  *                (vendors/.../renesas_code/tcp_send_performance_task.c, 168行) を v3 baseline に取り込んだもの。
  *                iperf 互換の TCP throughput 測定 task (送信側)。
  *
  *                v3 移植時の主な置換:
  *                - iot_secure_sockets.h / platform/iot_network.h / GUI.h / DIALOG.h: 本体未使用のため削除
- *                - r_simple_filesystem_on_dataflash (SFD): v3 では LittleFS 置換済のため SFD ベース config
- *                  読み出しブロックを削除。サーバ IP / port は #define で暫定 hardcode (B-2 で KVStore 化)
  *                - SOCKETS_Shutdown: deprecated のため FreeRTOS_shutdown に置換
  *                - r_sys_time_rx_if.h: 本体未使用のため削除
+ *
+ *                B-2 (#61) で SFD ベース config 読み出しの v3 相当として KVStore (store.h) を使用。
+ *                CLI から `conf set tcpperfip 192.168.1.100` / `conf set tcpperfport 5001` で設定可能。
+ *                KVStore に値が無い場合は configPRINTF で warn を出して永久 sleep
+ *                (legacy SFD 不在時と同等の挙動)。
  *********************************************************************************************************************/
 
 #include <stdio.h>
@@ -42,17 +45,9 @@
 #include "FreeRTOS_Sockets.h"
 
 #include "rx72n_envision_kit_system.h"
+#include "store.h"
 
 #define SEND_DATA_UNIT_LENGTH ( 1460 * 3 )
-
-/* Phase 8b 第3次 段階5-7 B-1: SFD ベース config 読み出しの暫定置換。
- * server IP/port は B-2 で KVStore 化する。それまでは個別 build でユーザが
- * 値を変更する想定の placeholder default。 */
-#define TCP_PERF_SERVER_IP_OCTET1   ( 192 )
-#define TCP_PERF_SERVER_IP_OCTET2   ( 168 )
-#define TCP_PERF_SERVER_IP_OCTET3   ( 1 )
-#define TCP_PERF_SERVER_IP_OCTET4   ( 100 )
-#define TCP_PERF_SERVER_PORT        ( 5001 )
 
 void tcp_send_performance_task( void * pvParameters );
 
@@ -64,13 +59,64 @@ void tcp_send_performance_task( void * pvParameters )
     uint32_t tcp_send_performance_server_ip_address;
     struct freertos_sockaddr xIperfServerAddress;
     BaseType_t return_value;
+    char * ip_string = NULL;
+    char * port_string = NULL;
+    size_t ip_length;
+    size_t port_length;
+    unsigned int ip_octet1, ip_octet2, ip_octet3, ip_octet4;
+    unsigned int port_value;
 
     ( void ) pvParameters;
 
-    configPRINTF( ( "tcp_send_performance_task: server %d.%d.%d.%d:%d (B-1 hardcoded)\r\n",
-                    TCP_PERF_SERVER_IP_OCTET1, TCP_PERF_SERVER_IP_OCTET2,
-                    TCP_PERF_SERVER_IP_OCTET3, TCP_PERF_SERVER_IP_OCTET4,
-                    TCP_PERF_SERVER_PORT ) );
+    /* Read iperf server IP / port from KVStore (B-2 で SFD ベース読み出しを置換)。
+     * CLI: `conf set tcpperfip 192.168.1.100` / `conf set tcpperfport 5001` で設定。 */
+    ip_length = prvGetCacheEntryLength( KVS_TCP_PERF_SERVER_IP );
+    port_length = prvGetCacheEntryLength( KVS_TCP_PERF_SERVER_PORT );
+
+    if( ( ip_length == 0U ) || ( port_length == 0U ) )
+    {
+        configPRINTF( ( "tcp_send_performance_task: KVStore に tcpperfip / tcpperfport が未設定 (ip_len=%u, port_len=%u)。永久 sleep します。\r\n",
+                        ( unsigned int ) ip_length, ( unsigned int ) port_length ) );
+        while( 1 )
+        {
+            vTaskDelay( 0xffffffff );
+        }
+    }
+
+    ip_string = GetStringValue( KVS_TCP_PERF_SERVER_IP, ip_length );
+    port_string = GetStringValue( KVS_TCP_PERF_SERVER_PORT, port_length );
+
+    if( ( ip_string == NULL ) || ( port_string == NULL ) )
+    {
+        configPRINTF( ( "tcp_send_performance_task: KVStore 読み出し失敗。永久 sleep します。\r\n" ) );
+        if( ip_string != NULL ) { vPortFree( ip_string ); }
+        if( port_string != NULL ) { vPortFree( port_string ); }
+        while( 1 )
+        {
+            vTaskDelay( 0xffffffff );
+        }
+    }
+
+    if( ( sscanf( ip_string, "%u.%u.%u.%u", &ip_octet1, &ip_octet2, &ip_octet3, &ip_octet4 ) != 4 ) ||
+        ( sscanf( port_string, "%u", &port_value ) != 1 ) ||
+        ( ip_octet1 > 255U ) || ( ip_octet2 > 255U ) || ( ip_octet3 > 255U ) || ( ip_octet4 > 255U ) ||
+        ( port_value == 0U ) || ( port_value > 65535U ) )
+    {
+        configPRINTF( ( "tcp_send_performance_task: KVStore の値が不正 (ip=%s, port=%s)。永久 sleep します。\r\n",
+                        ip_string, port_string ) );
+        vPortFree( ip_string );
+        vPortFree( port_string );
+        while( 1 )
+        {
+            vTaskDelay( 0xffffffff );
+        }
+    }
+
+    configPRINTF( ( "tcp_send_performance_task: server %u.%u.%u.%u:%u (KVStore)\r\n",
+                    ip_octet1, ip_octet2, ip_octet3, ip_octet4, port_value ) );
+
+    vPortFree( ip_string );
+    vPortFree( port_string );
 
     /* We should wait for the network to be up before getting time. */
     while( FreeRTOS_IsNetworkUp() == pdFALSE )
@@ -85,11 +131,11 @@ void tcp_send_performance_task( void * pvParameters )
     configASSERT( xSocket != FREERTOS_INVALID_SOCKET );
 
     /* Connect to the iperf server. */
-    tcp_send_performance_server_ip_address = FreeRTOS_inet_addr_quick( TCP_PERF_SERVER_IP_OCTET1,
-                                                                       TCP_PERF_SERVER_IP_OCTET2,
-                                                                       TCP_PERF_SERVER_IP_OCTET3,
-                                                                       TCP_PERF_SERVER_IP_OCTET4 );
-    xIperfServerAddress.sin_port = FreeRTOS_htons( TCP_PERF_SERVER_PORT );
+    tcp_send_performance_server_ip_address = FreeRTOS_inet_addr_quick( ( uint8_t ) ip_octet1,
+                                                                       ( uint8_t ) ip_octet2,
+                                                                       ( uint8_t ) ip_octet3,
+                                                                       ( uint8_t ) ip_octet4 );
+    xIperfServerAddress.sin_port = FreeRTOS_htons( ( uint16_t ) port_value );
     xIperfServerAddress.sin_addr = tcp_send_performance_server_ip_address;
 
     if( FreeRTOS_connect( xSocket, &xIperfServerAddress, sizeof( xIperfServerAddress ) ) == 0 )
