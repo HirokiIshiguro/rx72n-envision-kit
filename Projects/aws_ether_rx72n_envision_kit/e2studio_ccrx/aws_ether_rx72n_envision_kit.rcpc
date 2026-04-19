@@ -860,6 +860,7 @@
         <Category Name="application_code">
           <Path>src\application_code\gui_task.c</Path>
           <Path>src\application_code\main.c</Path>
+          <Path>src\application_code\sdcard_cli_commands.c</Path>
           <Path>src\application_code\user_init.c</Path>
           <Category Name="include">
             <Path>..\..\..\Demos\include\aws_clientcredential.h</Path>
@@ -884,6 +885,20 @@
             <Category Name="rm_littlefs_flash">
               <Path>..\..\..\Common\ports\rm_littlefs_flash\rm_littlefs_flash.c</Path>
             </Category>
+          </Category>
+          <Category Name="sd_update">
+            <Path>src\application_code\sd_update\bank_swap.c</Path>
+            <Path>src\application_code\sd_update\firm_update.c</Path>
+            <Path>src\application_code\sd_update\firm_update.h</Path>
+            <Path>src\application_code\sd_update\r_cryptogram.h</Path>
+            <Path>src\application_code\sd_update\r_sdc_sdmem_rx_demo_pin.c</Path>
+            <Path>src\application_code\sd_update\r_sdc_sdmem_rx_demo_pin.h</Path>
+            <Path>src\application_code\sd_update\r_sdc_sdmem_rx_demo_pin_config.h</Path>
+            <Path>src\application_code\sd_update\r_tfat_lib.h</Path>
+            <Path>src\application_code\sd_update\sdcard_task.c</Path>
+          </Category>
+          <Category Name="serial_flash">
+            <Path>src\application_code\serial_flash\serial_flash_task.c</Path>
           </Category>
         </Category>
         <Category Name="aw">
@@ -1087,10 +1102,14 @@
             <Path>src\smc_gen\r_config\r_emwin_rx_config.h</Path>
             <Path>src\smc_gen\r_config\r_ether_rx_config.h</Path>
             <Path>src\smc_gen\r_config\r_flash_rx_config.h</Path>
+            <Path>src\smc_gen\r_config\r_flash_spi_config.h</Path>
             <Path>src\smc_gen\r_config\r_fwup_config.h</Path>
             <Path>src\smc_gen\r_config\r_glcdc_rx_config.h</Path>
             <Path>src\smc_gen\r_config\r_gpio_rx_config.h</Path>
             <Path>src\smc_gen\r_config\r_irq_rx_config.h</Path>
+            <Path>src\smc_gen\r_config\r_memdrv_rx_config.h</Path>
+            <Path>src\smc_gen\r_config\r_qspi_smstr_rx_config.h</Path>
+            <Path>src\smc_gen\r_config\r_qspi_smstr_rx_pin_config.h</Path>
             <Path>src\smc_gen\r_config\r_s12ad_rx_config.h</Path>
             <Path>src\smc_gen\r_config\r_sci_iic_rx_config.h</Path>
             <Path>src\smc_gen\r_config\r_sci_iic_rx_pin_config.h</Path>
@@ -1442,6 +1461,45 @@
               </Category>
             </Category>
           </Category>
+          <Category Name="r_flash_spi">
+            <Path>src\smc_gen\r_flash_spi\r_flash_spi_if.h</Path>
+            <Path>src\smc_gen\r_flash_spi\readme.txt</Path>
+            <Category Name="doc">
+              <Category Name="en">
+                <Path>src\smc_gen\r_flash_spi\doc\en\r01an2662ej0360-rx-serial.pdf</Path>
+              </Category>
+              <Category Name="ja">
+                <Path>src\smc_gen\r_flash_spi\doc\ja\r01an2662jj0360-rx-serial.pdf</Path>
+              </Category>
+            </Category>
+            <Category Name="src">
+              <Path>src\smc_gen\r_flash_spi\src\r_flash_spi.c</Path>
+              <Path>src\smc_gen\r_flash_spi\src\r_flash_spi_private.h</Path>
+              <Category Name="dev_port">
+                <Path>src\smc_gen\r_flash_spi\src\dev_port\r_flash_spi_dev_port.h</Path>
+                <Category Name="using_gpio_fit_module">
+                  <Path>src\smc_gen\r_flash_spi\src\dev_port\using_gpio_fit_module\r_flash_spi_dev_port_gpio.c</Path>
+                </Category>
+                <Category Name="using_iodefine">
+                  <Path>src\smc_gen\r_flash_spi\src\dev_port\using_iodefine\r_flash_spi_dev_port_iodefine.c</Path>
+                </Category>
+              </Category>
+              <Category Name="driver_interfaces">
+                <Path>src\smc_gen\r_flash_spi\src\driver_interfaces\r_flash_spi_drvif.c</Path>
+              </Category>
+              <Category Name="flash_types">
+                <Path>src\smc_gen\r_flash_spi\src\flash_types\r_flash_spi_type.c</Path>
+                <Category Name="flash_at">
+                  <Path>src\smc_gen\r_flash_spi\src\flash_types\flash_at\r_flash_spi_at_type_sub.c</Path>
+                  <Path>src\smc_gen\r_flash_spi\src\flash_types\flash_at\r_flash_spi_type_sub.h</Path>
+                </Category>
+                <Category Name="flash_mx">
+                  <Path>src\smc_gen\r_flash_spi\src\flash_types\flash_mx\r_flash_spi_mx_type_sub.c</Path>
+                  <Path>src\smc_gen\r_flash_spi\src\flash_types\flash_mx\r_flash_spi_type_sub.h</Path>
+                </Category>
+              </Category>
+            </Category>
+          </Category>
           <Category Name="r_fwup">
             <Path>src\smc_gen\r_fwup\r_fwup_if.h</Path>
             <Category Name="doc">
@@ -1551,6 +1609,29 @@
               <Path>src\smc_gen\r_irq_rx\src\r_irq_rx_private.h</Path>
             </Category>
           </Category>
+          <Category Name="r_memdrv_rx">
+            <Path>src\smc_gen\r_memdrv_rx\r_memdrv_rx_if.h</Path>
+            <Path>src\smc_gen\r_memdrv_rx\readme.txt</Path>
+            <Category Name="doc">
+              <Category Name="en">
+                <Path>src\smc_gen\r_memdrv_rx\doc\en\r01an4548ej0140-rx-serial.pdf</Path>
+              </Category>
+              <Category Name="ja">
+                <Path>src\smc_gen\r_memdrv_rx\doc\ja\r01an4548jj0140-rx-serial.pdf</Path>
+              </Category>
+            </Category>
+            <Category Name="src">
+              <Path>src\smc_gen\r_memdrv_rx\src\r_memdrv_dmac.c</Path>
+              <Path>src\smc_gen\r_memdrv_rx\src\r_memdrv_dtc.c</Path>
+              <Path>src\smc_gen\r_memdrv_rx\src\r_memdrv_qspi.c</Path>
+              <Path>src\smc_gen\r_memdrv_rx\src\r_memdrv_qspix.c</Path>
+              <Path>src\smc_gen\r_memdrv_rx\src\r_memdrv_rsci.c</Path>
+              <Path>src\smc_gen\r_memdrv_rx\src\r_memdrv_rspi.c</Path>
+              <Path>src\smc_gen\r_memdrv_rx\src\r_memdrv_rx.c</Path>
+              <Path>src\smc_gen\r_memdrv_rx\src\r_memdrv_rx_private.h</Path>
+              <Path>src\smc_gen\r_memdrv_rx\src\r_memdrv_sci.c</Path>
+            </Category>
+          </Category>
           <Category Name="r_pincfg">
             <Path>src\smc_gen\r_pincfg\Pin.c</Path>
             <Path>src\smc_gen\r_pincfg\Pin.h</Path>
@@ -1567,6 +1648,29 @@
             <Path>src\smc_gen\r_pincfg\r_sci_rx_pinset.h</Path>
             <Path>src\smc_gen\r_pincfg\r_sdhi_rx_pinset.c</Path>
             <Path>src\smc_gen\r_pincfg\r_sdhi_rx_pinset.h</Path>
+          </Category>
+          <Category Name="r_qspi_smstr_rx">
+            <Path>src\smc_gen\r_qspi_smstr_rx\r_qspi_smstr_rx_if.h</Path>
+            <Path>src\smc_gen\r_qspi_smstr_rx\readme.txt</Path>
+            <Category Name="doc">
+              <Category Name="en">
+                <Path>src\smc_gen\r_qspi_smstr_rx\doc\en\r01an1940ej0130-rx-serial.pdf</Path>
+              </Category>
+              <Category Name="ja">
+                <Path>src\smc_gen\r_qspi_smstr_rx\doc\ja\r01an1940jj0130-rx-serial.pdf</Path>
+              </Category>
+            </Category>
+            <Category Name="src">
+              <Path>src\smc_gen\r_qspi_smstr_rx\src\r_qspi_smstr.c</Path>
+              <Path>src\smc_gen\r_qspi_smstr_rx\src\r_qspi_smstr_private.h</Path>
+              <Category Name="targets">
+                <Category Name="rx72n">
+                  <Path>src\smc_gen\r_qspi_smstr_rx\src\targets\rx72n\r_qspi_smstr_target.c</Path>
+                  <Path>src\smc_gen\r_qspi_smstr_rx\src\targets\rx72n\r_qspi_smstr_target.h</Path>
+                  <Path>src\smc_gen\r_qspi_smstr_rx\src\targets\rx72n\r_qspi_smstr_target_dev_port.c</Path>
+                </Category>
+              </Category>
+            </Category>
           </Category>
           <Category Name="r_s12ad_rx">
             <Path>src\smc_gen\r_s12ad_rx\r_s12ad_rx_if.h</Path>
@@ -2164,7 +2268,7 @@
           <Option>-include="C:\ai\claude\rx72n-envision-kit\Middleware\3rdparty\tracealyzer_recorder\Include"</Option>
           <Option>-include="C:\ai\claude\rx72n-envision-kit\Middleware\3rdparty\tracealyzer_recorder\config"</Option>
           <Option>-include="C:\ai\claude\rx72n-envision-kit\Middleware\3rdparty\tracealyzer_recorder\streamports\FreeRTOS_Plus_TCP\include"</Option>
-          <Option>-include="${ProjDirPath}\src\smc_gen\r_bsp\mcu\rx72n\register_access\ccrx"</Option>
+          <Option>-include="${ProjDirPath}\src\application_code\sd_update"</Option>
           <Option>-include="${ProjDirPath}\src\smc_gen\r_tfat_rx\src"</Option>
           <Option>-include="${ProjDirPath}\src\smc_gen\r_sys_time_rx\src"</Option>
           <Option>-include="${ProjDirPath}\src\smc_gen\r_tfat_rx"</Option>
@@ -2173,6 +2277,9 @@
           <Option>-include="${ProjDirPath}\src\smc_gen\r_tfat_driver_rx"</Option>
           <Option>-include="${ProjDirPath}\src\smc_gen\r_tfat_driver_rx\src"</Option>
           <Option>-include="${ProjDirPath}\src\smc_gen\r_sdc_sdmem_rx"</Option>
+          <Option>-include="${ProjDirPath}\src\smc_gen\r_memdrv_rx"</Option>
+          <Option>-include="${ProjDirPath}\src\smc_gen\r_flash_spi"</Option>
+          <Option>-include="${ProjDirPath}\src\smc_gen\r_qspi_smstr_rx"</Option>
           <Option>-define=MBEDTLS_CONFIG_FILE=&lt;"aws_mbedtls_config.h"&gt;,CONFIG_FREERTOS_ASSERT_FAIL_ABORT,CONFIG_MEDTLS_USE_AFR_MEMORY,MBEDTLS_ERROR_C,MBEDTLS_ALLOW_PRIVATE_ACCESS,__LITTLE_ENDIAN__</Option>
           <Option>-asmopt=-bank</Option>
           <Option>-utf8</Option>
@@ -2238,7 +2345,7 @@
           <Option>-include="C:\ai\claude\rx72n-envision-kit\Middleware\3rdparty\tracealyzer_recorder\Include"</Option>
           <Option>-include="C:\ai\claude\rx72n-envision-kit\Middleware\3rdparty\tracealyzer_recorder\config"</Option>
           <Option>-include="C:\ai\claude\rx72n-envision-kit\Middleware\3rdparty\tracealyzer_recorder\streamports\FreeRTOS_Plus_TCP\include"</Option>
-          <Option>-include="${ProjDirPath}\src\smc_gen\r_bsp\mcu\rx72n\register_access\ccrx"</Option>
+          <Option>-include="${ProjDirPath}\src\application_code\sd_update"</Option>
           <Option>-include="${ProjDirPath}\src\smc_gen\r_tfat_rx\src"</Option>
           <Option>-include="${ProjDirPath}\src\smc_gen\r_sys_time_rx\src"</Option>
           <Option>-include="${ProjDirPath}\src\smc_gen\r_tfat_rx"</Option>
@@ -2247,6 +2354,9 @@
           <Option>-include="${ProjDirPath}\src\smc_gen\r_tfat_driver_rx"</Option>
           <Option>-include="${ProjDirPath}\src\smc_gen\r_tfat_driver_rx\src"</Option>
           <Option>-include="${ProjDirPath}\src\smc_gen\r_sdc_sdmem_rx"</Option>
+          <Option>-include="${ProjDirPath}\src\smc_gen\r_memdrv_rx"</Option>
+          <Option>-include="${ProjDirPath}\src\smc_gen\r_flash_spi"</Option>
+          <Option>-include="${ProjDirPath}\src\smc_gen\r_qspi_smstr_rx"</Option>
           <Option>-utf8</Option>
           <Option>-bank</Option>
           <Option>-debug</Option>
@@ -2582,6 +2692,12 @@
           <Path>HardwareDebug\trcKernelPort.obj</Path>
           <Path>HardwareDebug\trcStreamingRecorder.obj</Path>
           <Path>HardwareDebug\gui_task.obj</Path>
+          <Path>HardwareDebug\bank_swap.obj</Path>
+          <Path>HardwareDebug\firm_update.obj</Path>
+          <Path>HardwareDebug\r_sdc_sdmem_rx_demo_pin.obj</Path>
+          <Path>HardwareDebug\sdcard_task.obj</Path>
+          <Path>HardwareDebug\sdcard_cli_commands.obj</Path>
+          <Path>HardwareDebug\serial_flash_task.obj</Path>
           <Path>HardwareDebug\Roboto_16_Normal_EXT_AA4.obj</Path>
           <Path>HardwareDebug\Roboto_24_Normal_EXT_AA4.obj</Path>
           <Path>HardwareDebug\DARK_Button_Down_100x30.obj</Path>
@@ -2646,15 +2762,33 @@
           <Path>HardwareDebug\r_emwin_rx_pid_iic_if.obj</Path>
           <Path>HardwareDebug\r_emwin_rx_pid_spi_if.obj</Path>
           <Path>HardwareDebug\r_emwin_rx_pid_user_if.obj</Path>
+          <Path>HardwareDebug\r_flash_spi_dev_port_gpio.obj</Path>
+          <Path>HardwareDebug\r_flash_spi_dev_port_iodefine.obj</Path>
+          <Path>HardwareDebug\r_flash_spi_drvif.obj</Path>
+          <Path>HardwareDebug\r_flash_spi_at_type_sub.obj</Path>
+          <Path>HardwareDebug\r_flash_spi_mx_type_sub.obj</Path>
+          <Path>HardwareDebug\r_flash_spi_type.obj</Path>
+          <Path>HardwareDebug\r_flash_spi.obj</Path>
           <Path>HardwareDebug\r_glcdc_private.obj</Path>
           <Path>HardwareDebug\r_glcdc_rx.obj</Path>
           <Path>HardwareDebug\r_glcdc_rx72n.obj</Path>
           <Path>HardwareDebug\r_gpio_rx.obj</Path>
           <Path>HardwareDebug\r_gpio_rx72n.obj</Path>
           <Path>HardwareDebug\r_irq_rx.obj</Path>
+          <Path>HardwareDebug\r_memdrv_dmac.obj</Path>
+          <Path>HardwareDebug\r_memdrv_dtc.obj</Path>
+          <Path>HardwareDebug\r_memdrv_qspi.obj</Path>
+          <Path>HardwareDebug\r_memdrv_qspix.obj</Path>
+          <Path>HardwareDebug\r_memdrv_rsci.obj</Path>
+          <Path>HardwareDebug\r_memdrv_rspi.obj</Path>
+          <Path>HardwareDebug\r_memdrv_rx.obj</Path>
+          <Path>HardwareDebug\r_memdrv_sci.obj</Path>
           <Path>HardwareDebug\r_glcdc_rx_pinset.obj</Path>
           <Path>HardwareDebug\r_irq_rx_pinset.obj</Path>
           <Path>HardwareDebug\r_sdhi_rx_pinset.obj</Path>
+          <Path>HardwareDebug\r_qspi_smstr.obj</Path>
+          <Path>HardwareDebug\r_qspi_smstr_target.obj</Path>
+          <Path>HardwareDebug\r_qspi_smstr_target_dev_port.obj</Path>
           <Path>HardwareDebug\r_sci_iic_rx.obj</Path>
           <Path>HardwareDebug\r_sci_iic_rx72n.obj</Path>
           <Path>HardwareDebug\r_sdc_sdmem_initialize.obj</Path>
@@ -3057,7 +3191,7 @@
           <IncludePathForC>"C:\ai\claude\rx72n-envision-kit\Middleware\3rdparty\tracealyzer_recorder\Include"</IncludePathForC>
           <IncludePathForC>"C:\ai\claude\rx72n-envision-kit\Middleware\3rdparty\tracealyzer_recorder\config"</IncludePathForC>
           <IncludePathForC>"C:\ai\claude\rx72n-envision-kit\Middleware\3rdparty\tracealyzer_recorder\streamports\FreeRTOS_Plus_TCP\include"</IncludePathForC>
-          <IncludePathForC>"${ProjDirPath}\src\smc_gen\r_bsp\mcu\rx72n\register_access\ccrx"</IncludePathForC>
+          <IncludePathForC>"${ProjDirPath}\src\application_code\sd_update"</IncludePathForC>
           <IncludePathForC>"${ProjDirPath}\src\smc_gen\r_tfat_rx\src"</IncludePathForC>
           <IncludePathForC>"${ProjDirPath}\src\smc_gen\r_sys_time_rx\src"</IncludePathForC>
           <IncludePathForC>"${ProjDirPath}\src\smc_gen\r_tfat_rx"</IncludePathForC>
@@ -3066,6 +3200,9 @@
           <IncludePathForC>"${ProjDirPath}\src\smc_gen\r_tfat_driver_rx"</IncludePathForC>
           <IncludePathForC>"${ProjDirPath}\src\smc_gen\r_tfat_driver_rx\src"</IncludePathForC>
           <IncludePathForC>"${ProjDirPath}\src\smc_gen\r_sdc_sdmem_rx"</IncludePathForC>
+          <IncludePathForC>"${ProjDirPath}\src\smc_gen\r_memdrv_rx"</IncludePathForC>
+          <IncludePathForC>"${ProjDirPath}\src\smc_gen\r_flash_spi"</IncludePathForC>
+          <IncludePathForC>"${ProjDirPath}\src\smc_gen\r_qspi_smstr_rx"</IncludePathForC>
           <IncludePathForAsm>"${ProjDirPath}\src\smc_gen\r_flash_rx"</IncludePathForAsm>
           <IncludePathForAsm>"${ProjDirPath}\src\smc_gen\r_flash_rx\src\flash_type_1"</IncludePathForAsm>
           <IncludePathForAsm>"${ProjDirPath}\src\smc_gen\general"</IncludePathForAsm>
@@ -3112,7 +3249,7 @@
           <IncludePathForAsm>"C:\ai\claude\rx72n-envision-kit\Middleware\3rdparty\tracealyzer_recorder\Include"</IncludePathForAsm>
           <IncludePathForAsm>"C:\ai\claude\rx72n-envision-kit\Middleware\3rdparty\tracealyzer_recorder\config"</IncludePathForAsm>
           <IncludePathForAsm>"C:\ai\claude\rx72n-envision-kit\Middleware\3rdparty\tracealyzer_recorder\streamports\FreeRTOS_Plus_TCP\include"</IncludePathForAsm>
-          <IncludePathForAsm>"${ProjDirPath}\src\smc_gen\r_bsp\mcu\rx72n\register_access\ccrx"</IncludePathForAsm>
+          <IncludePathForAsm>"${ProjDirPath}\src\application_code\sd_update"</IncludePathForAsm>
           <IncludePathForAsm>"${ProjDirPath}\src\smc_gen\r_tfat_rx\src"</IncludePathForAsm>
           <IncludePathForAsm>"${ProjDirPath}\src\smc_gen\r_sys_time_rx\src"</IncludePathForAsm>
           <IncludePathForAsm>"${ProjDirPath}\src\smc_gen\r_tfat_rx"</IncludePathForAsm>
@@ -3121,6 +3258,9 @@
           <IncludePathForAsm>"${ProjDirPath}\src\smc_gen\r_tfat_driver_rx"</IncludePathForAsm>
           <IncludePathForAsm>"${ProjDirPath}\src\smc_gen\r_tfat_driver_rx\src"</IncludePathForAsm>
           <IncludePathForAsm>"${ProjDirPath}\src\smc_gen\r_sdc_sdmem_rx"</IncludePathForAsm>
+          <IncludePathForAsm>"${ProjDirPath}\src\smc_gen\r_memdrv_rx"</IncludePathForAsm>
+          <IncludePathForAsm>"${ProjDirPath}\src\smc_gen\r_flash_spi"</IncludePathForAsm>
+          <IncludePathForAsm>"${ProjDirPath}\src\smc_gen\r_qspi_smstr_rx"</IncludePathForAsm>
           <MacroForC>MBEDTLS_CONFIG_FILE=&lt;"aws_mbedtls_config.h"&gt;</MacroForC>
           <MacroForC>CONFIG_FREERTOS_ASSERT_FAIL_ABORT</MacroForC>
           <MacroForC>CONFIG_MEDTLS_USE_AFR_MEMORY</MacroForC>

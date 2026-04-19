@@ -213,7 +213,16 @@
 
 #elif (TRC_CFG_HARDWARE_PORT == TRC_HARDWARE_PORT_Renesas_RX600)
 
-	#include "iodefine.h"
+	/* Phase 8b 第3次 段階5-5 (#58): iodefine.h を r_bsp 経由の相対パスで取り込む。
+	 * 1. `register_access/ccrx` を .cproject に直接追加するのは SC 再生成で消える
+	 *    (= SC 環境では非推奨)。
+	 * 2. `platform.h` 直 include は BSP 連鎖で FreeRTOS 型衝突 (TaskHandle_t 等
+	 *    undefined) を起こすため不可 (FreeRTOSConfig.h チェーン汚染)。
+	 * r_bsp.h 自身が `mcu/rx72n/register_access/ccrx/iodefine.h` で参照しており、
+	 * `${ProjName}/src/smc_gen/r_bsp` が既存 include path にあるので同じ相対パスで
+	 * 解決できる。iodefine.h 本体は include 文なしのピュアレジスタ定義のため連鎖
+	 * 汚染も発生しない。 */
+	#include "mcu/rx72n/register_access/ccrx/iodefine.h"
 
 	#if (TRC_CFG_RECORDER_MODE == TRC_RECORDER_MODE_STREAMING)	
 		

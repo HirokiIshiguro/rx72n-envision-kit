@@ -88,6 +88,15 @@ function Find-Artifacts {
     }
 }
 
+$postgenPatch = Join-Path $PSScriptRoot "sc_postgen_patch.py"
+if (Test-Path $postgenPatch) {
+    Write-Host "=== sc_postgen_patch (BSP_CFG_MCU_PART_* string -> integer) ==="
+    & python $postgenPatch
+    if ($LASTEXITCODE -ne 0) {
+        throw "sc_postgen_patch.py failed with exit code $LASTEXITCODE"
+    }
+}
+
 try {
     & $E2Studio @e2base @imports -build all 2>&1 | Tee-Object -FilePath $logFile | Out-Null
     $e2exit = $LASTEXITCODE

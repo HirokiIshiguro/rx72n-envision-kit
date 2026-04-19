@@ -1,0 +1,301 @@
+/***********************************************************************************************************************
+* Copyright (c) 2014 - 2025 Renesas Electronics Corporation and/or its affiliates
+*
+* SPDX-License-Identifier: BSD-3-Clause
+***********************************************************************************************************************/
+/***********************************************************************************************************************
+* System Name  : FLASH SPI driver software
+* File Name    : r_flash_spi_dev_port_gpio.c
+* Version      : 3.51
+* Device       : -
+* Abstract     : Device port file
+* Tool-Chain   : -
+* OS           : not use
+* H/W Platform : -
+* Description  : SPI FLASH driver device port source file
+* Limitation   : None
+***********************************************************************************************************************/
+/***********************************************************************************************************************
+* History      : DD.MM.YYYY Version  Description
+*              : 23.07.2014 2.21     Created
+*              : 29.05.2015 2.32     Revised functions of same as Ver.2.32 of EEPROM SPI FIT module.
+*              : 20.05.2019 3.01     Added support for GNUC and ICCRX.
+*                                    Fixed coding style.
+*              : 10.12.2020 3.02     Fixed a bug that build warning and link error occur
+*                                    when GPIO module Firmware Integration Technology and
+*                                    MPC module Firmware Integration Technology are used together.
+*              : 30.06.2022 3.10     Set PORTX as the default port assigned to SS#
+*              : 15.03.2025 3.51     Updated disclaimer.
+***********************************************************************************************************************/
+
+
+/************************************************************************************************
+Includes <System Includes> , "Project Includes"
+*************************************************************************************************/
+#include "r_flash_spi_if.h"                      /* FLASH driver I/F definitions                 */
+#include "r_flash_spi_config.h"                  /* FLASH driver Configuration definitions       */
+#include "../../r_flash_spi_private.h"           /* FLASH driver Private module definitions      */
+
+/* Check MCU Group. */
+#if (defined(FLASH_SPI_CFG_USE_FIT) && (FLASH_SPI_CFG_USE_GPIO_MPC_FIT == 1))
+
+/* Check the value of the port is usable or not */
+#if !defined(FLASH_SPI_TEMPORARY_DISABLE_DEV_PORT)
+
+/************************************************************************************************
+Macro definitions
+*************************************************************************************************/
+#define FLASH_SPI_OVERHEAD_LOOP_COUNT   (4)
+        /* Overhead of 20 cycles or 4 loops to call/return from r_scifa_smstr_delaywait() function. */
+#define FLASH_SPI_CPU_CYCLES_PER_LOOP   (5)
+        /* Known number (5) of CPU cycles required to execute the r_scifa_smstr_delaywait() loop. */
+
+
+/************************************************************************************************
+Typedef definitions
+*************************************************************************************************/
+
+
+/************************************************************************************************
+Exported global variables (to be accessed by other files)
+*************************************************************************************************/
+
+
+/************************************************************************************************
+Private global variables and functions
+*************************************************************************************************/
+
+
+/************************************************************************************************
+* Function Name: r_flash_spi_cs_init
+* Description  : Initializes the ports related to the specified device.
+* Arguments    : uint8_t           devno               ;   Device No. (FLASH_SPI_DEVn)
+* Return Value : None
+*------------------------------------------------------------------------------------------------
+* Notes        : None
+*************************************************************************************************/
+void r_flash_spi_cs_init(uint8_t devno)
+{
+    mpc_config_t    config;
+
+    switch (devno)
+    {
+        case FLASH_SPI_DEV0:
+#if (FLASH_SPI_CFG_DEV0_INCLUDED == 1)
+            R_GPIO_PinControl(FLASH_SPI_DEV0_GPIO_CS, GPIO_CMD_ASSIGN_TO_GPIO);
+                                                            /* Use as a general I/O port.       */
+            config.pin_function  = 0x00;
+            config.irq_enable    = 0;
+            config.analog_enable = 0;
+            R_MPC_Write(FLASH_SPI_DEV0_GPIO_CS, &config);  /* Pin Function Select : Hi-Z       */
+            R_GPIO_PinWrite(FLASH_SPI_DEV0_GPIO_CS, GPIO_LEVEL_HIGH);
+                                                            /* Output data is High.             */
+            R_GPIO_PinDirectionSet(FLASH_SPI_DEV0_GPIO_CS, GPIO_DIRECTION_OUTPUT);
+                                                            /* Select output direction.         */
+#endif  /* #if (FLASH_SPI_CFG_DEV0_INCLUDED == 1) */
+        break;
+        case FLASH_SPI_DEV1:
+#if (FLASH_SPI_CFG_DEV1_INCLUDED == 1)
+            R_GPIO_PinControl(FLASH_SPI_DEV1_GPIO_CS, GPIO_CMD_ASSIGN_TO_GPIO);
+                                                            /* Use as a general I/O port.       */
+            config.pin_function  = 0x00;
+            config.irq_enable    = 0;
+            config.analog_enable = 0;
+            R_MPC_Write(FLASH_SPI_DEV1_GPIO_CS, &config);  /* Pin Function Select : Hi-Z       */
+            R_GPIO_PinWrite(FLASH_SPI_DEV1_GPIO_CS, GPIO_LEVEL_HIGH);
+                                                            /* Output data is High.             */
+            R_GPIO_PinDirectionSet(FLASH_SPI_DEV1_GPIO_CS, GPIO_DIRECTION_OUTPUT);
+                                                            /* Select output direction.         */
+#endif  /* #if (FLASH_SPI_CFG_DEV1_INCLUDED == 1) */
+        break;
+        default:
+            /* Do nothing. */
+        break;
+    }
+}
+
+
+/************************************************************************************************
+* Function Name: r_flash_spi_cs_reset
+* Description  : Resets the ports related to the specified device.
+* Arguments    : uint8_t           devno               ;   Device No. (FLASH_SPI_DEVn)
+* Return Value : None
+*------------------------------------------------------------------------------------------------
+* Notes        : None
+*************************************************************************************************/
+void r_flash_spi_cs_reset(uint8_t devno)
+{
+    switch (devno)
+    {
+        case FLASH_SPI_DEV0:
+#if (FLASH_SPI_CFG_DEV0_INCLUDED == 1)
+            R_GPIO_PinControl(FLASH_SPI_DEV0_GPIO_CS, GPIO_CMD_ASSIGN_TO_GPIO);
+                                                            /* Use as a general I/O port.       */
+#endif  /* #if (FLASH_SPI_CFG_DEV0_INCLUDED == 1) */
+        break;
+        case FLASH_SPI_DEV1:
+#if (FLASH_SPI_CFG_DEV1_INCLUDED == 1)
+            R_GPIO_PinControl(FLASH_SPI_DEV1_GPIO_CS, GPIO_CMD_ASSIGN_TO_GPIO);
+                                                            /* Use as a general I/O port.       */
+#endif  /* #if (FLASH_SPI_CFG_DEV1_INCLUDED == 1) */
+        break;
+        default:
+            /* Do nothing. */
+        break;
+    }
+}
+
+
+/************************************************************************************************
+* Function Name: r_flash_spi_set_cs
+* Description  : Sets the state of CS pin.
+* Arguments    : uint8_t           devno               ;   Device No. (FLASH_SPI_DEVn)
+*              : uint8_t           lv                  ;   CS output level
+* Return Value : None
+*------------------------------------------------------------------------------------------------
+* Notes        : None
+*************************************************************************************************/
+void r_flash_spi_set_cs(uint8_t devno, uint8_t lv)
+{
+    gpio_level_t level = GPIO_LEVEL_LOW;
+    
+    if (FLASH_SPI_HI == lv)
+    {
+        level = GPIO_LEVEL_HIGH;
+    }
+    
+    switch (devno)
+    {
+        case FLASH_SPI_DEV0:
+#if (FLASH_SPI_CFG_DEV0_INCLUDED == 1)
+            R_GPIO_PinWrite(FLASH_SPI_DEV0_GPIO_CS, level);
+#endif  /* #if (FLASH_SPI_CFG_DEV0_INCLUDED == 1) */
+        break;
+        case FLASH_SPI_DEV1:
+#if (FLASH_SPI_CFG_DEV1_INCLUDED == 1)
+            R_GPIO_PinWrite(FLASH_SPI_DEV1_GPIO_CS, level);
+#endif  /* #if (FLASH_SPI_CFG_DEV1_INCLUDED == 1) */
+        break;
+        default:
+            /* Do nothing. */
+        break;
+    }
+}
+
+
+/************************************************************************************************
+* Function Name: r_flash_spi_delaywait
+* Description  : This asm loop executes a known number (5) of CPU cycles.
+*              ; If a value of '4' is passed in as an argument,
+*              ; then this function would consume 20 CPU cycles before returning.
+* Arguments    : unsigned long      loop_cnt            ;   The number of 'units' to delay.
+* Return Value : None
+*------------------------------------------------------------------------------------------------
+* Notes        : None
+*************************************************************************************************/
+R_BSP_PRAGMA_STATIC_INLINE_ASM(r_flash_spi_delaywait)
+void r_flash_spi_delaywait (unsigned long loop_cnt)
+{
+    R_BSP_ASM_INTERNAL_USED(loop_cnt)
+    R_BSP_ASM_BEGIN
+    R_BSP_ASM(    BRA.B   R_BSP_ASM_LAB_NEXT(0)     )
+    R_BSP_ASM(    NOP                               )
+    R_BSP_ASM_LAB(0:                                )
+    R_BSP_ASM(    NOP                               )
+    R_BSP_ASM(    SUB     #01H, R1                  )
+    R_BSP_ASM(    BNE.B   R_BSP_ASM_LAB_PREV(0)     )
+    R_BSP_ASM_END
+}
+
+
+/************************************************************************************************
+* Function Name: r_flash_spi_softwaredelay
+* Description  : Delay the specified duration in units and return.
+* Arguments    : uint32_t           delay               ;   The number of 'units' to delay.
+*              : bsp_delay_units_t  units               ;   the 'base' for the units specified.
+*              :                                        ;   Valid values are: BSP_DELAY_MICROSECS,
+*              :                                        ;                     BSP_DELAY_MILLISECS,
+*              :                                        ;                     BSP_DELAY_SECS
+* Return Value : true           ;   if delay executed.
+*              : false          ;   if delay/units combination resulted in overflow/underflow.
+*------------------------------------------------------------------------------------------------
+* Notes        : None
+*************************************************************************************************/
+bool r_flash_spi_softwaredelay(uint32_t delay, bsp_delay_units_t units)
+{
+    uint64_t loop_cnt;
+
+    /* Calculate the number of loops, accounting for the overhead of 20 cycles (4 loops at 5 cycles/loop) */
+    loop_cnt = (((uint64_t)delay * (uint64_t)BSP_ICLK_HZ) / (FLASH_SPI_CPU_CYCLES_PER_LOOP * units))
+                - FLASH_SPI_OVERHEAD_LOOP_COUNT;
+
+    /* Make sure the request is valid and did not result in an overflow. */
+    if ((loop_cnt > 0xFFFFFFFF) || (loop_cnt == 0) ||
+        ((units != BSP_DELAY_MICROSECS) && (units != BSP_DELAY_MILLISECS) && (units != BSP_DELAY_SECS)))
+    {
+        return (false);
+    }
+    r_flash_spi_delaywait((uint32_t)loop_cnt);
+    return (true);
+}
+
+
+/************************************************************************************************
+* Function Name: r_flash_spi_wait_lp
+* Description  : Loop Timer Processing
+* Arguments    : uint8_t            unit                  ;   Timer unit
+* Return Value : FLASH_SPI_SUCCESS                        ;   Successful operation
+*              : FLASH_SPI_ERR_OTHER                      ;   Other error
+*------------------------------------------------------------------------------------------------
+* Notes        : None
+*************************************************************************************************/
+flash_spi_status_t r_flash_spi_wait_lp(uint8_t unit)
+{
+    if (FLASH_SPI_UINT_MICROSECS == unit)
+    {
+        /* Wait timer of us. */
+        if (true != r_flash_spi_softwaredelay(1, BSP_DELAY_MICROSECS))
+        {
+            return FLASH_SPI_ERR_OTHER;
+        }
+    }
+    else
+    {
+        /* Wait timer of ms. */
+        if (true != r_flash_spi_softwaredelay(1, BSP_DELAY_MILLISECS))
+        {
+            return FLASH_SPI_ERR_OTHER;
+        }
+    }
+    return FLASH_SPI_SUCCESS;
+}
+#else
+    #warning "Please select a port number assigned to SS# to enable code support for device port. Check in file r_flash_spi_config.h"
+void r_flash_spi_cs_init(uint8_t devno)
+{
+   /* This is dummy function. */
+    R_BSP_NOP();
+} /* End of function r_flash_spi_cs_init() */
+
+void r_flash_spi_set_cs(uint8_t devno, uint8_t lv)
+{
+    /* This is dummy function. */
+    R_BSP_NOP();
+} /* End of function r_flash_spi_set_cs() */
+
+void r_flash_spi_cs_reset(uint8_t devno)
+{
+    /* This is dummy function. */
+    R_BSP_NOP();
+}  /* End of function r_flash_spi_cs_reset() */
+
+flash_spi_status_t r_flash_spi_wait_lp(uint8_t unit)
+{
+    /* This is dummy function. */
+    return FLASH_SPI_SUCCESS;
+}  /* End of function r_flash_spi_wait_lp() */
+#endif /* #if !defined(FLASH_SPI_TEMPORARY_DISABLE_DEV_PORT) */
+
+#endif  /*#if (defined(FLASH_SPI_CFG_USE_FIT) && (FLASH_SPI_CFG_USE_GPIO_MPC_FIT == 1)) */
+
+/* End of File */

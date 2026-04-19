@@ -380,8 +380,8 @@
         <Item currentVect="39" id="RSPI0_SPTI0" priority="15" usedState="未使用"/>
         <Item currentVect="40" id="RSPI1_SPRI1" priority="15" usedState="未使用"/>
         <Item currentVect="41" id="RSPI1_SPTI1" priority="15" usedState="未使用"/>
-        <Item currentVect="42" id="QSPI_SPRI" priority="15" usedState="未使用"/>
-        <Item currentVect="43" id="QSPI_SPTI" priority="15" usedState="未使用"/>
+        <Item currentVect="42" id="QSPI_SPRI" priority="10" usedState="使用中"/>
+        <Item currentVect="43" id="QSPI_SPTI" priority="10" usedState="使用中"/>
         <Item currentVect="44" id="SDHI_SBFAI" priority="10" usedState="使用中"/>
         <Item currentVect="45" id="MMCIF_MBFAI" priority="15" usedState="未使用"/>
         <Item currentVect="46" id="SSIE0_SSITXI0" priority="15" usedState="未使用"/>
@@ -598,9 +598,10 @@
         <pinItem allocation="27" comments="" direction="None" id="SSDA6" isUsedBySoftware="true" locked="false" operationMode="" status="0"/>
         <pinItem allocation="37$C" comments="" direction="None" id="SDHI_CMD" isUsedBySoftware="true" locked="false" operationMode="" status="0"/>
         <pinItem allocation="36$C" comments="" direction="None" id="SDHI_CLK" isUsedBySoftware="true" locked="false" operationMode="" status="0"/>
-        <pinItem allocation="124" comments="" direction="None" id="IRQ2" isUsedBySoftware="true" locked="false" operationMode="" status="65280"/>
+        <pinItem allocation="124" comments="" direction="None" id="IRQ2" isUsedBySoftware="true" locked="false" operationMode="" status="16711680"/>
         <pinItem allocation="45" comments="" direction="None" id="RXD2" isUsedBySoftware="true" locked="false" operationMode="" status="0"/>
         <pinItem allocation="128" comments="" direction="None" id="RXD7" isUsedBySoftware="true" locked="false" operationMode="" status="0"/>
+        <pinItem allocation="121$B" comments="" direction="None" id="QSPCLK" isUsedBySoftware="true" locked="false" operationMode="" status="0"/>
         <pinItem allocation="129" comments="" direction="None" id="AN115" isUsedBySoftware="true" locked="false" operationMode="" status="0"/>
         <pinItem allocation="127" comments="" direction="None" id="AN117" isUsedBySoftware="true" locked="false" operationMode="" status="0"/>
         <pinItem allocation="65" comments="" direction="None" id="ET0_TX_EN" isUsedBySoftware="true" locked="false" operationMode="" status="0"/>
@@ -611,6 +612,10 @@
         <pinItem allocation="58" comments="" direction="None" id="ET0_CRS" isUsedBySoftware="true" locked="false" operationMode="" status="0"/>
         <pinItem allocation="44" comments="" direction="None" id="TXD2" isUsedBySoftware="true" locked="false" operationMode="" status="0"/>
         <pinItem allocation="80$B" comments="" direction="None" id="LCD_CLK" isUsedBySoftware="true" locked="false" operationMode="" status="0"/>
+        <pinItem allocation="123$B" comments="" direction="None" id="QIO3" isUsedBySoftware="true" locked="false" operationMode="" status="0"/>
+        <pinItem allocation="120$B" comments="" direction="None" id="QIO0" isUsedBySoftware="true" locked="false" operationMode="" status="0"/>
+        <pinItem allocation="124$B" comments="" direction="None" id="QIO2" isUsedBySoftware="true" locked="false" operationMode="" status="16711680"/>
+        <pinItem allocation="119$B" comments="" direction="None" id="QIO1" isUsedBySoftware="true" locked="false" operationMode="" status="0"/>
         <pinItem allocation="22" comments="" direction="None" id="EXTAL" isUsedBySoftware="true" locked="false" operationMode="" status="0"/>
         <pinItem allocation="26" comments="" direction="None" id="SSCL6" isUsedBySoftware="true" locked="false" operationMode="" status="0"/>
         <pinItem allocation="16" comments="" direction="None" id="FINED" isUsedBySoftware="true" locked="false" operationMode="" status="0"/>
@@ -1345,7 +1350,7 @@
             <source description="Components supporting Firmware Integration Technology" display="Firmware Integration Technology" id="com.renesas.smc.tools.swcomponent.fit.source"/>
             <source description="Components supporting Firmware Integration Technology" display="Firmware Integration Technology" id="com.renesas.smc.tools.swcomponent.fit.source"/>
         </configuration>
-        <configuration enable="true" exclude="false" id="7fa17e29-2df0-4559-9123-a86cd416e3ec" inuse="true" name="FreeRTOS_IP">
+        <configuration enable="true" exclude="false" id="2e8ddae3-bf48-4a36-b3e2-494493763128" inuse="true" name="FreeRTOS_IP">
             <component description="依存モジュール: r_ether_rx&#10;FreeRTOS-Plus-TCP is a scalable, open source and thread safe TCP/IP stack for FreeRTOS." detailDescription="FreeRTOS-Plus-TCP is a scalable, open source and thread safe TCP/IP stack for FreeRTOS." display="FreeRTOS-Plus-TCP" id="FreeRTOS_IP202406.01-LTS-rx-1.1.1" version="4.2.2">
                 <gridItem id="ipconfigBYTE_ORDER" selectedIndex="0"/>
                 <gridItem id="ipconfigHAS_DEBUG_PRINTF" selectedIndex="0"/>
@@ -1370,7 +1375,7 @@
             </component>
             <source description="Code generator for Real-time OS" display="RTOS Configurator" id="com.renesas.smc.tools.swcomponent.rtosconfigurator.source"/>
         </configuration>
-        <configuration enable="true" exclude="false" id="44bd8aa8-b53a-43cd-8652-4cb60e1318c8" inuse="true" name="FreeRTOS Object">
+        <configuration enable="true" exclude="false" id="47db9f6e-8494-4835-b191-5efe0b5d1af8" inuse="true" name="FreeRTOS Object">
             <allocatable id="OBJECT" name="OBJECT" type="">
                 <allocatable id="TASK" name="TASK" type="">
                     <allocatable id="TASKOBJECTLINK1" name="TASK" readonly="true" type="">
@@ -1406,7 +1411,7 @@
             <component description="This component is a part of RTOS Configurator feature that allow user to use the GUI to create and configure new object of FreeRTOS." detailDescription="" display="FreeRTOS_Object" id="com.renesas.smc.tools.swcomponent.rtosconfigurator.freertos.object" version="202406.01-LTS-rx-1.1.1"/>
             <source description="Code generator for Real-time OS" display="RTOS Configurator" id="com.renesas.smc.tools.swcomponent.rtosconfigurator.source"/>
         </configuration>
-        <configuration enable="true" exclude="false" id="48086ffd-7255-429b-9218-8d919272deaa" inuse="true" name="LittleFS">
+        <configuration enable="true" exclude="false" id="69ca4cd5-9e19-47f4-9d17-3fb48b8c9f03" inuse="true" name="LittleFS">
             <component description="依存モジュール: なし&#10;LittleFS is a lightweight, fail-safe filesystem designed for microcontrollers." detailDescription="LittleFS is a lightweight, fail-safe filesystem designed for microcontrollers." display="LittleFS" id="LittleFS202406.01-LTS-rx-1.1.1" version="2.5.1">
                 <gridItem id="LFS_FLASH_READ_SIZE" selectedIndex="1"/>
                 <gridItem id="LFS_FLASH_PROGRAM_SIZE" selectedIndex="4"/>
@@ -1416,7 +1421,7 @@
             </component>
             <source description="Code generator for Real-time OS" display="RTOS Configurator" id="com.renesas.smc.tools.swcomponent.rtosconfigurator.source"/>
         </configuration>
-        <configuration enable="true" exclude="false" id="74be6b6e-3c5d-4e00-bee1-1478f7b5286b" inuse="true" name="FreeRTOS_Kernel">
+        <configuration enable="true" exclude="false" id="dc423a4b-a3b0-480e-aad7-d9a0e9e46df8" inuse="true" name="FreeRTOS_Kernel">
             <component description="依存モジュール: なし&#10;FreeRTOS kernel is a real-time operating system (RTOS) designed for building embedded microcontroller applications." detailDescription="FreeRTOS kernel is a real-time operating system (RTOS) designed for building embedded microcontroller applications." display="FreeRTOS Kernel" id="FreeRTOS_Kernel202406.01-LTS-rx-1.1.1" version="11.1.0">
                 <gridItem id="configENABLE_BACKWARD_COMPATIBILITY" selectedIndex="1"/>
                 <gridItem id="configUSE_PREEMPTION" selectedIndex="1"/>
@@ -2144,6 +2149,104 @@
         </configuration>
         <configuration inuse="true" name="r_sys_time_rx">
             <component description="依存モジュール: r_bsp バージョン 5.20&#10;依存モジュール: r_cmt_rx バージョン 4.00&#10;Generic system timer for RX MCUs using CMT module." detailDescription="Generic system timer for RX MCUs using CMT module." display="r_sys_time_rx" id="r_sys_time_rx1.01" version="1.01"/>
+            <source description="Components supporting Firmware Integration Technology" display="Firmware Integration Technology" id="com.renesas.smc.tools.swcomponent.fit.source"/>
+            <source description="Components supporting Firmware Integration Technology" display="Firmware Integration Technology" id="com.renesas.smc.tools.swcomponent.fit.source"/>
+        </configuration>
+        <configuration inuse="true" name="r_flash_spi">
+            <component description="依存モジュール: r_bsp バージョン 7.60&#10;依存モジュール: r_memdrv_rx バージョン 1.40&#10;The Serial Flash memory control software controls the Serial Flash memory devices using a Renesas Electronics' microcomputer." detailDescription="Clock Synchronous Control Module for Serial Flash memory Access" display="r_flash_spi" id="r_flash_spi3.60" version="3.60">
+                <gridItem id="FLASH_SPI_CFG_WEL_CHK" selectedIndex="1"/>
+                <gridItem id="FLASH_SPI_CFG_LONGQ_ENABLE" selectedIndex="0"/>
+                <gridItem id="FLASH_SPI_CFG_USE_GPIO_MPC_FIT" selectedIndex="0"/>
+                <gridItem id="FLASH_SPI_CFG_DEV0_INCLUDED" selectedIndex="1"/>
+                <gridItem id="FLASH_SPI_CFG_DEV1_INCLUDED" selectedIndex="0"/>
+                <gridItem id="FLASH_SPI_CFG_DEV0_MX25L" selectedIndex="1"/>
+                <gridItem id="FLASH_SPI_CFG_DEV0_MX66L" selectedIndex="0"/>
+                <gridItem id="FLASH_SPI_CFG_DEV0_MX25R" selectedIndex="0"/>
+                <gridItem id="FLASH_SPI_CFG_DEV0_AT25QF" selectedIndex="0"/>
+                <gridItem id="FLASH_SPI_CFG_DEV0_MX25U" selectedIndex="0"/>
+                <gridItem id="FLASH_SPI_CFG_DEV1_MX25L" selectedIndex="0"/>
+                <gridItem id="FLASH_SPI_CFG_DEV1_MX66L" selectedIndex="0"/>
+                <gridItem id="FLASH_SPI_CFG_DEV1_MX25R" selectedIndex="0"/>
+                <gridItem id="FLASH_SPI_CFG_DEV1_AT25QF" selectedIndex="0"/>
+                <gridItem id="FLASH_SPI_CFG_DEV1_MX25U" selectedIndex="0"/>
+                <gridItem id="FLASH_SPI_CFG_DEV0_SIZE_512K" selectedIndex="0"/>
+                <gridItem id="FLASH_SPI_CFG_DEV0_SIZE_1M" selectedIndex="0"/>
+                <gridItem id="FLASH_SPI_CFG_DEV0_SIZE_2M" selectedIndex="0"/>
+                <gridItem id="FLASH_SPI_CFG_DEV0_SIZE_4M" selectedIndex="0"/>
+                <gridItem id="FLASH_SPI_CFG_DEV0_SIZE_16M" selectedIndex="0"/>
+                <gridItem id="FLASH_SPI_CFG_DEV0_SIZE_32M" selectedIndex="0"/>
+                <gridItem id="FLASH_SPI_CFG_DEV0_SIZE_64M" selectedIndex="1"/>
+                <gridItem id="FLASH_SPI_CFG_DEV0_SIZE_128M" selectedIndex="0"/>
+                <gridItem id="FLASH_SPI_CFG_DEV0_SIZE_256M" selectedIndex="0"/>
+                <gridItem id="FLASH_SPI_CFG_DEV0_SIZE_512M" selectedIndex="0"/>
+                <gridItem id="FLASH_SPI_CFG_DEV0_SIZE_1G" selectedIndex="0"/>
+                <gridItem id="FLASH_SPI_CFG_DEV1_SIZE_512K" selectedIndex="0"/>
+                <gridItem id="FLASH_SPI_CFG_DEV1_SIZE_1M" selectedIndex="0"/>
+                <gridItem id="FLASH_SPI_CFG_DEV1_SIZE_2M" selectedIndex="0"/>
+                <gridItem id="FLASH_SPI_CFG_DEV1_SIZE_4M" selectedIndex="0"/>
+                <gridItem id="FLASH_SPI_CFG_DEV1_SIZE_16M" selectedIndex="0"/>
+                <gridItem id="FLASH_SPI_CFG_DEV1_SIZE_32M" selectedIndex="0"/>
+                <gridItem id="FLASH_SPI_CFG_DEV1_SIZE_64M" selectedIndex="0"/>
+                <gridItem id="FLASH_SPI_CFG_DEV1_SIZE_128M" selectedIndex="0"/>
+                <gridItem id="FLASH_SPI_CFG_DEV1_SIZE_256M" selectedIndex="0"/>
+                <gridItem id="FLASH_SPI_CFG_DEV1_SIZE_512M" selectedIndex="0"/>
+                <gridItem id="FLASH_SPI_CFG_DEV1_SIZE_1G" selectedIndex="0"/>
+                <gridItem id="FLASH_SPI_CS_DEV0_CFG_PORTNO" selectedIndex="33"/>
+                <gridItem id="FLASH_SPI_CS_DEV0_CFG_BITNO" selectedIndex="0"/>
+                <gridItem id="FLASH_SPI_CS_DEV1_CFG_PORTNO" selectedIndex="33"/>
+                <gridItem id="FLASH_SPI_CS_DEV1_CFG_BITNO" selectedIndex="0"/>
+            </component>
+            <source description="Components supporting Firmware Integration Technology" display="Firmware Integration Technology" id="com.renesas.smc.tools.swcomponent.fit.source"/>
+            <source description="Components supporting Firmware Integration Technology" display="Firmware Integration Technology" id="com.renesas.smc.tools.swcomponent.fit.source"/>
+        </configuration>
+        <configuration inuse="true" name="r_memdrv_rx">
+            <component description="依存モジュール: r_bsp バージョン 7.60&#10;The MEMDRV FIT module functions as an adapter between an upper layer consisting of serial NOR or NAND flash command control middleware and a lower layer consisting of an RSPI, QSPI, SCI (SPI mode) or RSCI (SPI mode) device driver." detailDescription="MEMDRV Driver" display="r_memdrv_rx" id="r_memdrv_rx1.40" version="1.40">
+                <gridItem id="MEMDRV_CFG_DEV0_INCLUDED" selectedIndex="1"/>
+                <gridItem id="MEMDRV_CFG_DEV1_INCLUDED" selectedIndex="0"/>
+                <gridItem id="MEMDRV_CFG_DEV0_MODE_TRNS" selectedIndex="0"/>
+                <gridItem id="MEMDRV_CFG_DEV1_MODE_TRNS" selectedIndex="0"/>
+                <gridItem id="MEMDRV_CFG_DEV0_MODE_DRVR" selectedIndex="1"/>
+                <gridItem id="MEMDRV_CFG_DEV1_MODE_DRVR" selectedIndex="0"/>
+                <gridItem id="MEMDRV_CFG_DEV0_MODE_DRVR_CH" selectedIndex="0"/>
+                <gridItem id="MEMDRV_CFG_DEV1_MODE_DRVR_CH" selectedIndex="0"/>
+                <gridItem id="MEMDRV_CFG_DEV0_TYPE" selectedIndex="0"/>
+                <gridItem id="MEMDRV_CFG_DEV1_TYPE" selectedIndex="0"/>
+                <gridItem id="MEMDRV_CFG_DEV0_BR" selectedIndex="1000000"/>
+                <gridItem id="MEMDRV_CFG_DEV0_BR_WRITE_DATA" selectedIndex="1000000"/>
+                <gridItem id="MEMDRV_CFG_DEV0_BR_READ_DATA" selectedIndex="1000000"/>
+                <gridItem id="MEMDRV_CFG_DEV1_BR" selectedIndex="1000000"/>
+                <gridItem id="MEMDRV_CFG_DEV1_BR_WRITE_DATA" selectedIndex="1000000"/>
+                <gridItem id="MEMDRV_CFG_DEV1_BR_READ_DATA" selectedIndex="1000000"/>
+                <gridItem id="MEMDRV_CFG_DEV0_DMAC_CH_NO_Tx" selectedIndex="0"/>
+                <gridItem id="MEMDRV_CFG_DEV0_DMAC_CH_NO_Rx" selectedIndex="1"/>
+                <gridItem id="MEMDRV_CFG_DEV1_DMAC_CH_NO_Tx" selectedIndex="2"/>
+                <gridItem id="MEMDRV_CFG_DEV1_DMAC_CH_NO_Rx" selectedIndex="3"/>
+                <gridItem id="MEMDRV_CFG_DEV0_DMAC_INT_PRL_Tx" selectedIndex="10"/>
+                <gridItem id="MEMDRV_CFG_DEV0_DMAC_INT_PRL_Rx" selectedIndex="10"/>
+                <gridItem id="MEMDRV_CFG_DEV1_DMAC_INT_PRL_Tx" selectedIndex="10"/>
+                <gridItem id="MEMDRV_CFG_DEV1_DMAC_INT_PRL_Rx" selectedIndex="10"/>
+                <gridItem id="MEMDRV_CFG_PARAM_CHECKING_ENABLE" selectedIndex="2"/>
+                <gridItem id="MEMDRV_CFG_LONGQ_ENABLE" selectedIndex="0"/>
+            </component>
+            <source description="Components supporting Firmware Integration Technology" display="Firmware Integration Technology" id="com.renesas.smc.tools.swcomponent.fit.source"/>
+            <source description="Components supporting Firmware Integration Technology" display="Firmware Integration Technology" id="com.renesas.smc.tools.swcomponent.fit.source"/>
+        </configuration>
+        <configuration inuse="true" name="r_qspi_smstr_rx">
+            <component description="依存モジュール: r_bsp バージョン 7.60&#10;The QSPI built into the RX Family microcontroller is used to implement clock synchronous control. QSPI mode single master control can be enabled by adding slave device selection control by means of port control." detailDescription="QSPI Clock Synchronous Single Master Control Module Using Firmware Integration Technology" display="r_qspi_smstr_rx" id="r_qspi_smstr_rx1.30" version="1.30">
+                <gridItem id="QSPCLK" selectedIndex="1"/>
+                <gridItem id="QMO/QIO0" selectedIndex="1"/>
+                <gridItem id="QMI/QIO1" selectedIndex="1"/>
+                <gridItem id="QIO2" selectedIndex="1"/>
+                <gridItem id="QIO3" selectedIndex="1"/>
+                <gridItem id="QSPI0" selectedIndex="1"/>
+                <gridItem id="QSPI_SMSTR_CFG_USE_FIT" selectedIndex="1"/>
+                <gridItem id="QSPI_SMSTR_CFG_CH0_INCLUDED" selectedIndex="1"/>
+                <gridItem id="QSPI_SMSTR_CFG_LONGQ_ENABLE" selectedIndex="0"/>
+                <gridItem id="QSPI_SMSTR_CFG_CH0_INT_SPTI_LEVEL" selectedIndex="10"/>
+                <gridItem id="QSPI_SMSTR_CFG_CH0_INT_SPRI_LEVEL" selectedIndex="10"/>
+                <gridItem id="QSPI_SMSTR_CFG_SPTI_EN_NESTED_INT" selectedIndex="0"/>
+                <gridItem id="QSPI_SMSTR_CFG_SPRI_EN_NESTED_INT" selectedIndex="0"/>
+            </component>
             <source description="Components supporting Firmware Integration Technology" display="Firmware Integration Technology" id="com.renesas.smc.tools.swcomponent.fit.source"/>
             <source description="Components supporting Firmware Integration Technology" display="Firmware Integration Technology" id="com.renesas.smc.tools.swcomponent.fit.source"/>
         </configuration>

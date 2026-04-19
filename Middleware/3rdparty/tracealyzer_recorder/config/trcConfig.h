@@ -81,17 +81,13 @@ extern "C" {
  * See trcHardwarePort.h for available ports and information on how to
  * define your own port, if not already present.
  ******************************************************************************/
-/* Phase 8b 第3次 段階5-3 (rx72n-envision-kit#51): 暫定的に Renesas_RX600 を
- * 使用 (CMT0 高精度タイマ)。SC 環境では iodefine.h を直接 include する設計
- * は古く、正規には platform.h 経由の BSP 抽象でレジスタにアクセスする想定
- * だが、trcHardwarePort.h の Renesas_RX600 ブロックが #include "iodefine.h"
- * を直書きしているため当面 .cproject 側で iodefine.h パス
- * (src/smc_gen/r_bsp/mcu/rx72n/register_access/ccrx) を include 列に
- * 追加して legacy と同手法で動かす。HWIndependent は critical section 未定義
- * でビルドエラー、APPLICATION_DEFINED + platform.h は FreeRTOSConfig.h
- * チェーン汚染で型衝突、いずれも見送り。Tracealyzer license 取得後の
- * 実機検証で必要なら APPLICATION_DEFINED + 別 .c ラッパー (CMT0 を BSP
- * 経由で隔離する setter / getter) へ昇格させる方が正規。 */
+/* Phase 8b 第3次 段階5-3 (rx72n-envision-kit#51) で Renesas_RX600 ポートを採用
+ * (CMT0 高精度タイマ)。当初 trcHardwarePort.h の `#include "iodefine.h"` 直書きに
+ * 引きずられ .cproject へ register_access/ccrx を追加していたが、SC 再生成で毎回
+ * 消える (= SC 環境では直接参照禁止が正規) ことを 段階5-5 (#58) で再認識。
+ * platform.h 直 include は BSP 連鎖で FreeRTOSConfig.h チェーン汚染を引き起こす
+ * ため不可。最終解として trcHardwarePort.h 側で r_bsp 既存の include path を経由
+ * した相対パス `mcu/rx72n/register_access/ccrx/iodefine.h` で解決する方式に統一。 */
 #define TRC_CFG_HARDWARE_PORT TRC_HARDWARE_PORT_Renesas_RX600
 
 /*******************************************************************************
