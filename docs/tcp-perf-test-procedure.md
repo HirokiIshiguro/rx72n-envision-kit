@@ -190,8 +190,21 @@ iperf3 client 側に throughput 結果。
 
 ## 関連
 
-- Issue: #62 (本ドキュメント整備)
+- Issue: #62 (本ドキュメント整備), #63 (実機 flash trigger 用 MR)
 - 直前 issue: #61 (KVStore + CLI command 化)
 - 親 issue: #48 (段階5 親 tracking)
 - helper script: `test_scripts/uart_test/setup_tcp_perf.py`
 - DUT firmware: `Projects/.../tcp_perf/tcp_send_performance_task.c` / `tcp_receive_performance_task.c`
+
+## 実機 flash trigger note
+
+通常の master pipeline は legacy build のみで v3 build は走らない。実機計測前
+に DUT へ最新 master の v3 firmware を flash するには、以下のいずれかを行う:
+
+1. GitLab UI の「Run Pipeline」で ref=master, Variables に
+   `RUN_V3_BASELINE=true` を追加して trigger
+2. 本リポジトリの feature branch + MR 上で同じく `RUN_V3_BASELINE=true` を渡す
+   (Developer 権限で manual job も play 可能)
+
+flash → download まで完了したら、setup_tcp_perf.py で KVStore 設定 + reset
+し、本ドキュメントの計測手順 A/B に進む。
