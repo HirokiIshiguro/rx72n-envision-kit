@@ -71,11 +71,35 @@ void tcp_receive_performance_task( void * pvParameters )
             vTaskDelay( 300 );
         }
 
-        /* Create the socket. */
-        xListeningSocket = FreeRTOS_socket( FREERTOS_AF_INET,
-                                            FREERTOS_SOCK_STREAM,
-                                            FREERTOS_IPPROTO_TCP );
-        configASSERT( xListeningSocket != FREERTOS_INVALID_SOCKET );
+        /* Network up 後も socket pool / IP task 初期化が settle するまで余裕を待つ
+         * (tcp_send_performance_task と同じ race 対策)。 */
+        vTaskDelay( pdMS_TO_TICKS( 2000 ) );
+
+        /* Create the socket — retry on transient INVALID_SOCKET。 */
+        {
+            int retry;
+            xListeningSocket = FREERTOS_INVALID_SOCKET;
+            for( retry = 0; retry < 30; retry++ )
+            {
+                xListeningSocket = FreeRTOS_socket( FREERTOS_AF_INET,
+                                                    FREERTOS_SOCK_STREAM,
+                                                    FREERTOS_IPPROTO_TCP );
+                if( xListeningSocket != FREERTOS_INVALID_SOCKET )
+                {
+                    break;
+                }
+                configPRINTF( ( "tcp_receive_perf: FreeRTOS_socket() returned INVALID_SOCKET, retry %d/30\r\n", retry + 1 ) );
+                vTaskDelay( pdMS_TO_TICKS( 1000 ) );
+            }
+            if( xListeningSocket == FREERTOS_INVALID_SOCKET )
+            {
+                configPRINTF( ( "tcp_receive_perf: FreeRTOS_socket() failed permanently, sleep forever.\r\n" ) );
+                while( 1 )
+                {
+                    vTaskDelay( 0xffffffff );
+                }
+            }
+        }
 
         /* Set a time out so accept() will just wait for a connection. */
         FreeRTOS_setsockopt( xListeningSocket,

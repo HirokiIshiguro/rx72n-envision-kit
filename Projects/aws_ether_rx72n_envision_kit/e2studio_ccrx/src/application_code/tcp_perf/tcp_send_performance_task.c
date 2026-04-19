@@ -124,11 +124,38 @@ void tcp_send_performance_task( void * pvParameters )
         vTaskDelay( 300 );
     }
 
-    /* Create a socket. */
-    xSocket = FreeRTOS_socket( FREERTOS_AF_INET,
-                               FREERTOS_SOCK_STREAM, /* FREERTOS_SOCK_STREAM for TCP. */
-                               FREERTOS_IPPROTO_TCP );
-    configASSERT( xSocket != FREERTOS_INVALID_SOCKET );
+    /* Network up 後も socket pool / IP task の初期化が settle するまで余裕を待つ。
+     * legacy aws_demos では init 順序の偶然で問題化しなかったが、v3 baseline は
+     * tcp_perf task が高 priority (configMAX_PRIORITIES - 1) のため main_task より
+     * 先に走る。FreeRTOS_socket() が一時的に FREERTOS_INVALID_SOCKET を返す race
+     * があり、configASSERT で system halt → CLI 不能になっていた。 */
+    vTaskDelay( pdMS_TO_TICKS( 2000 ) );
+
+    /* Create a socket — retry on transient INVALID_SOCKET (socket pool warm-up race)。 */
+    {
+        int retry;
+        xSocket = FREERTOS_INVALID_SOCKET;
+        for( retry = 0; retry < 30; retry++ )
+        {
+            xSocket = FreeRTOS_socket( FREERTOS_AF_INET,
+                                       FREERTOS_SOCK_STREAM, /* FREERTOS_SOCK_STREAM for TCP. */
+                                       FREERTOS_IPPROTO_TCP );
+            if( xSocket != FREERTOS_INVALID_SOCKET )
+            {
+                break;
+            }
+            configPRINTF( ( "tcp_send_perf: FreeRTOS_socket() returned INVALID_SOCKET, retry %d/30\r\n", retry + 1 ) );
+            vTaskDelay( pdMS_TO_TICKS( 1000 ) );
+        }
+        if( xSocket == FREERTOS_INVALID_SOCKET )
+        {
+            configPRINTF( ( "tcp_send_perf: FreeRTOS_socket() failed permanently, sleep forever.\r\n" ) );
+            while( 1 )
+            {
+                vTaskDelay( 0xffffffff );
+            }
+        }
+    }
 
     /* Connect to the iperf server. */
     tcp_send_performance_server_ip_address = FreeRTOS_inet_addr_quick( ( uint8_t ) ip_octet1,
