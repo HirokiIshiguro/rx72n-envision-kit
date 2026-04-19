@@ -62,6 +62,10 @@ typedef enum KVStoreKey
 	KVS_TSIP_ROOTCA_PUBKEY_ID,
 	KVS_TSIP_CLIENT_PUBKEY_ID,
 	KVS_TSIP_CLIENT_PRIKEY_ID,
+    /* Phase 8b 第3次 段階5-7 B-2 (#61): TCP perf task の iperf サーバ設定。
+     * legacy SFD ベース config 読み出しの v3 相当として KVStore キーで持つ。 */
+    KVS_TCP_PERF_SERVER_IP,
+    KVS_TCP_PERF_SERVER_PORT,
     KVS_NUM_KEYS
 } KVStoreKey_t;
 
@@ -97,6 +101,8 @@ typedef struct KeyValueStore
 		[ KVS_TSIP_ROOTCA_PUBKEY_ID ] = "tsip_rootca_pub_id",         \
 		[ KVS_TSIP_CLIENT_PUBKEY_ID ] = "tsip_client_pub_id",         \
 		[ KVS_TSIP_CLIENT_PRIKEY_ID ] = "tsip_client_pri_id",         \
+        [ KVS_TCP_PERF_SERVER_IP ] = "tcp_perf_server_ip",            \
+        [ KVS_TCP_PERF_SERVER_PORT ] = "tcp_perf_server_port",        \
 }
 #define CLICMDKEYS                                       \
     {                                                      \
@@ -114,6 +120,8 @@ typedef struct KeyValueStore
 		[ KVS_TSIP_ROOTCA_PUBKEY_ID ] = "tsiprootkey",         \
 		[ KVS_TSIP_CLIENT_PUBKEY_ID ] = "tsippubkey",         \
 		[ KVS_TSIP_CLIENT_PRIKEY_ID ] = "tsipprikey",         \
+        [ KVS_TCP_PERF_SERVER_IP ] = "tcpperfip",              \
+        [ KVS_TCP_PERF_SERVER_PORT ] = "tcpperfport",          \
     }
 typedef enum KVStoreKeytype
 {
