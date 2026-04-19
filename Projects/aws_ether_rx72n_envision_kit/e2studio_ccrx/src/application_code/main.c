@@ -92,6 +92,17 @@ extern void audio_task( void * pvParameters );
 #define appmainAUDIO_TASK_STACK_SIZE              ( 4096 )
 #define appmainAUDIO_TASK_PRIORITY                ( tskIDLE_PRIORITY + 1 )
 
+/* Phase 8b 第3次 段階5-7 B-1 (rx72n-envision-kit#60): TCP performance tasks.
+ * iperf 互換 TCP throughput 測定。legacy aws_demos と同じ priority
+ * configMAX_PRIORITIES (network throughput 優先)。両 task とも自走で
+ * gui_task からの notify 不要。サーバ IP/port は B-1 では #define hardcode、
+ * B-2 で KVStore 化予定。 */
+extern void tcp_send_performance_task( void * pvParameters );
+extern void tcp_receive_performance_task( void * pvParameters );
+
+#define appmainTCP_PERF_TASK_STACK_SIZE           ( 4096 )
+#define appmainTCP_PERF_TASK_PRIORITY             ( configMAX_PRIORITIES - 1 )
+
 EventGroupHandle_t xStartDemoEventGroup = NULL;
 
 bool ApplicationCounter (uint32_t xWaitTime);
@@ -306,6 +317,36 @@ void main_task(void *pvParameters)
                                   appmainAUDIO_TASK_PRIORITY,
                                   &s_audio_task_handle );
             get_task_info()->audio_task_handle = s_audio_task_handle;
+        }
+    }
+
+    /* Phase 8b 第3次 段階5-7 B-1 (#60): TCP performance tasks (iperf 互換) を起動。
+     * legacy aws_demos と同じ高 priority。両 task とも FreeRTOS_IsNetworkUp() を
+     * 自前で待つため gui_task からの notify は不要。 */
+    {
+        static TaskHandle_t s_tcp_send_perf_task_handle = NULL;
+        if( s_tcp_send_perf_task_handle == NULL )
+        {
+            ( void ) xTaskCreate( tcp_send_performance_task,
+                                  "tcp_send_perf",
+                                  appmainTCP_PERF_TASK_STACK_SIZE,
+                                  get_task_info(),
+                                  appmainTCP_PERF_TASK_PRIORITY,
+                                  &s_tcp_send_perf_task_handle );
+            get_task_info()->tcp_send_performance_task_handle = s_tcp_send_perf_task_handle;
+        }
+    }
+    {
+        static TaskHandle_t s_tcp_recv_perf_task_handle = NULL;
+        if( s_tcp_recv_perf_task_handle == NULL )
+        {
+            ( void ) xTaskCreate( tcp_receive_performance_task,
+                                  "tcp_recv_perf",
+                                  appmainTCP_PERF_TASK_STACK_SIZE,
+                                  get_task_info(),
+                                  appmainTCP_PERF_TASK_PRIORITY,
+                                  &s_tcp_recv_perf_task_handle );
+            get_task_info()->tcp_receive_performance_task_handle = s_tcp_recv_perf_task_handle;
         }
     }
 
