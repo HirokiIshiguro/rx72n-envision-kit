@@ -50,6 +50,11 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include "demo_config.h"
 #include "store.h"
 #include "mqtt_agent_task.h"
+
+/* Phase 8b 第3次 段階5-x: get_task_info() / TASK_INFO アクセス用。
+ * gui_task からの xTaskNotifyGive で参照するタスクハンドル群を共有 singleton に
+ * 集約し、legacy aws_demos と同じ task_info ベース wiring を復活させる。 */
+#include "rx72n_envision_kit_system.h"
 /* r_simple_glcdc_config_rx / r_simple_graphic_rx removed in Phase 8b 第3次
  * 段階5-1 first checkpoint (MR !85). LCD output now goes through emWin via
  * gui_task (legacy-aligned APPW_X_Setup → APPW_Init → APPW_CreateRoot
@@ -253,15 +258,16 @@ void main_task(void *pvParameters)
             ( void ) xTaskCreate( sdcard_task,
                                   "sdcard",
                                   appmainSDCARD_TASK_STACK_SIZE,
-                                  NULL,
+                                  get_task_info(),
                                   appmainSDCARD_TASK_PRIORITY,
                                   &s_sdcard_task_handle );
+            get_task_info()->sdcard_task_handle = s_sdcard_task_handle;
         }
     }
 
     /* Phase 8b 第3次 段階5-5 (#58): serial flash (Quad SPI) task を起動。
      * Macronix MX25L 32Mbit に対する erase/write/read テスト harness。
-     * gui_task からの xTaskNotifyGive が復活するまで ulTaskNotifyTake で永久待機する。 */
+     * gui_task からの xTaskNotifyGive で wake-up される (段階5-x で復活)。 */
     {
         static TaskHandle_t s_serial_flash_task_handle = NULL;
         if( s_serial_flash_task_handle == NULL )
@@ -269,9 +275,10 @@ void main_task(void *pvParameters)
             ( void ) xTaskCreate( serial_flash_task,
                                   "serial_flash",
                                   appmainSERIAL_FLASH_TASK_STACK_SIZE,
-                                  NULL,
+                                  get_task_info(),
                                   appmainSERIAL_FLASH_TASK_PRIORITY,
                                   &s_serial_flash_task_handle );
+            get_task_info()->serial_flash_task_handle = s_serial_flash_task_handle;
         }
     }
 
@@ -420,9 +427,10 @@ static void prvDisplayInitialize( void )
         ( void ) xTaskCreate( gui_task,
                               "gui",
                               appmainGUI_TASK_STACK_SIZE,
-                              NULL,
+                              get_task_info(),
                               appmainGUI_TASK_PRIORITY,
                               &s_gui_task_handle );
+        get_task_info()->gui_task_handle = s_gui_task_handle;
     }
 }
 /*-----------------------------------------------------------*/
