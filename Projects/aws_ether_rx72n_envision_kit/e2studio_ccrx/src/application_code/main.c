@@ -66,6 +66,17 @@ extern void sdcard_task( void * pvParameters );
 #define appmainSDCARD_TASK_STACK_SIZE             ( 4096 )
 #define appmainSDCARD_TASK_PRIORITY               ( tskIDLE_PRIORITY + 1 )
 
+/* Phase 8b 第3次 段階5-5 (rx72n-envision-kit#58): serial flash (Quad SPI) task.
+ * legacy aws_demos main_task は xTaskCreate(serial_flash_task, "serial_flash",
+ * RX72N_ENVISION_KIT_TASKS_STACK, &task_info, tskIDLE_PRIORITY, ...) で起動していた。
+ * v3 baseline では task_info 共有と gui_task からの xTaskNotifyGive が未復活のため、
+ * sdcard_task と同じローカル static handle / NULL pvParameters / +1 priority に揃える。
+ * notify wiring の復活は段階5-x で gui_task と一括で行う想定。 */
+extern void serial_flash_task( void * pvParameters );
+
+#define appmainSERIAL_FLASH_TASK_STACK_SIZE       ( 4096 )
+#define appmainSERIAL_FLASH_TASK_PRIORITY         ( tskIDLE_PRIORITY + 1 )
+
 EventGroupHandle_t xStartDemoEventGroup = NULL;
 
 bool ApplicationCounter (uint32_t xWaitTime);
@@ -245,6 +256,22 @@ void main_task(void *pvParameters)
                                   NULL,
                                   appmainSDCARD_TASK_PRIORITY,
                                   &s_sdcard_task_handle );
+        }
+    }
+
+    /* Phase 8b 第3次 段階5-5 (#58): serial flash (Quad SPI) task を起動。
+     * Macronix MX25L 32Mbit に対する erase/write/read テスト harness。
+     * gui_task からの xTaskNotifyGive が復活するまで ulTaskNotifyTake で永久待機する。 */
+    {
+        static TaskHandle_t s_serial_flash_task_handle = NULL;
+        if( s_serial_flash_task_handle == NULL )
+        {
+            ( void ) xTaskCreate( serial_flash_task,
+                                  "serial_flash",
+                                  appmainSERIAL_FLASH_TASK_STACK_SIZE,
+                                  NULL,
+                                  appmainSERIAL_FLASH_TASK_PRIORITY,
+                                  &s_serial_flash_task_handle );
         }
     }
 

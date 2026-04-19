@@ -32,7 +32,11 @@
         <Setting id="P33" value="SSCL6"/>
         <Setting id="P36" value="EXTAL"/>
         <Setting id="P37" value="XTAL"/>
-        <Setting id="PD2" value="IRQ2"/>
+        <Setting id="PD3" value="QIO3"/>
+        <Setting id="PD2" value="QIO2"/>
+        <Setting id="PD5" value="QSPCLK"/>
+        <Setting id="PD7" value="QIO1"/>
+        <Setting id="PD6" value="QIO0"/>
         <Setting id="P81" value="ET0_ETXD0"/>
         <Setting id="P80" value="ET0_TX_EN"/>
         <Setting id="P83" value="ET0_CRS"/>
@@ -104,13 +108,16 @@
         <Setting id="r_glcdc_rx" value="FIT"/>
         <Setting id="r_tsip_rx" value="FIT"/>
         <Setting id="r_fwup" value="FIT"/>
+        <Setting id="r_flash_spi" value="FIT"/>
         <Setting id="LittleFS" value=""/>
         <Setting id="r_gpio_rx" value="FIT"/>
         <Setting id="r_sdc_sdmem_rx" value="FIT"/>
         <Setting id="r_ether_rx" value="FIT"/>
         <Setting id="r_irq_rx" value="FIT"/>
+        <Setting id="r_qspi_smstr_rx" value="FIT"/>
         <Setting id="FreeRTOS Object" value=""/>
         <Setting id="FreeRTOS_IP" value=""/>
+        <Setting id="r_memdrv_rx" value="FIT"/>
         <Setting id="FreeRTOS_Kernel" value=""/>
         <Segment component="r_bsp7.52" id="r_bsp" source="com.renesas.smc.tools.swcomponent.fit.source">
             <Setting id="BSP_CFG_SWINT_UNIT1_ENABLE" value="0"/>
@@ -835,6 +842,49 @@
             <Setting id="FWUP_CFG_DF_ADDR_L" value="0x00100000"/>
             <Setting id="FWUP_CFG_USER_FLASH_ERASE_FUNCTION" value="ota_flash_erase_function"/>
         </Segment>
+        <Segment component="r_flash_spi3.60" id="r_flash_spi" source="com.renesas.smc.tools.swcomponent.fit.source">
+            <Setting id="FLASH_SPI_CFG_DEV0_SIZE_2M" value="0"/>
+            <Setting id="FLASH_SPI_CS_DEV0_CFG_BITNO" value="'0'"/>
+            <Setting id="FLASH_SPI_CFG_DEV1_SIZE_512M" value="0"/>
+            <Setting id="FLASH_SPI_CFG_DEV0_SIZE_4M" value="0"/>
+            <Setting id="FLASH_SPI_CFG_DEV1_SIZE_128M" value="0"/>
+            <Setting id="FLASH_SPI_CFG_DEV1_MX25U" value="0"/>
+            <Setting id="FLASH_SPI_CFG_DEV1_SIZE_512K" value="0"/>
+            <Setting id="FLASH_SPI_CFG_DEV1_SIZE_2M" value="0"/>
+            <Setting id="FLASH_SPI_CFG_WEL_CHK" value="1"/>
+            <Setting id="FLASH_SPI_CFG_DEV1_INCLUDED" value="0"/>
+            <Setting id="FLASH_SPI_CFG_DEV1_SIZE_4M" value="0"/>
+            <Setting id="FLASH_SPI_CFG_DEV1_AT25QF" value="0"/>
+            <Setting id="FLASH_SPI_CFG_DEV0_AT25QF" value="0"/>
+            <Setting id="FLASH_SPI_CFG_DEV0_SIZE_64M" value="1"/>
+            <Setting id="FLASH_SPI_CFG_DEV0_SIZE_256M" value="0"/>
+            <Setting id="FLASH_SPI_CFG_DEV0_MX25L" value="1"/>
+            <Setting id="FLASH_SPI_CFG_DEV0_SIZE_32M" value="0"/>
+            <Setting id="FLASH_SPI_CFG_DEV0_INCLUDED" value="1"/>
+            <Setting id="FLASH_SPI_CFG_DEV0_SIZE_16M" value="0"/>
+            <Setting id="FLASH_SPI_CFG_DEV0_MX25R" value="0"/>
+            <Setting id="FLASH_SPI_CFG_DEV1_MX66L" value="0"/>
+            <Setting id="FLASH_SPI_CFG_DEV0_MX25U" value="0"/>
+            <Setting id="FLASH_SPI_CFG_DEV1_SIZE_64M" value="0"/>
+            <Setting id="FLASH_SPI_CS_DEV1_CFG_BITNO" value="'0'"/>
+            <Setting id="FLASH_SPI_CFG_DEV1_SIZE_32M" value="0"/>
+            <Setting id="FLASH_SPI_CFG_LONGQ_ENABLE" value="0"/>
+            <Setting id="FLASH_SPI_CFG_DEV0_SIZE_1M" value="0"/>
+            <Setting id="FLASH_SPI_CFG_DEV1_SIZE_16M" value="0"/>
+            <Setting id="FLASH_SPI_CS_DEV1_CFG_PORTNO" value="'X'"/>
+            <Setting id="FLASH_SPI_CFG_DEV0_SIZE_512K" value="0"/>
+            <Setting id="FLASH_SPI_CFG_DEV0_SIZE_512M" value="0"/>
+            <Setting id="FLASH_SPI_CFG_DEV0_SIZE_128M" value="0"/>
+            <Setting id="FLASH_SPI_CFG_DEV1_SIZE_1M" value="0"/>
+            <Setting id="FLASH_SPI_CFG_DEV1_SIZE_1G" value="0"/>
+            <Setting id="FLASH_SPI_CFG_USE_GPIO_MPC_FIT" value="0"/>
+            <Setting id="FLASH_SPI_CFG_DEV1_MX25R" value="0"/>
+            <Setting id="FLASH_SPI_CFG_DEV0_MX66L" value="0"/>
+            <Setting id="FLASH_SPI_CFG_DEV1_SIZE_256M" value="0"/>
+            <Setting id="FLASH_SPI_CFG_DEV0_SIZE_1G" value="0"/>
+            <Setting id="FLASH_SPI_CFG_DEV1_MX25L" value="0"/>
+            <Setting id="FLASH_SPI_CS_DEV0_CFG_PORTNO" value="'X'"/>
+        </Segment>
         <Segment component="LittleFS202406.01-LTS-rx-1.1.1" id="LittleFS" source="com.renesas.smc.tools.swcomponent.rtosconfigurator.source"/>
         <Segment component="r_gpio_rx5.20" id="r_gpio_rx" source="com.renesas.smc.tools.swcomponent.fit.source">
             <Setting id="GPIO_CFG_PARAM_CHECKING_ENABLE" value="BSP_CFG_PARAM_CHECKING_ENABLE"/>
@@ -919,8 +969,45 @@
             <Setting id="IRQ_CFG_NESTED_INT_EN_IRQ15" value="0"/>
             <Setting id="IRQ_CFG_NESTED_INT_EN_IRQ10" value="0"/>
         </Segment>
+        <Segment component="r_qspi_smstr_rx1.30" id="r_qspi_smstr_rx" source="com.renesas.smc.tools.swcomponent.fit.source">
+            <Setting id="QSPI_SMSTR_CFG_SPRI_EN_NESTED_INT" value="0"/>
+            <Setting id="QSPI_SMSTR_CFG_LONGQ_ENABLE" value="/* #define"/>
+            <Setting id="QSPI_SMSTR_CFG_CH0_INCLUDED" value="#define"/>
+            <Setting id="QSPI_SMSTR_CFG_USE_FIT" value="#define"/>
+            <Setting id="QSPI_SMSTR_CFG_SPTI_EN_NESTED_INT" value="0"/>
+            <Setting id="QSPI_SMSTR_CFG_CH0_INT_SPRI_LEVEL" value="10"/>
+            <Setting id="QSPI_SMSTR_CFG_CH0_INT_SPTI_LEVEL" value="10"/>
+        </Segment>
         <Segment component="com.renesas.smc.tools.swcomponent.rtosconfigurator.freertos.objectfreertoslts202406.01-LTS-rx-1.1.1" id="FreeRTOS Object" source="com.renesas.smc.tools.swcomponent.rtosconfigurator.source"/>
         <Segment component="FreeRTOS_IP202406.01-LTS-rx-1.1.1" id="FreeRTOS_IP" source="com.renesas.smc.tools.swcomponent.rtosconfigurator.source"/>
+        <Segment component="r_memdrv_rx1.40" id="r_memdrv_rx" source="com.renesas.smc.tools.swcomponent.fit.source">
+            <Setting id="MEMDRV_CFG_DEV0_MODE_TRNS" value="MEMDRV_TRNS_CPU"/>
+            <Setting id="MEMDRV_CFG_DEV0_MODE_DRVR_CH" value="MEMDRV_DRVR_CH0"/>
+            <Setting id="MEMDRV_CFG_DEV0_INCLUDED" value="1"/>
+            <Setting id="MEMDRV_CFG_DEV1_BR" value="1000000"/>
+            <Setting id="MEMDRV_CFG_DEV1_MODE_DRVR_CH" value="MEMDRV_DRVR_CH0"/>
+            <Setting id="MEMDRV_CFG_DEV1_DMAC_INT_PRL_Tx" value="10"/>
+            <Setting id="MEMDRV_CFG_DEV1_DMAC_INT_PRL_Rx" value="10"/>
+            <Setting id="MEMDRV_CFG_PARAM_CHECKING_ENABLE" value="BSP_CFG_PARAM_CHECKING_ENABLE"/>
+            <Setting id="MEMDRV_CFG_DEV1_BR_WRITE_DATA" value="1000000"/>
+            <Setting id="MEMDRV_CFG_DEV1_MODE_DRVR" value="MEMDRV_DRVR_RX_FIT_RSPI"/>
+            <Setting id="MEMDRV_CFG_DEV0_DMAC_CH_NO_Rx" value="1"/>
+            <Setting id="MEMDRV_CFG_DEV1_INCLUDED" value="0"/>
+            <Setting id="MEMDRV_CFG_DEV1_BR_READ_DATA" value="1000000"/>
+            <Setting id="MEMDRV_CFG_DEV0_DMAC_INT_PRL_Rx" value="10"/>
+            <Setting id="MEMDRV_CFG_DEV0_BR_READ_DATA" value="1000000"/>
+            <Setting id="MEMDRV_CFG_DEV0_DMAC_INT_PRL_Tx" value="10"/>
+            <Setting id="MEMDRV_CFG_DEV1_MODE_TRNS" value="MEMDRV_TRNS_CPU"/>
+            <Setting id="MEMDRV_CFG_DEV0_BR_WRITE_DATA" value="1000000"/>
+            <Setting id="MEMDRV_CFG_DEV0_DMAC_CH_NO_Tx" value="0"/>
+            <Setting id="MEMDRV_CFG_DEV0_BR" value="1000000"/>
+            <Setting id="MEMDRV_CFG_DEV1_DMAC_CH_NO_Rx" value="3"/>
+            <Setting id="MEMDRV_CFG_DEV1_TYPE" value="0"/>
+            <Setting id="MEMDRV_CFG_DEV1_DMAC_CH_NO_Tx" value="2"/>
+            <Setting id="MEMDRV_CFG_DEV0_MODE_DRVR" value="MEMDRV_DRVR_RX_FIT_QSPI_SMSTR"/>
+            <Setting id="MEMDRV_CFG_LONGQ_ENABLE" value="0"/>
+            <Setting id="MEMDRV_CFG_DEV0_TYPE" value="0"/>
+        </Segment>
         <Segment component="FreeRTOS_Kernel202406.01-LTS-rx-1.1.1" id="FreeRTOS_Kernel" source="com.renesas.smc.tools.swcomponent.rtosconfigurator.source"/>
     </Segment>
 </QE>
