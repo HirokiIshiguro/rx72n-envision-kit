@@ -55,6 +55,10 @@ void gui_task( void * pvParameters )
     {
         xTaskNotifyGive( task_info->serial_flash_task_handle );
     }
+    if( task_info->audio_task_handle != NULL )
+    {
+        xTaskNotifyGive( task_info->audio_task_handle );
+    }
 
     /* 10ms 周期で AppWizard / emWin を駆動 (legacy main_10ms_display_update 準拠) */
     for( ; ; )
