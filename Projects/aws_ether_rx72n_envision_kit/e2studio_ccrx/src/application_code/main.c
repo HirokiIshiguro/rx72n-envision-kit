@@ -786,12 +786,14 @@ const char * pcApplicationHostnameHook(void)
  *********************************************************************************************************************/
 bool ApplicationCounter(uint32_t xWaitTime)
 {
+    TickType_t xStart;
     TickType_t xCurrent;
     bool DEMO_TEST = pdTRUE;
-    const TickType_t xPrintFrequency = pdMS_TO_TICKS(xWaitTime);
-    xCurrent = xTaskGetTickCount();
+    const TickType_t xWaitTicks = pdMS_TO_TICKS(xWaitTime);
     signed char cRxChar;
-    while (xCurrent < xPrintFrequency)
+    xStart = xTaskGetTickCount();
+    configPRINTF(("Press CLI and enter to switch to CLI mode\r\n"));
+    do
     {
         vTaskDelay(1);
         xCurrent = xTaskGetTickCount();
@@ -799,11 +801,12 @@ bool ApplicationCounter(uint32_t xWaitTime)
         cRxChar = vISR_Routine();
         if ((0 != cRxChar))
         {
-
+            configPRINTF(("Going to FreeRTOS-CLI\r\n"));
             DEMO_TEST = pdFALSE;
             break;
         }
     }
+    while ((xCurrent - xStart) < xWaitTicks);
     return DEMO_TEST;
 }
 /*****************************************************************************************
