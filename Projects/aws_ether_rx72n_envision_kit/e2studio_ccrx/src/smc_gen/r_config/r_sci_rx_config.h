@@ -197,7 +197,7 @@ Configuration Options
 #define SCI_CFG_CH4_TX_BUFSIZ   (80)
 #define SCI_CFG_CH5_TX_BUFSIZ   (80)
 #define SCI_CFG_CH6_TX_BUFSIZ   (80)
-#define SCI_CFG_CH7_TX_BUFSIZ   (80)
+#define SCI_CFG_CH7_TX_BUFSIZ   (512)
 #define SCI_CFG_CH8_TX_BUFSIZ   (80)
 #define SCI_CFG_CH9_TX_BUFSIZ   (80)
 #define SCI_CFG_CH10_TX_BUFSIZ  (80)
