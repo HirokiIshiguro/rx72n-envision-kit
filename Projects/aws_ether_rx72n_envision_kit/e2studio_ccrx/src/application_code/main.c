@@ -96,6 +96,32 @@ extern void audio_task( void * pvParameters );
     #define appmainENABLE_BOARD_APPLICATION_TASKS ( 0 )
 #endif
 
+#ifndef appmainENABLE_BOARD_GUI_TASK
+    #define appmainENABLE_BOARD_GUI_TASK appmainENABLE_BOARD_APPLICATION_TASKS
+#endif
+
+#ifndef appmainENABLE_BOARD_SDCARD_TASK
+    #define appmainENABLE_BOARD_SDCARD_TASK appmainENABLE_BOARD_APPLICATION_TASKS
+#endif
+
+#ifndef appmainENABLE_BOARD_SERIAL_FLASH_TASK
+    #define appmainENABLE_BOARD_SERIAL_FLASH_TASK appmainENABLE_BOARD_APPLICATION_TASKS
+#endif
+
+#ifndef appmainENABLE_BOARD_AUDIO_TASK
+    #define appmainENABLE_BOARD_AUDIO_TASK appmainENABLE_BOARD_APPLICATION_TASKS
+#endif
+
+#define appmainENABLE_ANY_BOARD_APPLICATION_TASK    ( ( appmainENABLE_BOARD_GUI_TASK != 0 ) || \
+                                                      ( appmainENABLE_BOARD_SDCARD_TASK != 0 ) || \
+                                                      ( appmainENABLE_BOARD_SERIAL_FLASH_TASK != 0 ) || \
+                                                      ( appmainENABLE_BOARD_AUDIO_TASK != 0 ) )
+
+#define appmainENABLE_BOARD_GUI_DEPENDENCY         ( ( appmainENABLE_BOARD_GUI_TASK != 0 ) || \
+                                                      ( appmainENABLE_BOARD_SDCARD_TASK != 0 ) || \
+                                                      ( appmainENABLE_BOARD_SERIAL_FLASH_TASK != 0 ) || \
+                                                      ( appmainENABLE_BOARD_AUDIO_TASK != 0 ) )
+
 /* Phase 8b 第3次 段階5-7 B-1 (rx72n-envision-kit#60): TCP performance tasks.
  * iperf 互換 TCP throughput 測定。legacy aws_demos と同じ priority
  * configMAX_PRIORITIES (network throughput 優先)。両 task とも自走で
@@ -321,7 +347,7 @@ void main_task(void *pvParameters)
         }
     #endif
 
-        if( appmainENABLE_BOARD_APPLICATION_TASKS != 0 )
+        if( appmainENABLE_ANY_BOARD_APPLICATION_TASK != 0 )
         {
             prvStartBoardApplicationTasks();
             prvDisplayWrite("FreeRTOS init\r\n");
@@ -463,11 +489,15 @@ static void prvDisplayInitialize( void )
 
 static void prvStartBoardApplicationTasks( void )
 {
-    prvDisplayInitialize();
+    if( appmainENABLE_BOARD_GUI_DEPENDENCY != 0 )
+    {
+        prvDisplayInitialize();
+    }
 
     /* Phase 8b 第3次 段階5-4c-3 (#57): SD update task を起動。
      * sdcard_task は SD カード挿抜検出 + 自動 mount + firm_update 進捗監視 +
      * GUI 連動を行う。gui_task の完了通知を待ってから動き始める設計。 */
+    if( appmainENABLE_BOARD_SDCARD_TASK != 0 )
     {
         static TaskHandle_t s_sdcard_task_handle = NULL;
         if( s_sdcard_task_handle == NULL )
@@ -485,6 +515,7 @@ static void prvStartBoardApplicationTasks( void )
     /* Phase 8b 第3次 段階5-5 (#58): serial flash (Quad SPI) task を起動。
      * Macronix MX25L 32Mbit に対する erase/write/read テスト harness。
      * gui_task からの xTaskNotifyGive で wake-up される (段階5-x で復活)。 */
+    if( appmainENABLE_BOARD_SERIAL_FLASH_TASK != 0 )
     {
         static TaskHandle_t s_serial_flash_task_handle = NULL;
         if( s_serial_flash_task_handle == NULL )
@@ -502,6 +533,7 @@ static void prvStartBoardApplicationTasks( void )
     /* Phase 8b 第3次 段階5-6 (#59): audio task placeholder を起動。
      * legacy aws_demos と同じく実装は永久 sleep のみで、実 audio 機能は無い。
      * 段階5-6b 以降で SSI/DMA を取り込んだ際に本実装に差し替える。 */
+    if( appmainENABLE_BOARD_AUDIO_TASK != 0 )
     {
         static TaskHandle_t s_audio_task_handle = NULL;
         if( s_audio_task_handle == NULL )

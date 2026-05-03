@@ -5,6 +5,7 @@ param(
     [string]$ProjectsPath = "Projects",
     [string]$LogFile = $(Join-Path (Split-Path (Split-Path $PSScriptRoot -Parent) -Parent) "rx72n_v3_e2studio_build.log"),
     [string]$SigningKey = "sample_keys/secp256r1.privatekey",
+    [string]$BoardAppTasks = $env:RX72N_BOARD_APP_TASKS,
     [switch]$SkipRsu
 )
 
@@ -24,6 +25,7 @@ $projectNames = @(
     "aws_ether_rx72n_envision_kit"
 )
 $rcpcSnapshots = @{}
+$cprojectSnapshots = @{}
 
 if (-not (Test-Path (Join-Path $projectRoot "Middleware\FreeRTOS\FreeRTOS-Kernel\include\FreeRTOS.h"))) {
     throw "Git submodules not initialized. Run: git submodule update --init --recursive"
@@ -53,6 +55,11 @@ foreach ($projectName in $projectNames) {
     }
     if ($rcpcPath) {
         $rcpcSnapshots[$rcpcPath.FullName] = Get-Content $rcpcPath.FullName -Raw
+    }
+
+    $cprojectPath = Join-Path $projectDir ".cproject"
+    if (Test-Path $cprojectPath) {
+        $cprojectSnapshots[[System.IO.Path]::GetFullPath($cprojectPath)] = Get-Content $cprojectPath -Raw
     }
 }
 
@@ -88,6 +95,90 @@ function Find-Artifacts {
     }
 }
 
+function Get-BoardAppDefines {
+    param(
+        [string]$TaskList
+    )
+
+    $defines = @()
+    if ([string]::IsNullOrWhiteSpace($TaskList)) {
+        $TaskList = "none"
+    }
+
+    foreach ($rawToken in ($TaskList -split '[,; ]+')) {
+        $token = $rawToken.Trim().ToLowerInvariant()
+        if ([string]::IsNullOrWhiteSpace($token)) {
+            continue
+        }
+
+        switch ($token) {
+            { $_ -in @("none", "off", "false", "0") } { break }
+            "all"          { $defines += "appmainENABLE_BOARD_APPLICATION_TASKS=1"; break }
+            "gui"          { $defines += "appmainENABLE_BOARD_GUI_TASK=1"; break }
+            { $_ -in @("sd", "sdcard", "sd_card") } { $defines += "appmainENABLE_BOARD_SDCARD_TASK=1"; break }
+            { $_ -in @("serial", "serial_flash", "qspi") } { $defines += "appmainENABLE_BOARD_SERIAL_FLASH_TASK=1"; break }
+            "audio"        { $defines += "appmainENABLE_BOARD_AUDIO_TASK=1"; break }
+            default        { throw "Unknown RX72N_BOARD_APP_TASKS token '$rawToken'. Use none, all, gui, sdcard, serial_flash, audio." }
+        }
+    }
+
+    return @($defines | Select-Object -Unique)
+}
+
+function Add-CcrxCompilerDefines {
+    param(
+        [string]$CProjectPath,
+        [string[]]$Defines
+    )
+
+    if (($null -eq $Defines) -or ($Defines.Count -eq 0)) {
+        return
+    }
+
+    if (-not (Test-Path $CProjectPath)) {
+        throw ".cproject not found: $CProjectPath"
+    }
+
+    [xml]$xml = Get-Content $CProjectPath -Raw
+    $option = $xml.SelectSingleNode("//option[@superClass='com.renesas.cdt.managedbuild.renesas.ccrx.compiler.option.define']")
+    if ($null -eq $option) {
+        throw "CCRX compiler define option not found in $CProjectPath"
+    }
+
+    $existing = @{}
+    foreach ($node in $option.SelectNodes("listOptionValue")) {
+        $existing[$node.value] = $true
+    }
+
+    foreach ($define in $Defines) {
+        if ($existing.ContainsKey($define)) {
+            continue
+        }
+
+        $child = $xml.CreateElement("listOptionValue")
+        $null = $child.SetAttribute("builtIn", "false")
+        $null = $child.SetAttribute("value", $define)
+        $null = $option.AppendChild($child)
+    }
+
+    $settings = [System.Xml.XmlWriterSettings]::new()
+    $settings.Encoding = [System.Text.UTF8Encoding]::new($false)
+    $settings.Indent = $true
+    $writer = [System.Xml.XmlWriter]::Create($CProjectPath, $settings)
+    try {
+        $xml.Save($writer)
+    } finally {
+        $writer.Close()
+    }
+}
+
+$boardAppDefines = Get-BoardAppDefines -TaskList $BoardAppTasks
+$boardAppTasksLabel = if ([string]::IsNullOrWhiteSpace($BoardAppTasks)) { "none" } else { $BoardAppTasks }
+Write-Host "Board tasks:  $boardAppTasksLabel"
+if ($boardAppDefines.Count -gt 0) {
+    Write-Host "Board defines: $($boardAppDefines -join ', ')"
+}
+
 $postgenPatch = Join-Path $PSScriptRoot "sc_postgen_patch.py"
 if (Test-Path $postgenPatch) {
     Write-Host "=== sc_postgen_patch (BSP_CFG_MCU_PART_* string -> integer) ==="
@@ -98,6 +189,9 @@ if (Test-Path $postgenPatch) {
 }
 
 try {
+    $appCProject = Join-Path $projectRoot "$projectsPath\aws_ether_rx72n_envision_kit\e2studio_ccrx\.cproject"
+    Add-CcrxCompilerDefines -CProjectPath $appCProject -Defines $boardAppDefines
+
     & $E2Studio @e2base @imports -build all 2>&1 | Tee-Object -FilePath $logFile | Out-Null
     $e2exit = $LASTEXITCODE
 
@@ -203,5 +297,8 @@ try {
 finally {
     foreach ($rcpcPath in $rcpcSnapshots.Keys) {
         [System.IO.File]::WriteAllText($rcpcPath, $rcpcSnapshots[$rcpcPath], [System.Text.UTF8Encoding]::new($false))
+    }
+    foreach ($cprojectPath in $cprojectSnapshots.Keys) {
+        [System.IO.File]::WriteAllText($cprojectPath, $cprojectSnapshots[$cprojectPath], [System.Text.UTF8Encoding]::new($false))
     }
 }

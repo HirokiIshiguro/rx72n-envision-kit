@@ -168,6 +168,12 @@ variables:
   # ota_v3_finalize_rx72n のみ実行する。set2 (RX72N ENVK #3) 単独。
   RUN_V3_OTA: "false"
   RX72N_V3_SIGNING_KEY: "sample_keys/secp256r1.privatekey"
+  # RX72N_BOARD_APP_TASKS:
+  #   none         : v3 baseline path. GUI/SD/serial flash/audio are not started.
+  #   gui          : start only GUI/emWin before the network demo.
+  #   gui,sdcard   : start GUI + SD card task.
+  #   gui,serial_flash / gui,audio / all are available for staged app-layer recovery.
+  RX72N_BOARD_APP_TASKS: "none"
 
 .windows_ota_aws_job:
   tags:
@@ -396,7 +402,8 @@ build_v3_rx72n:
         -Workspace   "C:\rx72n-v3-ws" `
         -ProjectsPath "Projects" `
         -LogFile     "$env:CI_PROJECT_DIR\rx72n_v3_e2studio_build.log" `
-        -SigningKey  "$env:RX72N_V3_SIGNING_KEY"
+        -SigningKey  "$env:RX72N_V3_SIGNING_KEY" `
+        -BoardAppTasks "$env:RX72N_BOARD_APP_TASKS"
   artifacts:
     when: always
     paths:
