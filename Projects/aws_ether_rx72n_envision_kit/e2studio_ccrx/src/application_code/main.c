@@ -92,6 +92,10 @@ extern void audio_task( void * pvParameters );
 #define appmainAUDIO_TASK_STACK_SIZE              ( 4096 )
 #define appmainAUDIO_TASK_PRIORITY                ( tskIDLE_PRIORITY + 1 )
 
+#ifndef appmainENABLE_BOARD_APPLICATION_TASKS
+    #define appmainENABLE_BOARD_APPLICATION_TASKS ( 0 )
+#endif
+
 /* Phase 8b 第3次 段階5-7 B-1 (rx72n-envision-kit#60): TCP performance tasks.
  * iperf 互換 TCP throughput 測定。legacy aws_demos と同じ priority
  * configMAX_PRIORITIES (network throughput 優先)。両 task とも自走で
@@ -267,8 +271,8 @@ void main_task(void *pvParameters)
         xSemaphoreGive( xSemaphoreCodeFlashAccess );
     }
 
-    /* Keep LCD/SD/serial flash/audio startup out of the CLI provisioning window.
-     * These board application tasks are demo-only until the v3 baseline is stable. */
+    /* Keep LCD/SD/serial flash/audio out of the v3 baseline path.
+     * Re-enable them from a dedicated app-layer job once MQTT is stable. */
 #if (ENABLE_CREDENTIAL_BY_CLI == 1)
     {
         /* Register the standard CLI commands. */
@@ -317,8 +321,11 @@ void main_task(void *pvParameters)
         }
     #endif
 
-        prvStartBoardApplicationTasks();
-        prvDisplayWrite("FreeRTOS init\r\n");
+        if( appmainENABLE_BOARD_APPLICATION_TASKS != 0 )
+        {
+            prvStartBoardApplicationTasks();
+            prvDisplayWrite("FreeRTOS init\r\n");
+        }
 
         /* Initialise the RTOS's TCP/IP stack.  The tasks that use the network
             are created in the vApplicationIPNetworkEventHook() hook function
