@@ -47,6 +47,7 @@
 
 /* iperf default server port (legacy 同等) */
 #define TCP_PERF_LISTEN_PORT     ( 5001 )
+#define TCP_PERF_RETRY_DELAY     ( pdMS_TO_TICKS( 5000U ) )
 
 void tcp_receive_performance_task( void * pvParameters );
 
@@ -75,7 +76,12 @@ void tcp_receive_performance_task( void * pvParameters )
         xListeningSocket = FreeRTOS_socket( FREERTOS_AF_INET,
                                             FREERTOS_SOCK_STREAM,
                                             FREERTOS_IPPROTO_TCP );
-        configASSERT( xListeningSocket != FREERTOS_INVALID_SOCKET );
+        if( xListeningSocket == FREERTOS_INVALID_SOCKET )
+        {
+            configPRINTF( ( "tcp_receive_performance_task: FreeRTOS_socket failed; retry after 5s.\r\n" ) );
+            vTaskDelay( TCP_PERF_RETRY_DELAY );
+            continue;
+        }
 
         /* Set a time out so accept() will just wait for a connection. */
         FreeRTOS_setsockopt( xListeningSocket,
@@ -85,17 +91,37 @@ void tcp_receive_performance_task( void * pvParameters )
                              sizeof( xReceiveTimeOut ) );
 
         /* Wait connect from the iperf client. */
+        memset( &xBindAddress, 0, sizeof( xBindAddress ) );
         xBindAddress.sin_port = FreeRTOS_htons( TCP_PERF_LISTEN_PORT );
 
         /* Bind the socket to the port that the client RTOS task will send to. */
-        FreeRTOS_bind( xListeningSocket, &xBindAddress, sizeof( xBindAddress ) );
+        if( FreeRTOS_bind( xListeningSocket, &xBindAddress, sizeof( xBindAddress ) ) != 0 )
+        {
+            configPRINTF( ( "tcp_receive_performance_task: FreeRTOS_bind failed; retry after 5s.\r\n" ) );
+            ( void ) FreeRTOS_closesocket( xListeningSocket );
+            vTaskDelay( TCP_PERF_RETRY_DELAY );
+            continue;
+        }
 
         /* Set the socket into a listening state so it can accept connections.
          * The maximum number of simultaneous connections is limited to 20. */
-        FreeRTOS_listen( xListeningSocket, xBacklog );
+        if( FreeRTOS_listen( xListeningSocket, xBacklog ) != 0 )
+        {
+            configPRINTF( ( "tcp_receive_performance_task: FreeRTOS_listen failed; retry after 5s.\r\n" ) );
+            ( void ) FreeRTOS_closesocket( xListeningSocket );
+            vTaskDelay( TCP_PERF_RETRY_DELAY );
+            continue;
+        }
 
         /* Wait for incoming connections. */
         xConnectedSocket = FreeRTOS_accept( xListeningSocket, &xClient, &xSize );
+        if( xConnectedSocket == FREERTOS_INVALID_SOCKET )
+        {
+            configPRINTF( ( "tcp_receive_performance_task: FreeRTOS_accept failed; retry after 5s.\r\n" ) );
+            ( void ) FreeRTOS_closesocket( xListeningSocket );
+            vTaskDelay( TCP_PERF_RETRY_DELAY );
+            continue;
+        }
 
         configPRINTF( ( "Connected from iperf client: OK.\r\n" ) );
 
@@ -113,6 +139,8 @@ void tcp_receive_performance_task( void * pvParameters )
         }
         configPRINTF( ( "Shutting down connection from iperf client.\r\n" ) );
         FreeRTOS_shutdown( xConnectedSocket, FREERTOS_SHUT_RDWR );
+        ( void ) FreeRTOS_closesocket( xConnectedSocket );
+        ( void ) FreeRTOS_closesocket( xListeningSocket );
 
         /* finish */
         while( 1 )
