@@ -276,19 +276,31 @@ void vSerialPutString(const signed char * pcString, unsigned short usStringLengt
         xTaskNotifyStateClear( NULL );
 
         uint32_t str_length = usStringLength;
-        uint32_t transmit_length = 0;
+        uint16_t transmit_length = 0;
         sci_err_t sci_err = SCI_SUCCESS;
-        uint32_t retry = 0xFFFF;
+        const TickType_t xRetryDelay = ( pdMS_TO_TICKS( 1 ) > 0 ) ? pdMS_TO_TICKS( 1 ) : 1;
+        TickType_t xLastProgress = xTaskGetTickCount();
 
         if ( xSemaphoreTake( xTransmitMutex, xMaxBlockTime ) == pdPASS )
         {
-            while ((retry > 0) && (str_length > 0))
+            while (str_length > 0)
             {
                 R_SCI_Control(xSerialSciHandle, SCI_CMD_TX_Q_BYTES_FREE, &transmit_length);
 
                 if (transmit_length > str_length)
                 {
-                    transmit_length = str_length;
+                    transmit_length = (uint16_t) str_length;
+                }
+
+                if (0 == transmit_length)
+                {
+                    if ((xTaskGetTickCount() - xLastProgress) >= xMaxBlockTime)
+                    {
+                        sci_err = SCI_ERR_INSUFFICIENT_SPACE;
+                        break;
+                    }
+                    vTaskDelay(xRetryDelay);
+                    continue;
                 }
 
                 sci_err = R_SCI_Send(xSerialSciHandle, (uint8_t *) pcString,
@@ -296,12 +308,22 @@ void vSerialPutString(const signed char * pcString, unsigned short usStringLengt
 
                 if ((SCI_ERR_XCVR_BUSY == sci_err) || (SCI_ERR_INSUFFICIENT_SPACE == sci_err))
                 {
-                    retry--; // retry if previous transmission still in progress or tx buffer is insufficient.
+                    if ((xTaskGetTickCount() - xLastProgress) >= xMaxBlockTime)
+                    {
+                        break;
+                    }
+                    vTaskDelay(xRetryDelay);
                     continue;
+                }
+
+                if (SCI_SUCCESS != sci_err)
+                {
+                    break;
                 }
 
                 str_length -= transmit_length;
                 pcString += transmit_length;
+                xLastProgress = xTaskGetTickCount();
             }
 
             /* Must ensure to give the mutex back. */
