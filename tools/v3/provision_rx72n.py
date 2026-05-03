@@ -169,7 +169,9 @@ def enter_cli_mode(ser, char_delay, line_delay, timeout, retry_interval, shadow_
     start = time.monotonic()
     collected = initial_output or ""
 
-    if any(marker in collected for marker in CLI_READY_MARKERS):
+    if (any(marker in collected for marker in CLI_READY_MARKERS) or
+            any(marker in collected for marker in CLI_INVITE_MARKERS) or
+            collected.rstrip().endswith(">")):
         print("CLI prompt already detected")
         return True
     if any(marker in collected for marker in BOOTLOADER_MARKERS):
