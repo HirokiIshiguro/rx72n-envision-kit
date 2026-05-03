@@ -904,12 +904,21 @@ BaseType_t xStartSimplePubSubTasks(uint32_t ulNumPubsubTasks,
 
     for (ulTaskNum = 0; ulTaskNum < ulNumPubsubTasks; ulTaskNum++)
     {
+        configPRINTF( ( "PubSub task create call: task=%lu heap=%lu hwm=%lu\r\n",
+                        ( unsigned long ) ulTaskNum,
+                        ( unsigned long ) xPortGetFreeHeapSize(),
+                        ( unsigned long ) uxTaskGetStackHighWaterMark( NULL ) ) );
         xResult = xTaskCreate(vSimpleSubscribePublishTask,
                               "PUBSUB",
                               uxStackSize,
                               (void *)ulTaskNum,
                               uxPriority,
                               NULL);
+        configPRINTF( ( "PubSub task create returned: task=%lu result=%ld heap=%lu hwm=%lu\r\n",
+                        ( unsigned long ) ulTaskNum,
+                        ( long ) xResult,
+                        ( unsigned long ) xPortGetFreeHeapSize(),
+                        ( unsigned long ) uxTaskGetStackHighWaterMark( NULL ) ) );
 
         if (pdFAIL == xResult)
         {

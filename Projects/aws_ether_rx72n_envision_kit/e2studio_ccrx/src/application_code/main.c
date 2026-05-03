@@ -64,6 +64,8 @@ extern void gui_task( void * pvParameters );
 
 #define appmainGUI_TASK_STACK_SIZE                ( 4096 )
 #define appmainGUI_TASK_PRIORITY                  ( tskIDLE_PRIORITY + 1 )
+#define appmainGUI_INIT_WAIT_TIMEOUT_MS           ( 10000UL )
+#define appmainGUI_INIT_WAIT_LOG_INTERVAL_MS      ( 1000UL )
 
 /* Phase 8b 第3次 段階5-4c-3 (rx72n-envision-kit#57): SD update task. */
 extern void sdcard_task( void * pvParameters );
@@ -124,6 +126,10 @@ extern void audio_task( void * pvParameters );
 
 #ifndef appmainENABLE_NETWORK_WAIT_DIAGNOSTICS
     #define appmainENABLE_NETWORK_WAIT_DIAGNOSTICS appmainENABLE_ANY_BOARD_APPLICATION_TASK
+#endif
+
+#ifndef appmainENABLE_TRACEALYZER
+    #define appmainENABLE_TRACEALYZER ( 1 )
 #endif
 
 #define appmainNETWORK_WAIT_LOG_INTERVAL_MS        ( 5000UL )
@@ -260,10 +266,12 @@ void vApplicationDaemonTaskStartupHook (void);
 void prvMiscInitialization (void);
 static BaseType_t prvShouldAutoProvisionFromClientCredentials( void );
 static void prvDisplayInitialize( void );
+static void prvWaitForGuiInitialization( void );
 static void prvStartBoardApplicationTasks( void );
 static void prvDisplayWriteBanner( void );
 static void prvDisplayWrite( const char * pcMessage );
 
+extern void vApplicationEnsureEmwinFrameBufferReserved( void );
 extern void UserInitialization (void);
 extern void CLI_Support_Settings (void);
 extern void vUARTCommandConsoleStart (uint16_t usStackSize, UBaseType_t uxPriority);
@@ -447,6 +455,9 @@ void main_task(void *pvParameters)
         if( appmainENABLE_ANY_BOARD_APPLICATION_TASK != 0 )
         {
             prvStartBoardApplicationTasks();
+            configPRINTF( ( "Board app tasks init done: heap=%lu main_hwm=%lu\r\n",
+                            ( unsigned long ) xPortGetFreeHeapSize(),
+                            ( unsigned long ) uxTaskGetStackHighWaterMark( NULL ) ) );
             prvDisplayWrite("Board app tasks init\r\n");
         }
 
@@ -485,11 +496,31 @@ void main_task(void *pvParameters)
          * 初期接続するため、本タイミング (network up 確認後、demo task 起動前) に
          * vTraceEnable() を呼ぶ。Tracealyzer host 接続失敗時は port 内で
          * vTraceStop() が呼ばれ trace 出力は無効化される (boot は継続)。 */
-        vTraceEnable( TRC_INIT );
-        vTraceEnable( TRC_START );
-        prvDisplayWrite("Tracealyzer init\r\n");
+#if ( appmainENABLE_TRACEALYZER != 0 )
+        {
+            configPRINTF( ( "Tracealyzer init start: heap=%lu main_hwm=%lu\r\n",
+                            ( unsigned long ) xPortGetFreeHeapSize(),
+                            ( unsigned long ) uxTaskGetStackHighWaterMark( NULL ) ) );
+            vTraceEnable( TRC_INIT );
+            configPRINTF( ( "Tracealyzer start: heap=%lu main_hwm=%lu\r\n",
+                            ( unsigned long ) xPortGetFreeHeapSize(),
+                            ( unsigned long ) uxTaskGetStackHighWaterMark( NULL ) ) );
+            vTraceEnable( TRC_START );
+            configPRINTF( ( "Tracealyzer done: heap=%lu main_hwm=%lu\r\n",
+                            ( unsigned long ) xPortGetFreeHeapSize(),
+                            ( unsigned long ) uxTaskGetStackHighWaterMark( NULL ) ) );
+            prvDisplayWrite("Tracealyzer init\r\n");
+        }
+#else
+        configPRINTF( ( "Tracealyzer skipped: heap=%lu main_hwm=%lu\r\n",
+                        ( unsigned long ) xPortGetFreeHeapSize(),
+                        ( unsigned long ) uxTaskGetStackHighWaterMark( NULL ) ) );
+#endif
 
         FreeRTOS_printf(("---------STARTING DEMO---------\r\n"));
+        configPRINTF( ( "Demo start marker: heap=%lu main_hwm=%lu\r\n",
+                        ( unsigned long ) xPortGetFreeHeapSize(),
+                        ( unsigned long ) uxTaskGetStackHighWaterMark( NULL ) ) );
         prvDisplayWrite("Starting demo\r\n");
 
             #if (ENABLE_FLEET_PROVISIONING_DEMO == 1)
@@ -498,10 +529,22 @@ void main_task(void *pvParameters)
                 xSetMQTTAgentState(MQTT_AGENT_STATE_INITIALIZED);
             #endif
 
+            configPRINTF( ( "MQTT agent start call: heap=%lu main_hwm=%lu\r\n",
+                            ( unsigned long ) xPortGetFreeHeapSize(),
+                            ( unsigned long ) uxTaskGetStackHighWaterMark( NULL ) ) );
             vStartMQTTAgent (appmainMQTT_AGENT_TASK_STACK_SIZE, appmainMQTT_AGENT_TASK_PRIORITY);
+            configPRINTF( ( "MQTT agent start returned: heap=%lu main_hwm=%lu\r\n",
+                            ( unsigned long ) xPortGetFreeHeapSize(),
+                            ( unsigned long ) uxTaskGetStackHighWaterMark( NULL ) ) );
             prvDisplayWrite("MQTT task start\r\n");
 
+            configPRINTF( ( "Simple PubSub start call: heap=%lu main_hwm=%lu\r\n",
+                            ( unsigned long ) xPortGetFreeHeapSize(),
+                            ( unsigned long ) uxTaskGetStackHighWaterMark( NULL ) ) );
             vStartSimplePubSubDemo ();
+            configPRINTF( ( "Simple PubSub start returned: heap=%lu main_hwm=%lu\r\n",
+                            ( unsigned long ) xPortGetFreeHeapSize(),
+                            ( unsigned long ) uxTaskGetStackHighWaterMark( NULL ) ) );
             prvDisplayWrite("PubSub task start\r\n");
 
             #if (ENABLE_OTA_UPDATE_DEMO == 1)
@@ -553,14 +596,71 @@ static void prvDisplayInitialize( void )
 
     if( s_gui_task_handle == NULL )
     {
-        ( void ) xTaskCreate( gui_task,
-                              "gui",
-                              appmainGUI_TASK_STACK_SIZE,
-                              get_task_info(),
-                              appmainGUI_TASK_PRIORITY,
-                              &s_gui_task_handle );
-        get_task_info()->gui_task_handle = s_gui_task_handle;
+        BaseType_t xCreateResult;
+
+        vApplicationEnsureEmwinFrameBufferReserved();
+
+        configPRINTF( ( "GUI task create call: heap=%lu main_hwm=%lu\r\n",
+                        ( unsigned long ) xPortGetFreeHeapSize(),
+                        ( unsigned long ) uxTaskGetStackHighWaterMark( NULL ) ) );
+        xCreateResult = xTaskCreate( gui_task,
+                                     "gui",
+                                     appmainGUI_TASK_STACK_SIZE,
+                                     get_task_info(),
+                                     appmainGUI_TASK_PRIORITY,
+                                     &s_gui_task_handle );
+        configPRINTF( ( "GUI task create returned: result=%ld handle=%08lx heap=%lu main_hwm=%lu\r\n",
+                        ( long ) xCreateResult,
+                        ( unsigned long ) s_gui_task_handle,
+                        ( unsigned long ) xPortGetFreeHeapSize(),
+                        ( unsigned long ) uxTaskGetStackHighWaterMark( NULL ) ) );
+
+        if( xCreateResult == pdPASS )
+        {
+            get_task_info()->gui_task_handle = s_gui_task_handle;
+        }
     }
+}
+/*-----------------------------------------------------------*/
+
+static void prvWaitForGuiInitialization( void )
+{
+    const TickType_t xStartTick = xTaskGetTickCount();
+    TickType_t xLastLogTick = xStartTick;
+    const TickType_t xTimeoutTicks = pdMS_TO_TICKS( appmainGUI_INIT_WAIT_TIMEOUT_MS );
+    const TickType_t xLogIntervalTicks = pdMS_TO_TICKS( appmainGUI_INIT_WAIT_LOG_INTERVAL_MS );
+
+    while( get_task_info()->gui_initialize_complete_flag == 0UL )
+    {
+        const TickType_t xNowTick = xTaskGetTickCount();
+        const TickType_t xWaitedTicks = xNowTick - xStartTick;
+
+        if( xWaitedTicks >= xTimeoutTicks )
+        {
+            configPRINTF( ( "GUI init wait timeout: waited=%lu heap=%lu main_hwm=%lu\r\n",
+                            ( unsigned long ) ( xWaitedTicks * portTICK_PERIOD_MS ),
+                            ( unsigned long ) xPortGetFreeHeapSize(),
+                            ( unsigned long ) uxTaskGetStackHighWaterMark( NULL ) ) );
+            break;
+        }
+
+        if( ( xNowTick - xLastLogTick ) >= xLogIntervalTicks )
+        {
+            configPRINTF( ( "GUI init wait: waited=%lu heap=%lu main_hwm=%lu\r\n",
+                            ( unsigned long ) ( xWaitedTicks * portTICK_PERIOD_MS ),
+                            ( unsigned long ) xPortGetFreeHeapSize(),
+                            ( unsigned long ) uxTaskGetStackHighWaterMark( NULL ) ) );
+            xLastLogTick = xNowTick;
+        }
+
+        vTaskDelay( pdMS_TO_TICKS( 100UL ) );
+    }
+
+    configPRINTF( ( "GUI init wait done: ready=%lu waited=%lu heap=%lu main_hwm=%lu\r\n",
+                    ( unsigned long ) get_task_info()->gui_initialize_complete_flag,
+                    ( unsigned long ) ( ( xTaskGetTickCount() - xStartTick ) * portTICK_PERIOD_MS ),
+                    ( unsigned long ) xPortGetFreeHeapSize(),
+                    ( unsigned long ) uxTaskGetStackHighWaterMark( NULL ) ) );
 }
 /*-----------------------------------------------------------*/
 
@@ -569,6 +669,7 @@ static void prvStartBoardApplicationTasks( void )
     if( appmainENABLE_BOARD_GUI_DEPENDENCY != 0 )
     {
         prvDisplayInitialize();
+        prvWaitForGuiInitialization();
     }
 
     /* Phase 8b 第3次 段階5-4c-3 (#57): SD update task を起動。

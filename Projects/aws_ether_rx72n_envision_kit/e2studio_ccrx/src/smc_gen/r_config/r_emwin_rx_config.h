@@ -85,8 +85,8 @@ Configuration Options
 #define EMWIN_LCD_IF                  (LCD_IF_GLCDC)
 
 /* LCD Interface - GLCDC(RGB) */
-#define EMWIN_GUI_FRAME_BUFFER1       (0x00800000)
-#define EMWIN_GUI_FRAME_BUFFER2       (0x00840000)
+#define EMWIN_GUI_FRAME_BUFFER1       (0x00840000)
+#define EMWIN_GUI_FRAME_BUFFER2       (0x00000000)
 
 #define EMWIN_USE_DRW2D               (1)
 
@@ -134,7 +134,7 @@ Configuration Options
 #define EMWIN_USE_RUNTIME_ORIENTATION (0)
 
 /* LCD Interface - GLCDC(RGB) - other */
-#define EMWIN_NUM_BUFFERS             (2)
+#define EMWIN_NUM_BUFFERS             (1)
 #define EMWIN_GUI_FRAME_BUFFER3       (0x00000000)
 
 /* LCD Interface - Commmon - other */

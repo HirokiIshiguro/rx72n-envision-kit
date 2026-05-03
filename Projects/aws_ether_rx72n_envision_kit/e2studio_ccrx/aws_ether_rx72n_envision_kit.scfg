@@ -1657,9 +1657,9 @@
                 <gridItem id="EMWIN_DISPLAY_ORIENTATION" selectedIndex="0"/>
                 <gridItem id="EMWIN_USE_RUNTIME_ORIENTATION" selectedIndex="0"/>
                 <gridItem id="EMWIN_LCD_IF" selectedIndex="0"/>
-                <gridItem id="EMWIN_NUM_BUFFERS" selectedIndex="2"/>
-                <gridItem id="EMWIN_GUI_FRAME_BUFFER1" selectedIndex="0x00800000"/>
-                <gridItem id="EMWIN_GUI_FRAME_BUFFER2" selectedIndex="0x00840000"/>
+                <gridItem id="EMWIN_NUM_BUFFERS" selectedIndex="1"/>
+                <gridItem id="EMWIN_GUI_FRAME_BUFFER1" selectedIndex="0x00840000"/>
+                <gridItem id="EMWIN_GUI_FRAME_BUFFER2" selectedIndex="0x00000000"/>
                 <gridItem id="EMWIN_GUI_FRAME_BUFFER3" selectedIndex="0x00000000"/>
                 <gridItem id="EMWIN_USE_DRW2D" selectedIndex="1"/>
                 <gridItem id="EMWIN_DMAC_NUMBER" selectedIndex="0"/>
@@ -1896,7 +1896,7 @@
                 <gridItem id="LCD_CH0_TCON_POL_VSYNC" selectedIndex="0"/>
                 <gridItem id="LCD_CH0_TCON_POL_DE" selectedIndex="1"/>
                 <gridItem id="LCD_CH0_OUT_CLK_DIV_RATIO" selectedIndex="11"/>
-                <gridItem id="LCD_CH0_IN_GR2_PBASE" selectedIndex="0x00800000"/>
+                <gridItem id="LCD_CH0_IN_GR2_PBASE" selectedIndex="0x00840000"/>
                 <gridItem id="LCD_CH0_IN_GR2_HSIZE" selectedIndex="480"/>
                 <gridItem id="LCD_CH0_IN_GR2_VSIZE" selectedIndex="272"/>
                 <gridItem id="LCD_CH0_IN_GR2_LINEOFFSET" selectedIndex="960"/>

@@ -102,7 +102,7 @@
                                                                         /* Configuration structure member */
 /* Input */
 #if !defined(QE_DISPLAY_CONFIGURATION) /* This option is set in QE for Display[RX] when using QE for Display[RX] */
-#define LCD_CH0_IN_GR2_PBASE                (0x00800000)                /* input[GR2].p_base */
+#define LCD_CH0_IN_GR2_PBASE                (0x00840000)                /* input[GR2].p_base */
 #define LCD_CH0_IN_GR2_HSIZE                (480)                       /* input[GR2].hsize */
 #define LCD_CH0_IN_GR2_VSIZE                (272)                       /* input[GR2].vsize */
 #define LCD_CH0_IN_GR2_LINEOFFSET           (960)                       /* input[GR2].offset */
