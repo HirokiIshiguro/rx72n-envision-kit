@@ -320,36 +320,6 @@ void main_task(void *pvParameters)
         }
     }
 
-    /* Phase 8b 第3次 段階5-7 B-1 (#60): TCP performance tasks (iperf 互換) を起動。
-     * legacy aws_demos と同じ高 priority。両 task とも FreeRTOS_IsNetworkUp() を
-     * 自前で待つため gui_task からの notify は不要。 */
-    {
-        static TaskHandle_t s_tcp_send_perf_task_handle = NULL;
-        if( s_tcp_send_perf_task_handle == NULL )
-        {
-            ( void ) xTaskCreate( tcp_send_performance_task,
-                                  "tcp_send_perf",
-                                  appmainTCP_PERF_TASK_STACK_SIZE,
-                                  get_task_info(),
-                                  appmainTCP_PERF_TASK_PRIORITY,
-                                  &s_tcp_send_perf_task_handle );
-            get_task_info()->tcp_send_performance_task_handle = s_tcp_send_perf_task_handle;
-        }
-    }
-    {
-        static TaskHandle_t s_tcp_recv_perf_task_handle = NULL;
-        if( s_tcp_recv_perf_task_handle == NULL )
-        {
-            ( void ) xTaskCreate( tcp_receive_performance_task,
-                                  "tcp_recv_perf",
-                                  appmainTCP_PERF_TASK_STACK_SIZE,
-                                  get_task_info(),
-                                  appmainTCP_PERF_TASK_PRIORITY,
-                                  &s_tcp_recv_perf_task_handle );
-            get_task_info()->tcp_receive_performance_task_handle = s_tcp_recv_perf_task_handle;
-        }
-    }
-
 #if (ENABLE_CREDENTIAL_BY_CLI == 1)
     {
         /* Register the standard CLI commands. */
@@ -417,6 +387,35 @@ void main_task(void *pvParameters)
 
         FreeRTOS_printf(("Initialise the RTOS's TCP/IP stack\n"));
         prvDisplayWrite("Network up\r\n");
+
+        /* Phase 8b 第3次 段階5-7 B-1 (#60): TCP performance tasks (iperf 互換) を起動。
+         * CLI provisioning window を潰さないよう、demo 継続判定と network up 後に起動する。 */
+        {
+            static TaskHandle_t s_tcp_send_perf_task_handle = NULL;
+            if( s_tcp_send_perf_task_handle == NULL )
+            {
+                ( void ) xTaskCreate( tcp_send_performance_task,
+                                      "tcp_send_perf",
+                                      appmainTCP_PERF_TASK_STACK_SIZE,
+                                      get_task_info(),
+                                      appmainTCP_PERF_TASK_PRIORITY,
+                                      &s_tcp_send_perf_task_handle );
+                get_task_info()->tcp_send_performance_task_handle = s_tcp_send_perf_task_handle;
+            }
+        }
+        {
+            static TaskHandle_t s_tcp_recv_perf_task_handle = NULL;
+            if( s_tcp_recv_perf_task_handle == NULL )
+            {
+                ( void ) xTaskCreate( tcp_receive_performance_task,
+                                      "tcp_recv_perf",
+                                      appmainTCP_PERF_TASK_STACK_SIZE,
+                                      get_task_info(),
+                                      appmainTCP_PERF_TASK_PRIORITY,
+                                      &s_tcp_recv_perf_task_handle );
+                get_task_info()->tcp_receive_performance_task_handle = s_tcp_recv_perf_task_handle;
+            }
+        }
 
         /* Phase 8b 第3次 段階5-2 (rx72n-envision-kit#50): Tracealyzer recorder
          * の起動。FreeRTOS-Plus-TCP streamport (Middleware/3rdparty/
