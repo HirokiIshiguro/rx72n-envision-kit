@@ -172,7 +172,7 @@ function Add-CcrxCompilerDefines {
     }
 }
 
-$boardAppDefines = Get-BoardAppDefines -TaskList $BoardAppTasks
+$boardAppDefines = @(Get-BoardAppDefines -TaskList $BoardAppTasks)
 $boardAppTasksLabel = if ([string]::IsNullOrWhiteSpace($BoardAppTasks)) { "none" } else { $BoardAppTasks }
 Write-Host "Board tasks:  $boardAppTasksLabel"
 if ($boardAppDefines.Count -gt 0) {
