@@ -358,11 +358,23 @@ void main_task(void *pvParameters)
             below.  The hook function is called when the network connects. */
         prvDisplayWrite("Network init\r\n");
 
+#if ( appmainENABLE_NETWORK_WAIT_DIAGNOSTICS != 0 )
+        configPRINTF( ( "Network init start: heap=%lu main_hwm=%lu\r\n",
+                        ( unsigned long ) xPortGetFreeHeapSize(),
+                        ( unsigned long ) uxTaskGetStackHighWaterMark( NULL ) ) );
+#endif
+
         FreeRTOS_IPInit(ucIPAddress,
                         ucNetMask,
                         ucGatewayAddress,
                         ucDNSServerAddress,
                         ucMACAddress );
+
+#if ( appmainENABLE_NETWORK_WAIT_DIAGNOSTICS != 0 )
+        configPRINTF( ( "Network init returned: heap=%lu main_hwm=%lu\r\n",
+                        ( unsigned long ) xPortGetFreeHeapSize(),
+                        ( unsigned long ) uxTaskGetStackHighWaterMark( NULL ) ) );
+#endif
 
         /* We should wait for the network to be up before we run any demos. */
 #if ( appmainENABLE_NETWORK_WAIT_DIAGNOSTICS != 0 )
