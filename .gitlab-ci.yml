@@ -31,21 +31,6 @@ workflow:
       variables:
         RX72N_RUNNER_TAG: "dev-ek-rx72n-set1"
         E2LITE_SERIAL: "OBE110008"
-        UART_PORT: "/dev/serial/by-id/usb-FTDI_FT232R_USB_UART_AV0KOEEG-if00-port0"
-        COMMAND_PORT: "/dev/serial/by-id/usb-FTDI_FT232R_USB_UART_AV0KOEEG-if00-port0"
-        DEVICE_ID: "rx72n-02"
-        MAC_ADDR: "74:90:50:00:79:02"
-        PI_HOST: "192.168.10.103"
-        DEVICE_RESOURCE_GROUP: "rx72n-device-02"
-        V3_EXPECTED_HOSTNAME: "ef-saffti-001-rpi-002"
-        V3_EXPECTED_UART_PORT: "/dev/serial/by-id/usb-FTDI_FT232R_USB_UART_AV0KOEEG-if00-port0"
-        V3_EXPECTED_RFP_TOOL: "e2l:OBE110008"
-        RX72N_AWS_CLIENT_CERT_VAR: "AWS_CLIENT_CERT_RX72N_02"
-        RX72N_AWS_PRIVATE_KEY_VAR: "AWS_PRIVATE_KEY_RX72N_02"
-    - if: '$RX72N_HW_SET == "set2"'
-      variables:
-        RX72N_RUNNER_TAG: "dev-ek-rx72n-set2"
-        E2LITE_SERIAL: "OBE110008"
         UART_PORT: "/dev/serial/by-id/usb-FTDI_FT232R_USB_UART_A904CXV7-if00-port0"
         COMMAND_PORT: "/dev/serial/by-id/usb-FTDI_FT232R_USB_UART_A904CXV7-if00-port0"
         DEVICE_ID: "rx72n-03"
@@ -57,13 +42,28 @@ workflow:
         V3_EXPECTED_RFP_TOOL: "e2l:OBE110008"
         RX72N_AWS_CLIENT_CERT_VAR: "AWS_CLIENT_CERT_RX72N_03"
         RX72N_AWS_PRIVATE_KEY_VAR: "AWS_PRIVATE_KEY_RX72N_03"
+    - if: '$RX72N_HW_SET == "set2"'
+      variables:
+        RX72N_RUNNER_TAG: "dev-ek-rx72n-set2"
+        E2LITE_SERIAL: "OBE110008"
+        UART_PORT: "/dev/serial/by-id/usb-FTDI_FT232R_USB_UART_AV0KOEEG-if00-port0"
+        COMMAND_PORT: "/dev/serial/by-id/usb-FTDI_FT232R_USB_UART_AV0KOEEG-if00-port0"
+        DEVICE_ID: "rx72n-02"
+        MAC_ADDR: "74:90:50:00:79:02"
+        PI_HOST: "192.168.10.103"
+        DEVICE_RESOURCE_GROUP: "rx72n-device-02"
+        V3_EXPECTED_HOSTNAME: "ef-saffti-001-rpi-002"
+        V3_EXPECTED_UART_PORT: "/dev/serial/by-id/usb-FTDI_FT232R_USB_UART_AV0KOEEG-if00-port0"
+        V3_EXPECTED_RFP_TOOL: "e2l:OBE110008"
+        RX72N_AWS_CLIENT_CERT_VAR: "AWS_CLIENT_CERT_RX72N_02"
+        RX72N_AWS_PRIVATE_KEY_VAR: "AWS_PRIVATE_KEY_RX72N_02"
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
     - when: always
 
 variables:
-  # Device runner set. Override RX72N_HW_SET=set1 to use RPi#2 + RX72N Envision Kit #2.
-  RX72N_HW_SET: "set2"
-  RX72N_RUNNER_TAG: "dev-ek-rx72n-set2"
+  # Device runner set. Override RX72N_HW_SET=set2 to use RPi#2 + RX72N Envision Kit #2.
+  RX72N_HW_SET: "set1"
+  RX72N_RUNNER_TAG: "dev-ek-rx72n-set1"
   E2STUDIO: "C:\\Renesas\\e2_studio_2025_12\\eclipse\\e2studioc.exe"
   WORKSPACE: "C:\\workspace_rx72n"
   E2STUDIO_PROJECTS: "projects_legacy/renesas/rx72n_envision_kit/e2studio"
@@ -71,8 +71,8 @@ variables:
   RFP_CLI: "rfp-cli"
   RFP_SPEED: "1500K"
   # --- ハードウェア依存変数 ---
-  # Defaults are set2 (RPi#1 + RX72N Envision Kit #3). workflow:rules above remap
-  # this whole group when RX72N_HW_SET=set1 is passed to Run Pipeline / API.
+  # Defaults are set1 (RPi#1 + RX72N Envision Kit #3). workflow:rules above remap
+  # this whole group when RX72N_HW_SET=set2 is passed to Run Pipeline / API.
   E2LITE_SERIAL: "OBE110008"
   UART_PORT: "/dev/serial/by-id/usb-FTDI_FT232R_USB_UART_A904CXV7-if00-port0"
   UART_BAUD_RATE: "921600"
@@ -525,20 +525,20 @@ preflight_v3_rx72n:
         fi
         case "${RX72N_HW_SET:-}" in
           set1)
-            expected_device_id="rx72n-02"
-            expected_resource_group="rx72n-device-02"
-            expected_pi_host="192.168.10.103"
-            expected_mac="74:90:50:00:79:02"
-            expected_cert_var="AWS_CLIENT_CERT_RX72N_02"
-            expected_key_var="AWS_PRIVATE_KEY_RX72N_02"
-            ;;
-          set2)
             expected_device_id="rx72n-03"
             expected_resource_group="rx72n-device-03"
             expected_pi_host="192.168.10.102"
             expected_mac="74:90:50:00:79:03"
             expected_cert_var="AWS_CLIENT_CERT_RX72N_03"
             expected_key_var="AWS_PRIVATE_KEY_RX72N_03"
+            ;;
+          set2)
+            expected_device_id="rx72n-02"
+            expected_resource_group="rx72n-device-02"
+            expected_pi_host="192.168.10.103"
+            expected_mac="74:90:50:00:79:02"
+            expected_cert_var="AWS_CLIENT_CERT_RX72N_02"
+            expected_key_var="AWS_PRIVATE_KEY_RX72N_02"
             ;;
         esac
         if [ "${PI_HOST:-}" != "$expected_pi_host" ]; then
