@@ -30,7 +30,7 @@ workflow:
     - when: always
 
 variables:
-  # Device runner: Raspberry Pi #3 + RX72N Envision Kit #3 (tag: dev-ek-rx72n-set2)
+  # Device runner: Raspberry Pi #1 + RX72N Envision Kit #3 (tag: dev-ek-rx72n-set1)
   E2STUDIO: "C:\\Renesas\\e2_studio_2025_12\\eclipse\\e2studioc.exe"
   WORKSPACE: "C:\\workspace_rx72n"
   E2STUDIO_PROJECTS: "projects_legacy/renesas/rx72n_envision_kit/e2studio"
@@ -38,28 +38,28 @@ variables:
   RFP_CLI: "rfp-cli"
   RFP_SPEED: "1500K"
   # --- ハードウェア依存変数（hardware-config リポジトリの CI/CD Variables から取得） ---
-  # 既定は Linux device runner (Raspberry Pi #3 + RX72N Envision Kit #3, tag: dev-ek-rx72n-set2)。
-  # 2026-04-14 の Runner tag 整理で set2 tag は RPi#3 を指すようになった。
+  # 既定は Linux device runner (Raspberry Pi #1 + RX72N Envision Kit #3, tag: dev-ek-rx72n-set1)。
+  # 2026-05-03 の Runner tag 整理で set1 tag は RPi#1 を指す。
   # 最新の台帳は hardware-config の CLAUDE.md を参照する。
   # E2 Lite シリアル番号 (ECN1 コネクタ)
   E2LITE_SERIAL: "${E2L_SERIAL_ENVISION_KIT_RX72N_ECN1}"
   # UART ログ / ダウンロード用（CN6 PMOD FTDI, SCI7, 921600bps）
-  # set2 (RPi#3 + ENVK #3) 固定。/oss group CI/CD Variables の stable by-id path を使用する。
+  # set1 (RPi#1 + ENVK #3) 固定。/oss group CI/CD Variables の stable by-id path を使用する。
   # 実験・高速ログ用途の推奨経路 (PMOD-USB 変換ボード必要)。
-  UART_PORT: "${UART_PORT_ENVISION_KIT_RX72N_CN6_RPI3}"
+  UART_PORT: "${UART_PORT_ENVISION_KIT_RX72N_CN6_RPI1}"
   UART_BAUD_RATE: "921600"
   UART_TIMEOUT_SEC: "30"
   # コマンドインターフェース用（CN6 FTDI, SCI7, 921600bps）
   # 2026-04-17 以降 CN8 (RL78/G1C) は全台撤去済み。CN6 に統一。
-  COMMAND_PORT: "${UART_PORT_ENVISION_KIT_RX72N_CN6_RPI3}"
+  COMMAND_PORT: "${UART_PORT_ENVISION_KIT_RX72N_CN6_RPI1}"
   COMMAND_BAUD_RATE: "921600"
-  # デバイス ID と MAC address は set2 (ENVK #3) 固定。
+  # デバイス ID と MAC address は RX72N ENVK #3 固定。
   DEVICE_ID: "rx72n-03"
   MAC_ADDR: "${MAC_ADDR_ENVISION_KIT_RX72N3}"
-  # Raspberry Pi #3 (set2) 固定。Windows OTA jobs から boundary lease を
+  # Raspberry Pi #1 (set1) 固定。Windows OTA jobs から boundary lease を
   # 同じ Pi 上で assert/release するために使う。
-  PI_HOST: "192.168.10.104"
-  # RPi#3 は 3 E2 Lite 同居 (RX72N ENVK #3 / TB-RX671 / Recotto CBT) のため
+  PI_HOST: "192.168.10.102"
+  # RPi#1 は複数 E2 Lite 同居 (RX72N ENVK #3 / product 側機材) のため
   # serial 明示必須。generic `e2l` を使うと rfp-cli が最初に列挙されたデバイスを
   # 選び、意図しない板へ書き込む危険がある (2026-04-14 pipeline #2835 で Recotto CBT
   # の E2 Lite `5ES008000` に RX72N boot_loader を誤書きした事例あり)。
@@ -389,7 +389,7 @@ build_v3_rx72n:
     - os-linux
     - hw-raspi
     - dev-ek-rx72n
-    - dev-ek-rx72n-set2
+    - dev-ek-rx72n-set1
   resource_group: $DEVICE_RESOURCE_GROUP
   before_script:
     - source "$CI_PROJECT_DIR/tools/ci/activate_pi_python.sh" pyserial cryptography

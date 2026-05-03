@@ -4,7 +4,7 @@
     - os-linux
     - hw-raspi
     - dev-ek-rx72n
-    - dev-ek-rx72n-set2
+    - dev-ek-rx72n-set1
   resource_group: $DEVICE_RESOURCE_GROUP
 
 .pc_flash_job:
