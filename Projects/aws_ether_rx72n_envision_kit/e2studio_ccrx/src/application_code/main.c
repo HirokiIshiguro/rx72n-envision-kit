@@ -224,6 +224,7 @@ void vApplicationDaemonTaskStartupHook (void);
 void prvMiscInitialization (void);
 static BaseType_t prvShouldAutoProvisionFromClientCredentials( void );
 static void prvDisplayInitialize( void );
+static void prvStartBoardApplicationTasks( void );
 static void prvDisplayWriteBanner( void );
 static void prvDisplayWrite( const char * pcMessage );
 
@@ -266,60 +267,8 @@ void main_task(void *pvParameters)
         xSemaphoreGive( xSemaphoreCodeFlashAccess );
     }
 
-    prvDisplayInitialize();
-    prvDisplayWrite("FreeRTOS init\r\n");
-
-    /* Phase 8b 第3次 段階5-4c-3 (#57): SD update task を起動。
-     * sdcard_task は SD カード挿抜検出 + 自動 mount + firm_update 進捗監視 +
-     * GUI 連動を行う。gui_task の完了通知を待ってから動き始める設計。 */
-    {
-        static TaskHandle_t s_sdcard_task_handle = NULL;
-        if( s_sdcard_task_handle == NULL )
-        {
-            ( void ) xTaskCreate( sdcard_task,
-                                  "sdcard",
-                                  appmainSDCARD_TASK_STACK_SIZE,
-                                  get_task_info(),
-                                  appmainSDCARD_TASK_PRIORITY,
-                                  &s_sdcard_task_handle );
-            get_task_info()->sdcard_task_handle = s_sdcard_task_handle;
-        }
-    }
-
-    /* Phase 8b 第3次 段階5-5 (#58): serial flash (Quad SPI) task を起動。
-     * Macronix MX25L 32Mbit に対する erase/write/read テスト harness。
-     * gui_task からの xTaskNotifyGive で wake-up される (段階5-x で復活)。 */
-    {
-        static TaskHandle_t s_serial_flash_task_handle = NULL;
-        if( s_serial_flash_task_handle == NULL )
-        {
-            ( void ) xTaskCreate( serial_flash_task,
-                                  "serial_flash",
-                                  appmainSERIAL_FLASH_TASK_STACK_SIZE,
-                                  get_task_info(),
-                                  appmainSERIAL_FLASH_TASK_PRIORITY,
-                                  &s_serial_flash_task_handle );
-            get_task_info()->serial_flash_task_handle = s_serial_flash_task_handle;
-        }
-    }
-
-    /* Phase 8b 第3次 段階5-6 (#59): audio task placeholder を起動。
-     * legacy aws_demos と同じく実装は永久 sleep のみで、実 audio 機能は無い。
-     * 段階5-6b 以降で SSI/DMA を取り込んだ際に本実装に差し替える。 */
-    {
-        static TaskHandle_t s_audio_task_handle = NULL;
-        if( s_audio_task_handle == NULL )
-        {
-            ( void ) xTaskCreate( audio_task,
-                                  "audio",
-                                  appmainAUDIO_TASK_STACK_SIZE,
-                                  get_task_info(),
-                                  appmainAUDIO_TASK_PRIORITY,
-                                  &s_audio_task_handle );
-            get_task_info()->audio_task_handle = s_audio_task_handle;
-        }
-    }
-
+    /* Keep LCD/SD/serial flash/audio startup out of the CLI provisioning window.
+     * These board application tasks are demo-only until the v3 baseline is stable. */
 #if (ENABLE_CREDENTIAL_BY_CLI == 1)
     {
         /* Register the standard CLI commands. */
@@ -367,6 +316,9 @@ void main_task(void *pvParameters)
             vTaskDelete(xCLIHandle);
         }
     #endif
+
+        prvStartBoardApplicationTasks();
+        prvDisplayWrite("FreeRTOS init\r\n");
 
         /* Initialise the RTOS's TCP/IP stack.  The tasks that use the network
             are created in the vApplicationIPNetworkEventHook() hook function
@@ -498,6 +450,63 @@ static void prvDisplayInitialize( void )
                               appmainGUI_TASK_PRIORITY,
                               &s_gui_task_handle );
         get_task_info()->gui_task_handle = s_gui_task_handle;
+    }
+}
+/*-----------------------------------------------------------*/
+
+static void prvStartBoardApplicationTasks( void )
+{
+    prvDisplayInitialize();
+
+    /* Phase 8b 第3次 段階5-4c-3 (#57): SD update task を起動。
+     * sdcard_task は SD カード挿抜検出 + 自動 mount + firm_update 進捗監視 +
+     * GUI 連動を行う。gui_task の完了通知を待ってから動き始める設計。 */
+    {
+        static TaskHandle_t s_sdcard_task_handle = NULL;
+        if( s_sdcard_task_handle == NULL )
+        {
+            ( void ) xTaskCreate( sdcard_task,
+                                  "sdcard",
+                                  appmainSDCARD_TASK_STACK_SIZE,
+                                  get_task_info(),
+                                  appmainSDCARD_TASK_PRIORITY,
+                                  &s_sdcard_task_handle );
+            get_task_info()->sdcard_task_handle = s_sdcard_task_handle;
+        }
+    }
+
+    /* Phase 8b 第3次 段階5-5 (#58): serial flash (Quad SPI) task を起動。
+     * Macronix MX25L 32Mbit に対する erase/write/read テスト harness。
+     * gui_task からの xTaskNotifyGive で wake-up される (段階5-x で復活)。 */
+    {
+        static TaskHandle_t s_serial_flash_task_handle = NULL;
+        if( s_serial_flash_task_handle == NULL )
+        {
+            ( void ) xTaskCreate( serial_flash_task,
+                                  "serial_flash",
+                                  appmainSERIAL_FLASH_TASK_STACK_SIZE,
+                                  get_task_info(),
+                                  appmainSERIAL_FLASH_TASK_PRIORITY,
+                                  &s_serial_flash_task_handle );
+            get_task_info()->serial_flash_task_handle = s_serial_flash_task_handle;
+        }
+    }
+
+    /* Phase 8b 第3次 段階5-6 (#59): audio task placeholder を起動。
+     * legacy aws_demos と同じく実装は永久 sleep のみで、実 audio 機能は無い。
+     * 段階5-6b 以降で SSI/DMA を取り込んだ際に本実装に差し替える。 */
+    {
+        static TaskHandle_t s_audio_task_handle = NULL;
+        if( s_audio_task_handle == NULL )
+        {
+            ( void ) xTaskCreate( audio_task,
+                                  "audio",
+                                  appmainAUDIO_TASK_STACK_SIZE,
+                                  get_task_info(),
+                                  appmainAUDIO_TASK_PRIORITY,
+                                  &s_audio_task_handle );
+            get_task_info()->audio_task_handle = s_audio_task_handle;
+        }
     }
 }
 /*-----------------------------------------------------------*/
