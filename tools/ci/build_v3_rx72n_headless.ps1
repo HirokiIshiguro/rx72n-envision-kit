@@ -213,6 +213,7 @@ try {
     $appMot = Find-Artifacts "$projectsPath\aws_ether_rx72n_envision_kit\e2studio_ccrx\HardwareDebug\*.mot"
     $appAbs = Find-Artifacts "$projectsPath\aws_ether_rx72n_envision_kit\e2studio_ccrx\HardwareDebug\*.abs"
     $appX = Find-Artifacts "$projectsPath\aws_ether_rx72n_envision_kit\e2studio_ccrx\HardwareDebug\*.x"
+    $appMap = Find-Artifacts "$projectsPath\aws_ether_rx72n_envision_kit\e2studio_ccrx\HardwareDebug\*.map"
 
     Write-Host ""
     Write-Host "--- RX72N v3 artifact search ---"
@@ -220,6 +221,17 @@ try {
     Write-Host "  aws_ether   .mot: $(if ($appMot) { $appMot.FullName } else { 'NOT FOUND' })"
     Write-Host "  aws_ether   .abs: $(if ($appAbs) { $appAbs.FullName } else { 'NOT FOUND' })"
     Write-Host "  aws_ether     .x: $(if ($appX) { $appX.FullName } else { 'NOT FOUND' })"
+    Write-Host "  aws_ether   .map: $(if ($appMap) { $appMap.FullName } else { 'NOT FOUND' })"
+
+    Write-Host ""
+    Write-Host "--- RX72N v3 artifact sizes ---"
+    foreach ($artifactSet in @($bootMot, $appMot, $appAbs, $appX, $appMap)) {
+        if ($artifactSet) {
+            foreach ($artifact in @($artifactSet)) {
+                Write-Host ("  {0}: {1:N0} bytes" -f $artifact.Name, $artifact.Length)
+            }
+        }
+    }
 
     $missing = @()
     if (-not $bootMot) { $missing += "boot_loader_rx72n_envision_kit .mot" }

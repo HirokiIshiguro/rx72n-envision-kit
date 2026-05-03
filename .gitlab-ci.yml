@@ -414,6 +414,7 @@ build_v3_rx72n:
       - Projects/aws_ether_rx72n_envision_kit/e2studio_ccrx/HardwareDebug/*.mot
       - Projects/aws_ether_rx72n_envision_kit/e2studio_ccrx/HardwareDebug/*.abs
       - Projects/aws_ether_rx72n_envision_kit/e2studio_ccrx/HardwareDebug/*.x
+      - Projects/aws_ether_rx72n_envision_kit/e2studio_ccrx/HardwareDebug/*.map
     expire_in: 1 week
 
 .v3_pi_job:

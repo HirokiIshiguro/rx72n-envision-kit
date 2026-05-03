@@ -122,6 +122,12 @@ extern void audio_task( void * pvParameters );
                                                       ( appmainENABLE_BOARD_SERIAL_FLASH_TASK != 0 ) || \
                                                       ( appmainENABLE_BOARD_AUDIO_TASK != 0 ) )
 
+#ifndef appmainENABLE_NETWORK_WAIT_DIAGNOSTICS
+    #define appmainENABLE_NETWORK_WAIT_DIAGNOSTICS appmainENABLE_ANY_BOARD_APPLICATION_TASK
+#endif
+
+#define appmainNETWORK_WAIT_LOG_INTERVAL_MS        ( 5000UL )
+
 /* Phase 8b 第3次 段階5-7 B-1 (rx72n-envision-kit#60): TCP performance tasks.
  * iperf 互換 TCP throughput 測定。legacy aws_demos と同じ priority
  * configMAX_PRIORITIES (network throughput 優先)。両 task とも自走で
@@ -359,10 +365,43 @@ void main_task(void *pvParameters)
                         ucMACAddress );
 
         /* We should wait for the network to be up before we run any demos. */
-        while (FreeRTOS_IsNetworkUp() == pdFALSE)
+#if ( appmainENABLE_NETWORK_WAIT_DIAGNOSTICS != 0 )
         {
-            vTaskDelay(300);
+            const TickType_t xNetworkWaitStartTick = xTaskGetTickCount();
+            TickType_t xNetworkWaitLastLogTick = xNetworkWaitStartTick;
+#endif
+            while (FreeRTOS_IsNetworkUp() == pdFALSE)
+            {
+                vTaskDelay(pdMS_TO_TICKS(300));
+
+#if ( appmainENABLE_NETWORK_WAIT_DIAGNOSTICS != 0 )
+                {
+                    const TickType_t xNetworkWaitNowTick = xTaskGetTickCount();
+
+                    if( ( xNetworkWaitNowTick - xNetworkWaitLastLogTick ) >= pdMS_TO_TICKS( appmainNETWORK_WAIT_LOG_INTERVAL_MS ) )
+                    {
+                        xNetworkWaitLastLogTick = xNetworkWaitNowTick;
+                        configPRINTF( ( "Network wait: up=%ld waited=%lu heap=%lu main_hwm=%lu\r\n",
+                                        ( long ) FreeRTOS_IsNetworkUp(),
+                                        ( unsigned long ) ( ( xNetworkWaitNowTick - xNetworkWaitStartTick ) * portTICK_PERIOD_MS ),
+                                        ( unsigned long ) xPortGetFreeHeapSize(),
+                                        ( unsigned long ) uxTaskGetStackHighWaterMark( NULL ) ) );
+                    }
+                }
+#endif
+            }
+
+#if ( appmainENABLE_NETWORK_WAIT_DIAGNOSTICS != 0 )
+            {
+                const TickType_t xNetworkWaitEndTick = xTaskGetTickCount();
+
+                configPRINTF( ( "Network wait done: waited=%lu heap=%lu main_hwm=%lu\r\n",
+                                ( unsigned long ) ( ( xNetworkWaitEndTick - xNetworkWaitStartTick ) * portTICK_PERIOD_MS ),
+                                ( unsigned long ) xPortGetFreeHeapSize(),
+                                ( unsigned long ) uxTaskGetStackHighWaterMark( NULL ) ) );
+            }
         }
+#endif
 
         FreeRTOS_printf(("Initialise the RTOS's TCP/IP stack\n"));
         prvDisplayWrite("Network up\r\n");
