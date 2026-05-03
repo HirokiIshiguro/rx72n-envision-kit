@@ -347,12 +347,6 @@ void main_task(void *pvParameters)
         }
     #endif
 
-        if( appmainENABLE_ANY_BOARD_APPLICATION_TASK != 0 )
-        {
-            prvStartBoardApplicationTasks();
-            prvDisplayWrite("FreeRTOS init\r\n");
-        }
-
         /* Initialise the RTOS's TCP/IP stack.  The tasks that use the network
             are created in the vApplicationIPNetworkEventHook() hook function
             below.  The hook function is called when the network connects. */
@@ -372,6 +366,12 @@ void main_task(void *pvParameters)
 
         FreeRTOS_printf(("Initialise the RTOS's TCP/IP stack\n"));
         prvDisplayWrite("Network up\r\n");
+
+        if( appmainENABLE_ANY_BOARD_APPLICATION_TASK != 0 )
+        {
+            prvStartBoardApplicationTasks();
+            prvDisplayWrite("Board app tasks init\r\n");
+        }
 
         /* Phase 8b 第3次 段階5-7 B-1 (#60): TCP performance tasks (iperf 互換) を起動。
          * CLI provisioning window を潰さないよう、demo 継続判定と network up 後に起動する。 */
