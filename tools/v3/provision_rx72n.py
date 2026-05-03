@@ -41,7 +41,6 @@ DEFAULT_ATTEMPTS = 1
 CLI_READY_MARKERS = ("Going to FreeRTOS-CLI",)
 CLI_INVITE_MARKERS = (
     "Press CLI and enter to switch to CLI mode",
-    "FreeRTOS command server.",
 )
 BOOTLOADER_MARKERS = (
     "send image(*.rsu) via UART.",
@@ -169,8 +168,9 @@ def enter_cli_mode(ser, char_delay, line_delay, timeout, retry_interval, shadow_
     start = time.monotonic()
     collected = initial_output or ""
 
+    invite_seen = any(marker in collected for marker in CLI_INVITE_MARKERS)
     if (any(marker in collected for marker in CLI_READY_MARKERS) or
-            collected.rstrip().endswith(">")):
+            (collected.rstrip().endswith(">") and not invite_seen)):
         print("CLI prompt already detected")
         return True
     if any(marker in collected for marker in BOOTLOADER_MARKERS):
