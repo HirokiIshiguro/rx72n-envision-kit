@@ -349,7 +349,33 @@ void main_task(void *pvParameters)
         /* For this reason, the CLI task must be deleted before executing the Demo. */
         if( xCLIHandle != NULL )
         {
-            vTaskDelete(xCLIHandle);
+            TaskHandle_t xCurrentTaskHandle = xTaskGetCurrentTaskHandle();
+
+#if ( appmainENABLE_NETWORK_WAIT_DIAGNOSTICS != 0 )
+            configPRINTF( ( "CLI delete check: cli=%08lx current=%08lx heap=%lu main_hwm=%lu\r\n",
+                            ( unsigned long ) xCLIHandle,
+                            ( unsigned long ) xCurrentTaskHandle,
+                            ( unsigned long ) xPortGetFreeHeapSize(),
+                            ( unsigned long ) uxTaskGetStackHighWaterMark( NULL ) ) );
+#endif
+
+            if( xCLIHandle != xCurrentTaskHandle )
+            {
+                vTaskDelete(xCLIHandle);
+                xCLIHandle = NULL;
+
+#if ( appmainENABLE_NETWORK_WAIT_DIAGNOSTICS != 0 )
+                configPRINTF( ( "CLI delete done: heap=%lu main_hwm=%lu\r\n",
+                                ( unsigned long ) xPortGetFreeHeapSize(),
+                                ( unsigned long ) uxTaskGetStackHighWaterMark( NULL ) ) );
+#endif
+            }
+#if ( appmainENABLE_NETWORK_WAIT_DIAGNOSTICS != 0 )
+            else
+            {
+                configPRINTF( ( "CLI delete skipped current task handle\r\n" ) );
+            }
+#endif
         }
     #endif
 
