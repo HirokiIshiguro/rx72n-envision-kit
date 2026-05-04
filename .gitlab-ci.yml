@@ -176,6 +176,8 @@ variables:
   #   gui,sdcard   : start GUI + SD card task.
   #   no_trace     : disable Tracealyzer while recovering GUI/app-layer tasks.
   #   no_tcp_perf  : disable iperf-compatible TCP performance helper tasks.
+  #   no_gui_timer : diagnostic cut point; skip the 1ms emWin FreeRTOS timer
+  #                  started by GUI_X_Init().
   #   gui,serial_flash / gui,audio / all are available for staged app-layer recovery.
   RX72N_BOARD_APP_TASKS: "none"
 

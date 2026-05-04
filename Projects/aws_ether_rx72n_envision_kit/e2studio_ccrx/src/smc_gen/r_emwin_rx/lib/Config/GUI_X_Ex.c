@@ -41,6 +41,10 @@
  *********************************************************************************************************************/
 #define EMWIN_RX_TIMER_NUM      (2)
 
+#ifndef appmainDISABLE_EMWIN_GUI_TIMER
+#define appmainDISABLE_EMWIN_GUI_TIMER  (0)
+#endif
+
 #if (BSP_CFG_RTOS_USED == 1) /* FreeRTOS */
 #define GUI_MAXIMUM_WAIT        (60000)
 #define GUI_WAIT_EVENT_VALUE    (0x00000001)
@@ -214,6 +218,9 @@ e_emwin_rx_err_t r_emwin_rx_guix_timer_create(uint32_t period_ms, emwin_rx_cb_ti
  *********************************************************************************************************************/
 void GUI_X_Init(void)
 {
+#if (appmainDISABLE_EMWIN_GUI_TIMER != 0)
+    return;
+#else
     e_emwin_rx_err_t ret;
 
     /* Casting emwin_rx_cb_timer pointer is used for callback function. */
@@ -226,6 +233,7 @@ void GUI_X_Init(void)
             R_BSP_NOP();
         }
     }
+#endif
 }
 /**********************************************************************************************************************
  End of function GUI_X_Init
