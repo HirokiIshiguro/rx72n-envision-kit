@@ -36,6 +36,10 @@
     #define appmainENABLE_BOARD_GUI_NO_ROOT_TASK    ( 0 )
 #endif
 
+#ifndef appmainENABLE_BOARD_GUI_CORE_INIT_ONLY_TASK
+    #define appmainENABLE_BOARD_GUI_CORE_INIT_ONLY_TASK    ( 0 )
+#endif
+
 void gui_task( void * pvParameters );
 
 /**********************************************************************************************************************
@@ -54,9 +58,10 @@ void gui_task( void * pvParameters )
     TASK_INFO * task_info = ( TASK_INFO * ) pvParameters;
 
     configPRINT_STRING( ( "GUI task enter\r\n" ) );
-    configPRINTF( ( "GUI task start: stub=%ld setup_only=%ld no_root=%ld init_only=%ld heap=%lu hwm=%lu\r\n",
+    configPRINTF( ( "GUI task start: stub=%ld setup_only=%ld core_init_only=%ld no_root=%ld init_only=%ld heap=%lu hwm=%lu\r\n",
                     ( long ) appmainENABLE_BOARD_GUI_STUB_TASK,
                     ( long ) appmainENABLE_BOARD_GUI_SETUP_ONLY_TASK,
+                    ( long ) appmainENABLE_BOARD_GUI_CORE_INIT_ONLY_TASK,
                     ( long ) appmainENABLE_BOARD_GUI_NO_ROOT_TASK,
                     ( long ) appmainENABLE_BOARD_GUI_INIT_ONLY_TASK,
                     ( unsigned long ) xPortGetFreeHeapSize(),
@@ -93,6 +98,30 @@ void gui_task( void * pvParameters )
     for( ; ; )
     {
         vTaskDelay( pdMS_TO_TICKS( 1000 ) );
+    }
+#else
+#if ( appmainENABLE_BOARD_GUI_CORE_INIT_ONLY_TASK != 0 )
+    {
+        int gui_init_result;
+
+        configPRINT_STRING( ( "GUI core GUI_Init enter\r\n" ) );
+        configPRINTF( ( "GUI core GUI_Init start: heap=%lu hwm=%lu\r\n",
+                        ( unsigned long ) xPortGetFreeHeapSize(),
+                        ( unsigned long ) uxTaskGetStackHighWaterMark( NULL ) ) );
+        gui_init_result = GUI_Init();
+        configPRINT_STRING( ( "GUI core GUI_Init leave\r\n" ) );
+        configPRINTF( ( "GUI core GUI_Init done: result=%d heap=%lu hwm=%lu\r\n",
+                        gui_init_result,
+                        ( unsigned long ) xPortGetFreeHeapSize(),
+                        ( unsigned long ) uxTaskGetStackHighWaterMark( NULL ) ) );
+
+        task_info->gui_initialize_complete_flag = 1;
+        configPRINT_STRING( ( "GUI core-init-only ready\r\n" ) );
+
+        for( ; ; )
+        {
+            vTaskDelay( pdMS_TO_TICKS( 1000 ) );
+        }
     }
 #else
     configPRINT_STRING( ( "GUI APPW_Init enter\r\n" ) );
@@ -177,6 +206,7 @@ void gui_task( void * pvParameters )
         }
         vTaskDelay( pdMS_TO_TICKS( 10 ) );
     }
+#endif
 #endif
 #endif
 #endif
