@@ -172,6 +172,8 @@ variables:
   #   none         : v3 baseline path. GUI/SD/serial flash/audio are not started.
   #   gui          : start only GUI/emWin before the network demo.
   #   gui,sdcard   : start GUI + SD card task.
+  #   no_trace     : disable Tracealyzer while recovering GUI/app-layer tasks.
+  #   no_tcp_perf  : disable iperf-compatible TCP performance helper tasks.
   #   gui,serial_flash / gui,audio / all are available for staged app-layer recovery.
   RX72N_BOARD_APP_TASKS: "none"
 

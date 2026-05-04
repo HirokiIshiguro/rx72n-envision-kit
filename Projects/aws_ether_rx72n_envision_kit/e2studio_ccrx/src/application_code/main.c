@@ -132,6 +132,10 @@ extern void audio_task( void * pvParameters );
     #define appmainENABLE_TRACEALYZER ( 1 )
 #endif
 
+#ifndef appmainENABLE_TCP_PERF_TASKS
+    #define appmainENABLE_TCP_PERF_TASKS ( 1 )
+#endif
+
 #define appmainNETWORK_WAIT_LOG_INTERVAL_MS        ( 5000UL )
 
 /* Phase 8b 第3次 段階5-7 B-1 (rx72n-envision-kit#60): TCP performance tasks.
@@ -463,32 +467,58 @@ void main_task(void *pvParameters)
 
         /* Phase 8b 第3次 段階5-7 B-1 (#60): TCP performance tasks (iperf 互換) を起動。
          * CLI provisioning window を潰さないよう、demo 継続判定と network up 後に起動する。 */
+#if ( appmainENABLE_TCP_PERF_TASKS != 0 )
         {
             static TaskHandle_t s_tcp_send_perf_task_handle = NULL;
             if( s_tcp_send_perf_task_handle == NULL )
             {
-                ( void ) xTaskCreate( tcp_send_performance_task,
-                                      "tcp_send_perf",
-                                      appmainTCP_PERF_TASK_STACK_SIZE,
-                                      get_task_info(),
-                                      appmainTCP_PERF_TASK_PRIORITY,
-                                      &s_tcp_send_perf_task_handle );
+                BaseType_t xTcpPerfCreateResult;
+
+                configPRINTF( ( "TCP perf send task create call: heap=%lu main_hwm=%lu\r\n",
+                                ( unsigned long ) xPortGetFreeHeapSize(),
+                                ( unsigned long ) uxTaskGetStackHighWaterMark( NULL ) ) );
+                xTcpPerfCreateResult = xTaskCreate( tcp_send_performance_task,
+                                                    "tcp_send_perf",
+                                                    appmainTCP_PERF_TASK_STACK_SIZE,
+                                                    get_task_info(),
+                                                    appmainTCP_PERF_TASK_PRIORITY,
+                                                    &s_tcp_send_perf_task_handle );
                 get_task_info()->tcp_send_performance_task_handle = s_tcp_send_perf_task_handle;
+                configPRINTF( ( "TCP perf send task create returned: result=%ld handle=%p heap=%lu main_hwm=%lu\r\n",
+                                ( long ) xTcpPerfCreateResult,
+                                ( void * ) s_tcp_send_perf_task_handle,
+                                ( unsigned long ) xPortGetFreeHeapSize(),
+                                ( unsigned long ) uxTaskGetStackHighWaterMark( NULL ) ) );
             }
         }
         {
             static TaskHandle_t s_tcp_recv_perf_task_handle = NULL;
             if( s_tcp_recv_perf_task_handle == NULL )
             {
-                ( void ) xTaskCreate( tcp_receive_performance_task,
-                                      "tcp_recv_perf",
-                                      appmainTCP_PERF_TASK_STACK_SIZE,
-                                      get_task_info(),
-                                      appmainTCP_PERF_TASK_PRIORITY,
-                                      &s_tcp_recv_perf_task_handle );
+                BaseType_t xTcpPerfCreateResult;
+
+                configPRINTF( ( "TCP perf recv task create call: heap=%lu main_hwm=%lu\r\n",
+                                ( unsigned long ) xPortGetFreeHeapSize(),
+                                ( unsigned long ) uxTaskGetStackHighWaterMark( NULL ) ) );
+                xTcpPerfCreateResult = xTaskCreate( tcp_receive_performance_task,
+                                                    "tcp_recv_perf",
+                                                    appmainTCP_PERF_TASK_STACK_SIZE,
+                                                    get_task_info(),
+                                                    appmainTCP_PERF_TASK_PRIORITY,
+                                                    &s_tcp_recv_perf_task_handle );
                 get_task_info()->tcp_receive_performance_task_handle = s_tcp_recv_perf_task_handle;
+                configPRINTF( ( "TCP perf recv task create returned: result=%ld handle=%p heap=%lu main_hwm=%lu\r\n",
+                                ( long ) xTcpPerfCreateResult,
+                                ( void * ) s_tcp_recv_perf_task_handle,
+                                ( unsigned long ) xPortGetFreeHeapSize(),
+                                ( unsigned long ) uxTaskGetStackHighWaterMark( NULL ) ) );
             }
         }
+#else
+        configPRINTF( ( "TCP perf tasks skipped: heap=%lu main_hwm=%lu\r\n",
+                        ( unsigned long ) xPortGetFreeHeapSize(),
+                        ( unsigned long ) uxTaskGetStackHighWaterMark( NULL ) ) );
+#endif
 
         /* Phase 8b 第3次 段階5-2 (rx72n-envision-kit#50): Tracealyzer recorder
          * の起動。FreeRTOS-Plus-TCP streamport (Middleware/3rdparty/
