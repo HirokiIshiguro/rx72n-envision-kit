@@ -28,6 +28,14 @@
     #define appmainENABLE_BOARD_GUI_INIT_ONLY_TASK    ( 0 )
 #endif
 
+#ifndef appmainENABLE_BOARD_GUI_SETUP_ONLY_TASK
+    #define appmainENABLE_BOARD_GUI_SETUP_ONLY_TASK    ( 0 )
+#endif
+
+#ifndef appmainENABLE_BOARD_GUI_NO_ROOT_TASK
+    #define appmainENABLE_BOARD_GUI_NO_ROOT_TASK    ( 0 )
+#endif
+
 void gui_task( void * pvParameters );
 
 /**********************************************************************************************************************
@@ -46,8 +54,10 @@ void gui_task( void * pvParameters )
     TASK_INFO * task_info = ( TASK_INFO * ) pvParameters;
 
     configPRINT_STRING( ( "GUI task enter\r\n" ) );
-    configPRINTF( ( "GUI task start: stub=%ld init_only=%ld heap=%lu hwm=%lu\r\n",
+    configPRINTF( ( "GUI task start: stub=%ld setup_only=%ld no_root=%ld init_only=%ld heap=%lu hwm=%lu\r\n",
                     ( long ) appmainENABLE_BOARD_GUI_STUB_TASK,
+                    ( long ) appmainENABLE_BOARD_GUI_SETUP_ONLY_TASK,
+                    ( long ) appmainENABLE_BOARD_GUI_NO_ROOT_TASK,
                     ( long ) appmainENABLE_BOARD_GUI_INIT_ONLY_TASK,
                     ( unsigned long ) xPortGetFreeHeapSize(),
                     ( unsigned long ) uxTaskGetStackHighWaterMark( NULL ) ) );
@@ -76,6 +86,15 @@ void gui_task( void * pvParameters )
                     ( unsigned long ) xPortGetFreeHeapSize(),
                     ( unsigned long ) uxTaskGetStackHighWaterMark( NULL ) ) );
 
+#if ( appmainENABLE_BOARD_GUI_SETUP_ONLY_TASK != 0 )
+    task_info->gui_initialize_complete_flag = 1;
+    configPRINT_STRING( ( "GUI setup-only ready\r\n" ) );
+
+    for( ; ; )
+    {
+        vTaskDelay( pdMS_TO_TICKS( 1000 ) );
+    }
+#else
     configPRINT_STRING( ( "GUI APPW_Init enter\r\n" ) );
     configPRINTF( ( "GUI APPW_Init start: heap=%lu hwm=%lu\r\n",
                     ( unsigned long ) xPortGetFreeHeapSize(),
@@ -86,6 +105,15 @@ void gui_task( void * pvParameters )
                     ( unsigned long ) xPortGetFreeHeapSize(),
                     ( unsigned long ) uxTaskGetStackHighWaterMark( NULL ) ) );
 
+#if ( appmainENABLE_BOARD_GUI_NO_ROOT_TASK != 0 )
+    task_info->gui_initialize_complete_flag = 1;
+    configPRINT_STRING( ( "GUI no-root ready\r\n" ) );
+
+    for( ; ; )
+    {
+        vTaskDelay( pdMS_TO_TICKS( 1000 ) );
+    }
+#else
     configPRINT_STRING( ( "GUI APPW_CreateRoot enter\r\n" ) );
     configPRINTF( ( "GUI APPW_CreateRoot start: heap=%lu hwm=%lu\r\n",
                     ( unsigned long ) xPortGetFreeHeapSize(),
@@ -149,6 +177,8 @@ void gui_task( void * pvParameters )
         }
         vTaskDelay( pdMS_TO_TICKS( 10 ) );
     }
+#endif
+#endif
 #endif
 #endif
 }
