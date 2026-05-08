@@ -84,6 +84,10 @@
 /**********************************************************************************************************************
  Macro definitions
  *********************************************************************************************************************/
+#ifndef appmainDISABLE_EMWIN_GLCDC_VPOS_INTERRUPT
+#define appmainDISABLE_EMWIN_GLCDC_VPOS_INTERRUPT  (0)
+#endif
+
 /* Display driver */
 
 #if   (EMWIN_BITS_PER_PIXEL == 32)
@@ -463,8 +467,8 @@ static void init_controller(void)
     glcdc_cfg.clut[GLCDC_FRAME_LAYER_2].enable = false;
 
     /* Enable VPOS ISR */
-    glcdc_cfg.detection.vpos_detect  = true;
-    glcdc_cfg.interrupt.vpos_enable  = true;
+    glcdc_cfg.detection.vpos_detect  = (appmainDISABLE_EMWIN_GLCDC_VPOS_INTERRUPT == 0);
+    glcdc_cfg.interrupt.vpos_enable  = (appmainDISABLE_EMWIN_GLCDC_VPOS_INTERRUPT == 0);
     glcdc_cfg.detection.gr1uf_detect = false;
     glcdc_cfg.detection.gr2uf_detect = false;
     glcdc_cfg.interrupt.gr1uf_enable = false;
