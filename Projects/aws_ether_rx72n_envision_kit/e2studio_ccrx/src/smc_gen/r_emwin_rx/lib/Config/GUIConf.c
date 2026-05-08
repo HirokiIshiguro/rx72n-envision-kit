@@ -38,6 +38,9 @@
 /**********************************************************************************************************************
  Macro definitions
  *********************************************************************************************************************/
+#ifndef appmainDISABLE_EMWIN_TOUCH
+#define appmainDISABLE_EMWIN_TOUCH  (0)
+#endif
 
 /**********************************************************************************************************************
  Local Typedef definitions
@@ -68,7 +71,7 @@ void GUI_X_Config(void)
     /* Create and select default font */
     GUI_SetDefaultFont(&GUI_Font6x8);
 
-#if (GUI_SUPPORT_TOUCH == 1)
+#if ((GUI_SUPPORT_TOUCH == 1) && (appmainDISABLE_EMWIN_TOUCH == 0))
     /* Set PID init function */
     GUI_PID_SetInitFunc(PID_X_Init);
 #endif

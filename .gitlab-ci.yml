@@ -200,6 +200,8 @@ variables:
   #   no_tcp_perf  : disable iperf-compatible TCP performance helper tasks.
   #   no_gui_timer : diagnostic cut point; skip the 1ms emWin FreeRTOS timer
   #                  started by GUI_X_Init().
+  #   no_gui_touch : diagnostic cut point; skip emWin PID_X_Init() / touch SCI-IIC6
+  #                  initialization while keeping GUI/AppWizard enabled.
   #   no_appw_multibuf:
   #                  disable AppWizard-managed multibuffering while using one GLCDC
   #                  frame buffer.
