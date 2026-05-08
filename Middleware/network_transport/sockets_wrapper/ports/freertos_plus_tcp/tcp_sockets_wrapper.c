@@ -62,6 +62,10 @@ extern void vLoggingPrintf (const char *pcFormatString,
 #define appmainENABLE_TCP_SOCKET_RANDOM_PROBE (0)
 #endif
 
+#ifndef appmainUSE_DETERMINISTIC_RANDOM_PROBE
+#define appmainUSE_DETERMINISTIC_RANDOM_PROBE (0)
+#endif
+
 #if (appmainENABLE_TCP_SOCKET_PROBE == 1)
 #define tcpsocketPROBE_PRINTF(X)       configPRINTF(X)
 #define tcpsocketPROBE_PRINT_STRING(X) configPRINT_STRING(X)
@@ -579,6 +583,13 @@ static CK_RV prvSocketsGetCryptoSession(SemaphoreHandle_t *pxSessionLock,
  *********************************************************************************************************************/
 BaseType_t xApplicationGetRandomNumber(uint32_t *pulNumber)
 {
+#if (appmainUSE_DETERMINISTIC_RANDOM_PROBE == 1)
+    static uint32_t ulDeterministicRandom = 0x13579BDFUL;
+
+    ulDeterministicRandom = (ulDeterministicRandom * 1103515245UL) + 12345UL;
+    *pulNumber = ulDeterministicRandom;
+    return pdTRUE;
+#else
     CK_RV xResult = 0;
     SemaphoreHandle_t xSessionLock = NULL;
     CK_SESSION_HANDLE xPkcs11Session = 0;
@@ -623,6 +634,7 @@ BaseType_t xApplicationGetRandomNumber(uint32_t *pulNumber)
                                   (long)xReturn,
                                   (unsigned long)*(pulNumber)));
     return xReturn;
+#endif
 }
 /**********************************************************************************************************************
  End of function xApplicationGetRandomNumber
