@@ -449,19 +449,25 @@ static CK_RV prvSocketsGetCryptoSession(SemaphoreHandle_t *pxSessionLock,
     CK_ULONG ulCount = 0;
     CK_SLOT_ID *pxSlotIds = NULL;
 
+    tcpsocketPROBE_PRINT_STRING(("PKCS random session enter\r\n"));
+
     /* Check if one-time initialization of the lock is needed.*/
     portENTER_CRITICAL();
 
     if (NULL == xSessionLock)
     {
         xSessionLock = xSemaphoreCreateMutexStatic(&xStaticSemaphore);
+        tcpsocketPROBE_PRINT_STRING(("PKCS random session mutex created\r\n"));
     }
 
     *pxSessionLock = xSessionLock;
     portEXIT_CRITICAL();
 
     /* Check if one-time initialization of the crypto handle is needed.*/
+    tcpsocketPROBE_PRINT_STRING(("PKCS random session mutex take enter\r\n"));
     xSemaphoreTake(xSessionLock, portMAX_DELAY);
+    tcpsocketPROBE_PRINTF(("PKCS random session mutex take leave: session=%08lx\r\n",
+                           (unsigned long)xPkcs11Session));
 
     if (0 == xPkcs11Session)
     {
@@ -472,19 +478,29 @@ static CK_RV prvSocketsGetCryptoSession(SemaphoreHandle_t *pxSessionLock,
          * requirements for accessing a crypto module. */
 
         pxCkGetFunctionList = C_GetFunctionList;
+        tcpsocketPROBE_PRINT_STRING(("PKCS random C_GetFunctionList enter\r\n"));
         xResult = pxCkGetFunctionList(&pxPkcs11FunctionList);
+        tcpsocketPROBE_PRINTF(("PKCS random C_GetFunctionList leave: rv=%lu\r\n",
+                               (unsigned long)xResult));
 
         if (CKR_OK == xResult)
         {
+            tcpsocketPROBE_PRINT_STRING(("PKCS random token init enter\r\n"));
             xResult = xInitializePkcs11Token();
+            tcpsocketPROBE_PRINTF(("PKCS random token init leave: rv=%lu\r\n",
+                                   (unsigned long)xResult));
         }
 
         /* Get the crypto token slot count. */
         if (CKR_OK == xResult)
         {
+            tcpsocketPROBE_PRINT_STRING(("PKCS random slot count enter\r\n"));
             xResult = pxPkcs11FunctionList->C_GetSlotList(CK_TRUE,
                                                           NULL,
                                                           &ulCount);
+            tcpsocketPROBE_PRINTF(("PKCS random slot count leave: rv=%lu count=%lu\r\n",
+                                   (unsigned long)xResult,
+                                   (unsigned long)ulCount));
         }
 
         /* Allocate memory to store the token slots. */
@@ -501,25 +517,36 @@ static CK_RV prvSocketsGetCryptoSession(SemaphoreHandle_t *pxSessionLock,
         /* Get all of the available private key slot identities. */
         if (CKR_OK == xResult)
         {
+            tcpsocketPROBE_PRINT_STRING(("PKCS random slot list enter\r\n"));
             xResult = pxPkcs11FunctionList->C_GetSlotList(CK_TRUE,
                                                           pxSlotIds,
                                                           &ulCount);
+            tcpsocketPROBE_PRINTF(("PKCS random slot list leave: rv=%lu\r\n",
+                                   (unsigned long)xResult));
         }
 
         /* Start a session with the PKCS#11 module. */
         if (CKR_OK == xResult)
         {
+            tcpsocketPROBE_PRINT_STRING(("PKCS random open session enter\r\n"));
             xResult = pxPkcs11FunctionList->C_OpenSession(pxSlotIds[0],
                                                           CKF_SERIAL_SESSION,
                                                           NULL,
                                                           NULL,
                                                           &xPkcs11Session);
+            tcpsocketPROBE_PRINTF(("PKCS random open session leave: rv=%lu session=%08lx\r\n",
+                                   (unsigned long)xResult,
+                                   (unsigned long)xPkcs11Session));
         }
     }
 
     *pxSession = xPkcs11Session;
     *ppxFunctionList = pxPkcs11FunctionList;
+    tcpsocketPROBE_PRINT_STRING(("PKCS random session mutex give enter\r\n"));
     xSemaphoreGive(xSessionLock);
+    tcpsocketPROBE_PRINTF(("PKCS random session leave: rv=%lu session=%08lx\r\n",
+                           (unsigned long)xResult,
+                           (unsigned long)xPkcs11Session));
 
     if (NULL != pxSlotIds)
     {
@@ -547,17 +574,25 @@ BaseType_t xApplicationGetRandomNumber(uint32_t *pulNumber)
     uint32_t ulRandomValue = 0;
     BaseType_t xReturn; /* Return pdTRUE if successful */
 
+    tcpsocketPROBE_PRINT_STRING(("xApplicationGetRandomNumber enter\r\n"));
     xResult = prvSocketsGetCryptoSession(&xSessionLock,
                                          &xPkcs11Session,
                                          &pxPkcs11FunctionList);
+    tcpsocketPROBE_PRINTF(("xApplicationGetRandomNumber session leave: rv=%lu session=%08lx\r\n",
+                           (unsigned long)xResult,
+                           (unsigned long)xPkcs11Session));
 
     if (0 == xResult)
     {
         /* Request a sequence of cryptographically random byte values using
          * PKCS#11. */
+        tcpsocketPROBE_PRINT_STRING(("xApplicationGetRandomNumber generate enter\r\n"));
         xResult = pxPkcs11FunctionList->C_GenerateRandom(xPkcs11Session,
                                                          (CK_BYTE_PTR)&ulRandomValue,
                                                          sizeof(ulRandomValue));
+        tcpsocketPROBE_PRINTF(("xApplicationGetRandomNumber generate leave: rv=%lu value=%08lx\r\n",
+                               (unsigned long)xResult,
+                               (unsigned long)ulRandomValue));
     }
 
     /* Check if any of the API calls failed. */
@@ -572,6 +607,9 @@ BaseType_t xApplicationGetRandomNumber(uint32_t *pulNumber)
         *(pulNumber) = 0uL;
     }
 
+    tcpsocketPROBE_PRINTF(("xApplicationGetRandomNumber leave: ret=%ld value=%08lx\r\n",
+                           (long)xReturn,
+                           (unsigned long)*(pulNumber)));
     return xReturn;
 }
 /**********************************************************************************************************************
