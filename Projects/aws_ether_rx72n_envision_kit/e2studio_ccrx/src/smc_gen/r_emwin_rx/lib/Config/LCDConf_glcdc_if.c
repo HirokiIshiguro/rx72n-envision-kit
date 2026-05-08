@@ -92,6 +92,14 @@
 #define appmainPRIORITIZE_EDMAC_EBMAPCR  (0)
 #endif
 
+#ifndef appmainDISABLE_EMWIN_GLCDC_PINSET
+#define appmainDISABLE_EMWIN_GLCDC_PINSET  (0)
+#endif
+
+#ifndef appmainDISABLE_EMWIN_DMACA_INIT
+#define appmainDISABLE_EMWIN_DMACA_INIT  (0)
+#endif
+
 /* Display driver */
 
 #if   (EMWIN_BITS_PER_PIXEL == 32)
@@ -505,8 +513,10 @@ static void init_controller(void)
     {
         R_GLCDC_BufferChange(GLCDC_FRAME_LAYER_2, (uint32_t *)s_a_glcdc_buffer_ptr[0]);
 
+#if (appmainDISABLE_EMWIN_GLCDC_PINSET == 0)
         /* Function select of multiplex pins (Display B) */
         R_GLCDC_PinSet();
+#endif
 
     }
     else
@@ -530,7 +540,7 @@ static void init_controller(void)
     R_GPIO_PinWrite(EMWIN_BACKLIGHT_PIN, GPIO_LEVEL_HIGH);
 #endif
 
-#if (EMWIN_INIT_DMAC == 1)
+#if ((EMWIN_INIT_DMAC == 1) && (appmainDISABLE_EMWIN_DMACA_INIT == 0))
     /* Init DMA */
     R_DMACA_Init();
 #endif
