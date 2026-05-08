@@ -12,6 +12,7 @@
 #include "task.h"
 
 #include "GUI.h"
+#include "LCD.h"
 #include "DIALOG.h"
 #include "AppWizard.h"
 
@@ -50,6 +51,14 @@
 
 #ifndef appmainENABLE_BOARD_GUI_POST_ROOT_PROBE
     #define appmainENABLE_BOARD_GUI_POST_ROOT_PROBE    ( 0 )
+#endif
+
+#ifndef appmainENABLE_BOARD_GUI_FORCE_ROOT_FULLSCREEN
+    #define appmainENABLE_BOARD_GUI_FORCE_ROOT_FULLSCREEN    ( 0 )
+#endif
+
+#ifndef appmainENABLE_BOARD_GUI_POST_ROOT_DRAW
+    #define appmainENABLE_BOARD_GUI_POST_ROOT_DRAW    ( 0 )
 #endif
 
 #ifndef appmainENABLE_BOARD_GUI_GENERATED_LOOP
@@ -115,9 +124,17 @@ static void prvLogRootChildren( WM_HWIN xRoot )
 
 static void prvPumpAppWizardOnce( void )
 {
-    while( GUI_Exec1() != 0 )
+    int lGuard = 0;
+
+    while( ( GUI_Exec1() != 0 ) && ( lGuard < 64 ) )
     {
         APPW_Exec();
+        lGuard++;
+    }
+
+    if( lGuard >= 64 )
+    {
+        configPRINT_STRING( ( "GUI pump guard hit\r\n" ) );
     }
 
     APPW_Exec();
@@ -139,7 +156,7 @@ void gui_task( void * pvParameters )
     TASK_INFO * task_info = ( TASK_INFO * ) pvParameters;
 
     configPRINT_STRING( ( "GUI task enter\r\n" ) );
-    configPRINTF( ( "GUI task start: stub=%ld setup_only=%ld core_init_only=%ld no_root=%ld init_only=%ld persistent=%ld post_probe=%ld gen_loop=%ld heap=%lu hwm=%lu\r\n",
+    configPRINTF( ( "GUI task start: stub=%ld setup_only=%ld core_init_only=%ld no_root=%ld init_only=%ld persistent=%ld post_probe=%ld force_root=%ld post_draw=%ld gen_loop=%ld heap=%lu hwm=%lu\r\n",
                     ( long ) appmainENABLE_BOARD_GUI_STUB_TASK,
                     ( long ) appmainENABLE_BOARD_GUI_SETUP_ONLY_TASK,
                     ( long ) appmainENABLE_BOARD_GUI_CORE_INIT_ONLY_TASK,
@@ -147,6 +164,8 @@ void gui_task( void * pvParameters )
                     ( long ) appmainENABLE_BOARD_GUI_INIT_ONLY_TASK,
                     ( long ) appmainENABLE_BOARD_GUI_CREATE_PERSISTENT_SCREENS,
                     ( long ) appmainENABLE_BOARD_GUI_POST_ROOT_PROBE,
+                    ( long ) appmainENABLE_BOARD_GUI_FORCE_ROOT_FULLSCREEN,
+                    ( long ) appmainENABLE_BOARD_GUI_POST_ROOT_DRAW,
                     ( long ) appmainENABLE_BOARD_GUI_GENERATED_LOOP,
                     ( unsigned long ) xPortGetFreeHeapSize(),
                     ( unsigned long ) uxTaskGetStackHighWaterMark( NULL ) ) );
@@ -301,6 +320,16 @@ void gui_task( void * pvParameters )
                     ( unsigned long ) xPortGetFreeHeapSize(),
                     ( unsigned long ) uxTaskGetStackHighWaterMark( NULL ) ) );
 
+#if ( appmainENABLE_BOARD_GUI_FORCE_ROOT_FULLSCREEN != 0 )
+    configPRINT_STRING( ( "GUI force-root-fullscreen enter\r\n" ) );
+    prvLogWindowInfo( "root-before-force", xRoot );
+    WM_SetWindowPos( xRoot, 0, 0, LCD_GetXSize(), LCD_GetYSize() );
+    APPW_SetDefaultPositionRoot( xRoot );
+    prvLogWindowInfo( "root-after-force", xRoot );
+    prvLogRootChildren( xRoot );
+    configPRINT_STRING( ( "GUI force-root-fullscreen done\r\n" ) );
+#endif
+
 #if ( appmainENABLE_BOARD_GUI_POST_ROOT_PROBE != 0 )
     {
         int lPump;
@@ -310,14 +339,21 @@ void gui_task( void * pvParameters )
         prvLogWindowInfo( "desktop", WM_HBKWIN );
         prvLogRootChildren( xRoot );
 
+        configPRINT_STRING( ( "GUI post-root probe invalidate enter\r\n" ) );
         WM_InvalidateWindowAndDescs( WM_HBKWIN );
+        configPRINT_STRING( ( "GUI post-root probe invalidate done\r\n" ) );
 
         for( lPump = 0; lPump < 20; lPump++ )
         {
             prvPumpAppWizardOnce();
             vTaskDelay( pdMS_TO_TICKS( 5 ) );
         }
+        configPRINT_STRING( ( "GUI post-root probe pump done\r\n" ) );
+    }
+#endif
 
+#if ( appmainENABLE_BOARD_GUI_POST_ROOT_DRAW != 0 )
+    {
         configPRINT_STRING( ( "GUI post-root probe direct draw enter\r\n" ) );
         GUI_SetBkColor( GUI_GREEN );
         GUI_Clear();

@@ -177,8 +177,12 @@ variables:
   #   gui_persistent:
   #                  call APPW_CreatePersistentScreens() before APPW_CreateRoot().
   #   gui_post_root_probe:
-  #                  log AppWizard root/window state, then direct-draw a green
-  #                  post-root marker after APPW_CreateRoot().
+  #                  log AppWizard root/window state after APPW_CreateRoot().
+  #   gui_force_root_fullscreen:
+  #                  force the AppWizard root window to LCD size and recalculate
+  #                  default child positions.
+  #   gui_post_root_draw:
+  #                  direct-draw a green post-root marker after APPW_CreateRoot().
   #   gui_generated_loop:
   #                  use the AppWizard-generated GUI_Exec1()/APPW_Exec() loop.
   #   gui,sdcard   : start GUI + SD card task.
