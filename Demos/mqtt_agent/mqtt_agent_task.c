@@ -135,6 +135,18 @@
 #define democonfigMQTT_BROKER_PORT (clientcredentialMQTT_BROKER_PORT)
 #endif
 
+#ifndef appmainENABLE_MQTT_AGENT_PROBE
+#define appmainENABLE_MQTT_AGENT_PROBE (1)
+#endif
+
+#if (appmainENABLE_MQTT_AGENT_PROBE == 1)
+#define mqttagentPROBE_PRINTF(X)       configPRINTF(X)
+#define mqttagentPROBE_PRINT_STRING(X) configPRINT_STRING(X)
+#else
+#define mqttagentPROBE_PRINTF(X)
+#define mqttagentPROBE_PRINT_STRING(X)
+#endif
+
 /**
  * @brief The maximum number of times to run the subscribe publish loop in this
  * demo.
@@ -887,12 +899,19 @@ static void prvIncomingPublishCallback(MQTTAgentContext_t *pMqttAgentContext,
 void vStartMQTTAgent(configSTACK_DEPTH_TYPE uxStackSize,
                      UBaseType_t uxPriority)
 {
-    xTaskCreate(prvMQTTAgentTask,
-                "MQTT",
-                uxStackSize,
-                NULL,
-                uxPriority,
-                NULL);
+    BaseType_t xCreateResult;
+
+    mqttagentPROBE_PRINTF(("MQTT agent xTaskCreate enter: heap=%lu\r\n",
+                           (unsigned long)xPortGetFreeHeapSize()));
+    xCreateResult = xTaskCreate(prvMQTTAgentTask,
+                                "MQTT",
+                                uxStackSize,
+                                NULL,
+                                uxPriority,
+                                NULL);
+    mqttagentPROBE_PRINTF(("MQTT agent xTaskCreate returned: result=%ld heap=%lu\r\n",
+                           (long)xCreateResult,
+                           (unsigned long)xPortGetFreeHeapSize()));
 }
 /**********************************************************************************************************************
  End of function vStartMQTTAgent
@@ -919,9 +938,17 @@ void prvMQTTAgentTask(void *pvParameters)
 
     (void)xWaitForMQTTAgentState(MQTT_AGENT_STATE_INITIALIZED, portMAX_DELAY);
     LogInfo(("---------Start MQTT Agent Task---------\r\n"));
+    mqttagentPROBE_PRINTF(("MQTT task after state wait: heap=%lu hwm=%lu\r\n",
+                           (unsigned long)xPortGetFreeHeapSize(),
+                           (unsigned long)uxTaskGetStackHighWaterMark(NULL)));
 
     /* Initialization of timestamp for MQTT. */
+    mqttagentPROBE_PRINT_STRING(("MQTT task time init enter\r\n"));
     ulGlobalEntryTimeMs = prvGetTimeMs();
+    mqttagentPROBE_PRINTF(("MQTT task time init leave: entry_ms=%lu heap=%lu hwm=%lu\r\n",
+                           (unsigned long)ulGlobalEntryTimeMs,
+                           (unsigned long)xPortGetFreeHeapSize(),
+                           (unsigned long)uxTaskGetStackHighWaterMark(NULL)));
 
 #if defined(__TEST__)
     pcThingName = clientcredentialIOT_THING_NAME;
@@ -929,24 +956,48 @@ void prvMQTTAgentTask(void *pvParameters)
     pcRootCA = (char *)democonfigROOT_CA_PEM;
 #else
     /* Load broker endpoint and thing name for client connection, from the key store. */
+    mqttagentPROBE_PRINT_STRING(("MQTT task KVS length enter\r\n"));
     thingnameLength = prvGetCacheEntryLength(KVS_CORE_THING_NAME);
+    mqttagentPROBE_PRINTF(("MQTT task KVS thing length=%lu\r\n",
+                           (unsigned long)thingnameLength));
     endpointLength = prvGetCacheEntryLength(KVS_CORE_MQTT_ENDPOINT);
+    mqttagentPROBE_PRINTF(("MQTT task KVS endpoint length=%lu\r\n",
+                           (unsigned long)endpointLength));
     rootCALength = prvGetCacheEntryLength(KVS_ROOT_CA_ID);
+    mqttagentPROBE_PRINTF(("MQTT task KVS rootCA length=%lu heap=%lu hwm=%lu\r\n",
+                           (unsigned long)rootCALength,
+                           (unsigned long)xPortGetFreeHeapSize(),
+                           (unsigned long)uxTaskGetStackHighWaterMark(NULL)));
 
     if (thingnameLength > 0)
     {
+        mqttagentPROBE_PRINT_STRING(("MQTT task KVS thing read enter\r\n"));
         pcThingName = GetStringValue(KVS_CORE_THING_NAME, thingnameLength);
+        mqttagentPROBE_PRINTF(("MQTT task KVS thing read leave: ptr=%08lx heap=%lu hwm=%lu\r\n",
+                               (unsigned long)pcThingName,
+                               (unsigned long)xPortGetFreeHeapSize(),
+                               (unsigned long)uxTaskGetStackHighWaterMark(NULL)));
     }
 
     if (endpointLength > 0)
     {
+        mqttagentPROBE_PRINT_STRING(("MQTT task KVS endpoint read enter\r\n"));
         pcBrokerEndpoint = GetStringValue(KVS_CORE_MQTT_ENDPOINT, endpointLength);
+        mqttagentPROBE_PRINTF(("MQTT task KVS endpoint read leave: ptr=%08lx heap=%lu hwm=%lu\r\n",
+                               (unsigned long)pcBrokerEndpoint,
+                               (unsigned long)xPortGetFreeHeapSize(),
+                               (unsigned long)uxTaskGetStackHighWaterMark(NULL)));
     }
 
     if (rootCALength > 0)
     {
         LogInfo(("Using rootCA cert from key store."));
+        mqttagentPROBE_PRINT_STRING(("MQTT task KVS rootCA read enter\r\n"));
         pcRootCA = GetStringValue(KVS_ROOT_CA_ID, rootCALength);
+        mqttagentPROBE_PRINTF(("MQTT task KVS rootCA read leave: ptr=%08lx heap=%lu hwm=%lu\r\n",
+                               (unsigned long)pcRootCA,
+                               (unsigned long)xPortGetFreeHeapSize(),
+                               (unsigned long)uxTaskGetStackHighWaterMark(NULL)));
     }
     else
     {
@@ -960,7 +1011,12 @@ void prvMQTTAgentTask(void *pvParameters)
     /* Initialize the MQTT context with the buffer and transport interface. */
     if (pdPASS == xStatus)
     {
+        mqttagentPROBE_PRINT_STRING(("MQTT task init enter\r\n"));
         xMQTTStatus = prvMQTTInit();
+        mqttagentPROBE_PRINTF(("MQTT task init leave: status=%ld heap=%lu hwm=%lu\r\n",
+                               (long)xMQTTStatus,
+                               (unsigned long)xPortGetFreeHeapSize(),
+                               (unsigned long)uxTaskGetStackHighWaterMark(NULL)));
 
         if (MQTTSuccess != xMQTTStatus)
         {
@@ -970,7 +1026,12 @@ void prvMQTTAgentTask(void *pvParameters)
 
     if (MQTTSuccess == xMQTTStatus)
     {
+        mqttagentPROBE_PRINT_STRING(("MQTT task connect enter\r\n"));
         pMqttContext->connectStatus = prvConnectToMQTTBroker(false);
+        mqttagentPROBE_PRINTF(("MQTT task connect leave: status=%ld heap=%lu hwm=%lu\r\n",
+                               (long)pMqttContext->connectStatus,
+                               (unsigned long)xPortGetFreeHeapSize(),
+                               (unsigned long)uxTaskGetStackHighWaterMark(NULL)));
 
         while (MQTTConnected == pMqttContext->connectStatus)
         {
