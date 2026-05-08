@@ -46,7 +46,7 @@
 #endif
 
 #ifndef appmainENABLE_BOARD_GUI_CREATE_PERSISTENT_SCREENS
-    #define appmainENABLE_BOARD_GUI_CREATE_PERSISTENT_SCREENS    ( 0 )
+    #define appmainENABLE_BOARD_GUI_CREATE_PERSISTENT_SCREENS    ( 1 )
 #endif
 
 #ifndef appmainENABLE_BOARD_GUI_POST_ROOT_PROBE
@@ -54,7 +54,7 @@
 #endif
 
 #ifndef appmainENABLE_BOARD_GUI_FORCE_ROOT_FULLSCREEN
-    #define appmainENABLE_BOARD_GUI_FORCE_ROOT_FULLSCREEN    ( 0 )
+    #define appmainENABLE_BOARD_GUI_FORCE_ROOT_FULLSCREEN    ( 1 )
 #endif
 
 #ifndef appmainENABLE_BOARD_GUI_POST_ROOT_DRAW
@@ -62,7 +62,7 @@
 #endif
 
 #ifndef appmainENABLE_BOARD_GUI_GENERATED_LOOP
-    #define appmainENABLE_BOARD_GUI_GENERATED_LOOP    ( 0 )
+    #define appmainENABLE_BOARD_GUI_GENERATED_LOOP    ( 1 )
 #endif
 
 void gui_task( void * pvParameters );
@@ -326,7 +326,9 @@ void gui_task( void * pvParameters )
     WM_SetWindowPos( xRoot, 0, 0, LCD_GetXSize(), LCD_GetYSize() );
     APPW_SetDefaultPositionRoot( xRoot );
     prvLogWindowInfo( "root-after-force", xRoot );
+#if ( appmainENABLE_BOARD_GUI_POST_ROOT_PROBE != 0 )
     prvLogRootChildren( xRoot );
+#endif
     configPRINT_STRING( ( "GUI force-root-fullscreen done\r\n" ) );
 #endif
 
@@ -400,28 +402,35 @@ void gui_task( void * pvParameters )
     {
         static BaseType_t xFirstLoop = pdTRUE;
 
+#if ( appmainENABLE_BOARD_GUI_GENERATED_LOOP != 0 )
+        if( xFirstLoop != pdFALSE )
+        {
+            configPRINT_STRING( ( "GUI loop generated pump enter\r\n" ) );
+        }
+        prvPumpAppWizardOnce();
+        if( xFirstLoop != pdFALSE )
+        {
+            configPRINT_STRING( ( "GUI loop generated pump leave\r\n" ) );
+            xFirstLoop = pdFALSE;
+        }
+#else
         if( xFirstLoop != pdFALSE )
         {
             configPRINT_STRING( ( "GUI loop APPW_Exec enter\r\n" ) );
         }
-#if ( appmainENABLE_BOARD_GUI_GENERATED_LOOP != 0 )
-        prvPumpAppWizardOnce();
-#else
         APPW_Exec();
-#endif
         if( xFirstLoop != pdFALSE )
         {
             configPRINT_STRING( ( "GUI loop APPW_Exec leave\r\n" ) );
             configPRINT_STRING( ( "GUI loop GUI_Exec enter\r\n" ) );
         }
-#if ( appmainENABLE_BOARD_GUI_GENERATED_LOOP == 0 )
         GUI_Exec();
-#endif
         if( xFirstLoop != pdFALSE )
         {
             configPRINT_STRING( ( "GUI loop GUI_Exec leave\r\n" ) );
             xFirstLoop = pdFALSE;
         }
+#endif
         vTaskDelay( pdMS_TO_TICKS( 10 ) );
     }
 #endif

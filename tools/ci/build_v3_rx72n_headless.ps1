@@ -122,10 +122,13 @@ function Get-BoardAppDefines {
             "gui_no_root"  { $defines += "appmainENABLE_BOARD_GUI_TASK=1"; $defines += "appmainENABLE_BOARD_GUI_NO_ROOT_TASK=1"; break }
             "gui_init_only" { $defines += "appmainENABLE_BOARD_GUI_TASK=1"; $defines += "appmainENABLE_BOARD_GUI_INIT_ONLY_TASK=1"; break }
             "gui_persistent" { $defines += "appmainENABLE_BOARD_GUI_TASK=1"; $defines += "appmainENABLE_BOARD_GUI_CREATE_PERSISTENT_SCREENS=1"; break }
+            { $_ -in @("no_gui_persistent", "gui_no_persistent") } { $defines += "appmainENABLE_BOARD_GUI_TASK=1"; $defines += "appmainENABLE_BOARD_GUI_CREATE_PERSISTENT_SCREENS=0"; break }
             "gui_post_root_probe" { $defines += "appmainENABLE_BOARD_GUI_TASK=1"; $defines += "appmainENABLE_BOARD_GUI_POST_ROOT_PROBE=1"; break }
             "gui_force_root_fullscreen" { $defines += "appmainENABLE_BOARD_GUI_TASK=1"; $defines += "appmainENABLE_BOARD_GUI_FORCE_ROOT_FULLSCREEN=1"; break }
+            { $_ -in @("no_gui_force_root", "gui_no_force_root") } { $defines += "appmainENABLE_BOARD_GUI_TASK=1"; $defines += "appmainENABLE_BOARD_GUI_FORCE_ROOT_FULLSCREEN=0"; break }
             "gui_post_root_draw" { $defines += "appmainENABLE_BOARD_GUI_TASK=1"; $defines += "appmainENABLE_BOARD_GUI_POST_ROOT_DRAW=1"; break }
             "gui_generated_loop" { $defines += "appmainENABLE_BOARD_GUI_TASK=1"; $defines += "appmainENABLE_BOARD_GUI_GENERATED_LOOP=1"; break }
+            { $_ -in @("gui_manual_loop", "no_gui_generated_loop") } { $defines += "appmainENABLE_BOARD_GUI_TASK=1"; $defines += "appmainENABLE_BOARD_GUI_GENERATED_LOOP=0"; break }
             "no_trace"     { $defines += "appmainENABLE_TRACEALYZER=0"; break }
             { $_ -in @("no_tcp_perf", "no_tcpperf") } { $defines += "appmainENABLE_TCP_PERF_TASKS=0"; break }
             { $_ -in @("no_gui_timer", "gui_no_timer") } { $defines += "appmainDISABLE_EMWIN_GUI_TIMER=1"; break }
@@ -133,7 +136,7 @@ function Get-BoardAppDefines {
             { $_ -in @("sd", "sdcard", "sd_card") } { $defines += "appmainENABLE_BOARD_SDCARD_TASK=1"; break }
             { $_ -in @("serial", "serial_flash", "qspi") } { $defines += "appmainENABLE_BOARD_SERIAL_FLASH_TASK=1"; break }
             "audio"        { $defines += "appmainENABLE_BOARD_AUDIO_TASK=1"; break }
-            default        { throw "Unknown RX72N_BOARD_APP_TASKS token '$rawToken'. Use none, all, gui, gui_stub, gui_lcd_diag, gui_setup_only, gui_core_init_only, gui_no_root, gui_init_only, gui_persistent, gui_post_root_probe, gui_force_root_fullscreen, gui_post_root_draw, gui_generated_loop, no_trace, no_tcp_perf, no_gui_timer, no_appw_multibuf, sdcard, serial_flash, audio." }
+            default        { throw "Unknown RX72N_BOARD_APP_TASKS token '$rawToken'. Use none, all, gui, gui_stub, gui_lcd_diag, gui_setup_only, gui_core_init_only, gui_no_root, gui_init_only, gui_persistent, no_gui_persistent, gui_post_root_probe, gui_force_root_fullscreen, no_gui_force_root, gui_post_root_draw, gui_generated_loop, gui_manual_loop, no_trace, no_tcp_perf, no_gui_timer, no_appw_multibuf, sdcard, serial_flash, audio." }
         }
     }
 

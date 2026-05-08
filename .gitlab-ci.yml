@@ -175,16 +175,22 @@ variables:
   #   gui_setup_only / gui_core_init_only / gui_no_root / gui_init_only:
   #                  staged emWin/AppWizard initialization cut points.
   #   gui_persistent:
-  #                  call APPW_CreatePersistentScreens() before APPW_CreateRoot().
+  #                  explicit form of the default persistent-screen creation.
+  #   no_gui_persistent:
+  #                  diagnostic cut point; skip APPW_CreatePersistentScreens().
   #   gui_post_root_probe:
   #                  log AppWizard root/window state after APPW_CreateRoot().
   #   gui_force_root_fullscreen:
-  #                  force the AppWizard root window to LCD size and recalculate
-  #                  default child positions.
+  #                  explicit form of the default AppWizard root fullscreen fix.
+  #   no_gui_force_root:
+  #                  diagnostic cut point; skip the root fullscreen fix.
   #   gui_post_root_draw:
   #                  direct-draw a green post-root marker after APPW_CreateRoot().
   #   gui_generated_loop:
-  #                  use the AppWizard-generated GUI_Exec1()/APPW_Exec() loop.
+  #                  explicit form of the default AppWizard-generated loop.
+  #   gui_manual_loop:
+  #                  diagnostic cut point; use the earlier APPW_Exec()+GUI_Exec()
+  #                  loop instead.
   #   gui,sdcard   : start GUI + SD card task.
   #   no_trace     : disable Tracealyzer while recovering GUI/app-layer tasks.
   #   no_tcp_perf  : disable iperf-compatible TCP performance helper tasks.
