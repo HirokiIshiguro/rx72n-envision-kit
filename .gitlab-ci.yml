@@ -20,9 +20,9 @@ include:
         when: never
       - when: always
 
-# すべての実ジョブが rules: ベースに揃ったため、MR パイプラインを許可する。
-# open MR があるブランチへの通常 push は重複実行を避けるため抑止し、
-# MR 判定は merge_request_event 側の pipeline を基準にする。
+# MR event pipeline は scarce な実機を自動で触らず、v3 build-only を既定にする。
+# 実機を使う v3 focused 検証は API / Run Pipeline から明示変数で起動する。
+# open MR があるブランチへの通常 push は重複実行を避けるため抑止する。
 workflow:
   rules:
     - if: '$CI_PIPELINE_SOURCE == "push" && $CI_OPEN_MERGE_REQUESTS'
@@ -58,6 +58,8 @@ workflow:
         RX72N_AWS_CLIENT_CERT_VAR: "AWS_CLIENT_CERT_RX72N_02"
         RX72N_AWS_PRIVATE_KEY_VAR: "AWS_PRIVATE_KEY_RX72N_02"
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+      variables:
+        RUN_V3_BUILD_ONLY: "true"
     - when: always
 
 variables:

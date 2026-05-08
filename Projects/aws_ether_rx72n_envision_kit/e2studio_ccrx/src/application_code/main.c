@@ -558,12 +558,16 @@ void main_task(void *pvParameters)
         configPRINTF( ( "Demo start marker: heap=%lu main_hwm=%lu\r\n",
                         ( unsigned long ) xPortGetFreeHeapSize(),
                         ( unsigned long ) uxTaskGetStackHighWaterMark( NULL ) ) );
+        configPRINT_STRING( ( "MAIN display starting demo enter\r\n" ) );
         prvDisplayWrite("Starting demo\r\n");
+        configPRINT_STRING( ( "MAIN display starting demo leave\r\n" ) );
 
             #if (ENABLE_FLEET_PROVISIONING_DEMO == 1)
                 vStartFleetProvisioningDemo();
             #else
+                configPRINT_STRING( ( "MAIN mqtt state init enter\r\n" ) );
                 xSetMQTTAgentState(MQTT_AGENT_STATE_INITIALIZED);
+                configPRINT_STRING( ( "MAIN mqtt state init leave\r\n" ) );
             #endif
 
             configPRINTF( ( "MQTT agent start call: heap=%lu main_hwm=%lu\r\n",
