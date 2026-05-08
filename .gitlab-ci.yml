@@ -171,6 +171,7 @@ variables:
   # RX72N_BOARD_APP_TASKS:
   #   none         : v3 baseline path. GUI/SD/serial flash/audio are not started.
   #   gui          : start only GUI/emWin before the network demo.
+  #   gui_lcd_diag : run a direct emWin LCD color-cycle diagnostic without AppWizard.
   #   gui_setup_only / gui_core_init_only / gui_no_root / gui_init_only:
   #                  staged emWin/AppWizard initialization cut points.
   #   gui,sdcard   : start GUI + SD card task.

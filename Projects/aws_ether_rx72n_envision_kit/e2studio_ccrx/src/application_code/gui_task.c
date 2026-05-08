@@ -40,6 +40,10 @@
     #define appmainENABLE_BOARD_GUI_CORE_INIT_ONLY_TASK    ( 0 )
 #endif
 
+#ifndef appmainENABLE_BOARD_GUI_LCD_DIAGNOSTIC_TASK
+    #define appmainENABLE_BOARD_GUI_LCD_DIAGNOSTIC_TASK    ( 0 )
+#endif
+
 void gui_task( void * pvParameters );
 
 /**********************************************************************************************************************
@@ -78,6 +82,55 @@ void gui_task( void * pvParameters )
     for( ; ; )
     {
         vTaskDelay( pdMS_TO_TICKS( 1000 ) );
+    }
+#elif ( appmainENABLE_BOARD_GUI_LCD_DIAGNOSTIC_TASK != 0 )
+    {
+        static const GUI_COLOR xDiagColors[] =
+        {
+            GUI_RED,
+            GUI_GREEN,
+            GUI_BLUE,
+            GUI_WHITE,
+            GUI_BLACK
+        };
+        static const char * const pcDiagNames[] =
+        {
+            "RED",
+            "GREEN",
+            "BLUE",
+            "WHITE",
+            "BLACK"
+        };
+        size_t xIndex = 0;
+        int gui_init_result;
+
+        configPRINT_STRING( ( "GUI LCD diag GUI_Init enter\r\n" ) );
+        gui_init_result = GUI_Init();
+        configPRINTF( ( "GUI LCD diag GUI_Init done: result=%d heap=%lu hwm=%lu\r\n",
+                        gui_init_result,
+                        ( unsigned long ) xPortGetFreeHeapSize(),
+                        ( unsigned long ) uxTaskGetStackHighWaterMark( NULL ) ) );
+
+        task_info->gui_initialize_complete_flag = 1;
+        configPRINT_STRING( ( "GUI LCD diag ready\r\n" ) );
+
+        for( ; ; )
+        {
+            GUI_SetBkColor( xDiagColors[ xIndex ] );
+            GUI_Clear();
+            GUI_SetColor( ( xDiagColors[ xIndex ] == GUI_WHITE ) ? GUI_BLACK : GUI_WHITE );
+            GUI_DispStringAt( "RX72N LCD DIAG", 20, 20 );
+            GUI_DispStringAt( pcDiagNames[ xIndex ], 20, 52 );
+            GUI_Exec();
+
+            xIndex++;
+            if( xIndex >= ( sizeof( xDiagColors ) / sizeof( xDiagColors[ 0 ] ) ) )
+            {
+                xIndex = 0;
+            }
+
+            vTaskDelay( pdMS_TO_TICKS( 1000 ) );
+        }
     }
 #else
     /* emWin / AppWizard 起動シーケンス (legacy 準拠) */
