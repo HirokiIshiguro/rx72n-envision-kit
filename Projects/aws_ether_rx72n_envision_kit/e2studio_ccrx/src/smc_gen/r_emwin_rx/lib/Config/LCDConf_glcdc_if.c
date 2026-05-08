@@ -88,6 +88,10 @@
 #define appmainDISABLE_EMWIN_GLCDC_VPOS_INTERRUPT  (0)
 #endif
 
+#ifndef appmainPRIORITIZE_EDMAC_EBMAPCR
+#define appmainPRIORITIZE_EDMAC_EBMAPCR  (0)
+#endif
+
 /* Display driver */
 
 #if   (EMWIN_BITS_PER_PIXEL == 32)
@@ -478,6 +482,14 @@ static void init_controller(void)
     glcdc_cfg.p_callback = (void (*)(void *))_VSYNC_ISR;
 
 #endif /* (!defined(QE_DISPLAY_CONFIGURATION) && (GLCDC_CFG_CONFIGURATION_MODE == 0)) */
+
+#if (appmainPRIORITIZE_EDMAC_EBMAPCR != 0)
+    BSC.EBMAPCR.BIT.PR1SEL = 4; /* EDMAC */
+    BSC.EBMAPCR.BIT.PR2SEL = 0; /* GLCDC graphics 1 data read */
+    BSC.EBMAPCR.BIT.PR3SEL = 3; /* GLCDC graphics 2 data read */
+    BSC.EBMAPCR.BIT.PR4SEL = 1; /* DRW2D texture data read */
+    BSC.EBMAPCR.BIT.PR5SEL = 2; /* DRW2D frame buffer/data read */
+#endif
 
     /* Initialize a first time interrupt flag
      *   Unintended specified line notification from graphic 2 and graphic 1, 2 underflow is detected only
