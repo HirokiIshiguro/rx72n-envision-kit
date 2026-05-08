@@ -179,6 +179,9 @@ variables:
   #   no_tcp_perf  : disable iperf-compatible TCP performance helper tasks.
   #   no_gui_timer : diagnostic cut point; skip the 1ms emWin FreeRTOS timer
   #                  started by GUI_X_Init().
+  #   no_appw_multibuf:
+  #                  disable AppWizard-managed multibuffering while using one GLCDC
+  #                  frame buffer.
   #   gui,serial_flash / gui,audio / all are available for staged app-layer recovery.
   RX72N_BOARD_APP_TASKS: "none"
 

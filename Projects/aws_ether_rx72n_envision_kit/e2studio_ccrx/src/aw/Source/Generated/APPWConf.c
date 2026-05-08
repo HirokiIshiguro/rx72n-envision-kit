@@ -31,6 +31,10 @@ Purpose     : Generated file do NOT edit!
 #define _appDrawing NULL
 #define _NumDrawings 0
 
+#ifndef appmainDISABLE_APPW_MULTIBUF
+#define appmainDISABLE_APPW_MULTIBUF 0
+#endif
+
 /*********************************************************************
 *
 *       Static data
@@ -176,7 +180,7 @@ const APPW_CONTENT ID_CONTENT_001_Data = {
 *
 *       Multibuffering
 */
-static U8 _MultibufEnable = 1;
+static U8 _MultibufEnable = (appmainDISABLE_APPW_MULTIBUF != 0) ? 0 : 1;
 
 /*********************************************************************
 *
