@@ -44,6 +44,10 @@
     #define appmainENABLE_BOARD_GUI_LCD_DIAGNOSTIC_TASK    ( 0 )
 #endif
 
+#ifndef appmainENABLE_BOARD_GUI_CREATE_PERSISTENT_SCREENS
+    #define appmainENABLE_BOARD_GUI_CREATE_PERSISTENT_SCREENS    ( 0 )
+#endif
+
 void gui_task( void * pvParameters );
 
 /**********************************************************************************************************************
@@ -62,12 +66,13 @@ void gui_task( void * pvParameters )
     TASK_INFO * task_info = ( TASK_INFO * ) pvParameters;
 
     configPRINT_STRING( ( "GUI task enter\r\n" ) );
-    configPRINTF( ( "GUI task start: stub=%ld setup_only=%ld core_init_only=%ld no_root=%ld init_only=%ld heap=%lu hwm=%lu\r\n",
+    configPRINTF( ( "GUI task start: stub=%ld setup_only=%ld core_init_only=%ld no_root=%ld init_only=%ld persistent=%ld heap=%lu hwm=%lu\r\n",
                     ( long ) appmainENABLE_BOARD_GUI_STUB_TASK,
                     ( long ) appmainENABLE_BOARD_GUI_SETUP_ONLY_TASK,
                     ( long ) appmainENABLE_BOARD_GUI_CORE_INIT_ONLY_TASK,
                     ( long ) appmainENABLE_BOARD_GUI_NO_ROOT_TASK,
                     ( long ) appmainENABLE_BOARD_GUI_INIT_ONLY_TASK,
+                    ( long ) appmainENABLE_BOARD_GUI_CREATE_PERSISTENT_SCREENS,
                     ( unsigned long ) xPortGetFreeHeapSize(),
                     ( unsigned long ) uxTaskGetStackHighWaterMark( NULL ) ) );
 
@@ -186,6 +191,18 @@ void gui_task( void * pvParameters )
     configPRINTF( ( "GUI APPW_Init done: heap=%lu hwm=%lu\r\n",
                     ( unsigned long ) xPortGetFreeHeapSize(),
                     ( unsigned long ) uxTaskGetStackHighWaterMark( NULL ) ) );
+
+#if ( appmainENABLE_BOARD_GUI_CREATE_PERSISTENT_SCREENS != 0 )
+    configPRINT_STRING( ( "GUI APPW_CreatePersistentScreens enter\r\n" ) );
+    configPRINTF( ( "GUI APPW_CreatePersistentScreens start: heap=%lu hwm=%lu\r\n",
+                    ( unsigned long ) xPortGetFreeHeapSize(),
+                    ( unsigned long ) uxTaskGetStackHighWaterMark( NULL ) ) );
+    APPW_CreatePersistentScreens();
+    configPRINT_STRING( ( "GUI APPW_CreatePersistentScreens leave\r\n" ) );
+    configPRINTF( ( "GUI APPW_CreatePersistentScreens done: heap=%lu hwm=%lu\r\n",
+                    ( unsigned long ) xPortGetFreeHeapSize(),
+                    ( unsigned long ) uxTaskGetStackHighWaterMark( NULL ) ) );
+#endif
 
 #if ( appmainENABLE_BOARD_GUI_NO_ROOT_TASK != 0 )
     task_info->gui_initialize_complete_flag = 1;

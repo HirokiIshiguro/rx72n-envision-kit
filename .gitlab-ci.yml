@@ -174,6 +174,8 @@ variables:
   #   gui_lcd_diag : run a direct emWin LCD color-cycle diagnostic without AppWizard.
   #   gui_setup_only / gui_core_init_only / gui_no_root / gui_init_only:
   #                  staged emWin/AppWizard initialization cut points.
+  #   gui_persistent:
+  #                  call APPW_CreatePersistentScreens() before APPW_CreateRoot().
   #   gui,sdcard   : start GUI + SD card task.
   #   no_trace     : disable Tracealyzer while recovering GUI/app-layer tasks.
   #   no_tcp_perf  : disable iperf-compatible TCP performance helper tasks.
