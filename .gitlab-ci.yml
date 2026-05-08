@@ -16,6 +16,8 @@ stages:
 include:
   - local: ".gitlab-ci.device-linux.yml"
     rules:
+      - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+        when: never
       - if: $RUN_V3_BUILD_ONLY == "true"
         when: never
       - when: always
@@ -27,6 +29,9 @@ workflow:
   rules:
     - if: '$CI_PIPELINE_SOURCE == "push" && $CI_OPEN_MERGE_REQUESTS'
       when: never
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+      variables:
+        RUN_V3_BUILD_ONLY: "true"
     - if: '$RX72N_HW_SET == "set1"'
       variables:
         RX72N_RUNNER_TAG: "dev-ek-rx72n-set1"
@@ -57,9 +62,6 @@ workflow:
         V3_EXPECTED_RFP_TOOL: "e2l:OBE110008"
         RX72N_AWS_CLIENT_CERT_VAR: "AWS_CLIENT_CERT_RX72N_02"
         RX72N_AWS_PRIVATE_KEY_VAR: "AWS_PRIVATE_KEY_RX72N_02"
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
-      variables:
-        RUN_V3_BUILD_ONLY: "true"
     - when: always
 
 variables:
