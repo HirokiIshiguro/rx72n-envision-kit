@@ -522,6 +522,7 @@ void main_task(void *pvParameters)
                         ( unsigned long ) xPortGetFreeHeapSize(),
                         ( unsigned long ) uxTaskGetStackHighWaterMark( NULL ) ) );
 #endif
+        configPRINT_STRING( ( "MAIN after tcp perf\r\n" ) );
 
         /* Phase 8b 第3次 段階5-2 (rx72n-envision-kit#50): Tracealyzer recorder
          * の起動。FreeRTOS-Plus-TCP streamport (Middleware/3rdparty/
@@ -545,11 +546,14 @@ void main_task(void *pvParameters)
             prvDisplayWrite("Tracealyzer init\r\n");
         }
 #else
+        configPRINT_STRING( ( "MAIN Tracealyzer skipped enter\r\n" ) );
         configPRINTF( ( "Tracealyzer skipped: heap=%lu main_hwm=%lu\r\n",
                         ( unsigned long ) xPortGetFreeHeapSize(),
                         ( unsigned long ) uxTaskGetStackHighWaterMark( NULL ) ) );
+        configPRINT_STRING( ( "MAIN Tracealyzer skipped leave\r\n" ) );
 #endif
 
+        configPRINT_STRING( ( "MAIN demo start enter\r\n" ) );
         FreeRTOS_printf(("---------STARTING DEMO---------\r\n"));
         configPRINTF( ( "Demo start marker: heap=%lu main_hwm=%lu\r\n",
                         ( unsigned long ) xPortGetFreeHeapSize(),

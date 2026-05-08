@@ -421,12 +421,16 @@ build_v3_rx72n:
     - |
       Write-Host "=== RX72N v3 build (iot-reference-rx canonical layout) ==="
       Write-Host "Project root: $env:CI_PROJECT_DIR"
-      Write-Host "Workspace   : C:\rx72n-v3-ws"
+      $buildWorkspace = "C:\rx72n-v3-ws"
+      if ($env:CI_PIPELINE_ID -and $env:CI_JOB_ID) {
+        $buildWorkspace = "C:\rx72n-v3-ws-$($env:CI_PIPELINE_ID)-$($env:CI_JOB_ID)"
+      }
+      Write-Host "Workspace   : $buildWorkspace"
       python -m pip install --quiet --user cryptography
       & "$env:CI_PROJECT_DIR\tools\ci\build_v3_rx72n_headless.ps1" `
         -ProjectRoot "$env:CI_PROJECT_DIR" `
         -E2Studio    "$env:E2STUDIO" `
-        -Workspace   "C:\rx72n-v3-ws" `
+        -Workspace   "$buildWorkspace" `
         -ProjectsPath "Projects" `
         -LogFile     "$env:CI_PROJECT_DIR\rx72n_v3_e2studio_build.log" `
         -SigningKey  "$env:RX72N_V3_SIGNING_KEY" `

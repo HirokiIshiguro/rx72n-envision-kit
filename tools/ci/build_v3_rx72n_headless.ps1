@@ -1,7 +1,7 @@
 param(
     [string]$ProjectRoot = $(Split-Path (Split-Path $PSScriptRoot -Parent) -Parent),
     [string]$E2Studio = "C:\Renesas\e2_studio_2025_12\eclipse\e2studioc.exe",
-    [string]$Workspace = "C:\rx72n-v3-ws",
+    [string]$Workspace = $(if ($env:CI_PIPELINE_ID -and $env:CI_JOB_ID) { "C:\rx72n-v3-ws-$($env:CI_PIPELINE_ID)-$($env:CI_JOB_ID)" } else { "C:\rx72n-v3-ws" }),
     [string]$ProjectsPath = "Projects",
     [string]$LogFile = $(Join-Path (Split-Path (Split-Path $PSScriptRoot -Parent) -Parent) "rx72n_v3_e2studio_build.log"),
     [string]$SigningKey = "sample_keys/secp256r1.privatekey",
