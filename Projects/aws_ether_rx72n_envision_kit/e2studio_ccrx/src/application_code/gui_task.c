@@ -48,7 +48,80 @@
     #define appmainENABLE_BOARD_GUI_CREATE_PERSISTENT_SCREENS    ( 0 )
 #endif
 
+#ifndef appmainENABLE_BOARD_GUI_POST_ROOT_PROBE
+    #define appmainENABLE_BOARD_GUI_POST_ROOT_PROBE    ( 0 )
+#endif
+
+#ifndef appmainENABLE_BOARD_GUI_GENERATED_LOOP
+    #define appmainENABLE_BOARD_GUI_GENERATED_LOOP    ( 0 )
+#endif
+
 void gui_task( void * pvParameters );
+
+static void prvLogWindowInfo( const char * pcLabel,
+                              WM_HWIN xWin )
+{
+    int lValid = WM_IsWindow( xWin );
+    int lSizeX = -1;
+    int lSizeY = -1;
+    WM_HWIN xFirstChild = 0;
+
+    if( lValid != 0 )
+    {
+        lSizeX = WM_GetWindowSizeX( xWin );
+        lSizeY = WM_GetWindowSizeY( xWin );
+        xFirstChild = WM_GetFirstChild( xWin );
+    }
+
+    configPRINTF( ( "GUI window %s: handle=%08lx valid=%ld x=%ld y=%ld first_child=%08lx\r\n",
+                    pcLabel,
+                    ( unsigned long ) xWin,
+                    ( long ) lValid,
+                    ( long ) lSizeX,
+                    ( long ) lSizeY,
+                    ( unsigned long ) xFirstChild ) );
+}
+
+static void prvLogRootChildren( WM_HWIN xRoot )
+{
+    WM_HWIN xChild;
+    unsigned long ulIndex = 0;
+
+    if( WM_IsWindow( xRoot ) == 0 )
+    {
+        configPRINT_STRING( ( "GUI child scan skipped: invalid root\r\n" ) );
+        return;
+    }
+
+    xChild = WM_GetFirstChild( xRoot );
+
+    while( ( xChild != 0 ) && ( ulIndex < 12UL ) )
+    {
+        configPRINTF( ( "GUI child %lu: handle=%08lx valid=%ld x=%ld y=%ld next=%08lx\r\n",
+                        ulIndex,
+                        ( unsigned long ) xChild,
+                        ( long ) WM_IsWindow( xChild ),
+                        ( long ) WM_GetWindowSizeX( xChild ),
+                        ( long ) WM_GetWindowSizeY( xChild ),
+                        ( unsigned long ) WM_GetNextSibling( xChild ) ) );
+        xChild = WM_GetNextSibling( xChild );
+        ulIndex++;
+    }
+
+    configPRINTF( ( "GUI child count logged=%lu next=%08lx\r\n",
+                    ulIndex,
+                    ( unsigned long ) xChild ) );
+}
+
+static void prvPumpAppWizardOnce( void )
+{
+    while( GUI_Exec1() != 0 )
+    {
+        APPW_Exec();
+    }
+
+    APPW_Exec();
+}
 
 /**********************************************************************************************************************
  * Function Name: gui_task
@@ -66,13 +139,15 @@ void gui_task( void * pvParameters )
     TASK_INFO * task_info = ( TASK_INFO * ) pvParameters;
 
     configPRINT_STRING( ( "GUI task enter\r\n" ) );
-    configPRINTF( ( "GUI task start: stub=%ld setup_only=%ld core_init_only=%ld no_root=%ld init_only=%ld persistent=%ld heap=%lu hwm=%lu\r\n",
+    configPRINTF( ( "GUI task start: stub=%ld setup_only=%ld core_init_only=%ld no_root=%ld init_only=%ld persistent=%ld post_probe=%ld gen_loop=%ld heap=%lu hwm=%lu\r\n",
                     ( long ) appmainENABLE_BOARD_GUI_STUB_TASK,
                     ( long ) appmainENABLE_BOARD_GUI_SETUP_ONLY_TASK,
                     ( long ) appmainENABLE_BOARD_GUI_CORE_INIT_ONLY_TASK,
                     ( long ) appmainENABLE_BOARD_GUI_NO_ROOT_TASK,
                     ( long ) appmainENABLE_BOARD_GUI_INIT_ONLY_TASK,
                     ( long ) appmainENABLE_BOARD_GUI_CREATE_PERSISTENT_SCREENS,
+                    ( long ) appmainENABLE_BOARD_GUI_POST_ROOT_PROBE,
+                    ( long ) appmainENABLE_BOARD_GUI_GENERATED_LOOP,
                     ( unsigned long ) xPortGetFreeHeapSize(),
                     ( unsigned long ) uxTaskGetStackHighWaterMark( NULL ) ) );
 
@@ -213,15 +288,46 @@ void gui_task( void * pvParameters )
         vTaskDelay( pdMS_TO_TICKS( 1000 ) );
     }
 #else
+    WM_HWIN xRoot;
+
     configPRINT_STRING( ( "GUI APPW_CreateRoot enter\r\n" ) );
     configPRINTF( ( "GUI APPW_CreateRoot start: heap=%lu hwm=%lu\r\n",
                     ( unsigned long ) xPortGetFreeHeapSize(),
                     ( unsigned long ) uxTaskGetStackHighWaterMark( NULL ) ) );
-    APPW_CreateRoot( APPW_INITIAL_SCREEN, WM_HBKWIN );
+    xRoot = APPW_CreateRoot( APPW_INITIAL_SCREEN, WM_HBKWIN );
     configPRINT_STRING( ( "GUI APPW_CreateRoot leave\r\n" ) );
-    configPRINTF( ( "GUI APPW_CreateRoot done: heap=%lu hwm=%lu\r\n",
+    configPRINTF( ( "GUI APPW_CreateRoot done: root=%08lx heap=%lu hwm=%lu\r\n",
+                    ( unsigned long ) xRoot,
                     ( unsigned long ) xPortGetFreeHeapSize(),
                     ( unsigned long ) uxTaskGetStackHighWaterMark( NULL ) ) );
+
+#if ( appmainENABLE_BOARD_GUI_POST_ROOT_PROBE != 0 )
+    {
+        int lPump;
+
+        configPRINT_STRING( ( "GUI post-root probe enter\r\n" ) );
+        prvLogWindowInfo( "root", xRoot );
+        prvLogWindowInfo( "desktop", WM_HBKWIN );
+        prvLogRootChildren( xRoot );
+
+        WM_InvalidateWindowAndDescs( WM_HBKWIN );
+
+        for( lPump = 0; lPump < 20; lPump++ )
+        {
+            prvPumpAppWizardOnce();
+            vTaskDelay( pdMS_TO_TICKS( 5 ) );
+        }
+
+        configPRINT_STRING( ( "GUI post-root probe direct draw enter\r\n" ) );
+        GUI_SetBkColor( GUI_GREEN );
+        GUI_Clear();
+        GUI_SetColor( GUI_BLACK );
+        GUI_DispStringAt( "POST ROOT PROBE", 20, 20 );
+        GUI_DispStringAt( "DIRECT DRAW AFTER APPW", 20, 52 );
+        GUI_Exec();
+        configPRINT_STRING( ( "GUI post-root probe direct draw done\r\n" ) );
+    }
+#endif
 
     /* GUI 初期化完了。legacy uart_string_printf() のブロック解除フラグ。 */
     task_info->gui_initialize_complete_flag = 1;
@@ -262,13 +368,19 @@ void gui_task( void * pvParameters )
         {
             configPRINT_STRING( ( "GUI loop APPW_Exec enter\r\n" ) );
         }
+#if ( appmainENABLE_BOARD_GUI_GENERATED_LOOP != 0 )
+        prvPumpAppWizardOnce();
+#else
         APPW_Exec();
+#endif
         if( xFirstLoop != pdFALSE )
         {
             configPRINT_STRING( ( "GUI loop APPW_Exec leave\r\n" ) );
             configPRINT_STRING( ( "GUI loop GUI_Exec enter\r\n" ) );
         }
+#if ( appmainENABLE_BOARD_GUI_GENERATED_LOOP == 0 )
         GUI_Exec();
+#endif
         if( xFirstLoop != pdFALSE )
         {
             configPRINT_STRING( ( "GUI loop GUI_Exec leave\r\n" ) );

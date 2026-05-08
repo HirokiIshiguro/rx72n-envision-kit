@@ -176,6 +176,11 @@ variables:
   #                  staged emWin/AppWizard initialization cut points.
   #   gui_persistent:
   #                  call APPW_CreatePersistentScreens() before APPW_CreateRoot().
+  #   gui_post_root_probe:
+  #                  log AppWizard root/window state, then direct-draw a green
+  #                  post-root marker after APPW_CreateRoot().
+  #   gui_generated_loop:
+  #                  use the AppWizard-generated GUI_Exec1()/APPW_Exec() loop.
   #   gui,sdcard   : start GUI + SD card task.
   #   no_trace     : disable Tracealyzer while recovering GUI/app-layer tasks.
   #   no_tcp_perf  : disable iperf-compatible TCP performance helper tasks.
