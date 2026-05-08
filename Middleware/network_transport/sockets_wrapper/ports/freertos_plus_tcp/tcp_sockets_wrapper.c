@@ -54,6 +54,18 @@ extern void vLoggingPrintf (const char *pcFormatString,
 /* FreeRTOS includes. */
 #include "FreeRTOS.h"
 
+#ifndef appmainENABLE_TCP_SOCKET_PROBE
+#define appmainENABLE_TCP_SOCKET_PROBE (1)
+#endif
+
+#if (appmainENABLE_TCP_SOCKET_PROBE == 1)
+#define tcpsocketPROBE_PRINTF(X)       configPRINTF(X)
+#define tcpsocketPROBE_PRINT_STRING(X) configPRINT_STRING(X)
+#else
+#define tcpsocketPROBE_PRINTF(X)
+#define tcpsocketPROBE_PRINT_STRING(X)
+#endif
+
 /* FreeRTOS+TCP includes. */
 #include "FreeRTOS_IP.h"
 #include "FreeRTOS_Sockets.h"
@@ -118,7 +130,14 @@ BaseType_t TCP_Sockets_Connect(Socket_t *pTcpSocket,
     configASSERT(NULL != pHostName);
 
     /* Create a new TCP socket. */
+    tcpsocketPROBE_PRINTF(("TCP wrapper enter: port=%u recv=%lu send=%lu\r\n",
+                           (unsigned int)port,
+                           (unsigned long)receiveTimeoutMs,
+                           (unsigned long)sendTimeoutMs));
+    tcpsocketPROBE_PRINT_STRING(("TCP wrapper socket create enter\r\n"));
     tcpSocket = FreeRTOS_socket(FREERTOS_AF_INET, FREERTOS_SOCK_STREAM, FREERTOS_IPPROTO_TCP);
+    tcpsocketPROBE_PRINTF(("TCP wrapper socket create leave: socket=%08lx\r\n",
+                           (unsigned long)tcpSocket));
 
     if (FREERTOS_INVALID_SOCKET == tcpSocket)
     {
@@ -134,13 +153,18 @@ BaseType_t TCP_Sockets_Connect(Socket_t *pTcpSocket,
         serverAddress.sin_port = FreeRTOS_htons(port);
         serverAddress.sin_len = (uint8_t)sizeof(serverAddress);
 
+        tcpsocketPROBE_PRINT_STRING(("TCP wrapper DNS enter\r\n"));
 #if defined(ipconfigIPv4_BACKWARD_COMPATIBLE) && (ipconfigIPv4_BACKWARD_COMPATIBLE == 0)
         serverAddress.sin_address.ulIP_IPv4 = (uint32_t)FreeRTOS_gethostbyname(pHostName);
+        tcpsocketPROBE_PRINTF(("TCP wrapper DNS leave: ip=%08lx\r\n",
+                               (unsigned long)serverAddress.sin_address.ulIP_IPv4));
 
         /* Check for errors from DNS lookup. */
         if (serverAddress.sin_address.ulIP_IPv4 == 0U)
 #else
         serverAddress.sin_addr = (uint32_t)FreeRTOS_gethostbyname(pHostName);
+        tcpsocketPROBE_PRINTF(("TCP wrapper DNS leave: ip=%08lx\r\n",
+                               (unsigned long)serverAddress.sin_addr));
 
         /* Check for errors from DNS lookup. */
         if (0U == serverAddress.sin_addr)
@@ -157,7 +181,10 @@ BaseType_t TCP_Sockets_Connect(Socket_t *pTcpSocket,
     {
         /* Establish connection. */
         LogDebug(("Creating TCP Connection to %s.", pHostName));
+        tcpsocketPROBE_PRINT_STRING(("TCP wrapper FreeRTOS_connect enter\r\n"));
         socketStatus = FreeRTOS_connect(tcpSocket, &serverAddress, sizeof(serverAddress));
+        tcpsocketPROBE_PRINTF(("TCP wrapper FreeRTOS_connect leave: status=%ld\r\n",
+                               (long)socketStatus));
 
         if (0 != socketStatus)
         {
@@ -175,21 +202,25 @@ BaseType_t TCP_Sockets_Connect(Socket_t *pTcpSocket,
         transportTimeout = pdMS_TO_TICKS(receiveTimeoutMs);
 
         /* Setting the receive block time cannot fail. */
+        tcpsocketPROBE_PRINT_STRING(("TCP wrapper set recv timeout enter\r\n"));
         (void)FreeRTOS_setsockopt(tcpSocket,
                                   0,
                                   FREERTOS_SO_RCVTIMEO,
                                   &transportTimeout,
                                   sizeof(TickType_t));
+        tcpsocketPROBE_PRINT_STRING(("TCP wrapper set recv timeout leave\r\n"));
 
         /* Set socket send timeout. */
         transportTimeout = pdMS_TO_TICKS(sendTimeoutMs);
 
         /* Setting the send block time cannot fail. */
+        tcpsocketPROBE_PRINT_STRING(("TCP wrapper set send timeout enter\r\n"));
         (void)FreeRTOS_setsockopt(tcpSocket,
                                   0,
                                   FREERTOS_SO_SNDTIMEO,
                                   &transportTimeout,
                                   sizeof(TickType_t));
+        tcpsocketPROBE_PRINT_STRING(("TCP wrapper set send timeout leave\r\n"));
     }
 
     /* Clean up on failure. */
@@ -208,6 +239,8 @@ BaseType_t TCP_Sockets_Connect(Socket_t *pTcpSocket,
         LogInfo(("Established TCP connection with %s.", pHostName));
     }
 
+    tcpsocketPROBE_PRINTF(("TCP wrapper leave: status=%ld\r\n",
+                           (long)socketStatus));
     return socketStatus;
 }
 /**********************************************************************************************************************

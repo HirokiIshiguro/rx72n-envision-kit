@@ -612,6 +612,8 @@ static BaseType_t prvCreateTLSConnection(NetworkContext_t *pxNetworkContext)
     BackoffAlgorithmContext_t xReconnectParams = {0};
     uint16_t usNextRetryBackOff = 0U;
 
+    mqttagentPROBE_PRINT_STRING(("MQTT TLS wrapper enter\r\n"));
+
 #ifdef democonfigUSE_AWS_IOT_CORE_BROKER
 
     /* ALPN protocols must be a NULL-terminated list of strings. Therefore,
@@ -635,10 +637,15 @@ static BaseType_t prvCreateTLSConnection(NetworkContext_t *pxNetworkContext)
     xNetworkCredentials.pPrivateKeyLabel = pkcs11configLABEL_DEVICE_PRIVATE_KEY_FOR_TLS;
 
     xNetworkCredentials.disableSni = democonfigDISABLE_SNI;
+    mqttagentPROBE_PRINTF(("MQTT TLS credentials ready: root_ca_size=%lu heap=%lu hwm=%lu\r\n",
+                           (unsigned long)xNetworkCredentials.rootCaSize,
+                           (unsigned long)xPortGetFreeHeapSize(),
+                           (unsigned long)uxTaskGetStackHighWaterMark(NULL)));
     BackoffAlgorithm_InitializeParams(&xReconnectParams,
                                       RETRY_BACKOFF_BASE_MS,
                                       RETRY_MAX_BACKOFF_DELAY_MS,
                                       RETRY_MAX_ATTEMPTS);
+    mqttagentPROBE_PRINT_STRING(("MQTT TLS backoff init done\r\n"));
 
     /* Establish a TCP connection with the MQTT broker. This example connects to
      * the MQTT broker as specified in democonfigMQTT_BROKER_ENDPOINT and
@@ -647,15 +654,21 @@ static BaseType_t prvCreateTLSConnection(NetworkContext_t *pxNetworkContext)
     uint32_t ulRandomNum = 0;
     do
     {
+        mqttagentPROBE_PRINT_STRING(("MQTT TLS connect attempt enter\r\n"));
         LogInfo(("Creating a TLS connection to %s:%u.",
                  pcBrokerEndpoint,
                  democonfigMQTT_BROKER_PORT));
+        mqttagentPROBE_PRINT_STRING(("MQTT TLS_FreeRTOS_Connect call\r\n"));
         xNetworkStatus = TLS_FreeRTOS_Connect(pxNetworkContext,
                                               pcBrokerEndpoint,
                                               democonfigMQTT_BROKER_PORT,
                                               &xNetworkCredentials,
                                               mqttexampleTRANSPORT_RECV_TIMEOUT_MS,
                                               mqttexampleTRANSPORT_SEND_TIMEOUT_MS);
+        mqttagentPROBE_PRINTF(("MQTT TLS_FreeRTOS_Connect returned: status=%ld heap=%lu hwm=%lu\r\n",
+                               (long)xNetworkStatus,
+                               (unsigned long)xPortGetFreeHeapSize(),
+                               (unsigned long)uxTaskGetStackHighWaterMark(NULL)));
 
         xConnected = (TLS_TRANSPORT_SUCCESS == xNetworkStatus) ? pdPASS : pdFAIL;
 
@@ -682,6 +695,12 @@ static BaseType_t prvCreateTLSConnection(NetworkContext_t *pxNetworkContext)
             LogError(("Connection to the broker failed, all attempts exhausted."));
         }
     } while ((pdPASS != xConnected) && (BackoffAlgorithmSuccess == xBackoffAlgStatus));
+
+    mqttagentPROBE_PRINTF(("MQTT TLS wrapper leave: connected=%ld backoff=%ld heap=%lu hwm=%lu\r\n",
+                           (long)xConnected,
+                           (long)xBackoffAlgStatus,
+                           (unsigned long)xPortGetFreeHeapSize(),
+                           (unsigned long)uxTaskGetStackHighWaterMark(NULL)));
 
     return xConnected;
 }
@@ -1139,6 +1158,7 @@ static MQTTConnectionStatus_t prvConnectToMQTTBroker(bool xIsReconnect)
                                       RETRY_BACKOFF_BASE_MS,
                                       RETRY_MAX_BACKOFF_DELAY_MS,
                                       RETRY_MAX_ATTEMPTS);
+    mqttagentPROBE_PRINT_STRING(("MQTT connect backoff init done\r\n"));
 
     /* Attempt to connect to MQTT broker. If connection fails, retry after a
      * timeout. Timeout value will exponentially increase until the maximum
@@ -1147,11 +1167,21 @@ static MQTTConnectionStatus_t prvConnectToMQTTBroker(bool xIsReconnect)
     do
     {
         /* Create a TLS connection to broker */
+        mqttagentPROBE_PRINT_STRING(("MQTT connect before TLS wrapper\r\n"));
         xStatus = prvCreateTLSConnection(&xNetworkContext);
+        mqttagentPROBE_PRINTF(("MQTT connect after TLS wrapper: status=%ld heap=%lu hwm=%lu\r\n",
+                               (long)xStatus,
+                               (unsigned long)xPortGetFreeHeapSize(),
+                               (unsigned long)uxTaskGetStackHighWaterMark(NULL)));
 
         if (pdPASS == xStatus)
         {
+            mqttagentPROBE_PRINT_STRING(("MQTT connect before MQTT CONNECT\r\n"));
             xMQTTStatus = prvCreateMQTTConnection(xIsReconnect);
+            mqttagentPROBE_PRINTF(("MQTT connect after MQTT CONNECT: status=%ld heap=%lu hwm=%lu\r\n",
+                                   (long)xMQTTStatus,
+                                   (unsigned long)xPortGetFreeHeapSize(),
+                                   (unsigned long)uxTaskGetStackHighWaterMark(NULL)));
 
             if (MQTTSuccess != xMQTTStatus)
             {

@@ -67,6 +67,18 @@
 /* FreeRTOS includes. */
 #include "FreeRTOS.h"
 
+#ifndef appmainENABLE_TLS_TRANSPORT_PROBE
+#define appmainENABLE_TLS_TRANSPORT_PROBE (1)
+#endif
+
+#if (appmainENABLE_TLS_TRANSPORT_PROBE == 1)
+#define tlstransportPROBE_PRINTF(X)       configPRINTF(X)
+#define tlstransportPROBE_PRINT_STRING(X) configPRINT_STRING(X)
+#else
+#define tlstransportPROBE_PRINTF(X)
+#define tlstransportPROBE_PRINT_STRING(X)
+#endif
+
 /* MbedTLS Bio TCP sockets wrapper include. */
 #include "mbedtls_bio_tcp_sockets_wrapper.h"
 
@@ -310,14 +322,19 @@ static TlsTransportStatus_t tlsSetup( NetworkContext_t * pNetworkContext,
     configASSERT( pNetworkCredentials->pPrivateKeyLabel != NULL );
 
     pTlsTransportParams = pNetworkContext->pParams;
+    tlstransportPROBE_PRINT_STRING( ( "TLS setup enter\r\n" ) );
 
     /* Initialize the mbed TLS context structures. */
     sslContextInit( &( pTlsTransportParams->sslContext ) );
+    tlstransportPROBE_PRINT_STRING( ( "TLS setup sslContextInit leave\r\n" ) );
 
+    tlstransportPROBE_PRINT_STRING( ( "TLS setup config_defaults enter\r\n" ) );
     mbedtlsError = mbedtls_ssl_config_defaults( &( pTlsTransportParams->sslContext.config ),
                                                 MBEDTLS_SSL_IS_CLIENT,
                                                 MBEDTLS_SSL_TRANSPORT_STREAM,
                                                 MBEDTLS_SSL_PRESET_DEFAULT );
+    tlstransportPROBE_PRINTF( ( "TLS setup config_defaults leave: err=%ld\r\n",
+                                ( long ) mbedtlsError ) );
 
     if( mbedtlsError != 0 )
     {
@@ -367,9 +384,12 @@ static TlsTransportStatus_t tlsSetup( NetworkContext_t * pNetworkContext,
                                        &( pTlsTransportParams->sslContext.certProfile ) );
 
         /* Parse the server root CA certificate into the SSL context. */
+        tlstransportPROBE_PRINT_STRING( ( "TLS setup rootCA parse enter\r\n" ) );
         mbedtlsError = mbedtls_x509_crt_parse( &( pTlsTransportParams->sslContext.rootCa ),
                                                pNetworkCredentials->pRootCa,
                                                pNetworkCredentials->rootCaSize );
+        tlstransportPROBE_PRINTF( ( "TLS setup rootCA parse leave: err=%ld\r\n",
+                                    ( long ) mbedtlsError ) );
 
         if( mbedtlsError != 0 )
         {
@@ -390,8 +410,11 @@ static TlsTransportStatus_t tlsSetup( NetworkContext_t * pNetworkContext,
     if( returnStatus == TLS_TRANSPORT_SUCCESS )
     {
         /* Setup the client private key. */
+        tlstransportPROBE_PRINT_STRING( ( "TLS setup client keys enter\r\n" ) );
         xResult = initializeClientKeys( &( pTlsTransportParams->sslContext ),
                                         pNetworkCredentials->pPrivateKeyLabel );
+        tlstransportPROBE_PRINTF( ( "TLS setup client keys leave: rv=%lu\r\n",
+                                    ( unsigned long ) xResult ) );
 
         if( xResult != CKR_OK )
         {
@@ -402,10 +425,13 @@ static TlsTransportStatus_t tlsSetup( NetworkContext_t * pNetworkContext,
         else
         {
             /* Setup the client certificate. */
+            tlstransportPROBE_PRINT_STRING( ( "TLS setup certificate read enter\r\n" ) );
             xResult = readCertificateIntoContext( &( pTlsTransportParams->sslContext ),
                                                   pNetworkCredentials->pClientCertLabel,
                                                   CKO_CERTIFICATE,
                                                   &( pTlsTransportParams->sslContext.clientCert ) );
+            tlstransportPROBE_PRINTF( ( "TLS setup certificate read leave: rv=%lu\r\n",
+                                        ( unsigned long ) xResult ) );
 
             if( xResult != CKR_OK )
             {
@@ -442,8 +468,11 @@ static TlsTransportStatus_t tlsSetup( NetworkContext_t * pNetworkContext,
     if( returnStatus == TLS_TRANSPORT_SUCCESS )
     {
         /* Initialize the mbed TLS secured connection context. */
+        tlstransportPROBE_PRINT_STRING( ( "TLS setup ssl_setup enter\r\n" ) );
         mbedtlsError = mbedtls_ssl_setup( &( pTlsTransportParams->sslContext.context ),
                                           &( pTlsTransportParams->sslContext.config ) );
+        tlstransportPROBE_PRINTF( ( "TLS setup ssl_setup leave: err=%ld\r\n",
+                                    ( long ) mbedtlsError ) );
 
         if( mbedtlsError != 0 )
         {
@@ -475,15 +504,19 @@ static TlsTransportStatus_t tlsSetup( NetworkContext_t * pNetworkContext,
         /* Enable SNI if requested. */
         if( pNetworkCredentials->disableSni == pdFALSE )
         {
+            tlstransportPROBE_PRINT_STRING( ( "TLS setup hostname enter\r\n" ) );
             mbedtlsError = mbedtls_ssl_set_hostname( &( pTlsTransportParams->sslContext.context ),
                                                      pHostName );
         }
         /* MbedTLS-3.6.3 requires calling the mbedtls_ssl_set_hostname() before calling mbedtls_ssl_handshake(). */
         else
         {
+            tlstransportPROBE_PRINT_STRING( ( "TLS setup hostname enter\r\n" ) );
             mbedtlsError = mbedtls_ssl_set_hostname( &( pTlsTransportParams->sslContext.context ),
                                                      NULL );
         }
+        tlstransportPROBE_PRINTF( ( "TLS setup hostname leave: err=%ld\r\n",
+                                    ( long ) mbedtlsError ) );
 
         if( mbedtlsError != 0 )
         {
@@ -518,12 +551,15 @@ static TlsTransportStatus_t tlsSetup( NetworkContext_t * pNetworkContext,
     if( returnStatus == TLS_TRANSPORT_SUCCESS )
     {
         /* Perform the TLS handshake. */
+        tlstransportPROBE_PRINT_STRING( ( "TLS setup handshake enter\r\n" ) );
         do
         {
             mbedtlsError = mbedtls_ssl_handshake( &( pTlsTransportParams->sslContext.context ) );
         } while( ( mbedtlsError == MBEDTLS_ERR_SSL_WANT_READ ) ||
                  ( mbedtlsError == MBEDTLS_ERR_SSL_WANT_WRITE ) ||
                  ( mbedtlsError == MBEDTLS_ERR_SSL_RECEIVED_NEW_SESSION_TICKET ) );
+        tlstransportPROBE_PRINTF( ( "TLS setup handshake leave: err=%ld\r\n",
+                                    ( long ) mbedtlsError ) );
 
         if( mbedtlsError != 0 )
         {
@@ -552,6 +588,8 @@ static TlsTransportStatus_t tlsSetup( NetworkContext_t * pNetworkContext,
                    pNetworkContext ) );
     }
 
+    tlstransportPROBE_PRINTF( ( "TLS setup leave: status=%ld\r\n",
+                                ( long ) returnStatus ) );
     return returnStatus;
 }
 
@@ -748,6 +786,7 @@ TlsTransportStatus_t TLS_FreeRTOS_Connect( NetworkContext_t * pNetworkContext,
     BaseType_t socketStatus = 0;
     BaseType_t isSocketConnected = pdFALSE;
 
+    tlstransportPROBE_PRINT_STRING( ( "TLS_FreeRTOS_Connect enter\r\n" ) );
     if( ( pNetworkContext == NULL ) ||
         ( pNetworkContext->pParams == NULL ) ||
         ( pHostName == NULL ) ||
@@ -774,15 +813,22 @@ TlsTransportStatus_t TLS_FreeRTOS_Connect( NetworkContext_t * pNetworkContext,
     if( returnStatus == TLS_TRANSPORT_SUCCESS )
     {
         pTlsTransportParams = pNetworkContext->pParams;
+        tlstransportPROBE_PRINTF( ( "TLS_FreeRTOS_Connect params: port=%u recv=%lu send=%lu\r\n",
+                                    ( unsigned int ) port,
+                                    ( unsigned long ) receiveTimeoutMs,
+                                    ( unsigned long ) sendTimeoutMs ) );
 
         /* Initialize tcpSocket. */
         pTlsTransportParams->tcpSocket = NULL;
 
+        tlstransportPROBE_PRINT_STRING( ( "TLS_FreeRTOS_Connect TCP connect enter\r\n" ) );
         socketStatus = TCP_Sockets_Connect( &( pTlsTransportParams->tcpSocket ),
                                             pHostName,
                                             port,
                                             receiveTimeoutMs,
                                             sendTimeoutMs );
+        tlstransportPROBE_PRINTF( ( "TLS_FreeRTOS_Connect TCP connect leave: status=%ld\r\n",
+                                    ( long ) socketStatus ) );
 
         if( socketStatus != 0 )
         {
@@ -798,7 +844,10 @@ TlsTransportStatus_t TLS_FreeRTOS_Connect( NetworkContext_t * pNetworkContext,
     {
         isSocketConnected = pdTRUE;
 
+        tlstransportPROBE_PRINT_STRING( ( "TLS_FreeRTOS_Connect tlsSetup enter\r\n" ) );
         returnStatus = tlsSetup( pNetworkContext, pHostName, pNetworkCredentials );
+        tlstransportPROBE_PRINTF( ( "TLS_FreeRTOS_Connect tlsSetup leave: status=%ld\r\n",
+                                    ( long ) returnStatus ) );
     }
 
     /* Clean up on failure. */
@@ -817,6 +866,8 @@ TlsTransportStatus_t TLS_FreeRTOS_Connect( NetworkContext_t * pNetworkContext,
                    pHostName ) );
     }
 
+    tlstransportPROBE_PRINTF( ( "TLS_FreeRTOS_Connect leave: status=%ld\r\n",
+                                ( long ) returnStatus ) );
     return returnStatus;
 }
 
