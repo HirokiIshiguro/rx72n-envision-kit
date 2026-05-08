@@ -100,6 +100,14 @@
 #define appmainDISABLE_EMWIN_DMACA_INIT  (0)
 #endif
 
+#ifndef appmainDISABLE_EMWIN_GLCDC_OPEN
+#define appmainDISABLE_EMWIN_GLCDC_OPEN  (0)
+#endif
+
+#ifndef appmainDISABLE_EMWIN_GLCDC_GR2_READ
+#define appmainDISABLE_EMWIN_GLCDC_GR2_READ  (0)
+#endif
+
 /* Display driver */
 
 #if   (EMWIN_BITS_PER_PIXEL == 32)
@@ -442,6 +450,11 @@ static void init_controller(void)
     glcdc_cfg.blend[GLCDC_FRAME_LAYER_2].start_coordinate.x = 0;
     glcdc_cfg.blend[GLCDC_FRAME_LAYER_2].end_coordinate.x   = EMWIN_XSIZE_PHYS;
 
+#if (appmainDISABLE_EMWIN_GLCDC_GR2_READ != 0)
+    glcdc_cfg.input[GLCDC_FRAME_LAYER_2].p_base  = NULL;
+    glcdc_cfg.blend[GLCDC_FRAME_LAYER_2].visible = false;
+#endif
+
     /* Timing configuration */
     glcdc_cfg.output.tcon_vsync           = GLCDC_TCON_PIN_0;
     glcdc_cfg.output.tcon_hsync           = GLCDC_TCON_PIN_2;
@@ -506,12 +519,18 @@ static void init_controller(void)
      *   Refer to Graphic LCD Controller (GLCDC) section of User's Manual: Hardware for details. */
     s_first_interrupt_flag = false;
 
+#if (appmainDISABLE_EMWIN_GLCDC_OPEN != 0)
+    return;
+#endif
+
     /* R_GLCDC_Open function release stop state of GLCDC. */
     glcdc_ret = R_GLCDC_Open(&glcdc_cfg);
 
     if (GLCDC_SUCCESS == glcdc_ret)
     {
+#if (appmainDISABLE_EMWIN_GLCDC_GR2_READ == 0)
         R_GLCDC_BufferChange(GLCDC_FRAME_LAYER_2, (uint32_t *)s_a_glcdc_buffer_ptr[0]);
+#endif
 
 #if (appmainDISABLE_EMWIN_GLCDC_PINSET == 0)
         /* Function select of multiplex pins (Display B) */
