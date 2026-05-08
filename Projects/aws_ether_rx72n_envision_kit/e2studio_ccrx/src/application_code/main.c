@@ -63,7 +63,10 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 extern void gui_task( void * pvParameters );
 
 #define appmainGUI_TASK_STACK_SIZE                ( 4096 )
-#define appmainGUI_TASK_PRIORITY                  ( tskIDLE_PRIORITY + 1 )
+/* Keep the display loop below main/MQTT priority.  AppWizard/emWin execution can
+ * run for a long time while driving animations, and the GUI must not prevent the
+ * network demo tasks from starting or servicing MQTT. */
+#define appmainGUI_TASK_PRIORITY                  ( tskIDLE_PRIORITY )
 #define appmainGUI_INIT_WAIT_TIMEOUT_MS           ( 10000UL )
 #define appmainGUI_INIT_WAIT_LOG_INTERVAL_MS      ( 1000UL )
 
