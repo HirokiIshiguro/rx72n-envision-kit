@@ -82,6 +82,10 @@
  */
 #define mqttexampleUNSUBSCRIBE_RETRIES (5)
 
+#ifndef mqttexampleSKIP_OTA_SELF_TEST_WAIT
+    #define mqttexampleSKIP_OTA_SELF_TEST_WAIT    ( 0 )
+#endif
+
 /**
  * @brief Number of times a publish has to be retried if agent cannot send a QoS0 packet
  * or an ACK is not received for a QoS1 packet.
@@ -729,12 +733,14 @@ void vSimpleSubscribePublishTask(void *pvParameters)
         (void)xWaitForMQTTAgentState(MQTT_AGENT_STATE_CONNECTED, portMAX_DELAY);
     }
     
-#if ((ENABLE_OTA_UPDATE_DEMO == 1) || (OTA_E2E_TEST_ENABLED == 1))
+#if (((ENABLE_OTA_UPDATE_DEMO == 1) || (OTA_E2E_TEST_ENABLED == 1)) && (mqttexampleSKIP_OTA_SELF_TEST_WAIT == 0))
     extern EventGroupHandle_t xStartDemoEventGroup;
     configASSERT(xStartDemoEventGroup);
 
     /* Wait for the event bit set when OtaSelfTest() is successful */
     xEventGroupWaitBits(xStartDemoEventGroup, SELF_TEST_PASSED, pdFALSE, pdFALSE, portMAX_DELAY);
+#elif ((ENABLE_OTA_UPDATE_DEMO == 1) || (OTA_E2E_TEST_ENABLED == 1))
+    LogInfo(("Skipping OTA self-test wait before PubSub."));
 #endif
 
     LogInfo(("---------Start PubSub Demo Task  %u---------\r\n", ulTaskNumber));

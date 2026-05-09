@@ -186,6 +186,10 @@ extern BaseType_t KVStore_xCommitChanges(void);
  */
 #define appmainINCLUDE_OTA_UPDATE_TASK            ( 1 )
 
+#ifndef appmainSTART_OTA_DEMO_TASK
+    #define appmainSTART_OTA_DEMO_TASK            ( 1 )
+#endif
+
 /**
  * @brief Stack size and priority for OTA Update task.
  */
@@ -616,8 +620,15 @@ void main_task(void *pvParameters)
             prvDisplayWrite("PubSub task start\r\n");
 
             #if (ENABLE_OTA_UPDATE_DEMO == 1)
-                        vStartOtaDemo();
-                        prvDisplayWrite("OTA task start\r\n");
+                if( appmainSTART_OTA_DEMO_TASK != 0 )
+                {
+                    vStartOtaDemo();
+                    prvDisplayWrite("OTA task start\r\n");
+                }
+                else
+                {
+                    configPRINT_STRING( ( "OTA task skipped for diagnostics\r\n" ) );
+                }
             #endif
     }
     else
