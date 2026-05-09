@@ -130,6 +130,7 @@ function Get-BoardAppDefines {
             "gui_generated_loop" { $defines += "appmainENABLE_BOARD_GUI_TASK=1"; $defines += "appmainENABLE_BOARD_GUI_GENERATED_LOOP=1"; break }
             { $_ -in @("gui_manual_loop", "no_gui_generated_loop") } { $defines += "appmainENABLE_BOARD_GUI_TASK=1"; $defines += "appmainENABLE_BOARD_GUI_GENERATED_LOOP=0"; break }
             "no_trace"     { $defines += "appmainENABLE_TRACEALYZER=0"; break }
+            { $_ -in @("keep_cli", "cli_diag", "diagnostic_cli") } { $defines += "appmainKEEP_CLI_TASK_FOR_DIAGNOSTICS=1"; $defines += "configINCLUDE_QUERY_HEAP_COMMAND=1"; break }
             { $_ -in @("no_tcp_perf", "no_tcpperf") } { $defines += "appmainENABLE_TCP_PERF_TASKS=0"; break }
             { $_ -in @("no_gui_timer", "gui_no_timer") } { $defines += "appmainDISABLE_EMWIN_GUI_TIMER=1"; break }
             { $_ -in @("no_gui_touch", "gui_no_touch", "no_touch") } { $defines += "appmainDISABLE_EMWIN_TOUCH=1"; break }
@@ -145,7 +146,7 @@ function Get-BoardAppDefines {
             { $_ -in @("sd", "sdcard", "sd_card") } { $defines += "appmainENABLE_BOARD_SDCARD_TASK=1"; break }
             { $_ -in @("serial", "serial_flash", "qspi") } { $defines += "appmainENABLE_BOARD_SERIAL_FLASH_TASK=1"; break }
             "audio"        { $defines += "appmainENABLE_BOARD_AUDIO_TASK=1"; break }
-            default        { throw "Unknown RX72N_BOARD_APP_TASKS token '$rawToken'. Use none, all, gui, gui_stub, gui_lcd_diag, gui_setup_only, gui_core_init_only, gui_no_root, gui_init_only, gui_persistent, no_gui_persistent, gui_post_root_probe, gui_force_root_fullscreen, no_gui_force_root, gui_post_root_draw, gui_generated_loop, gui_manual_loop, no_trace, no_tcp_perf, no_gui_timer, no_gui_touch, no_glcdc_vpos, edmac_first, no_glcdc_pinset, no_emwin_dmaca_init, no_glcdc_open, no_glcdc_gr2_read, random_probe, fast_random, no_appw_multibuf, sdcard, serial_flash, audio." }
+            default        { throw "Unknown RX72N_BOARD_APP_TASKS token '$rawToken'. Use none, all, gui, gui_stub, gui_lcd_diag, gui_setup_only, gui_core_init_only, gui_no_root, gui_init_only, gui_persistent, no_gui_persistent, gui_post_root_probe, gui_force_root_fullscreen, no_gui_force_root, gui_post_root_draw, gui_generated_loop, gui_manual_loop, no_trace, keep_cli, no_tcp_perf, no_gui_timer, no_gui_touch, no_glcdc_vpos, edmac_first, no_glcdc_pinset, no_emwin_dmaca_init, no_glcdc_open, no_glcdc_gr2_read, random_probe, fast_random, no_appw_multibuf, sdcard, serial_flash, audio." }
         }
     }
 

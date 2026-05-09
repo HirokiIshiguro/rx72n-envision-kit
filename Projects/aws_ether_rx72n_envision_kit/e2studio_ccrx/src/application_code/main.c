@@ -139,6 +139,10 @@ extern void audio_task( void * pvParameters );
     #define appmainENABLE_TCP_PERF_TASKS ( 1 )
 #endif
 
+#ifndef appmainKEEP_CLI_TASK_FOR_DIAGNOSTICS
+    #define appmainKEEP_CLI_TASK_FOR_DIAGNOSTICS ( 0 )
+#endif
+
 #define appmainNETWORK_WAIT_LOG_INTERVAL_MS        ( 5000UL )
 #define appmainMAC_ADDRESS_STRING_LENGTH           ( 17U )
 
@@ -370,7 +374,7 @@ void main_task(void *pvParameters)
         /* Remove CLI task before going to demo. */
         /* CLI and Log tasks use common resources but are not exclusively controlled. */
         /* For this reason, the CLI task must be deleted before executing the Demo. */
-        if( xCLIHandle != NULL )
+        if( ( xCLIHandle != NULL ) && ( appmainKEEP_CLI_TASK_FOR_DIAGNOSTICS == 0 ) )
         {
             TaskHandle_t xCurrentTaskHandle = xTaskGetCurrentTaskHandle();
 
@@ -399,6 +403,12 @@ void main_task(void *pvParameters)
                 configPRINTF( ( "CLI delete skipped current task handle\r\n" ) );
             }
 #endif
+        }
+        else if( appmainKEEP_CLI_TASK_FOR_DIAGNOSTICS != 0 )
+        {
+            configPRINTF( ( "CLI delete skipped for diagnostics: heap=%lu main_hwm=%lu\r\n",
+                            ( unsigned long ) xPortGetFreeHeapSize(),
+                            ( unsigned long ) uxTaskGetStackHighWaterMark( NULL ) ) );
         }
     #endif
 
