@@ -1096,7 +1096,7 @@
                 <gridItem id="SCI_CFG_CH4_TX_BUFSIZ" selectedIndex="80"/>
                 <gridItem id="SCI_CFG_CH5_TX_BUFSIZ" selectedIndex="80"/>
                 <gridItem id="SCI_CFG_CH6_TX_BUFSIZ" selectedIndex="80"/>
-                <gridItem id="SCI_CFG_CH7_TX_BUFSIZ" selectedIndex="80"/>
+                <gridItem id="SCI_CFG_CH7_TX_BUFSIZ" selectedIndex="2048"/>
                 <gridItem id="SCI_CFG_CH8_TX_BUFSIZ" selectedIndex="80"/>
                 <gridItem id="SCI_CFG_CH9_TX_BUFSIZ" selectedIndex="80"/>
                 <gridItem id="SCI_CFG_CH10_TX_BUFSIZ" selectedIndex="80"/>
@@ -1109,7 +1109,7 @@
                 <gridItem id="SCI_CFG_CH4_RX_BUFSIZ" selectedIndex="80"/>
                 <gridItem id="SCI_CFG_CH5_RX_BUFSIZ" selectedIndex="80"/>
                 <gridItem id="SCI_CFG_CH6_RX_BUFSIZ" selectedIndex="80"/>
-                <gridItem id="SCI_CFG_CH7_RX_BUFSIZ" selectedIndex="80"/>
+                <gridItem id="SCI_CFG_CH7_RX_BUFSIZ" selectedIndex="2048"/>
                 <gridItem id="SCI_CFG_CH8_RX_BUFSIZ" selectedIndex="80"/>
                 <gridItem id="SCI_CFG_CH9_RX_BUFSIZ" selectedIndex="80"/>
                 <gridItem id="SCI_CFG_CH10_RX_BUFSIZ" selectedIndex="80"/>
