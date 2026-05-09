@@ -166,8 +166,8 @@ static CLI_Command_Definition_t xCommandConfig =
     .pcHelpString                = "\r\n"
                                    "conf:\r\n"
                                    "    Command to change or retrieve configuration for the device.\r\n"
-                                   "    Usage: conf get {cert|key|thingname|endpoint|claimcert|claimkey|template|rootca|codesigncert|tcpperfip|tcpperfport}\r\n"
-                                   "    Usage: conf set {cert|key|thingname|endpoint|claimcert|claimkey|template|rootca|codesigncert|tcpperfip|tcpperfport} VALUE\r\n"
+                                   "    Usage: conf get {cert|key|thingname|endpoint|claimcert|claimkey|template|rootca|codesigncert|tcpperfip|tcpperfport|macaddr}\r\n"
+                                   "    Usage: conf set {cert|key|thingname|endpoint|claimcert|claimkey|template|rootca|codesigncert|tcpperfip|tcpperfport|macaddr} VALUE\r\n"
                                    "           get     : to retrieve configuration from Data Flash Memory\r\n"
                                    "           set     : to change configuration for the device\r\n"
                                    "           {cert}     : select client certificate as input target element\r\n"
@@ -181,6 +181,7 @@ static CLI_Command_Definition_t xCommandConfig =
                                    "           {codesigncert} : select code signer certificate as input target element\r\n"
                                    "           {tcpperfip}    : TCP perf iperf server IPv4 (e.g. 192.168.1.100)\r\n"
                                    "           {tcpperfport}  : TCP perf iperf server port (e.g. 5001)\r\n"
+                                   "           {macaddr}      : network MAC address (e.g. 74:90:50:00:79:03)\r\n"
                                    "           VALUE : the value of input target element, this is only required for 'conf set' command\r\n"
                                    "    Usage: conf commit\r\n"
                                    "           commit   : to write the configured value to Internal Data Flash Memory\r\n",
@@ -649,4 +650,3 @@ static UBaseType_t  uxParameterNumber = 0;
  *********************************************************************************************************************/
 
 /*-----------------------------------------------------------*/
-

@@ -49,6 +49,20 @@ BOOTLOADER_MARKERS = (
 )
 
 
+def normalize_mac_address(mac_address):
+    text = (mac_address or "").strip().replace("-", ":")
+    parts = text.split(":")
+
+    if len(parts) != 6:
+        raise ValueError("--mac-address must use XX:XX:XX:XX:XX:XX")
+
+    for part in parts:
+        if len(part) != 2 or any(ch not in "0123456789abcdefABCDEF" for ch in part):
+            raise ValueError("--mac-address must use hex bytes, e.g. 74:90:50:00:79:03")
+
+    return ":".join(part.upper() for part in parts)
+
+
 def send_chars(ser, text, char_delay):
     for ch in text:
         ser.write(ch.encode("ascii"))
@@ -227,6 +241,8 @@ def resolve_device_args(args, parser):
             args.endpoint = device["aws_endpoint"]
         if not args.thing_name:
             args.thing_name = device["thing_name"]
+        if not args.mac_address:
+            args.mac_address = device.get("mac_address")
         if not args.cert:
             cert_var = get_cert_env_var_name(args.device_id)
             args.cert = os.environ.get(cert_var)
@@ -254,6 +270,11 @@ def resolve_device_args(args, parser):
         parser.error("--cert is required (or use --device-id)")
     if not args.key:
         parser.error("--key is required (or use --device-id)")
+    if args.mac_address:
+        try:
+            args.mac_address = normalize_mac_address(args.mac_address)
+        except ValueError as exc:
+            parser.error(str(exc))
 
     for path, desc in ((args.cert, "Certificate"), (args.key, "Private key")):
         if not os.path.isfile(path):
@@ -270,6 +291,8 @@ def provision(args):
     print(f"Baud:       {args.baud}")
     print(f"Thing Name: {args.thing_name}")
     print(f"Endpoint:   {args.endpoint}")
+    if args.mac_address:
+        print(f"MAC Addr:   {args.mac_address}")
     print(f"Cert:       {args.cert}")
     print(f"Key:        {args.key}")
     if args.shadow_port:
@@ -369,6 +392,12 @@ def provision(args):
                         args.char_delay, args.line_delay, required_tokens=("OK",)) is None:
             return 1
 
+        if args.mac_address:
+            print(f"\n--- Set MAC address: {args.mac_address} ---")
+            if send_command(ser, f"conf set macaddr {args.mac_address}",
+                            args.char_delay, args.line_delay, required_tokens=("OK",)) is None:
+                return 1
+
         print("\n--- Set device certificate ---")
         if not send_pem_command(ser, "cert", args.cert, args.char_delay, args.line_delay):
             return 1
@@ -427,6 +456,8 @@ def main():
     parser.add_argument("--baud", type=int, default=DEFAULT_BAUD, help=f"Baud rate (default: {DEFAULT_BAUD})")
     parser.add_argument("--thing-name", help="AWS IoT Thing name")
     parser.add_argument("--endpoint", help="AWS IoT MQTT endpoint URL")
+    parser.add_argument("--mac-address", default=os.environ.get("MAC_ADDR"),
+                        help="Network MAC address written as provisioning data (default: MAC_ADDR)")
     parser.add_argument("--cert", help="Path to device certificate PEM file")
     parser.add_argument("--key", help="Path to device private key PEM file")
     parser.add_argument("--codesigner-cert", help="Path to OTA code signing certificate PEM file")

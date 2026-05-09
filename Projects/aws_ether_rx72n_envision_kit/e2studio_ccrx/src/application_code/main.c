@@ -140,6 +140,7 @@ extern void audio_task( void * pvParameters );
 #endif
 
 #define appmainNETWORK_WAIT_LOG_INTERVAL_MS        ( 5000UL )
+#define appmainMAC_ADDRESS_STRING_LENGTH           ( 17U )
 
 /* Phase 8b 第3次 段階5-7 B-1 (rx72n-envision-kit#60): TCP performance tasks.
  * iperf 互換 TCP throughput 測定。legacy aws_demos と同じ priority
@@ -272,6 +273,13 @@ void vApplicationDaemonTaskStartupHook (void);
  */
 void prvMiscInitialization (void);
 static BaseType_t prvShouldAutoProvisionFromClientCredentials( void );
+static void prvLoadProvisionedMacAddress( void );
+static BaseType_t prvParseMacAddress( const char * pcMacString,
+                                      uint8_t * pucMacAddress );
+static BaseType_t prvParseHexByte( const char * pcHexString,
+                                   uint8_t * pucValue );
+static BaseType_t prvHexNibble( char cValue,
+                                uint8_t * pucValue );
 static void prvDisplayInitialize( void );
 static void prvWaitForGuiInitialization( void );
 static void prvStartBoardApplicationTasks( void );
@@ -404,6 +412,15 @@ void main_task(void *pvParameters)
                         ( unsigned long ) xPortGetFreeHeapSize(),
                         ( unsigned long ) uxTaskGetStackHighWaterMark( NULL ) ) );
 #endif
+
+        prvLoadProvisionedMacAddress();
+        configPRINTF( ( "Network MAC address: %02x-%02x-%02x-%02x-%02x-%02x\r\n",
+                        ( unsigned int ) ucMACAddress[ 0 ],
+                        ( unsigned int ) ucMACAddress[ 1 ],
+                        ( unsigned int ) ucMACAddress[ 2 ],
+                        ( unsigned int ) ucMACAddress[ 3 ],
+                        ( unsigned int ) ucMACAddress[ 4 ],
+                        ( unsigned int ) ucMACAddress[ 5 ] ) );
 
         FreeRTOS_IPInit(ucIPAddress,
                         ucNetMask,
@@ -1078,6 +1095,132 @@ bool ApplicationCounter(uint32_t xWaitTime)
 /*****************************************************************************************
  End of function ApplicationCounter
  ****************************************************************************************/
+
+static void prvLoadProvisionedMacAddress( void )
+{
+    char pcMacString[ appmainMAC_ADDRESS_STRING_LENGTH + 1U ];
+    uint8_t ucProvisionedMacAddress[ sizeof( ucMACAddress ) ];
+    size_t xValueLength;
+    size_t xReadLength;
+
+    xValueLength = prvGetCacheEntryLength( KVS_NETWORK_MAC_ADDRESS );
+
+    if( xValueLength == 0U )
+    {
+        return;
+    }
+
+    if( xValueLength != appmainMAC_ADDRESS_STRING_LENGTH )
+    {
+        configPRINTF( ( "Ignoring provisioned MAC address: invalid length=%lu\r\n",
+                        ( unsigned long ) xValueLength ) );
+        return;
+    }
+
+    memset( pcMacString, 0, sizeof( pcMacString ) );
+    xReadLength = xReadEntry( KVS_NETWORK_MAC_ADDRESS,
+                              pcMacString,
+                              appmainMAC_ADDRESS_STRING_LENGTH );
+
+    if( xReadLength != appmainMAC_ADDRESS_STRING_LENGTH )
+    {
+        configPRINTF( ( "Ignoring provisioned MAC address: read length=%lu\r\n",
+                        ( unsigned long ) xReadLength ) );
+        return;
+    }
+
+    pcMacString[ appmainMAC_ADDRESS_STRING_LENGTH ] = '\0';
+
+    if( prvParseMacAddress( pcMacString, ucProvisionedMacAddress ) != pdTRUE )
+    {
+        configPRINTF( ( "Ignoring provisioned MAC address: parse failed\r\n" ) );
+        return;
+    }
+
+    memcpy( ucMACAddress, ucProvisionedMacAddress, sizeof( ucMACAddress ) );
+}
+
+static BaseType_t prvParseMacAddress( const char * pcMacString,
+                                      uint8_t * pucMacAddress )
+{
+    size_t xIndex;
+
+    if( ( pcMacString == NULL ) || ( pucMacAddress == NULL ) )
+    {
+        return pdFALSE;
+    }
+
+    for( xIndex = 0U; xIndex < sizeof( ucMACAddress ); xIndex++ )
+    {
+        if( prvParseHexByte( &pcMacString[ xIndex * 3U ],
+                             &pucMacAddress[ xIndex ] ) != pdTRUE )
+        {
+            return pdFALSE;
+        }
+
+        if( xIndex < ( sizeof( ucMACAddress ) - 1U ) )
+        {
+            const char cSeparator = pcMacString[ ( xIndex * 3U ) + 2U ];
+
+            if( ( cSeparator != ':' ) && ( cSeparator != '-' ) )
+            {
+                return pdFALSE;
+            }
+        }
+    }
+
+    return pdTRUE;
+}
+
+static BaseType_t prvParseHexByte( const char * pcHexString,
+                                   uint8_t * pucValue )
+{
+    uint8_t ucHighNibble;
+    uint8_t ucLowNibble;
+
+    if( ( pcHexString == NULL ) || ( pucValue == NULL ) )
+    {
+        return pdFALSE;
+    }
+
+    if( ( prvHexNibble( pcHexString[ 0 ], &ucHighNibble ) != pdTRUE ) ||
+        ( prvHexNibble( pcHexString[ 1 ], &ucLowNibble ) != pdTRUE ) )
+    {
+        return pdFALSE;
+    }
+
+    *pucValue = ( uint8_t ) ( ( ucHighNibble << 4U ) | ucLowNibble );
+    return pdTRUE;
+}
+
+static BaseType_t prvHexNibble( char cValue,
+                                uint8_t * pucValue )
+{
+    if( pucValue == NULL )
+    {
+        return pdFALSE;
+    }
+
+    if( ( cValue >= '0' ) && ( cValue <= '9' ) )
+    {
+        *pucValue = ( uint8_t ) ( cValue - '0' );
+        return pdTRUE;
+    }
+
+    if( ( cValue >= 'a' ) && ( cValue <= 'f' ) )
+    {
+        *pucValue = ( uint8_t ) ( 10U + ( cValue - 'a' ) );
+        return pdTRUE;
+    }
+
+    if( ( cValue >= 'A' ) && ( cValue <= 'F' ) )
+    {
+        *pucValue = ( uint8_t ) ( 10U + ( cValue - 'A' ) );
+        return pdTRUE;
+    }
+
+    return pdFALSE;
+}
 
 /**********************************************************************************************************************
  * Function Name: vISR_Routine

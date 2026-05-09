@@ -829,6 +829,7 @@ provision_v3_rx72n:
         --baud "$UART_BAUD_RATE" \
         --thing-name "$DEVICE_ID" \
         --endpoint "$AWS_IOT_ENDPOINT" \
+        --mac-address "$MAC_ADDR" \
         --cert "$cert_path" \
         --key "$key_path" \
         --codesigner-cert "$CI_PROJECT_DIR/rx72n_codesign_cert.pem" \
@@ -1007,6 +1008,7 @@ provision_v3_ota_rx72n:
         --baud "$UART_BAUD_RATE" \
         --thing-name "$DEVICE_ID" \
         --endpoint "$AWS_IOT_ENDPOINT" \
+        --mac-address "$MAC_ADDR" \
         --cert "$cert_path" \
         --key "$key_path" \
         --codesigner-cert "$CI_PROJECT_DIR/rx72n_codesign_cert.pem" \

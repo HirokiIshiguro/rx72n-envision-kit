@@ -66,6 +66,7 @@ typedef enum KVStoreKey
      * legacy SFD ベース config 読み出しの v3 相当として KVStore キーで持つ。 */
     KVS_TCP_PERF_SERVER_IP,
     KVS_TCP_PERF_SERVER_PORT,
+    KVS_NETWORK_MAC_ADDRESS,
     KVS_NUM_KEYS
 } KVStoreKey_t;
 
@@ -100,9 +101,10 @@ typedef struct KeyValueStore
         [ KVS_OTA_IMAGE_STATE ] = "ota_image_state",         \
 		[ KVS_TSIP_ROOTCA_PUBKEY_ID ] = "tsip_rootca_pub_id",         \
 		[ KVS_TSIP_CLIENT_PUBKEY_ID ] = "tsip_client_pub_id",         \
-		[ KVS_TSIP_CLIENT_PRIKEY_ID ] = "tsip_client_pri_id",         \
+        [ KVS_TSIP_CLIENT_PRIKEY_ID ] = "tsip_client_pri_id",         \
         [ KVS_TCP_PERF_SERVER_IP ] = "tcp_perf_server_ip",            \
         [ KVS_TCP_PERF_SERVER_PORT ] = "tcp_perf_server_port",        \
+        [ KVS_NETWORK_MAC_ADDRESS ] = "network_mac_address",          \
 }
 #define CLICMDKEYS                                       \
     {                                                      \
@@ -119,9 +121,10 @@ typedef struct KeyValueStore
         [ KVS_OTA_IMAGE_STATE ] = "otastate",         \
 		[ KVS_TSIP_ROOTCA_PUBKEY_ID ] = "tsiprootkey",         \
 		[ KVS_TSIP_CLIENT_PUBKEY_ID ] = "tsippubkey",         \
-		[ KVS_TSIP_CLIENT_PRIKEY_ID ] = "tsipprikey",         \
+        [ KVS_TSIP_CLIENT_PRIKEY_ID ] = "tsipprikey",         \
         [ KVS_TCP_PERF_SERVER_IP ] = "tcpperfip",              \
         [ KVS_TCP_PERF_SERVER_PORT ] = "tcpperfport",          \
+        [ KVS_NETWORK_MAC_ADDRESS ] = "macaddr",               \
     }
 typedef enum KVStoreKeytype
 {
