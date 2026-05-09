@@ -200,6 +200,8 @@ variables:
   #   no_ota       : disable OTA over MQTT so MQTT PubSub can be isolated.
   #   no_ota_task  : keep OTA/MQTT wrapper code but skip the OTA task and PubSub
   #                  self-test wait for focused PubSub diagnostics.
+  #   pubsub_skip_ota_wait:
+  #                  keep the OTA task enabled but skip only the PubSub self-test wait.
   #   no_tcp_perf  : disable iperf-compatible TCP performance helper tasks.
   #   no_gui_timer : diagnostic cut point; skip the 1ms emWin FreeRTOS timer
   #                  started by GUI_X_Init().
