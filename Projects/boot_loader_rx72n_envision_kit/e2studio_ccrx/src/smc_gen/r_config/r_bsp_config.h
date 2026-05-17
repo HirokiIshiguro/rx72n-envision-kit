@@ -289,12 +289,12 @@ NOTE: The RAM areas are not contiguous.It is separated by 512 KB each.
 /* PLL Input Frequency Division Ratio Select (PLIDIV).
    Available divisors = /1 (no division), /2, /3
 */
-#define BSP_CFG_PLL_DIV                 (1) /* Generated value. Do not edit this manually */
+#define BSP_CFG_PLL_DIV                 (2) /* Generated value. Do not edit this manually */
 
 /* PLL Frequency Multiplication Factor Select (STC).
    Available multipliers = x10.0 to x30.0 in 0.5 increments (e.g. 10.0, 10.5, 11.0, 11.5, ..., 29.0, 29.5, 30.0)
 */
-#define BSP_CFG_PLL_MUL                 (15.0) /* Generated value. Do not edit this manually */
+#define BSP_CFG_PLL_MUL                 (30.0) /* Generated value. Do not edit this manually */
 
 /* System Clock Divider (ICK).
    Available divisors = /1 (no division), /2, /4, /8, /16, /32, /64

@@ -52,9 +52,9 @@
 <Item current="true" id="pll.isSelected"/>
 <Item current="16 MHz" id="pll.InputValue"/>
 <Item current="240.0 MHz" id="pll.OutputValue"/>
-<Item current="mul15-1" error="false" id="pll.multiplyBox"/>
-<Item current="div1-1" error="false" id="pll.dividerBox"/>
-<Item current="16.0 MHz" error="false" id="pll.MiddleValue"/>
+<Item current="mul30-1" error="false" id="pll.multiplyBox"/>
+<Item current="div2-1" error="false" id="pll.dividerBox"/>
+<Item current="8.0 MHz" error="false" id="pll.MiddleValue"/>
 <Item current="true" id="ppll.isSelected"/>
 <Item current="16 MHz" id="ppll.InputValue"/>
 <Item current="200.0 MHz" id="ppll.OutputValue"/>
