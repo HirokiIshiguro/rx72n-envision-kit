@@ -130,18 +130,6 @@ void gui_task( void * pvParameters )
     APPW_Init(APPW_PROJECT_PATH);
     APPW_CreateRoot(APPW_INITIAL_SCREEN, WM_HBKWIN);
 
-    /* GUI initialization is complete. Set the flag so uart_string_printf()
-     * can start sending log output on COM7 (SCI7). Without this flag,
-     * all logging via configPRINTF is blocked. */
-    task_info->gui_initialize_complete_flag = 1;
-
-    /* Notify GUI-dependent tasks that GUI initialization is complete.
-     * serial_terminal_task no longer waits here because the CN8/SCl2 command
-     * path must be usable even when GUI init is delayed. */
-    xTaskNotifyGive(task_info->task_manager_task_handle);
-    xTaskNotifyGive(task_info->sdcard_task_handle);
-    xTaskNotifyGive(task_info->serial_flash_task_handle);
-
 #if 0
     /* generate frame window */
     demo_window_free_list(demo_window_list_head);

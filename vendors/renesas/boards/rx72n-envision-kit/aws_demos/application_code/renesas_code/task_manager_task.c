@@ -78,37 +78,6 @@ Typedef definitions
  global variables and functions
 ********************************************************************************/
 void task_manager_task( void * pvParameters );
-static BaseType_t prvHasRuntimeProvisioningInputs( void );
-
-static BaseType_t prvHasRuntimeProvisioningInputs( void )
-{
-    const struct
-    {
-        const char * pcLabel;
-        const char * pcDescription;
-    } xRequiredObjects[] =
-    {
-        { client_private_key_label, "client private key" },
-        { client_certificate_label, "client certificate" },
-        { iot_thing_name_label, "IoT thing name" },
-        { mqtt_broker_endpoint_label, "MQTT broker endpoint" },
-    };
-    size_t xIndex;
-
-    for( xIndex = 0; xIndex < ( sizeof( xRequiredObjects ) / sizeof( xRequiredObjects[ 0 ] ) ); xIndex++ )
-    {
-        if( R_SFD_FindObject( ( uint8_t * ) xRequiredObjects[ xIndex ].pcLabel,
-                              ( uint8_t ) strlen( xRequiredObjects[ xIndex ].pcLabel ) ) == SFD_HANDLE_INVALID )
-        {
-            FreeRTOS_printf( ( "task_manager_task: runtime credential missing: %s (%s)\r\n",
-                               xRequiredObjects[ xIndex ].pcDescription,
-                               xRequiredObjects[ xIndex ].pcLabel ) );
-            return pdFALSE;
-        }
-    }
-
-    return pdTRUE;
-}
 
 /******************************************************************************
  Function Name   : serial_terminal_task
@@ -129,17 +98,6 @@ void task_manager_task( void * pvParameters )
         vTaskDelay(300);
     }
 	FreeRTOS_printf( ( "The network is up and running\n" ) );
-
-    if( prvHasRuntimeProvisioningInputs() == pdFALSE )
-    {
-        FreeRTOS_printf( ( "task_manager_task: runtime provisioning inputs are incomplete; "
-                           "skipping dev-mode key provisioning and demo start until next reset.\r\n" ) );
-
-        while( 1 )
-        {
-            vTaskDelay( 1000 );
-        }
-    }
 
     /* start tracealyzer */
     vTraceEnable(TRC_INIT);

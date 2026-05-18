@@ -31,9 +31,6 @@
 /* Standard includes. */
 #include <string.h>
 
-/* FreeRTOS includes. */
-#include "FreeRTOS.h"
-
 /* TCP/IP abstraction includes. */
 #include "transport_secure_sockets.h"
 
@@ -109,14 +106,6 @@ static int32_t tlsSetup( const SocketsConfig_t * pSocketsConfig,
  */
 static TransportSocketStatus_t connectToServer( Socket_t tcpSocket,
                                                 const ServerInfo_t * pServerInfo );
-
-static void logHeapState( const char * pTag )
-{
-    LogInfo( ( "Heap[%s]: current=%u lowest=%u",
-               pTag,
-               ( unsigned int ) xPortGetFreeHeapSize(),
-               ( unsigned int ) xPortGetMinimumEverFreeHeapSize() ) );
-}
 
 /*-----------------------------------------------------------*/
 
@@ -217,7 +206,6 @@ int32_t SecureSocketsTransport_Recv( NetworkContext_t * pNetworkContext,
         else if( bytesReceived < 0 )
         {
             LogError( ( "Failed to receive data over network. bytesReceived=%d", bytesReceived ) );
-            logHeapState( "transport_recv_error" );
         }
         else if( bytesReceived >= 0 )
         {
@@ -348,7 +336,6 @@ static TransportSocketStatus_t connectToServer( Socket_t tcpSocket,
         if( secureSocketStatus != ( int32_t ) SOCKETS_ERROR_NONE )
         {
             LogError( ( "Failed to establish new connection. secureSocketStatus=%d.", secureSocketStatus ) );
-            logHeapState( "transport_connect_error" );
             returnStatus = TRANSPORT_SOCKET_STATUS_CONNECT_FAILURE;
         }
     }

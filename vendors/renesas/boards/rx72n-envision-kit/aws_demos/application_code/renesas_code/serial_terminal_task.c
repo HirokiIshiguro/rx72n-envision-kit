@@ -41,7 +41,6 @@
 #include "r_pinset.h"
 #include "r_sys_time_rx_if.h"
 #include "r_simple_filesystem_on_dataflash_if.h"
-#include "r_tfat_lib.h"
 
 /* for using Segger emWin */
 #include "GUI.h"
@@ -52,7 +51,6 @@
 
 /* for RX72N Envision Kit system common header */
 #include "rx72n_envision_kit_system.h"
-#include "FreeRTOS_IP.h"
 
 /**********************************************************************************************************************
 Typedef definitions
@@ -76,9 +74,6 @@ Typedef definitions
 #define COMMAND_TIMEZONE 3
 #define COMMAND_RESET 4
 #define COMMAND_DATAFLASH 5
-#define COMMAND_TOUCH 6
-#define COMMAND_SDCARD 7
-#define COMMAND_NETWORK 8
 
 #define DATA_FLASH_STORE_SUCCESS "stored data into dataflash correctly.\n"
 #define DATA_FLASH_STORE_FAIL "could not store data into dataflash.\n"
@@ -168,10 +163,6 @@ extern void vTaskClearUsage(void);
 extern void vTaskClearUsageSingleList(List_t *pxList);
 
 extern void firmware_version_read(char **ver_str);
-extern void firmware_update_update_file_search(TASK_INFO *task_info);
-extern int firmware_update_listbox_get_num_items(TASK_INFO *task_info);
-extern int firmware_update_listbox_get_sel(TASK_INFO *task_info);
-extern void firmware_update_listbox_set_sel(TASK_INFO *task_info, int sel);
 
 /*******************************************************************************
  global variables and functions
@@ -206,10 +197,8 @@ void serial_terminal_task( void * pvParameters )
     uint8_t *label, *data;
     uint32_t label_length, data_length;
 
-    /* Bring up the command UART even if GUI initialization is delayed.
-     * CI uses this CLI on CN8/SCl2 to confirm startup and issue commands,
-     * so waiting on gui_task() here makes the whole command path disappear
-     * when GUI init stalls. */
+    /* wait completing gui initializing */
+    ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
 
     sci_buffer = pvPortMalloc(SCI_BUFFER_SIZE);
     command = pvPortMalloc(COMMAND_SIZE);
@@ -280,7 +269,6 @@ void serial_terminal_task( void * pvParameters )
                         serial_terminal_putstring(task_info->hWin_serial_terminal, sci_handle, "\r\n");
                         break;
                     case COMMAND_TIMEZONE:
-                        R_SFD_Open();
                         sfd_handle_timezone = R_SFD_SaveObject((uint8_t *)timezone_label, strlen(timezone_label), arg1, strlen((char *)arg1) + 1); /* +1 means string terminator '\0' */
                         R_SFD_GetObjectValue(sfd_handle_timezone, (uint8_t **)&timezone, &timezone_length);
                         if(SYS_TIME_SUCCESS == R_SYS_TIME_ConvertUnixTimeToSystemTime(task_info->sys_time.unix_time, &task_info->sys_time, timezone))
@@ -292,13 +280,11 @@ void serial_terminal_task( void * pvParameters )
                         {
                             serial_terminal_putstring(task_info->hWin_serial_terminal, sci_handle, "timezone is not accepted.\r\n");
                         }
-                        R_SFD_Close();
                         break;
                     case COMMAND_RESET:
                         software_reset();
                         break;
                     case COMMAND_DATAFLASH:
-                        R_SFD_Open();
                         if(!strcmp((const char *)arg1, "info"))
                         {
                             sprintf(message_buffer, "physical size = %d bytes.\n", R_SFD_ReadPysicalSize());
@@ -386,20 +372,6 @@ void serial_terminal_task( void * pvParameters )
                                 {
                                     /* +1 means '\0' as a string terminator */
                                     if(SFD_HANDLE_INVALID != R_SFD_SaveObject((uint8_t *)iot_thing_name_label, strlen(iot_thing_name_label), (uint8_t *)arg4, strlen((const char *)arg4) + 1))
-                                    {
-                                        sprintf(message_buffer, DATA_FLASH_STORE_SUCCESS);
-                                        serial_terminal_putstring(task_info->hWin_serial_terminal, sci_handle, message_buffer);
-                                    }
-                                    else
-                                    {
-                                        sprintf(message_buffer, DATA_FLASH_STORE_FAIL);
-                                        serial_terminal_putstring(task_info->hWin_serial_terminal, sci_handle, message_buffer);
-                                    }
-                                }
-                                else if((!strcmp((const char *)arg3, "macaddress")))
-                                {
-                                    /* +1 means '\0' as a string terminator */
-                                    if(SFD_HANDLE_INVALID != R_SFD_SaveObject((uint8_t *)mac_address_label, strlen(mac_address_label), (uint8_t *)arg4, strlen((const char *)arg4) + 1))
                                     {
                                         sprintf(message_buffer, DATA_FLASH_STORE_SUCCESS);
                                         serial_terminal_putstring(task_info->hWin_serial_terminal, sci_handle, message_buffer);
@@ -534,333 +506,7 @@ void serial_terminal_task( void * pvParameters )
                             sprintf(message_buffer, "unknown argument1 = %s.\n", arg1);
                             serial_terminal_putstring(task_info->hWin_serial_terminal, sci_handle, message_buffer);
                         }
-                        R_SFD_Close();
                         break;
-                    case COMMAND_TOUCH:
-                    {
-                        int touch_x, touch_y;
-                        if(!strcmp((const char *)arg1, "any"))
-                        {
-                            touch_x = 240;
-                            touch_y = 136;
-                        }
-                        else
-                        {
-                            touch_x = atoi((const char *)arg1);
-                            touch_y = atoi((const char *)arg2);
-                        }
-                        if(touch_x < 0 || touch_x >= 480 || touch_y < 0 || touch_y >= 272)
-                        {
-                            sprintf(message_buffer, "touch: invalid coordinates (%d, %d)\n", touch_x, touch_y);
-                            serial_terminal_putstring(task_info->hWin_serial_terminal, sci_handle, message_buffer);
-                        }
-                        else
-                        {
-                            GUI_PID_STATE pid_state = {0};
-                            pid_state.Layer = 0;
-                            pid_state.x = touch_x;
-                            pid_state.y = touch_y;
-                            pid_state.Pressed = 1;
-                            GUI_TOUCH_StoreStateEx(&pid_state);
-                            vTaskDelay(50);
-                            pid_state.Pressed = 0;
-                            GUI_TOUCH_StoreStateEx(&pid_state);
-                            vTaskDelay(50);
-                            sprintf(message_buffer, "touch (%d, %d) OK\n", touch_x, touch_y);
-                            serial_terminal_putstring(task_info->hWin_serial_terminal, sci_handle, message_buffer);
-                        }
-                        break;
-                    }
-                    case COMMAND_SDCARD:
-                    {
-                        if(!strcmp((const char *)arg1, "list"))
-                        {
-                            DIR sd_dir;
-                            FILINFO sd_fno;
-                            FRESULT sd_ret;
-
-                            sd_ret = R_tfat_f_opendir(&sd_dir, "0:");
-                            if(sd_ret == TFAT_FR_OK)
-                            {
-                                while(1)
-                                {
-                                    sd_ret = R_tfat_f_readdir(&sd_dir, &sd_fno);
-                                    if(sd_ret != TFAT_FR_OK || sd_fno.fname[0] == '\0')
-                                    {
-                                        break;
-                                    }
-                                    if(TFAT_AM_DIR == (sd_fno.fattrib & TFAT_AM_DIR))
-                                    {
-                                        continue;
-                                    }
-                                    sprintf(message_buffer, "%s %lu\r\n", sd_fno.fname, (unsigned long)sd_fno.fsize);
-                                    serial_terminal_putstring(task_info->hWin_serial_terminal, sci_handle, message_buffer);
-                                    vTaskDelay(1);
-                                }
-                            }
-                            else
-                            {
-                                serial_terminal_putstring(task_info->hWin_serial_terminal, sci_handle, "ERROR: SD card not ready\r\n");
-                            }
-                        }
-                        else if(!strcmp((const char *)arg1, "write"))
-                        {
-                            /* sdcard write <filename> <size>
-                             * Binary transfer protocol:
-                             *   Host -> MCU: sdcard write <filename> <size>\r\n
-                             *   MCU -> Host: READY <chunk_size>\r\n
-                             *   [Loop:]
-                             *     Host -> MCU: [raw binary, chunk_size bytes]
-                             *     MCU -> Host: W <received_total>\r\n
-                             *   MCU -> Host: DONE <received_total>\r\n
-                             */
-                            char filepath[270];
-                            uint32_t file_size;
-                            FIL sd_file;
-                            FRESULT sd_ret;
-                            uint32_t chunk_size;
-                            uint32_t received_total;
-                            uint32_t remaining;
-                            uint32_t expected;
-                            uint32_t bytes_in_chunk;
-                            uint16_t bytes_written;
-                            int write_error;
-
-                            file_size = strtoul((const char *)arg3, NULL, 10);
-                            if(file_size == 0)
-                            {
-                                serial_terminal_putstring(task_info->hWin_serial_terminal, sci_handle, "ERROR: invalid size\r\n");
-                                break;
-                            }
-
-                            sprintf(filepath, "0:%s", (char *)arg2);
-                            sd_ret = R_tfat_f_open(&sd_file, filepath, TFAT_FA_CREATE_ALWAYS | TFAT_FA_WRITE);
-                            if(sd_ret != TFAT_FR_OK)
-                            {
-                                sprintf(message_buffer, "ERROR: Cannot open %s (err=%d)\r\n", (char *)arg2, sd_ret);
-                                serial_terminal_putstring(task_info->hWin_serial_terminal, sci_handle, message_buffer);
-                                break;
-                            }
-
-                            chunk_size = SCI_BUFFER_SIZE;
-                            sprintf(message_buffer, "READY %lu\r\n", (unsigned long)chunk_size);
-                            serial_terminal_putstring(task_info->hWin_serial_terminal, sci_handle, message_buffer);
-
-                            received_total = 0;
-                            write_error = 0;
-
-                            while(received_total < file_size)
-                            {
-                                remaining = file_size - received_total;
-                                expected = (remaining < chunk_size) ? remaining : chunk_size;
-                                bytes_in_chunk = 0;
-
-                                /* Receive binary data without echo */
-                                while(bytes_in_chunk < expected)
-                                {
-                                    xQueueReceive(xQueue, &tmp, portMAX_DELAY);
-                                    sci_buffer[bytes_in_chunk++] = tmp[0];
-                                }
-
-                                /* Write chunk to SD card */
-                                sd_ret = R_tfat_f_write(&sd_file, sci_buffer, (uint16_t)bytes_in_chunk, &bytes_written);
-                                if(sd_ret != TFAT_FR_OK || bytes_written != (uint16_t)bytes_in_chunk)
-                                {
-                                    sprintf(message_buffer, "ERROR: Write failed at %lu (err=%d)\r\n", (unsigned long)received_total, sd_ret);
-                                    serial_terminal_putstring(task_info->hWin_serial_terminal, sci_handle, message_buffer);
-                                    write_error = 1;
-                                    break;
-                                }
-
-                                R_tfat_f_sync(&sd_file);
-                                received_total += bytes_in_chunk;
-
-                                /* Send ACK with progress */
-                                sprintf(message_buffer, "W %lu\r\n", (unsigned long)received_total);
-                                serial_terminal_putstring(task_info->hWin_serial_terminal, sci_handle, message_buffer);
-                            }
-
-                            R_tfat_f_close(&sd_file);
-
-                            if(!write_error && received_total == file_size)
-                            {
-                                sprintf(message_buffer, "DONE %lu\r\n", (unsigned long)received_total);
-                                serial_terminal_putstring(task_info->hWin_serial_terminal, sci_handle, message_buffer);
-                            }
-                            else
-                            {
-                                /* Cleanup incomplete file */
-                                R_tfat_f_unlink(filepath);
-                            }
-                        }
-                        else if(!strcmp((const char *)arg1, "delete"))
-                        {
-                            char filepath[270];
-                            FRESULT sd_ret;
-
-                            sprintf(filepath, "0:%s", (char *)arg2);
-                            sd_ret = R_tfat_f_unlink(filepath);
-                            if(sd_ret == TFAT_FR_OK)
-                            {
-                                sprintf(message_buffer, "deleted %s\r\n", (char *)arg2);
-                                serial_terminal_putstring(task_info->hWin_serial_terminal, sci_handle, message_buffer);
-                            }
-                            else
-                            {
-                                sprintf(message_buffer, "ERROR: Cannot delete %s (err=%d)\r\n", (char *)arg2, sd_ret);
-                                serial_terminal_putstring(task_info->hWin_serial_terminal, sci_handle, message_buffer);
-                            }
-                        }
-                        else if(!strcmp((const char *)arg1, "rescan"))
-                        {
-                            /* Force the FW Update LISTBOX to re-scan SD card files.
-                             * Needed after sdcard write because sdcard_task only scans
-                             * on SD card attach events (physical insertion). */
-                            firmware_update_update_file_search(task_info);
-                            serial_terminal_putstring(task_info->hWin_serial_terminal, sci_handle, "rescan OK\r\n");
-                        }
-                        else if(!strcmp((const char *)arg1, "update"))
-                        {
-                            /* sdcard update <filename>
-                             * Directly trigger firmware update without GUI interaction.
-                             * Calls firmware_update_request() which is the same function
-                             * that the FW Update BUTTON_03 (START) callback uses.
-                             * The sdcard_task loop will process the update, and after
-                             * completion will set software_reset_requested_flag to trigger
-                             * a software reset. */
-                            if(arg2[0] == '\0')
-                            {
-                                serial_terminal_putstring(task_info->hWin_serial_terminal, sci_handle, "usage: sdcard update <filename>\r\n");
-                            }
-                            else if(true == is_firmware_updating())
-                            {
-                                serial_terminal_putstring(task_info->hWin_serial_terminal, sci_handle, "ERROR: firmware update already in progress\r\n");
-                            }
-                            else
-                            {
-                                firmware_update_request((char *)arg2);
-                                sprintf(message_buffer, "firmware update started: %s\r\n", (char *)arg2);
-                                serial_terminal_putstring(task_info->hWin_serial_terminal, sci_handle, message_buffer);
-                            }
-                        }
-                        else if(!strcmp((const char *)arg1, "status"))
-                        {
-                            /* sdcard status
-                             * Report LISTBOX state for debugging GUI touch issues.
-                             * Returns number of items and current selection index. */
-                            int num_items = firmware_update_listbox_get_num_items(task_info);
-                            int sel = firmware_update_listbox_get_sel(task_info);
-                            sprintf(message_buffer, "listbox items=%d sel=%d\r\n", num_items, sel);
-                            serial_terminal_putstring(task_info->hWin_serial_terminal, sci_handle, message_buffer);
-                        }
-                        else if(!strcmp((const char *)arg1, "select"))
-                        {
-                            /* sdcard select <index>
-                             * Programmatically select a LISTBOX item by index.
-                             * Equivalent to touching the item in the LISTBOX. */
-                            int sel_index = atoi((const char *)arg2);
-                            int num_items = firmware_update_listbox_get_num_items(task_info);
-                            if(sel_index < 0 || sel_index >= num_items)
-                            {
-                                sprintf(message_buffer, "ERROR: index %d out of range (0..%d)\r\n", sel_index, num_items - 1);
-                                serial_terminal_putstring(task_info->hWin_serial_terminal, sci_handle, message_buffer);
-                            }
-                            else
-                            {
-                                firmware_update_listbox_set_sel(task_info, sel_index);
-                                sprintf(message_buffer, "selected %d\r\n", sel_index);
-                                serial_terminal_putstring(task_info->hWin_serial_terminal, sci_handle, message_buffer);
-                            }
-                        }
-                        else
-                        {
-                            serial_terminal_putstring(task_info->hWin_serial_terminal, sci_handle, "usage: sdcard list|write|delete|rescan|update|status|select\r\n");
-                        }
-                        break;
-                    }
-                    case COMMAND_NETWORK:
-                    {
-                        if(!strcmp((const char *)arg1, "info"))
-                        {
-                            uint32_t ulIPAddress, ulNetMask, ulGatewayAddress, ulDNSServerAddress;
-                            char cBuffer[16];
-
-                            FreeRTOS_GetAddressConfiguration(
-                                &ulIPAddress,
-                                &ulNetMask,
-                                &ulGatewayAddress,
-                                &ulDNSServerAddress );
-
-                            FreeRTOS_inet_ntoa( ulIPAddress, cBuffer );
-                            sprintf(message_buffer, "IP Address: %s\r\n", cBuffer);
-                            serial_terminal_putstring(task_info->hWin_serial_terminal, sci_handle, message_buffer);
-
-                            FreeRTOS_inet_ntoa( ulNetMask, cBuffer );
-                            sprintf(message_buffer, "Subnet Mask: %s\r\n", cBuffer);
-                            serial_terminal_putstring(task_info->hWin_serial_terminal, sci_handle, message_buffer);
-
-                            FreeRTOS_inet_ntoa( ulGatewayAddress, cBuffer );
-                            sprintf(message_buffer, "Gateway Address: %s\r\n", cBuffer);
-                            serial_terminal_putstring(task_info->hWin_serial_terminal, sci_handle, message_buffer);
-
-                            FreeRTOS_inet_ntoa( ulDNSServerAddress, cBuffer );
-                            sprintf(message_buffer, "DNS Server Address: %s\r\n", cBuffer);
-                            serial_terminal_putstring(task_info->hWin_serial_terminal, sci_handle, message_buffer);
-                        }
-                        else if(!strcmp((const char *)arg1, "resolve"))
-                        {
-                            uint32_t ulResolvedAddress;
-                            char cBuffer[16];
-
-                            ulResolvedAddress = FreeRTOS_gethostbyname((const char *)arg2);
-
-                            if( ulResolvedAddress != 0 )
-                            {
-                                FreeRTOS_inet_ntoa( ulResolvedAddress, cBuffer );
-                                sprintf(message_buffer, "Resolved %s as %s\r\n", arg2, cBuffer);
-                            }
-                            else
-                            {
-                                sprintf(message_buffer, "DNS resolution failed: %s\r\n", arg2);
-                            }
-                            serial_terminal_putstring(task_info->hWin_serial_terminal, sci_handle, message_buffer);
-                        }
-                        else if(!strcmp((const char *)arg1, "setdns"))
-                        {
-                            uint32_t ulIPAddress, ulNetMask, ulGatewayAddress, ulDNSServerAddress;
-                            char cBuffer[16];
-
-                            ulDNSServerAddress = FreeRTOS_inet_addr((const char *)arg2);
-
-                            if( ulDNSServerAddress != 0 )
-                            {
-                                FreeRTOS_GetAddressConfiguration(
-                                    &ulIPAddress,
-                                    &ulNetMask,
-                                    &ulGatewayAddress,
-                                    NULL );
-
-                                FreeRTOS_SetAddressConfiguration(
-                                    &ulIPAddress,
-                                    &ulNetMask,
-                                    &ulGatewayAddress,
-                                    &ulDNSServerAddress );
-
-                                FreeRTOS_inet_ntoa( ulDNSServerAddress, cBuffer );
-                                sprintf(message_buffer, "DNS Server Address updated to %s\r\n", cBuffer);
-                            }
-                            else
-                            {
-                                sprintf(message_buffer, "invalid IP address: %s\r\n", arg2);
-                            }
-                            serial_terminal_putstring(task_info->hWin_serial_terminal, sci_handle, message_buffer);
-                        }
-                        else
-                        {
-                            serial_terminal_putstring(task_info->hWin_serial_terminal, sci_handle, "usage: network info | network resolve <host> | network setdns <ip>\r\n");
-                        }
-                        break;
-                    }
                     default:
                         serial_terminal_putstring(task_info->hWin_serial_terminal, sci_handle, COMMAND_NOT_FOUND);
                         break;
@@ -911,18 +557,6 @@ static int32_t get_command_code(uint8_t *command)
     else if(!strcmp((char*)command, "dataflash"))
     {
         return_code = COMMAND_DATAFLASH;
-    }
-    else if(!strcmp((char*)command, "touch"))
-    {
-        return_code = COMMAND_TOUCH;
-    }
-    else if(!strcmp((char*)command, "sdcard"))
-    {
-        return_code = COMMAND_SDCARD;
-    }
-    else if(!strcmp((char*)command, "network"))
-    {
-        return_code = COMMAND_NETWORK;
     }
     else
     {
@@ -980,13 +614,10 @@ static void sci_callback(void *pArgs)
     static BaseType_t xHigherPriorityTaskWoken;
 
     args = (sci_cb_args_t *)pArgs;
-    xHigherPriorityTaskWoken = pdFALSE;
 
     if (args->event == SCI_EVT_RX_CHAR)
     {
-        /* v1.0.2 dataflash CLI used the queued receive path below. The current
-         * args->byte shortcut works for short commands but long provisioning
-         * writes regress, so restore the historical RX flow first. */
+        /* From RXI interrupt; received character data is in args->byte */
         nop();
         sci_err = R_SCI_Receive(sci_handle, &tmp, 1);
         if(sci_err == SCI_SUCCESS)
