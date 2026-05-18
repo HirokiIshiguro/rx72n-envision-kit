@@ -109,9 +109,7 @@ Private global variables and functions
 ******************************************************************************/
 static void my_sci_callback(void *pArgs);
 
-/* Handle storage.
- * SCI7/CN6 is treated as a log-only output port in this workspace.
- * Incoming characters on this port must never be interpreted as CLI input. */
+/* Handle storage. */
 sci_hdl_t     my_sci_handle;
 
 /*****************************************************************************
@@ -142,8 +140,7 @@ void uart_config(void)
     /* OPEN ASYNC CHANNEL
     *  Provide address of the configure structure,
     *  the callback function to be assigned,
-    *  and the location for the handle to be stored.
-    *  The callback explicitly discards RX data so CN6/SCI7 stays log-only. */
+    *  and the location for the handle to be stored.*/
     my_sci_err = R_SCI_Open(SCI_CH_serial_term, SCI_MODE_ASYNC, &my_sci_config, my_sci_callback, &my_sci_handle);
 
     /* If there were an error this would demonstrate error detection of API calls. */
@@ -170,29 +167,32 @@ static void my_sci_callback(void *pArgs)
 
     if (SCI_EVT_RX_CHAR == p_args->event)
     {
-        /* CN6/SCI7 is log-only. Drop any incoming bytes so Enter or other
-         * terminal input cannot be repurposed as a command channel. */
-        R_SCI_Control(my_sci_handle, SCI_CMD_RX_Q_FLUSH, NULL);
+        /* From RXI interrupt; received character data is in p_args->byte */
+    	R_BSP_NOP();
     }
     else if (SCI_EVT_RXBUF_OVFL == p_args->event)
     {
-        /* Log-only port: clear any buffered RX garbage instead of handling it. */
-        R_SCI_Control(my_sci_handle, SCI_CMD_RX_Q_FLUSH, NULL);
+        /* From RXI interrupt; rx queue is full; 'lost' data is in p_args->byte
+           You will need to increase buffer size or reduce baud rate */
+    	R_BSP_NOP();
     }
     else if (SCI_EVT_OVFL_ERR == p_args->event)
     {
-        /* Keep the log port stateless on RX errors. */
-        R_SCI_Control(my_sci_handle, SCI_CMD_RX_Q_FLUSH, NULL);
+        /* From receiver overflow error interrupt; error data is in p_args->byte
+           Error condition is cleared in calling interrupt routine */
+    	R_BSP_NOP();
     }
     else if (SCI_EVT_FRAMING_ERR == p_args->event)
     {
-        /* Keep the log port stateless on RX errors. */
-        R_SCI_Control(my_sci_handle, SCI_CMD_RX_Q_FLUSH, NULL);
+        /* From receiver framing error interrupt; error data is in p_args->byte
+           Error condition is cleared in calling interrupt routine */
+    	R_BSP_NOP();
     }
     else if (SCI_EVT_PARITY_ERR == p_args->event)
     {
-        /* Keep the log port stateless on RX errors. */
-        R_SCI_Control(my_sci_handle, SCI_CMD_RX_Q_FLUSH, NULL);
+        /* From receiver parity error interrupt; error data is in p_args->byte
+           Error condition is cleared in calling interrupt routine */
+    	R_BSP_NOP();
     }
     else
     {
